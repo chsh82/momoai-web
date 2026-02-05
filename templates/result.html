@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}첨삭 결과 - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
+        ← 메인으로 돌아가기
+    </a>
+</div>
+
+<div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">✅ 첨삭 완료</h2>
+            <p class="text-gray-600 mt-2">학생: <span class="font-semibold">{{ student_name }}</span> ({{ grade }})</p>
+        </div>
+        <div class="space-x-2">
+            <a href="/api/download/{{ html_filename }}"
+               class="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+                📄 HTML 다운로드
+            </a>
+            {% if pdf_path %}
+            <a href="/api/download/{{ pdf_path | basename }}"
+               class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+                📑 PDF 다운로드
+            </a>
+            {% else %}
+            <button onclick="generatePDF('{{ task_id }}')" id="pdfBtn"
+                    class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+                📑 PDF 생성
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="border-t pt-6">
+        <div id="htmlPreview" class="prose max-w-none">
+            {{ html_content | safe }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function generatePDF(taskId) {
+        const btn = document.getElementById('pdfBtn');
+        btn.disabled = true;
+        btn.textContent = 'PDF 생성 중...';
+
+        try {
+            const response = await fetch(`/api/generate_pdf/${taskId}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Reload to show PDF download button
+                location.reload();
+            } else {
+                alert('PDF 생성 중 오류가 발생했습니다: ' + result.error);
+                btn.disabled = false;
+                btn.textContent = '📑 PDF 생성';
+            }
+        } catch (error) {
+            alert('PDF 생성 중 오류가 발생했습니다: ' + error);
+            btn.disabled = false;
+            btn.textContent = '📑 PDF 생성';
+        }
+    }
+</script>
+{% endblock %}

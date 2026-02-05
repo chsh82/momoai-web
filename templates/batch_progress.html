@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}일괄 첨삭 진행 중 - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-lg p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">⏳ 일괄 첨삭 진행 중...</h2>
+
+    <!-- Progress Bar -->
+    <div class="mb-8">
+        <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span id="progressText">진행 중...</span>
+            <span id="progressPercent">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-4">
+            <div id="progressBar" class="progress-bar bg-blue-600 h-4 rounded-full" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Current Processing -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p class="text-sm text-blue-700 mb-1">현재 처리 중:</p>
+        <p id="currentStudent" class="text-lg font-bold text-blue-900">대기 중...</p>
+    </div>
+
+    <!-- Completed List -->
+    <div>
+        <h3 class="text-lg font-bold text-gray-800 mb-4">✅ 완료된 학생</h3>
+        <div id="completedList" class="space-y-2">
+            <p class="text-gray-500 text-sm">아직 완료된 항목이 없습니다.</p>
+        </div>
+    </div>
+
+    <!-- Estimated Time -->
+    <div class="mt-6 text-center text-sm text-gray-500">
+        <p>💡 학생당 평균 1-2분 소요됩니다.</p>
+    </div>
+</div>
+
+<script>
+    const batchId = '{{ batch_id }}';
+    let pollInterval;
+
+    async function checkStatus() {
+        try {
+            const response = await fetch(`/api/batch_status/${batchId}`);
+            const status = await response.json();
+
+            // Update progress
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressText = document.getElementById('progressText');
+
+            progressBar.style.width = status.progress + '%';
+            progressPercent.textContent = status.progress + '%';
+            progressText.textContent = `${status.current} / ${status.total} 완료`;
+
+            // Update current student
+            if (status.current_student) {
+                document.getElementById('currentStudent').textContent = status.current_student;
+            }
+
+            // Update completed list
+            if (status.completed && status.completed.length > 0) {
+                const completedList = document.getElementById('completedList');
+                completedList.innerHTML = status.completed.map(item => `
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold text-gray-800">${item.student_name} (${item.grade})</p>
+                        </div>
+                        <div class="space-x-2">
+                            <a href="/api/download/${item.html_filename}"
+                               class="inline-block bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded transition-all">
+                                HTML
+                            </a>
+                            ${item.pdf_filename ?
+                                `<a href="/api/download/${item.pdf_filename}"
+                                    class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded transition-all">
+                                    PDF
+                                 </a>` :
+                                `<button onclick="generateBatchPDF('${batchId}', ${item.index})"
+                                    id="pdf-btn-${item.index}"
+                                    class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded transition-all">
+                                    PDF 생성
+                                 </button>`
+                            }
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Check if completed
+            if (status.status === 'completed') {
+                clearInterval(pollInterval);
+                window.location.href = `/batch/complete/${batchId}`;
+            }
+
+            // Check if failed
+            if (status.status === 'failed') {
+                clearInterval(pollInterval);
+                alert('일괄 처리 중 오류가 발생했습니다.');
+            }
+
+        } catch (error) {
+            console.error('상태 확인 중 오류:', error);
+        }
+    }
+
+    async function generateBatchPDF(batchId, index) {
+        const btn = document.getElementById(`pdf-btn-${index}`);
+        btn.disabled = true;
+        btn.textContent = '생성 중...';
+
+        try {
+            const response = await fetch(`/api/generate_batch_pdf/${batchId}/${index}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                checkStatus(); // Refresh list
+            } else {
+                alert('PDF 생성 중 오류가 발생했습니다: ' + result.error);
+                btn.disabled = false;
+                btn.textContent = 'PDF 생성';
+            }
+        } catch (error) {
+            alert('PDF 생성 중 오류가 발생했습니다: ' + error);
+            btn.disabled = false;
+            btn.textContent = 'PDF 생성';
+        }
+    }
+
+    // Start polling
+    checkStatus();
+    pollInterval = setInterval(checkStatus, 2000); // Poll every 2 seconds
+</script>
+{% endblock %}

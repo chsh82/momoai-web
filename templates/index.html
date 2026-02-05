@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Tabs -->
+<div class="mb-6">
+    <div class="flex space-x-2">
+        <button id="singleTab" class="tab-active px-6 py-3 rounded-t-lg font-semibold transition-all" onclick="switchTab('single')">
+            📝 단일 첨삭
+        </button>
+        <button id="batchTab" class="tab-inactive px-6 py-3 rounded-t-lg font-semibold transition-all" onclick="switchTab('batch')">
+            📚 일괄 첨삭
+        </button>
+    </div>
+</div>
+
+<!-- Single Mode -->
+<div id="singleMode" class="bg-white rounded-lg shadow-lg p-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">📝 단일 첨삭 모드</h2>
+
+    <form id="singleForm" onsubmit="submitSingleReview(event)">
+        <div class="space-y-6">
+            <!-- 학생 이름 -->
+            <div>
+                <label for="studentName" class="block text-sm font-medium text-gray-700 mb-2">
+                    학생 이름 <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="studentName" name="studentName" required
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="예: 홍길동">
+            </div>
+
+            <!-- 학년 -->
+            <div>
+                <label for="grade" class="block text-sm font-medium text-gray-700 mb-2">
+                    학년 <span class="text-red-500">*</span>
+                </label>
+                <select id="grade" name="grade" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">선택하세요</option>
+                    <option value="초등">초등</option>
+                    <option value="중등">중등</option>
+                    <option value="고등">고등</option>
+                </select>
+            </div>
+
+            <!-- 논술문 -->
+            <div>
+                <label for="essayText" class="block text-sm font-medium text-gray-700 mb-2">
+                    논술문 <span class="text-red-500">*</span>
+                </label>
+                <textarea id="essayText" name="essayText" required rows="12"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="학생이 작성한 논술문을 입력하세요..."></textarea>
+                <p class="mt-2 text-sm text-gray-500">💡 논술문을 입력하면 AI가 자동으로 첨삭해드립니다.</p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" id="submitBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    🚀 첨삭하기
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md">
+            <div class="flex flex-col items-center">
+                <div class="spinner mb-4"></div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">첨삭 중...</h3>
+                <p class="text-gray-600 text-center">AI가 논술문을 분석하고 있습니다.<br>1-2분 정도 소요됩니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Mode -->
+<div id="batchMode" class="bg-white rounded-lg shadow-lg p-8 hidden">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">📚 일괄 첨삭 모드</h2>
+
+    <form id="batchForm" onsubmit="submitBatchReview(event)">
+        <div class="space-y-6">
+            <!-- 파일 업로드 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    엑셀/CSV 파일 업로드 <span class="text-red-500">*</span>
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-all">
+                    <input type="file" id="fileInput" name="file" accept=".xlsx,.csv" required
+                           class="hidden" onchange="updateFileName()">
+                    <label for="fileInput" class="cursor-pointer">
+                        <div class="text-gray-600">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="mt-2 text-sm font-medium">파일을 드래그하거나 클릭하세요</p>
+                            <p id="fileName" class="mt-1 text-xs text-gray-500">지원 형식: .xlsx, .csv</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 파일 형식 안내 -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="font-bold text-blue-800 mb-2">📋 파일 형식 안내</h4>
+                <ul class="text-sm text-blue-700 space-y-1">
+                    <li>• 필수 열: <code class="bg-white px-2 py-1 rounded">학생명</code>, <code class="bg-white px-2 py-1 rounded">학년</code>, <code class="bg-white px-2 py-1 rounded">논술문</code></li>
+                    <li>• 학년: "초등", "중등", "고등" 중 하나</li>
+                    <li>• 지원 형식: .xlsx (엑셀), .csv</li>
+                </ul>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" id="batchSubmitBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    🚀 일괄 첨삭 시작
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function switchTab(mode) {
+        const singleTab = document.getElementById('singleTab');
+        const batchTab = document.getElementById('batchTab');
+        const singleMode = document.getElementById('singleMode');
+        const batchMode = document.getElementById('batchMode');
+
+        if (mode === 'single') {
+            singleTab.classList.add('tab-active');
+            singleTab.classList.remove('tab-inactive');
+            batchTab.classList.add('tab-inactive');
+            batchTab.classList.remove('tab-active');
+            singleMode.classList.remove('hidden');
+            batchMode.classList.add('hidden');
+        } else {
+            batchTab.classList.add('tab-active');
+            batchTab.classList.remove('tab-inactive');
+            singleTab.classList.add('tab-inactive');
+            singleTab.classList.remove('tab-active');
+            batchMode.classList.remove('hidden');
+            singleMode.classList.add('hidden');
+        }
+    }
+
+    function updateFileName() {
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        if (fileInput.files.length > 0) {
+            fileName.textContent = fileInput.files[0].name;
+            fileName.classList.add('text-blue-600', 'font-medium');
+        }
+    }
+
+    async function submitSingleReview(event) {
+        event.preventDefault();
+
+        const studentName = document.getElementById('studentName').value.trim();
+        const grade = document.getElementById('grade').value;
+        const essayText = document.getElementById('essayText').value.trim();
+
+        if (!studentName || !grade || !essayText) {
+            alert('모든 필드를 입력해주세요.');
+            return;
+        }
+
+        // Show loading overlay
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        document.getElementById('submitBtn').disabled = true;
+
+        try {
+            const response = await fetch('/api/review', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    student_name: studentName,
+                    grade: grade,
+                    essay_text: essayText
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Redirect to result page
+                window.location.href = `/result/${result.task_id}`;
+            } else {
+                alert('오류: ' + result.error);
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                document.getElementById('submitBtn').disabled = false;
+            }
+        } catch (error) {
+            alert('첨삭 중 오류가 발생했습니다: ' + error);
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            document.getElementById('submitBtn').disabled = false;
+        }
+    }
+
+    async function submitBatchReview(event) {
+        event.preventDefault();
+
+        const fileInput = document.getElementById('fileInput');
+        if (!fileInput.files.length) {
+            alert('파일을 선택해주세요.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        document.getElementById('batchSubmitBtn').disabled = true;
+        document.getElementById('batchSubmitBtn').textContent = '업로드 중...';
+
+        try {
+            const response = await fetch('/api/batch_review', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Redirect to progress page
+                window.location.href = `/batch/progress/${result.batch_id}`;
+            } else {
+                alert('오류: ' + result.error);
+                document.getElementById('batchSubmitBtn').disabled = false;
+                document.getElementById('batchSubmitBtn').textContent = '🚀 일괄 첨삭 시작';
+            }
+        } catch (error) {
+            alert('파일 업로드 중 오류가 발생했습니다: ' + error);
+            document.getElementById('batchSubmitBtn').disabled = false;
+            document.getElementById('batchSubmitBtn').textContent = '🚀 일괄 첨삭 시작';
+        }
+    }
+</script>
+{% endblock %}

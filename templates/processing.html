@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}첨삭 중... - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-lg p-8 text-center">
+    <div class="spinner mx-auto mb-6"></div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">첨삭 중...</h2>
+    <p class="text-gray-600 mb-8">AI가 논술문을 분석하고 있습니다.<br>잠시만 기다려주세요.</p>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+        <p class="text-sm text-blue-700">
+            💡 일반적으로 1-2분 정도 소요됩니다.<br>
+            페이지를 새로고침하여 상태를 확인할 수 있습니다.
+        </p>
+    </div>
+
+    <div class="mt-6">
+        <button onclick="location.reload()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+            🔄 새로고침
+        </button>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh every 5 seconds
+    setTimeout(() => {
+        location.reload();
+    }, 5000);
+</script>
+{% endblock %}
