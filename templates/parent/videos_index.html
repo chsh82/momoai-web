@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}학습 동영상 - 자녀 선택 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🎬 학습 동영상{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">자녀 열람 가능 동영상</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">학습 동영상 - 자녀 선택</h2>
+
+    {% if children %}
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6">
+                <p class="text-gray-600 mb-6">자녀를 선택하여 이용 가능한 학습 동영상을 확인하세요.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for child in children %}
+                    <a href="{{ url_for('parent.child_videos', student_id=child.student_id) }}"
+                       class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition duration-200">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-blue-100 text-blue-600 text-3xl w-16 h-16 rounded-full flex items-center justify-center">
+                                👤
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-gray-800 text-lg mb-1">{{ child.name }}</h3>
+                                <p class="text-gray-600 text-sm">{{ child.grade }}</p>
+                                <p class="text-blue-600 text-xs mt-1">티어: {{ child.tier }}</p>
+                            </div>
+                            <div class="text-gray-400">
+                                →
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <p class="text-gray-500 text-lg">등록된 자녀가 없습니다.</p>
+            <p class="text-gray-400 text-sm mt-2">관리자에게 문의하여 자녀를 등록해주세요.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

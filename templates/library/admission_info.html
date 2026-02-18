@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}입시정보 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 flex justify-between items-center">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">📋 입시정보</h2>
+            <p class="text-gray-600 mt-2">중요한 입시 정보를 확인하세요</p>
+        </div>
+        {% if current_user.has_permission_level(2) %}
+        <a href="{{ url_for('library.create_admission_info') }}"
+           class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2">
+            <span class="text-xl">✏️</span>
+            <span>글 작성하기</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Category Filter -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('library.admission_info') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if not current_category %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                전체
+            </a>
+            <a href="{{ url_for('library.admission_info', category='university') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if current_category == 'university' %}bg-blue-100 text-blue-800 border-2 border-blue-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                🎓 대학입시
+            </a>
+            <a href="{{ url_for('library.admission_info', category='high_school') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if current_category == 'high_school' %}bg-green-100 text-green-800 border-2 border-green-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                🏫 고등학교
+            </a>
+            <a href="{{ url_for('library.admission_info', category='policy') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if current_category == 'policy' %}bg-purple-100 text-purple-800 border-2 border-purple-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                📜 정책
+            </a>
+            <a href="{{ url_for('library.admission_info', category='schedule') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if current_category == 'schedule' %}bg-yellow-100 text-yellow-800 border-2 border-yellow-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                📅 일정
+            </a>
+            <a href="{{ url_for('library.admission_info', category='tips') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if current_category == 'tips' %}bg-pink-100 text-pink-800 border-2 border-pink-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                💡 입시 팁
+            </a>
+            <a href="{{ url_for('library.admission_info', category='other') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if current_category == 'other' %}bg-gray-200 text-gray-800 border-2 border-gray-400{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                🎯 기타
+            </a>
+        </div>
+    </div>
+
+    <!-- Posts List -->
+    {% if posts.items %}
+    <div class="space-y-4 mb-8">
+        {% for post in posts.items %}
+        <a href="{{ url_for('library.admission_info_detail', post_id=post.post_id) }}"
+           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg hover:border-blue-500 border border-transparent transition duration-200">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-3">
+                        {% if post.is_important %}
+                        <span class="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full animate-pulse">⚠️ 중요</span>
+                        {% endif %}
+
+                        {% if post.category == 'university' %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">🎓 대학입시</span>
+                        {% elif post.category == 'high_school' %}
+                        <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full">🏫 고등학교</span>
+                        {% elif post.category == 'policy' %}
+                        <span class="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">📜 정책</span>
+                        {% elif post.category == 'schedule' %}
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full">📅 일정</span>
+                        {% elif post.category == 'tips' %}
+                        <span class="bg-pink-100 text-pink-800 text-xs font-bold px-3 py-1 rounded-full">💡 입시 팁</span>
+                        {% else %}
+                        <span class="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1 rounded-full">🎯 기타</span>
+                        {% endif %}
+
+                        {% if post.target_grades %}
+                        <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full">
+                            👥 {{ post.target_grades[:20] }}{% if post.target_grades|length > 20 %}...{% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 hover:text-blue-600 transition duration-200">
+                        {{ post.title }}
+                    </h3>
+
+                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                        <span>📅 {{ post.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span>👁️ {{ post.view_count }}</span>
+                        {% if post.publish_date %}
+                        <span>🗓️ 게시: {{ post.publish_date.strftime('%Y-%m-%d') }}</span>
+                        {% endif %}
+                        {% if post.expire_date %}
+                        <span>⏰ 만료: {{ post.expire_date.strftime('%Y-%m-%d') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if posts.pages > 1 %}
+    <div class="flex justify-center items-center space-x-2">
+        {% if posts.has_prev %}
+        <a href="{{ url_for('library.admission_info', category=current_category, page=posts.prev_num) }}"
+           class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
+            이전
+        </a>
+        {% endif %}
+
+        {% for page_num in posts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == posts.page %}
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-md">{{ page_num }}</span>
+                {% else %}
+                <a href="{{ url_for('library.admission_info', category=current_category, page=page_num) }}"
+                   class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
+                    {{ page_num }}
+                </a>
+                {% endif %}
+            {% else %}
+                <span class="px-2 py-2">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if posts.has_next %}
+        <a href="{{ url_for('library.admission_info', category=current_category, page=posts.next_num) }}"
+           class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
+            다음
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <span class="text-6xl mb-4 block">📋</span>
+        <p class="text-gray-500 text-lg">등록된 입시정보가 없습니다.</p>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="mt-8 text-center">
+        <a href="{{ url_for('library.index') }}"
+           class="inline-block px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
+            ← 학습 자료실 메인으로
+        </a>
+    </div>
+</div>
+{% endblock %}

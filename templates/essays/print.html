@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ essay.title or student.name + '의 과제' }} - 첨삭 결과</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 한글 폰트 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        @media print {
+            @page {
+                margin: 2cm;
+            }
+
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            /* 인쇄 시 페이지 나누기 방지 */
+            .no-break {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white p-8">
+    <!-- 헤더 정보 -->
+    <div class="mb-8 pb-4 border-b-2 border-gray-300 no-break">
+        <h1 class="text-3xl font-bold text-gray-800 mb-3">
+            {{ essay.title or student.name + '의 과제' }}
+        </h1>
+        <div class="flex items-center gap-4 text-sm text-gray-600">
+            <span>👤 {{ student.name }} ({{ student.grade }})</span>
+            <span>👨‍🏫 {{ essay.user.name }} 강사</span>
+            <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일') }}</span>
+            {% if essay.completed_at %}
+            <span>✅ 완료: {{ essay.completed_at.strftime('%Y년 %m월 %d일') }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 첨삭 결과 내용 -->
+    <div class="essay-content">
+        {{ html_content|safe }}
+    </div>
+
+    <!-- 자동 인쇄 -->
+    <script>
+        // 페이지 로드 후 자동으로 인쇄 대화상자 표시
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+
+        // 인쇄 후 창 닫기 (사용자가 취소하거나 인쇄 완료 시)
+        window.onafterprint = function() {
+            // 사용자에게 확인 후 창 닫기
+            setTimeout(function() {
+                if (confirm('인쇄가 완료되었습니까? 이 창을 닫으시겠습니까?')) {
+                    window.close();
+                }
+            }, 100);
+        };
+    </script>
+</body>
+</html>

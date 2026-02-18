@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}문자 발송 내역 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">📱 문자 발송 내역</h2>
+            <p class="text-gray-600 mt-1">SMS/LMS 발송 내역을 확인할 수 있습니다.</p>
+        </div>
+        <a href="{{ url_for('admin.send_message') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            + 문자 발송
+        </a>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 발송 건수</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total_sent }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">📨</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 수신자 수</p>
+                    <p class="text-3xl font-bold text-green-600">{{ total_recipients }}</p>
+                </div>
+                <div class="text-green-600 text-4xl">👥</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 내역</p>
+                    <p class="text-3xl font-bold text-purple-600">{{ messages|length }}</p>
+                </div>
+                <div class="text-purple-600 text-4xl">📋</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 필터 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" class="flex flex-wrap gap-3">
+            <select name="type" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">전체 유형</option>
+                <option value="SMS" {% if type_filter == 'SMS' %}selected{% endif %}>SMS</option>
+                <option value="LMS" {% if type_filter == 'LMS' %}selected{% endif %}>LMS</option>
+            </select>
+
+            <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">전체 상태</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>대기 중</option>
+                <option value="sending" {% if status_filter == 'sending' %}selected{% endif %}>발송 중</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>실패</option>
+            </select>
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
+                필터 적용
+            </button>
+
+            {% if status_filter or type_filter %}
+            <a href="{{ url_for('admin.messages') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition duration-200">
+                필터 초기화
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- 발송 내역 목록 -->
+    {% if messages %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-100 border-b border-gray-300">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">유형</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">제목/내용</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">수신자</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">성공/실패</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">상태</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">발송일시</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">작업</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for message in messages %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if message.message_type == 'SMS' %}bg-blue-100 text-blue-800
+                                {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {{ message.message_type }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div>
+                                {% if message.subject %}
+                                <p class="font-medium text-gray-800 mb-1">{{ message.subject }}</p>
+                                {% endif %}
+                                <p class="text-sm text-gray-600 truncate max-w-md">
+                                    {{ message.content[:50] }}{% if message.content|length > 50 %}...{% endif %}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ message.char_count }}자 ({{ message.content_length }}바이트)
+                                </p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="font-medium text-gray-800">{{ message.total_recipients }}명</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="text-green-600 font-medium">{{ message.success_count }}</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="text-red-600 font-medium">{{ message.failed_count }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if message.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif message.status == 'sending' %}bg-yellow-100 text-yellow-800
+                                {% elif message.status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if message.status == 'completed' %}완료
+                                {% elif message.status == 'sending' %}발송 중
+                                {% elif message.status == 'failed' %}실패
+                                {% elif message.is_scheduled %}예약됨
+                                {% else %}대기 중{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm text-gray-600">
+                            {% if message.sent_at %}
+                            {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% elif message.is_scheduled and message.scheduled_at %}
+                            <span class="text-orange-600">
+                                {{ message.scheduled_at.strftime('%Y-%m-%d %H:%M') }} 예약
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <a href="{{ url_for('admin.message_detail', message_id=message.message_id) }}"
+                               class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                상세보기
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📱</div>
+        <h3 class="text-xl font-medium text-gray-800 mb-2">발송 내역이 없습니다</h3>
+        <p class="text-gray-600 mb-6">첫 번째 문자를 발송해보세요!</p>
+        <a href="{{ url_for('admin.send_message') }}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            문자 발송하기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

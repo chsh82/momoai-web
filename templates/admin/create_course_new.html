@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}새 수업 생성 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}➕ 새 수업 만들기{% endblock %}
+
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.courses') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 수업 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">📚 새 수업 생성</h2>
+        <p class="text-gray-600 mt-1">수업 정보를 입력하면 수업명이 자동으로 생성됩니다.</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-6 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-300{% elif category == 'success' %}bg-green-100 text-green-700 border border-green-300{% elif category == 'warning' %}bg-yellow-100 text-yellow-700 border border-yellow-300{% else %}bg-blue-100 text-blue-700 border border-blue-300{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 폼 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6">
+            <form method="POST" id="courseForm">
+                {{ form.hidden_tag() }}
+
+                <!-- Form-level errors -->
+                {% if form.errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg">
+                    <h4 class="text-red-800 font-medium mb-2">⚠️ 입력 오류가 있습니다:</h4>
+                    <ul class="list-disc list-inside text-red-700 text-sm">
+                        {% for field_name, errors in form.errors.items() %}
+                            {% for error in errors %}
+                            <li>{{ field_name }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- 1. 학년 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        1. 학년 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.grade(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="generateCourseName(); autoSetEndTime()") }}
+                    {% if form.grade.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.grade.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 2. 수업 타입 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        2. 수업 타입 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.course_type(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="generateCourseName(); autoSetEndTime()") }}
+                    {% if form.course_type.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.course_type.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 3. 교사 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        3. 담당 강사 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.teacher_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="generateCourseName()") }}
+                    {% if form.teacher_id.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.teacher_id.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 4. 종료 여부 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        4. 종료 여부 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.is_terminated(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.is_terminated.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.is_terminated.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 5. 시작일 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        5. 시작일 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.start_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="autoSelectWeekday(); autoSetEndDate()") }}
+                    {% if form.start_date.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.start_date.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 6. 종료일 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        6. 종료일 <span class="text-red-500">*</span>
+                        <span class="text-gray-500 text-xs">(시작일 기준으로 자동 설정되며, 수동 변경 가능합니다)</span>
+                    </label>
+                    {{ form.end_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.end_date.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.end_date.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 7. 요일 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        7. 요일 <span class="text-red-500">*</span>
+                        <span class="text-gray-500 text-xs">(시작일 기준으로 자동 선택되며, 수동 변경 가능합니다)</span>
+                    </label>
+                    {{ form.weekday(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="weekdaySelect", onchange="generateCourseName()") }}
+                    {% if form.weekday.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.weekday.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 8. 시작 시간 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        8. 시작 시간 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.start_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="autoSetEndTime(); generateCourseName()") }}
+                    {% if form.start_time.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.start_time.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 9. 종료 시간 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        9. 종료 시간 <span class="text-red-500">*</span>
+                        <span class="text-gray-500 text-xs">(수업 타입과 학년에 따라 자동 설정, 변경 가능)</span>
+                    </label>
+                    {{ form.end_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        베이직: +30분 | 프리미엄: +60분 | 정규반: 초등 +120분, 중등 +150분 | 하크니스: +150분
+                    </p>
+                    {% if form.end_time.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.end_time.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 10. 사용 여부 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        10. 사용 여부 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.availability_status(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.availability_status.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.availability_status.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 11. 보강신청 가능여부 -->
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        {{ form.makeup_class_allowed(class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
+                        <span class="text-sm font-medium text-gray-700">11. 보강신청 가능 (기본값: 가능)</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-6">체크하면 보강수업 신청이 가능합니다</p>
+                </div>
+
+                <!-- 자동 생성되는 수업명 미리보기 -->
+                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-900 mb-2">📝 자동 생성될 수업명</h4>
+                    <p id="previewCourseName" class="text-lg font-bold text-blue-800">
+                        정보를 입력하면 수업명이 자동으로 생성됩니다
+                    </p>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        ✓ 등록 (신규 수업 개설)
+                    </button>
+                    <button type="reset"
+                            onclick="resetForm()"
+                            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
+                        ↺ Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// 요일 자동 선택 (시작일 기준)
+function autoSelectWeekday() {
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    const weekdaySelect = document.getElementById('weekdaySelect');
+
+    if (startDateInput && startDateInput.value) {
+        const date = new Date(startDateInput.value);
+        const weekday = date.getDay();  // 0=일요일, 1=월요일, ..., 6=토요일
+
+        // JavaScript의 getDay()는 일요일이 0이므로 변환 필요
+        // 우리 시스템: 0=월요일, 6=일요일
+        let adjustedWeekday = weekday - 1;
+        if (adjustedWeekday === -1) adjustedWeekday = 6;  // 일요일
+
+        weekdaySelect.value = adjustedWeekday;
+    }
+
+    generateCourseName();
+}
+
+// 종료일 자동 설정 (시작일과 동일하게)
+function autoSetEndDate() {
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    const endDateInput = document.querySelector('input[name="end_date"]');
+
+    if (startDateInput && startDateInput.value) {
+        // 종료일을 시작일과 동일하게 설정
+        endDateInput.value = startDateInput.value;
+    }
+}
+
+// 종료 시간 자동 설정 (수업 타입과 학년에 따라)
+function autoSetEndTime() {
+    const startTimeInput = document.querySelector('input[name="start_time"]');
+    const endTimeInput = document.querySelector('input[name="end_time"]');
+    const courseTypeSelect = document.querySelector('select[name="course_type"]');
+    const gradeSelect = document.querySelector('select[name="grade"]');
+
+    if (startTimeInput && startTimeInput.value) {
+        const [hours, minutes] = startTimeInput.value.split(':');
+        const startDate = new Date();
+        startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+        // 수업 타입과 학년에 따른 시간 계산
+        let minutesToAdd = 60;  // 기본값
+
+        const courseType = courseTypeSelect ? courseTypeSelect.value : '';
+        const grade = gradeSelect ? gradeSelect.value : '';
+
+        if (courseType === '베이직') {
+            minutesToAdd = 30;
+        } else if (courseType === '프리미엄') {
+            minutesToAdd = 60;
+        } else if (courseType === '정규반') {
+            // 초등: 120분, 중등/고등: 150분
+            if (grade.startsWith('초')) {
+                minutesToAdd = 120;
+            } else {
+                minutesToAdd = 150;
+            }
+        } else if (courseType === '하크니스') {
+            minutesToAdd = 150;
+        } else {
+            // 체험단, 보강수업, 기타: 60분
+            minutesToAdd = 60;
+        }
+
+        // 시간 추가
+        startDate.setMinutes(startDate.getMinutes() + minutesToAdd);
+
+        const endHours = String(startDate.getHours()).padStart(2, '0');
+        const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
+
+        endTimeInput.value = `${endHours}:${endMinutes}`;
+    }
+}
+
+// 수업명 자동 생성
+function generateCourseName() {
+    const grade = document.querySelector('select[name="grade"]').value;
+    const courseType = document.querySelector('select[name="course_type"]').value;
+    const teacherId = document.querySelector('select[name="teacher_id"]');
+    const teacherName = teacherId.options[teacherId.selectedIndex].text;
+    const weekdaySelect = document.getElementById('weekdaySelect');
+    const startTimeInput = document.querySelector('input[name="start_time"]');
+
+    // 요일 한글 변환
+    const weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
+    const weekdayText = weekdaySelect && weekdaySelect.value !== '' ? weekdayNames[parseInt(weekdaySelect.value)] : '';
+
+    // 시작 시간
+    const startTime = startTimeInput ? startTimeInput.value : '';
+
+    if (grade && courseType && teacherName && teacherName !== '-- 강사 선택 --') {
+        // 형식: [학년] [수업타입] [요일] [시간] - [강사명]
+        // 예: 초1 베이직 월 14:00 - 김선생
+        let courseName = `${grade} ${courseType}`;
+
+        if (weekdayText) {
+            courseName += ` ${weekdayText}`;
+        }
+
+        if (startTime) {
+            courseName += ` ${startTime}`;
+        }
+
+        courseName += ` - ${teacherName}`;
+
+        document.getElementById('previewCourseName').textContent = courseName;
+    } else {
+        document.getElementById('previewCourseName').textContent = '정보를 입력하면 수업명이 자동으로 생성됩니다';
+    }
+}
+
+// 폼 리셋
+function resetForm() {
+    document.getElementById('courseForm').reset();
+    document.getElementById('previewCourseName').textContent = '정보를 입력하면 수업명이 자동으로 생성됩니다';
+}
+
+// 페이지 로드 시 현재 날짜 설정
+window.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    if (!startDateInput.value) {
+        startDateInput.value = today;
+        autoSelectWeekday();
+    }
+});
+</script>
+{% endblock %}

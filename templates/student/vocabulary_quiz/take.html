@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}어휘퀴즈 풀이 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Progress -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Level {{ session.level }}</span>
+            <span class="text-sm font-medium text-blue-600">{{ current_index + 1 }} / {{ total_count }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                 style="width: {{ ((current_index + 1) / total_count * 100)|round }}%"></div>
+        </div>
+    </div>
+
+    <!-- Question Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <div class="mb-6">
+            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full mb-4">
+                문제 {{ current_index + 1 }}
+            </span>
+            <h3 class="text-3xl font-bold text-gray-800 mb-4">{{ quiz.word }}</h3>
+            <p class="text-gray-600 text-lg">이 단어의 뜻은 무엇일까요?</p>
+        </div>
+
+        <!-- Options -->
+        <form id="quizForm" class="space-y-3">
+            <input type="hidden" name="quiz_id" value="{{ quiz.quiz_id }}">
+            {% for option in options %}
+            <label class="option-label block p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
+                <div class="flex items-center">
+                    <input type="radio" name="answer" value="{{ option }}" class="mr-4 w-5 h-5 text-blue-600">
+                    <span class="flex-1 text-gray-800">{{ option }}</span>
+                </div>
+            </label>
+            {% endfor %}
+        </form>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-4">
+        <a href="{{ url_for('student.vocabulary_quiz') }}"
+           class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-4 rounded-lg text-center transition duration-200">
+            포기하기
+        </a>
+        <button id="submitBtn"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg transition duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                disabled>
+            다음 문제
+        </button>
+    </div>
+</div>
+
+<!-- Result Modal -->
+<div id="resultModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <div id="correctResult" class="hidden text-center">
+            <div class="text-6xl mb-4">✅</div>
+            <h3 class="text-2xl font-bold text-green-600 mb-2">정답입니다!</h3>
+            <p class="text-gray-600 mb-6">잘하셨습니다.</p>
+        </div>
+        <div id="incorrectResult" class="hidden text-center">
+            <div class="text-6xl mb-4">❌</div>
+            <h3 class="text-2xl font-bold text-red-600 mb-2">틀렸습니다</h3>
+            <p class="text-gray-600 mb-2">정답은:</p>
+            <p class="text-lg font-bold text-gray-800 mb-6" id="correctAnswer"></p>
+        </div>
+        <button id="nextBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200">
+            계속하기
+        </button>
+    </div>
+</div>
+
+<script>
+const form = document.getElementById('quizForm');
+const submitBtn = document.getElementById('submitBtn');
+const resultModal = document.getElementById('resultModal');
+const correctResult = document.getElementById('correctResult');
+const incorrectResult = document.getElementById('incorrectResult');
+const nextBtn = document.getElementById('nextBtn');
+
+// Enable submit button when an option is selected
+form.addEventListener('change', () => {
+    submitBtn.disabled = false;
+});
+
+// Submit answer
+submitBtn.addEventListener('click', async () => {
+    const formData = new FormData(form);
+
+    if (!formData.get('answer')) {
+        alert('답을 선택해주세요.');
+        return;
+    }
+
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch('{{ url_for("student.vocabulary_quiz_submit", session_id=session.session_id) }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Show result modal
+            resultModal.classList.remove('hidden');
+
+            if (result.is_correct) {
+                correctResult.classList.remove('hidden');
+                incorrectResult.classList.add('hidden');
+            } else {
+                incorrectResult.classList.remove('hidden');
+                correctResult.classList.add('hidden');
+                document.getElementById('correctAnswer').textContent = '{{ quiz.correct_answer }}';
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('오류가 발생했습니다.');
+        submitBtn.disabled = false;
+    }
+});
+
+// Go to next question
+nextBtn.addEventListener('click', () => {
+    const nextIndex = {{ current_index + 1 }};
+    const totalCount = {{ total_count }};
+
+    if (nextIndex >= totalCount) {
+        // Go to result page
+        window.location.href = '{{ url_for("student.vocabulary_quiz_result", session_id=session.session_id) }}';
+    } else {
+        // Go to next question
+        window.location.href = '{{ url_for("student.vocabulary_quiz_take", session_id=session.session_id) }}?q=' + nextIndex;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}상담 기록 - {{ consultation.title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.consultations') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">상담 기록</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 왼쪽: 상담 내용 -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- 기본 정보 카드 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded">
+                                {{ consultation.major_category }}
+                            </span>
+                            {% if consultation.share_with_parents %}
+                            <span class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded">
+                                ✓ 학부모 공유
+                            </span>
+                            {% endif %}
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900">{{ consultation.title }}</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm border-t border-gray-200 pt-4 mt-4">
+                    <div>
+                        <span class="text-gray-500">학생:</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.student.name }} ({{ consultation.student.grade }})</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">상담자:</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.counselor.name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">상담일:</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">작성일:</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 상담 내용 카드 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">상담 내용</h4>
+                <div class="prose max-w-none whitespace-pre-wrap text-gray-700">
+                    {{ consultation.content }}
+                </div>
+            </div>
+
+            <!-- MBTI 기반 추천 (있는 경우) -->
+            {% if consultation.teaching_recommendations %}
+            <div class="bg-purple-50 border-2 border-purple-200 rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 기반 수업 추천</h4>
+                <div class="prose max-w-none whitespace-pre-wrap text-gray-700 text-sm">
+                    {{ consultation.teaching_recommendations }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 오른쪽: 요약 정보 -->
+        <div class="lg:col-span-1">
+            <!-- MBTI 정보 카드 -->
+            {% if consultation.student_mbti_type %}
+            <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-6 mb-6">
+                <h4 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 정보</h4>
+
+                <div class="bg-white rounded-lg p-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-purple-900">{{ consultation.recommended_teaching_style }}</div>
+                        <div class="text-sm text-purple-700 mt-1">{{ consultation.student_mbti_type }}</div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-purple-700">
+                    이 학생의 독서 논술 MBTI 검사 결과를 바탕으로 맞춤형 수업 추천이 생성되었습니다.
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                <h4 class="text-lg font-bold text-gray-700 mb-2">MBTI 정보 없음</h4>
+                <p class="text-sm text-gray-600">
+                    이 상담 기록에는 MBTI 기반 추천이 포함되어 있지 않습니다.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- 공유 상태 카드 -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">공유 설정</h4>
+
+                {% if consultation.share_with_parents %}
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-green-800">학부모 공유됨</div>
+                        {% if consultation.parent_shared_at %}
+                        <div class="text-xs text-gray-600">{{ consultation.parent_shared_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600">
+                    학부모가 자녀의 상담 기록과 MBTI 추천을 확인할 수 있습니다.
+                </p>
+                {% else %}
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-800">비공개</div>
+                        <div class="text-xs text-gray-600">강사/관리자만 열람</div>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600">
+                    학부모에게 공유되지 않은 상담 기록입니다.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

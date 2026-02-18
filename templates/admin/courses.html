@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}수업 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📚 수업 관리{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">전체 수업 목록</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">수업 관리</h2>
+        <a href="{{ url_for('admin.create_course') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 flex items-center gap-2">
+            <span class="text-xl">➕</span>
+            <span>새 수업 생성</span>
+        </a>
+    </div>
+
+    <!-- 필터 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
+                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>진행 중</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">담당 강사</label>
+                <select name="teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
+                        {{ teacher.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">등급</label>
+                <select name="tier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    <option value="A" {% if tier_filter == 'A' %}selected{% endif %}>A등급</option>
+                    <option value="B" {% if tier_filter == 'B' %}selected{% endif %}>B등급</option>
+                    <option value="C" {% if tier_filter == 'C' %}selected{% endif %}>C등급</option>
+                    <option value="VIP" {% if tier_filter == 'VIP' %}selected{% endif %}>VIP</option>
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                    필터 적용
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 수업 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        {% if courses %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수업 정보</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">담당 강사</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수강생</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">보강신청</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for course in courses %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="font-medium text-gray-800">{{ course.course_name }}</p>
+                                    {% if course.tier %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if course.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif course.tier == 'C' %}bg-green-100 text-green-800
+                                        {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ course.tier }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-500">{{ course.course_code }}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {{ course.teacher.name if course.teacher else '미배정' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button onclick="showStudentModal('{{ course.course_id }}')"
+                                    class="text-blue-600 hover:text-blue-800 font-medium hover:underline cursor-pointer">
+                                👥 {{ course.enrolled_count }}/{{ course.max_students }}
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {{ course.start_date.strftime('%Y-%m-%d') }}<br>
+                            ~ {{ course.end_date.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if course.status == 'active' %}bg-green-100 text-green-800
+                                {% elif course.status == 'completed' %}bg-gray-100 text-gray-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if course.status == 'active' %}진행 중
+                                {% elif course.status == 'completed' %}완료
+                                {% else %}취소{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if course.makeup_class_allowed %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                                ✓ 보강가능
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">
+                                ✗ 보강불가
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                상세보기 →
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <p class="text-gray-500 text-lg mb-4">등록된 수업이 없습니다.</p>
+            <a href="{{ url_for('admin.create_course') }}"
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                첫 수업 생성하기
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 학생 상세정보 모달 -->
+<div id="studentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-lg bg-white">
+        <!-- 모달 헤더 -->
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-2xl font-bold text-gray-800" id="modalCourseName">수강생 목록</h3>
+            <button onclick="closeStudentModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div id="modalLoading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p class="text-gray-600 mt-4">로딩 중...</p>
+        </div>
+
+        <!-- 학생 목록 -->
+        <div id="modalContent" class="hidden">
+            <!-- 통계 카드 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <p class="text-sm text-blue-600 mb-1">전체 수강생</p>
+                    <p class="text-2xl font-bold text-blue-800" id="totalStudents">0</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                    <p class="text-sm text-green-600 mb-1">수강 중</p>
+                    <p class="text-2xl font-bold text-green-800" id="activeStudents">0</p>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                    <p class="text-sm text-purple-600 mb-1">평균 출석률</p>
+                    <p class="text-2xl font-bold text-purple-800" id="avgAttendance">0%</p>
+                </div>
+                <div class="bg-yellow-50 rounded-lg p-4">
+                    <p class="text-sm text-yellow-600 mb-1">정원</p>
+                    <p class="text-2xl font-bold text-yellow-800" id="maxStudents">0</p>
+                </div>
+            </div>
+
+            <!-- 학생 테이블 -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학생명</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학년</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">등급</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">연락처</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">출석률</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">출석/지각/결석</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">등록일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- JavaScript로 동적 생성 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 빈 상태 -->
+            <div id="emptyState" class="hidden text-center py-12">
+                <p class="text-gray-500 text-lg">등록된 수강생이 없습니다.</p>
+            </div>
+        </div>
+
+        <!-- 모달 푸터 -->
+        <div class="mt-6 pt-4 border-t flex justify-end gap-3">
+            <button onclick="closeStudentModal()"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg transition duration-200">
+                닫기
+            </button>
+            <a id="manageStudentsLink" href="#"
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                수강생 관리 →
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// 학생 상세정보 모달 표시
+async function showStudentModal(courseId) {
+    const modal = document.getElementById('studentModal');
+    const loading = document.getElementById('modalLoading');
+    const content = document.getElementById('modalContent');
+    const emptyState = document.getElementById('emptyState');
+
+    // 모달 표시
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    try {
+        // 수강생 데이터 가져오기
+        const response = await fetch(`/admin/courses/${courseId}/students-data`);
+        const data = await response.json();
+
+        // 모달 타이틀 업데이트
+        document.getElementById('modalCourseName').textContent = data.course_name + ' - 수강생 목록';
+
+        // 통계 업데이트
+        document.getElementById('totalStudents').textContent = data.total_students;
+        document.getElementById('activeStudents').textContent = data.active_students;
+        document.getElementById('avgAttendance').textContent = data.avg_attendance.toFixed(1) + '%';
+        document.getElementById('maxStudents').textContent = data.max_students;
+
+        // 수강생 관리 링크 업데이트
+        document.getElementById('manageStudentsLink').href = `/admin/courses/${courseId}/students`;
+
+        // 학생 테이블 업데이트
+        const tbody = document.getElementById('studentTableBody');
+        tbody.innerHTML = '';
+
+        if (data.students.length > 0) {
+            data.students.forEach(student => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+
+                // 등급 색상
+                let tierClass = 'bg-gray-100 text-gray-800';
+                if (student.tier === 'A') tierClass = 'bg-red-100 text-red-800';
+                else if (student.tier === 'B') tierClass = 'bg-blue-100 text-blue-800';
+                else if (student.tier === 'C') tierClass = 'bg-green-100 text-green-800';
+                else if (student.tier === 'VIP') tierClass = 'bg-purple-100 text-purple-800';
+
+                // 상태 색상
+                let statusClass = 'bg-gray-100 text-gray-800';
+                let statusText = '알 수 없음';
+                if (student.status === 'active') {
+                    statusClass = 'bg-green-100 text-green-800';
+                    statusText = '수강 중';
+                } else if (student.status === 'completed') {
+                    statusClass = 'bg-gray-100 text-gray-800';
+                    statusText = '완료';
+                } else if (student.status === 'dropped') {
+                    statusClass = 'bg-red-100 text-red-800';
+                    statusText = '중도 포기';
+                }
+
+                row.innerHTML = `
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-gray-800">${student.name}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        ${student.grade || '-'}
+                    </td>
+                    <td class="px-4 py-3">
+                        ${student.tier ? `<span class="px-2 py-1 text-xs font-medium rounded ${tierClass}">${student.tier}</span>` : '-'}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        ${student.phone || '-'}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="font-medium ${student.attendance_rate >= 80 ? 'text-green-600' : student.attendance_rate >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+                            ${student.attendance_rate.toFixed(1)}%
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        <span class="text-green-600">✓${student.attended}</span> /
+                        <span class="text-yellow-600">△${student.late}</span> /
+                        <span class="text-red-600">✗${student.absent}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs font-medium rounded ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        ${student.enrolled_at}
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+            emptyState.classList.add('hidden');
+        } else {
+            emptyState.classList.remove('hidden');
+        }
+
+        // 로딩 숨기고 콘텐츠 표시
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+
+    } catch (error) {
+        console.error('Error fetching student data:', error);
+        alert('학생 정보를 불러오는 중 오류가 발생했습니다.');
+        closeStudentModal();
+    }
+}
+
+// 모달 닫기
+function closeStudentModal() {
+    document.getElementById('studentModal').classList.add('hidden');
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeStudentModal();
+    }
+});
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('studentModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeStudentModal();
+    }
+});
+</script>
+
+{% endblock %}

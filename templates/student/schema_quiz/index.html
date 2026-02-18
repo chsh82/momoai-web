@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}스키마퀴즈 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-4xl font-bold text-gray-800 mb-2">🧠 스키마퀴즈</h2>
+        <p class="text-gray-600">교과서 속 배경지식과 전문용어를 테스트해보세요!</p>
+    </div>
+
+    <!-- 학년 정보 -->
+    <div class="bg-gradient-to-r from-green-500 to-teal-600 rounded-lg shadow-lg p-6 mb-8 text-white">
+        <div class="flex items-center gap-4">
+            <div class="text-5xl">👨‍🎓</div>
+            <div>
+                <h3 class="text-2xl font-bold mb-1">{{ student.name }} 학생</h3>
+                <p class="text-green-100">현재 학년: {{ student.grade }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 주제 선택 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- 사회 -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white">
+                <div class="flex items-center gap-4">
+                    <div class="text-5xl">🌏</div>
+                    <div>
+                        <h3 class="text-2xl font-bold">사회</h3>
+                        <p class="text-amber-100">역사, 지리, 정치, 경제 등</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">
+                    사회 교과서에 나오는 중요한 개념과 용어를 학습합니다.
+                </p>
+                <a href="{{ url_for('student.schema_quiz_start', subject='social') }}"
+                   class="block w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg transition duration-200 text-center">
+                    사회 퀴즈 시작하기
+                </a>
+            </div>
+        </div>
+
+        <!-- 과학 -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-500 p-6 text-white">
+                <div class="flex items-center gap-4">
+                    <div class="text-5xl">🔬</div>
+                    <div>
+                        <h3 class="text-2xl font-bold">과학</h3>
+                        <p class="text-blue-100">물리, 화학, 생물, 지구과학 등</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">
+                    과학 교과서에 나오는 중요한 개념과 용어를 학습합니다.
+                </p>
+                <a href="{{ url_for('student.schema_quiz_start', subject='science') }}"
+                   class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200 text-center">
+                    과학 퀴즈 시작하기
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 최근 테스트 결과 -->
+    {% if recent_sessions %}
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">📊 최근 테스트 결과</h3>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과목</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">문제 수</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">정답 수</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">점수</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">상세</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for session in recent_sessions %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ session.completed_at.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if session.subject == 'social' %}
+                                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                                    🌏 사회
+                                </span>
+                            {% else %}
+                                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    🔬 과학
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ session.total_questions }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ session.correct_count }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="px-3 py-1 inline-flex text-sm leading-5 font-bold rounded-full
+                                {% if session.score >= 90 %}bg-green-100 text-green-800
+                                {% elif session.score >= 80 %}bg-blue-100 text-blue-800
+                                {% elif session.score >= 60 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ session.score|round|int }}점
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <a href="{{ url_for('student.schema_quiz_result', session_id=session.session_id) }}"
+                               class="{% if session.subject == 'social' %}text-amber-600 hover:text-amber-900{% else %}text-blue-600 hover:text-blue-900{% endif %}">
+                                결과 보기
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 안내 -->
+    <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded">
+        <h4 class="font-bold text-green-900 mb-2">💡 이용 안내</h4>
+        <ul class="text-green-800 space-y-1 text-sm">
+            <li>• 교과서에 나오는 배경지식과 전문용어를 학습할 수 있습니다.</li>
+            <li>• 사회와 과학 두 가지 주제로 구성되어 있습니다.</li>
+            <li>• 학년별로 적합한 난이도의 문제가 출제됩니다.</li>
+            <li>• 퀴즈 결과는 자동으로 저장됩니다.</li>
+            <li>• 관리자가 스키마 데이터베이스를 업로드하면 퀴즈를 시작할 수 있습니다.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

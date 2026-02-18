@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}관리자 대시보드 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📊 관리자 대시보드{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">전체 현황 및 통계</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 헤더 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">관리자 대시보드</h2>
+            <p class="text-sm text-gray-600 mt-1">전체 운영 현황을 한눈에 확인하세요</p>
+        </div>
+        <div class="text-sm text-gray-500">
+            마지막 업데이트: {{ now().strftime('%Y-%m-%d %H:%M') }}
+        </div>
+    </div>
+
+    <!-- 주간/월간 탭 -->
+    <div class="bg-white rounded-lg shadow mb-6" x-data="{ activeTab: 'weekly' }">
+        <div class="border-b border-gray-200">
+            <div class="flex">
+                <button @click="activeTab = 'weekly'"
+                        :class="activeTab === 'weekly' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="px-6 py-3 border-b-2 font-medium text-sm transition">
+                    📅 주간 뷰
+                </button>
+                <button @click="activeTab = 'monthly'"
+                        :class="activeTab === 'monthly' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="px-6 py-3 border-b-2 font-medium text-sm transition">
+                    📊 월간 뷰
+                </button>
+            </div>
+        </div>
+
+        <!-- 주간 뷰 컨텐츠 -->
+        <div x-show="activeTab === 'weekly'" class="p-6">
+            <!-- KPI 카드 (주간) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <!-- 진행 중인 수업 -->
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">📚</span>
+                        <span class="text-xs font-medium text-blue-600 bg-blue-200 px-2 py-1 rounded">진행중</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">진행 중인 수업</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total_courses }}</p>
+                </div>
+
+                <!-- 전체 학생 -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">👨‍🎓</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">전체 학생</p>
+                    <p class="text-3xl font-bold text-green-600">{{ total_students }}</p>
+                </div>
+
+                <!-- 강사 수 -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">👨‍🏫</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">전체 강사</p>
+                    <p class="text-3xl font-bold text-purple-600">{{ total_teachers }}</p>
+                </div>
+
+                <!-- 이번 주 수업 -->
+                <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">⏰</span>
+                        <span class="text-xs font-medium text-orange-600 bg-orange-200 px-2 py-1 rounded">이번주</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">예정된 수업</p>
+                    <p class="text-3xl font-bold text-orange-600">{{ weekly_sessions }}</p>
+                </div>
+            </div>
+
+            <!-- 두 번째 줄 KPI -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <!-- 평균 출석률 -->
+                <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">평균 출석률</p>
+                    <p class="text-3xl font-bold text-teal-600">{{ attendance_rate }}%</p>
+                </div>
+
+                <!-- 대기 중 알림 -->
+                <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">🔔</span>
+                        {% if pending_notifications > 0 %}
+                        <span class="text-xs font-medium text-red-600 bg-red-200 px-2 py-1 rounded animate-pulse">승인필요</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">대기 중 알림</p>
+                    <p class="text-3xl font-bold text-red-600">{{ pending_notifications }}</p>
+                </div>
+
+                <!-- 학부모 연결 -->
+                <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">👪</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">학부모 연결</p>
+                    <p class="text-3xl font-bold text-pink-600">{{ total_parent_links }}</p>
+                    {% if pending_parent_links %}
+                    <p class="text-xs text-pink-700 mt-1">대기: {{ pending_parent_links }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 첨삭 현황 -->
+                <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-2xl">📝</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-1">첨삭 현황</p>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-2xl font-bold text-indigo-600">{{ essays_pending + essays_processing }}</p>
+                        <p class="text-sm text-gray-500">/ {{ essays_completed }}</p>
+                    </div>
+                    <p class="text-xs text-indigo-700 mt-1">대기·처리중 / 완료</p>
+                </div>
+            </div>
+
+            <div class="text-sm text-gray-500 text-center mb-6">
+                💡 주간 뷰: 이번 주 운영 현황을 보여줍니다
+            </div>
+        </div>
+
+        <!-- 월간 뷰 컨텐츠 -->
+        <div x-show="activeTab === 'monthly'" class="p-6">
+            <div class="text-center text-gray-500 mb-4">
+                📈 월간 통계 및 트렌드
+            </div>
+
+            <!-- 차트 영역 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 차트 1: 학생 수 증감 추이 -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📈 학생 수 증감 추이 (6개월)</h3>
+                    <canvas id="studentTrendChart"></canvas>
+                </div>
+
+                <!-- 차트 2: 수업별 수강생 분포 -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">👥 수업별 수강생 분포 (TOP 10)</h3>
+                    <canvas id="enrollmentChart"></canvas>
+                </div>
+
+                <!-- 차트 3: 첨삭 현황 -->
+                <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📝 첨삭 상태별 현황</h3>
+                    <div class="max-w-md mx-auto">
+                        <canvas id="essayStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 빠른 액션 & 최근 알림 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 빠른 액션 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">⚡ 빠른 액션</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <a href="{{ url_for('admin.create_course') }}"
+                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">➕</span>
+                        <span class="text-sm">새 수업 생성</span>
+                    </a>
+                    <a href="{{ url_for('students.index') }}"
+                       class="bg-green-600 hover:bg-green-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">👨‍🎓</span>
+                        <span class="text-sm">학생 등록</span>
+                    </a>
+                    <a href="{{ url_for('admin.payments') }}"
+                       class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">💰</span>
+                        <span class="text-sm">결제 등록</span>
+                    </a>
+                    <a href="{{ url_for('admin.parent_link_requests') }}"
+                       class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">🔗</span>
+                        <span class="text-sm">학부모 승인</span>
+                        {% if pending_parent_links %}
+                        <span class="bg-white text-purple-600 text-xs font-bold px-2 py-1 rounded-full">{{ pending_parent_links }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('admin.courses') }}"
+                       class="bg-gray-600 hover:bg-gray-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">📋</span>
+                        <span class="text-sm">수업 관리</span>
+                    </a>
+                    <a href="{{ url_for('admin.export_monthly_report') }}"
+                       class="bg-red-600 hover:bg-red-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">📊</span>
+                        <span class="text-sm">월간 리포트</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최근 중요 알림 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">🔔 최근 알림</h3>
+            <div class="space-y-3">
+                {% if recent_parent_requests %}
+                    {% for request in recent_parent_requests[:3] %}
+                    <a href="{{ url_for('admin.parent_link_request_detail', request_id=request.request_id) }}"
+                       class="block p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm">👪</span>
+                            <span class="text-sm font-medium text-gray-800">학부모 연결 요청</span>
+                        </div>
+                        <p class="text-xs text-gray-600">{{ request.parent_name }} → {{ request.child_name }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ request.created_at.strftime('%m/%d %H:%M') }}</p>
+                    </a>
+                    {% endfor %}
+                {% endif %}
+
+                {% if recent_makeup_requests %}
+                    {% for request in recent_makeup_requests[:2] %}
+                    <a href="{{ url_for('admin.makeup_requests') }}"
+                       class="block p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm">📚</span>
+                            <span class="text-sm font-medium text-gray-800">보강수업 신청</span>
+                        </div>
+                        <p class="text-xs text-gray-600">{{ request.student.name }} ({{ request.student.grade }})</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ request.created_at.strftime('%m/%d %H:%M') }}</p>
+                    </a>
+                    {% endfor %}
+                {% endif %}
+
+                {% if not recent_parent_requests and not recent_makeup_requests %}
+                <div class="text-center py-8 text-gray-500">
+                    <p class="text-sm">✨ 처리할 알림이 없습니다</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 차트 1: 학생 수 증감 추이
+const studentCtx = document.getElementById('studentTrendChart');
+if (studentCtx) {
+    new Chart(studentCtx, {
+        type: 'line',
+        data: {
+            labels: {{ student_labels|safe }},
+            datasets: [{
+                label: '신규 학생 수',
+                data: {{ student_data|safe }},
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true, position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// 차트 2: 수업별 수강생 분포
+const enrollmentCtx = document.getElementById('enrollmentChart');
+if (enrollmentCtx) {
+    new Chart(enrollmentCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ enrollment_labels|safe }},
+            datasets: [{
+                label: '수강생 수',
+                data: {{ enrollment_data|safe }},
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// 차트 3: 첨삭 현황
+const essayStatusCtx = document.getElementById('essayStatusChart');
+if (essayStatusCtx) {
+    new Chart(essayStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ essay_status_labels|safe }},
+            datasets: [{
+                data: {{ essay_status_data|safe }},
+                backgroundColor: [
+                    'rgba(251, 191, 36, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(34, 197, 94, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(251, 191, 36)',
+                    'rgb(59, 130, 246)',
+                    'rgb(34, 197, 94)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

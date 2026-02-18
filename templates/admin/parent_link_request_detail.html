@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}연결 신청 검토 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔗 연결 요청 상세{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.parent_link_requests') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 목록으로 돌아가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">👨‍👩‍👧‍👦 학부모-자녀 연결 신청 검토</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 왼쪽: 신청 정보 -->
+        <div class="space-y-6">
+            <!-- 상태 카드 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">신청 상태</h3>
+                        {% if link_request.status == 'pending' %}
+                        <span class="px-3 py-1 text-sm font-medium rounded bg-yellow-100 text-yellow-800">
+                            ⏳ 대기 중
+                        </span>
+                        {% elif link_request.status == 'approved' %}
+                        <span class="px-3 py-1 text-sm font-medium rounded bg-green-100 text-green-800">
+                            ✓ 승인됨
+                        </span>
+                        {% elif link_request.status == 'rejected' %}
+                        <span class="px-3 py-1 text-sm font-medium rounded bg-red-100 text-red-800">
+                            ✗ 거절됨
+                        </span>
+                        {% elif link_request.status == 'cancelled' %}
+                        <span class="px-3 py-1 text-sm font-medium rounded bg-gray-100 text-gray-800">
+                            취소됨
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="p-6 space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">신청 ID</p>
+                        <p class="font-medium text-gray-800">{{ link_request.request_id[:8] }}...</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">신청일시</p>
+                        <p class="font-medium text-gray-800">{{ link_request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                    {% if link_request.reviewed_by_user %}
+                    <div>
+                        <p class="text-sm text-gray-600">검토자</p>
+                        <p class="font-medium text-gray-800">{{ link_request.reviewed_by_user.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">검토일시</p>
+                        <p class="font-medium text-gray-800">{{ link_request.reviewed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 학부모 정보 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                    <h3 class="text-xl font-bold text-blue-900">학부모 정보</h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">이름</p>
+                        <p class="text-lg font-bold text-gray-800">{{ link_request.parent.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">이메일</p>
+                        <p class="font-medium text-gray-800">{{ link_request.parent.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">전화번호</p>
+                        <p class="font-medium text-gray-800">{{ link_request.parent.phone if link_request.parent.phone else '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">현재 연결된 자녀 수</p>
+                        <p class="font-medium text-gray-800">{{ link_request.parent.linked_students|length }}명</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 신청한 학생 정보 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-purple-50">
+                    <h3 class="text-xl font-bold text-purple-900">신청한 학생 정보</h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">학생 이름</p>
+                        <p class="text-lg font-bold text-gray-800">{{ link_request.student_name }}</p>
+                    </div>
+                    {% if link_request.student_birth_date %}
+                    <div>
+                        <p class="text-sm text-gray-600">생년월일</p>
+                        <p class="font-medium text-gray-800">{{ link_request.student_birth_date.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    {% endif %}
+                    {% if link_request.student_grade %}
+                    <div>
+                        <p class="text-sm text-gray-600">학년</p>
+                        <p class="font-medium text-gray-800">{{ link_request.student_grade }}</p>
+                    </div>
+                    {% endif %}
+                    {% if link_request.student_school %}
+                    <div>
+                        <p class="text-sm text-gray-600">학교명</p>
+                        <p class="font-medium text-gray-800">{{ link_request.student_school }}</p>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm text-gray-600">관계</p>
+                        <p class="font-medium text-gray-800">{{ link_request.relation_type if request.relation_type else '-' }}</p>
+                    </div>
+                    {% if link_request.additional_info %}
+                    <div>
+                        <p class="text-sm text-gray-600">추가 정보</p>
+                        <p class="font-medium text-gray-800 whitespace-pre-wrap">{{ link_request.additional_info }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 매칭된 학생 정보 (승인된 경우) -->
+            {% if link_request.matched_student %}
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                    <h3 class="text-xl font-bold text-green-900">매칭된 학생 정보</h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">학생 이름</p>
+                        <p class="text-lg font-bold text-gray-800">{{ link_request.matched_student.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">학년</p>
+                        <p class="font-medium text-gray-800">{{ link_request.matched_student.grade }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">학생 코드</p>
+                        <p class="font-medium text-gray-800">{{ link_request.matched_student.student_code }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">현재 연결된 학부모 수</p>
+                        <p class="font-medium text-gray-800">{{ link_request.matched_student.linked_parents|length }}명</p>
+                    </div>
+                    <a href="{{ url_for('students.student_detail', student_id=request.matched_student_id) }}"
+                       class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        학생 정보 보기
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 관리자 메모 -->
+            {% if link_request.admin_notes %}
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-xl font-bold text-gray-800">관리자 메모</h3>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-800 whitespace-pre-wrap">{{ link_request.admin_notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 오른쪽: 검토 액션 -->
+        <div>
+            {% if link_request.status == 'pending' %}
+            <!-- 학생 검색 -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 bg-indigo-50">
+                    <h3 class="text-xl font-bold text-indigo-900">학생 검색 및 매칭</h3>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <label for="searchQuery" class="block text-sm font-medium text-gray-700 mb-2">
+                            학생 이름 또는 학생 코드
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="searchQuery"
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="검색어를 입력하세요" value="{{ link_request.student_name }}">
+                            <button onclick="searchStudents()"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                                검색
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 검색 결과 -->
+                    <div id="searchResults" class="space-y-3">
+                        <p class="text-sm text-gray-500 text-center py-4">
+                            학생을 검색하여 매칭하세요.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 승인 폼 -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                    <h3 class="text-xl font-bold text-green-900">✓ 승인</h3>
+                </div>
+                <div class="p-6">
+                    <form id="approveForm" method="POST" action="{{ url_for('admin.approve_parent_link_request', request_id=link_request.request_id) }}">
+                        <input type="hidden" name="student_id" id="approveStudentId" required>
+
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-2">선택된 학생</p>
+                            <div id="selectedStudentInfo" class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                <p class="text-gray-500">위에서 학생을 선택하세요</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="approveNotes" class="block text-sm font-medium text-gray-700 mb-2">
+                                승인 메모 (선택)
+                            </label>
+                            <textarea id="approveNotes" name="admin_notes" rows="3"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                      placeholder="승인 관련 메모를 입력하세요"></textarea>
+                        </div>
+
+                        <button type="submit" id="approveButton" disabled
+                                class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition duration-200">
+                            승인하기
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 거절 폼 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+                    <h3 class="text-xl font-bold text-red-900">✗ 거절</h3>
+                </div>
+                <div class="p-6">
+                    <form method="POST" action="{{ url_for('admin.reject_parent_link_request', request_id=link_request.request_id) }}"
+                          onsubmit="return confirm('이 신청을 거절하시겠습니까? 학부모에게 알림이 전송됩니다.');">
+                        <div class="mb-4">
+                            <label for="rejectReason" class="block text-sm font-medium text-gray-700 mb-2">
+                                거절 사유 <span class="text-red-500">*</span>
+                            </label>
+                            <textarea id="rejectReason" name="admin_notes" rows="4" required
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                                      placeholder="거절 사유를 입력하세요 (학부모에게 전달됩니다)"></textarea>
+                        </div>
+
+                        <button type="submit"
+                                class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                            거절하기
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- 이미 처리됨 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-xl font-bold text-gray-800">처리 완료</h3>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">
+                        이 신청은 이미 처리되었습니다.
+                    </p>
+                    <a href="{{ url_for('admin.parent_link_requests') }}"
+                       class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        목록으로 돌아가기
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedStudentId = null;
+
+async function searchStudents() {
+    const query = document.getElementById('searchQuery').value.trim();
+    if (!query) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
+
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.innerHTML = '<p class="text-center text-gray-500 py-4">검색 중...</p>';
+
+    try {
+        const response = await fetch(`/admin/api/students/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (data.students && data.students.length > 0) {
+            resultsDiv.innerHTML = data.students.map(student => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                     onclick="selectStudent('${student.student_id}', '${student.name}', '${student.grade}', '${student.student_code}', ${student.active_course_count}, ${student.parent_count})">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-bold text-gray-800">${student.name}</h4>
+                        <span class="text-xs px-2 py-1 rounded ${student.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${student.is_active ? '활성' : '비활성'}
+                        </span>
+                    </div>
+                    <div class="space-y-1 text-sm text-gray-600">
+                        <p>📚 ${student.grade}</p>
+                        <p>🆔 ${student.student_code}</p>
+                        <p>👥 수강 중: ${student.active_course_count}개</p>
+                        <p>👨‍👩‍👧 연결된 학부모: ${student.parent_count}명</p>
+                    </div>
+                    <button class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        이 학생 선택
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            resultsDiv.innerHTML = '<p class="text-center text-gray-500 py-4">검색 결과가 없습니다.</p>';
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = '<p class="text-center text-red-500 py-4">검색 중 오류가 발생했습니다.</p>';
+        console.error('Search error:', error);
+    }
+}
+
+function selectStudent(studentId, name, grade, code, courseCount, parentCount) {
+    selectedStudentId = studentId;
+
+    // 승인 폼 업데이트
+    document.getElementById('approveStudentId').value = studentId;
+    document.getElementById('selectedStudentInfo').innerHTML = `
+        <p class="font-bold text-gray-800 mb-2">${name}</p>
+        <div class="space-y-1 text-sm text-gray-600">
+            <p>📚 ${grade}</p>
+            <p>🆔 ${code}</p>
+            <p>👥 수강 중: ${courseCount}개</p>
+            <p>👨‍👩‍👧 연결된 학부모: ${parentCount}명</p>
+        </div>
+    `;
+
+    // 승인 버튼 활성화
+    document.getElementById('approveButton').disabled = false;
+}
+
+// 엔터 키로 검색
+document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        searchStudents();
+    }
+});
+
+// 페이지 로드 시 자동 검색 (학생 이름이 있는 경우)
+window.addEventListener('DOMContentLoaded', function() {
+    const query = document.getElementById('searchQuery').value.trim();
+    if (query) {
+        searchStudents();
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}피드백 상세 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('parent.child_feedback', student_id=feedback.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 피드백 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">피드백 상세</h2>
+        <p class="text-gray-600 mt-2">강사님이 보내신 피드백입니다. (학생은 볼 수 없습니다)</p>
+    </div>
+
+    <!-- Feedback Detail -->
+    <div class="bg-white rounded-lg shadow-lg">
+        <!-- Header -->
+        <div class="border-b border-gray-200 p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-3">
+                        <h3 class="text-2xl font-bold text-gray-800">{{ feedback.title }}</h3>
+                        {% if feedback.priority == 'high' %}
+                        <span class="px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full">
+                            중요
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                        <span>👨‍🏫 {{ feedback.teacher.name }} 강사</span>
+                        <span>👨‍🎓 {{ feedback.student.name }} 학생</span>
+                        <span>📅 {{ feedback.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Tags -->
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
+                    {% if feedback.feedback_type == 'general' %}일반 피드백
+                    {% elif feedback.feedback_type == 'progress' %}학습 진도
+                    {% elif feedback.feedback_type == 'behavior' %}수업 태도
+                    {% elif feedback.feedback_type == 'attendance' %}출석 관련
+                    {% else %}{{ feedback.feedback_type }}
+                    {% endif %}
+                </span>
+                {% if feedback.course %}
+                <span class="px-3 py-1 text-sm font-medium bg-purple-100 text-purple-800 rounded-full">
+                    {{ feedback.course.course_name }}
+                </span>
+                {% endif %}
+                {% if feedback.is_read %}
+                <span class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-600 rounded-full">
+                    읽음: {{ feedback.read_at.strftime('%m/%d %H:%M') }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+            <h4 class="text-sm font-medium text-gray-700 mb-3">피드백 내용</h4>
+            <div class="bg-gray-50 rounded-lg p-6">
+                <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">{{ feedback.content }}</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-gray-200 p-6 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-600">
+                    <p class="mb-1">🔒 이 피드백은 학부모님께만 전달되며, 학생은 볼 수 없습니다.</p>
+                    {% if feedback.updated_at and feedback.updated_at != feedback.created_at %}
+                    <p class="text-xs text-gray-500">마지막 수정: {{ feedback.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('parent.child_feedback', student_id=feedback.student_id) }}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    목록으로
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

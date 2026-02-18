@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} - 학습 교재 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('parent.materials_list') }}"
+           class="text-blue-600 hover:text-blue-800 flex items-center gap-2">
+            <span>← 자녀 선택으로</span>
+        </a>
+    </div>
+
+    <h2 class="text-3xl font-bold text-gray-800 mb-2">{{ student.name }} - 학습 교재</h2>
+    <p class="text-gray-600 mb-6">{{ student.grade }} | 티어: {{ student.tier }}</p>
+
+    <!-- 검색 및 필터 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form method="GET" class="flex gap-4">
+            <input type="text" name="search" value="{{ search }}"
+                   placeholder="교재 제목 검색..."
+                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+
+            <select name="grade" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="">전체 학년</option>
+                <option value="초등" {% if grade_filter == '초등' %}selected{% endif %}>초등</option>
+                <option value="중등" {% if grade_filter == '중등' %}selected{% endif %}>중등</option>
+                <option value="고등" {% if grade_filter == '고등' %}selected{% endif %}>고등</option>
+            </select>
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
+                검색
+            </button>
+
+            <a href="{{ url_for('parent.child_materials', student_id=student.student_id) }}"
+               class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition duration-200">
+                초기화
+            </a>
+        </form>
+    </div>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-blue-600 text-2xl mb-1">📚</div>
+                <p class="text-sm text-gray-600">이용 가능한 교재</p>
+                <p class="text-2xl font-bold text-blue-600">{{ materials|length }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-green-600 text-2xl mb-1">👤</div>
+                <p class="text-sm text-gray-600">학년</p>
+                <p class="text-2xl font-bold text-green-600">{{ student.grade }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 교재 목록 -->
+    {% if materials %}
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">교재 목록</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for material in materials %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800 mb-1">{{ material.title }}</h4>
+
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                                        {{ material.file_type.upper() }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">{{ (material.file_size / 1024 / 1024)|round(1) }}MB</span>
+                                    <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">
+                                        {{ material.grade }}
+                                    </span>
+                                </div>
+
+                                <p class="text-xs text-gray-500">
+                                    업로드: {{ material.created_at.strftime('%Y-%m-%d') }} | 다운로드: {{ material.download_count }}회
+                                </p>
+                            </div>
+
+                            <div class="ml-4 flex flex-col gap-2">
+                                <a href="{{ url_for('parent.child_material_detail', student_id=student.student_id, material_id=material.material_id) }}"
+                                   class="bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium px-4 py-2 rounded transition duration-200 text-center">
+                                    상세보기
+                                </a>
+                                <a href="{{ url_for('parent.download_child_material', student_id=student.student_id, material_id=material.material_id) }}"
+                                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200 text-center">
+                                    다운로드
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <p class="text-gray-500 text-lg">이용 가능한 학습 교재가 없습니다.</p>
+        <p class="text-gray-400 text-sm mt-2">강사가 교재를 업로드하면 여기에 표시됩니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

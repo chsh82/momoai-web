@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}하크니스 게시판 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">💭 하크니스 게시판</h2>
+            <p class="text-gray-600 mt-2">하크니스 수업 학생들과 토론하고 질문을 공유하세요</p>
+        </div>
+        {% if can_create %}
+        <a href="{{ url_for('harkness.create_board') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 flex items-center gap-2">
+            <span class="text-xl">➕</span>
+            <span>게시판 생성</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-6 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-300{% elif category == 'success' %}bg-green-100 text-green-700 border border-green-300{% else %}bg-blue-100 text-blue-700 border border-blue-300{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 안내 -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <div class="text-blue-600 text-xl mr-3">ℹ️</div>
+            <div class="text-sm text-blue-800">
+                <p class="font-medium mb-1">하크니스 게시판 안내</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li><strong>하크니스 전체:</strong> 모든 하크니스 수업 학생들이 공유하는 공간</li>
+                    <li><strong>수업별 게시판:</strong> 특정 수업 학생들만 접근 가능</li>
+                    <li>수업 전 질문, 토론 주제, 학습 자료를 자유롭게 공유하세요</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 게시판 목록 -->
+    {% if boards %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for board in boards %}
+        <a href="{{ url_for('harkness.board_detail', board_id=board.board_id) }}"
+           class="block bg-white rounded-lg shadow hover:shadow-lg transition duration-200 p-6">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        {% if board.board_type == 'harkness_all' %}
+                        <span class="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">전체</span>
+                        {% else %}
+                        <span class="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">수업</span>
+                        {% endif %}
+                        <h3 class="text-xl font-bold text-gray-800">{{ board.title }}</h3>
+                    </div>
+                    {% if board.description %}
+                    <p class="text-gray-600 text-sm mb-3">{{ board.description }}</p>
+                    {% endif %}
+                    {% if board.course %}
+                    <p class="text-sm text-gray-500">
+                        📚 {{ board.course.course_name }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <span>📝 {{ board.post_count }}개 글</span>
+                    <span>👤 {{ board.creator.name }}</span>
+                </div>
+                {% if board.latest_post %}
+                <span class="text-xs text-gray-500">
+                    최근: {{ board.latest_post.created_at.strftime('%m/%d %H:%M') }}
+                </span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-lg shadow">
+        <div class="text-gray-400 text-6xl mb-4">💭</div>
+        <p class="text-gray-500 text-lg mb-4">아직 생성된 게시판이 없습니다.</p>
+        {% if can_create %}
+        <a href="{{ url_for('harkness.create_board') }}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            첫 게시판 만들기
+        </a>
+        {% else %}
+        <p class="text-gray-400">하크니스 수업을 수강하면 게시판에 접근할 수 있습니다.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

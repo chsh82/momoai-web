@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}학생 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">학생 관리</h2>
+        <a href="{{ url_for('students.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            + 새 학생 추가
+        </a>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Form -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form method="GET" action="{{ url_for('students.index') }}" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="search" value="{{ search }}"
+                       placeholder="학생 이름 검색..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="w-40">
+                <select name="grade_filter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    <option value="초등" {% if grade_filter == '초등' %}selected{% endif %}>초등</option>
+                    <option value="중등" {% if grade_filter == '중등' %}selected{% endif %}>중등</option>
+                    <option value="고등" {% if grade_filter == '고등' %}selected{% endif %}>고등</option>
+                </select>
+            </div>
+            <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                검색
+            </button>
+            {% if search or grade_filter %}
+            <a href="{{ url_for('students.index') }}" class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                초기화
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Students Count -->
+    <div class="mb-4 text-gray-600">
+        총 <strong class="text-gray-800">{{ students|length }}</strong>명의 학생
+    </div>
+
+    <!-- Students List -->
+    {% if students %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for student in students %}
+        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-200 overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">{{ student.name }}</h3>
+                    <span class="px-3 py-1 text-sm font-medium rounded-full
+                        {% if student.grade == '초등' %}bg-green-100 text-green-800
+                        {% elif student.grade == '중등' %}bg-blue-100 text-blue-800
+                        {% else %}bg-purple-100 text-purple-800{% endif %}">
+                        {{ student.grade }}
+                    </span>
+                </div>
+
+                <div class="space-y-2 text-sm text-gray-600 mb-4">
+                    {% if student.email %}
+                    <div class="flex items-center">
+                        <span class="font-medium mr-2">📧</span>
+                        {{ student.email }}
+                    </div>
+                    {% endif %}
+                    {% if student.phone %}
+                    <div class="flex items-center">
+                        <span class="font-medium mr-2">📱</span>
+                        {{ student.phone }}
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center">
+                        <span class="font-medium mr-2">📝</span>
+                        첨삭 {{ student.essay_count }}건
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <a href="{{ url_for('students.detail', student_id=student.student_id) }}"
+                       class="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        상세보기
+                    </a>
+                    <a href="{{ url_for('students.edit', student_id=student.student_id) }}"
+                       class="flex-1 text-center bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        수정
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">👥</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">학생이 없습니다</h3>
+        <p class="text-gray-600 mb-6">새 학생을 추가해보세요.</p>
+        <a href="{{ url_for('students.new') }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            + 첫 학생 추가하기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

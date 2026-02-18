@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}회원가입 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">회원가입</h2>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.signup') }}">
+            {{ form.hidden_tag() }}
+
+            <!-- Name -->
+            <div class="mb-4">
+                {{ form.name.label(class="block text-gray-700 font-medium mb-2") }}
+                {{ form.name(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.name.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.name.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Email -->
+            <div class="mb-4">
+                {{ form.email.label(class="block text-gray-700 font-medium mb-2") }}
+                {{ form.email(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.email.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.email.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="mb-4">
+                {{ form.password.label(class="block text-gray-700 font-medium mb-2") }}
+                {{ form.password(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.password.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.password.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Password Confirm -->
+            <div class="mb-4">
+                {{ form.password_confirm.label(class="block text-gray-700 font-medium mb-2") }}
+                {{ form.password_confirm(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.password_confirm.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.password_confirm.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Phone -->
+            <div class="mb-4">
+                {{ form.phone.label(class="block text-gray-700 font-medium mb-2") }}
+                {{ form.phone(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="010-1234-5678") }}
+                {% if form.phone.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.phone.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Role Selection -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-3">{{ form.role.label.text }}</label>
+                <div class="space-y-3">
+                    {% for value, label in form.role.choices %}
+                    <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-colors {% if form.role.data == value or (not form.role.data and value == 'parent') %}border-blue-500 bg-blue-50{% endif %}">
+                        <input type="radio" name="role" value="{{ value }}"
+                               {% if form.role.data == value or (not form.role.data and value == 'parent') %}checked{% endif %}
+                               class="w-4 h-4 text-blue-600"
+                               onchange="toggleStudentFields()">
+                        <div class="ml-3 flex-1">
+                            <span class="text-gray-800 font-medium">{{ label }}</span>
+                            {% if value == 'parent' %}
+                            <p class="text-sm text-gray-600 mt-1">자녀의 학습을 관리하고 싶으신 학부모님</p>
+                            {% elif value == 'student' %}
+                            <p class="text-sm text-gray-600 mt-1">과제 제출 및 첨삭을 받고 싶은 학생</p>
+                            {% endif %}
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if form.role.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.role.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Student-only fields -->
+            <div id="studentFields" style="display: none;">
+                <!-- Grade -->
+                <div class="mb-4">
+                    {{ form.grade.label(class="block text-gray-700 font-medium mb-2") }}
+                    <span class="text-red-500">*</span>
+                    {{ form.grade(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.grade.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.grade.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- School -->
+                <div class="mb-4">
+                    {{ form.school.label(class="block text-gray-700 font-medium mb-2") }}
+                    <span class="text-red-500">*</span>
+                    {{ form.school(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                                   list="schoolList",
+                                   placeholder="학교명을 입력하거나 선택하세요",
+                                   autocomplete="off") }}
+                    <datalist id="schoolList">
+                        <option value="서울초등학교">
+                        <option value="서울중학교">
+                        <option value="서울고등학교">
+                        <option value="강남초등학교">
+                        <option value="강남중학교">
+                        <option value="강남고등학교">
+                        <option value="목동초등학교">
+                        <option value="목동중학교">
+                        <option value="목동고등학교">
+                        <option value="분당초등학교">
+                        <option value="분당중학교">
+                        <option value="분당고등학교">
+                        <option value="일산초등학교">
+                        <option value="일산중학교">
+                        <option value="일산고등학교">
+                        <option value="광교초등학교">
+                        <option value="광교중학교">
+                        <option value="광교고등학교">
+                        <option value="평촌초등학교">
+                        <option value="평촌중학교">
+                        <option value="평촌고등학교">
+                        <!-- 더 많은 학교 추가 가능 -->
+                    </datalist>
+                    <p class="text-xs text-gray-500 mt-1">목록에 없으면 직접 입력하세요</p>
+                    {% if form.school.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.school.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Birth Date -->
+                <div class="mb-4">
+                    {{ form.birth_date.label(class="block text-gray-700 font-medium mb-2") }}
+                    <span class="text-red-500">*</span>
+                    {{ form.birth_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    <p class="text-xs text-gray-500 mt-1">예: 2010-03-15</p>
+                    {% if form.birth_date.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.birth_date.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Submit button -->
+            {{ form.submit(class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200") }}
+        </form>
+
+        <!-- Links -->
+        <div class="mt-6 text-center">
+            <p class="text-gray-600">
+                이미 계정이 있으신가요?
+                <a href="{{ url_for('auth.login') }}" class="text-blue-600 hover:text-blue-800 font-medium">로그인</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+// 학생 필드 표시/숨김 토글
+function toggleStudentFields() {
+    const roleRadios = document.querySelectorAll('input[name="role"]');
+    const studentFields = document.getElementById('studentFields');
+
+    let selectedRole = null;
+    roleRadios.forEach(radio => {
+        if (radio.checked) {
+            selectedRole = radio.value;
+        }
+    });
+
+    if (selectedRole === 'student') {
+        studentFields.style.display = 'block';
+    } else {
+        studentFields.style.display = 'none';
+    }
+}
+
+// 페이지 로드 시 초기 상태 설정
+window.addEventListener('DOMContentLoaded', function() {
+    toggleStudentFields();
+});
+</script>
+{% endblock %}

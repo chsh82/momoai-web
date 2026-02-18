@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}검색 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">🔍 통합 검색</h2>
+
+    <!-- 검색 폼 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form method="GET" action="{{ url_for('search.index') }}">
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <input type="text" name="q" value="{{ query }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="학생, 수업, 자료, 과제 등을 검색하세요..." autofocus>
+                </div>
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 rounded-lg transition duration-200">
+                    검색
+                </button>
+            </div>
+
+            <!-- 카테고리 필터 -->
+            <div class="flex gap-2 mt-4">
+                <label class="flex items-center">
+                    <input type="radio" name="category" value="all" {% if category == 'all' %}checked{% endif %}
+                           class="mr-2" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700">전체</span>
+                </label>
+                {% if current_user.role in ['admin', 'teacher'] %}
+                <label class="flex items-center">
+                    <input type="radio" name="category" value="students" {% if category == 'students' %}checked{% endif %}
+                           class="mr-2" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700">학생</span>
+                </label>
+                {% endif %}
+                <label class="flex items-center">
+                    <input type="radio" name="category" value="courses" {% if category == 'courses' %}checked{% endif %}
+                           class="mr-2" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700">수업</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="radio" name="category" value="materials" {% if category == 'materials' %}checked{% endif %}
+                           class="mr-2" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700">학습자료</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="radio" name="category" value="assignments" {% if category == 'assignments' %}checked{% endif %}
+                           class="mr-2" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700">과제</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="radio" name="category" value="posts" {% if category == 'posts' %}checked{% endif %}
+                           class="mr-2" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700">게시글</span>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <!-- 검색 결과 -->
+    {% if query %}
+        <!-- 학생 결과 -->
+        {% if results.students %}
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">👨‍🎓 학생 ({{ results.students|length }})</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    {% for student in results.students %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-800">{{ student.name }}</h4>
+                                <p class="text-sm text-gray-600">{{ student.grade }} | {{ student.email }}</p>
+                            </div>
+                            <a href="{{ url_for('students.detail', student_id=student.student_id) }}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                상세보기 →
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 수업 결과 -->
+        {% if results.courses %}
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">📚 수업 ({{ results.courses|length }})</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    {% for course in results.courses %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-medium text-gray-800">{{ course.course_name }}</h4>
+                                    {% if course.tier %}
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded
+                                        {% if course.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ course.tier }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-600">{{ course.teacher.name }} 강사 | {{ course.enrolled_count }}명 수강</p>
+                            </div>
+                            <a href="{% if current_user.role == 'admin' %}{{ url_for('admin.course_detail', course_id=course.course_id) }}{% elif current_user.role == 'teacher' %}{{ url_for('teacher.course_detail', course_id=course.course_id) }}{% else %}{{ url_for('student.course_detail', course_id=course.course_id) }}{% endif %}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                상세보기 →
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 학습 자료 결과 -->
+        {% if results.materials %}
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">📁 학습 자료 ({{ results.materials|length }})</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for material in results.materials %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-800 mb-1">{{ material.title }}</h4>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                                        {{ material.file_type.upper() }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">{{ material.file_size_mb }}MB</span>
+                                </div>
+                                {% if current_user.role == 'student' %}
+                                <a href="{{ url_for('student.download_material', material_id=material.material_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    다운로드 →
+                                </a>
+                                {% else %}
+                                <p class="text-xs text-gray-500">다운로드: {{ material.download_count }}회</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 과제 결과 -->
+        {% if results.assignments %}
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">📝 과제 ({{ results.assignments|length }})</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    {% for assignment in results.assignments %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-800">{{ assignment.title }}</h4>
+                                <p class="text-sm text-gray-600">
+                                    {% if assignment.course %}{{ assignment.course.course_name }} | {% endif %}
+                                    마감: {{ assignment.due_date.strftime('%m/%d %H:%M') }} | 배점: {{ assignment.max_score }}점
+                                </p>
+                            </div>
+                            <a href="{% if current_user.role in ['admin', 'teacher'] %}{{ url_for('teacher.assignment_detail', assignment_id=assignment.assignment_id) }}{% else %}{{ url_for('student.assignment_detail', assignment_id=assignment.assignment_id) }}{% endif %}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                보기 →
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 게시글 결과 -->
+        {% if results.posts %}
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">💬 게시글 ({{ results.posts|length }})</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    {% for post in results.posts %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-800">{{ post.title }}</h4>
+                                <p class="text-sm text-gray-600">{{ post.user.name }} | {{ post.created_at.strftime('%Y-%m-%d') }} | 조회 {{ post.views }}</p>
+                            </div>
+                            <a href="{{ url_for('community.detail', post_id=post.post_id) }}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                보기 →
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 결과 없음 -->
+        {% if not results.students and not results.courses and not results.materials and not results.assignments and not results.posts %}
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">검색 결과가 없습니다</h3>
+            <p class="text-gray-600">"{{ query }}"에 대한 검색 결과를 찾을 수 없습니다.</p>
+        </div>
+        {% endif %}
+    {% else %}
+        <!-- 초기 화면 -->
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">무엇을 찾으시나요?</h3>
+            <p class="text-gray-600">검색어를 입력하여 학생, 수업, 자료, 과제를 검색하세요.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

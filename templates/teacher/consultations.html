@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}상담 내용 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🗣️ 상담 기록{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">학생 상담 관리</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">상담 내용</h2>
+            <p class="text-gray-600 mt-2">학생 상담 기록을 관리합니다</p>
+        </div>
+        <a href="{{ url_for('teacher.create_consultation') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            ✍️ 상담 기록 작성
+        </a>
+    </div>
+
+    <!-- 내가 작성한 상담 기록 -->
+    <div class="bg-white rounded-lg shadow-lg mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">내가 작성한 상담 기록 ({{ my_consultations|length }})</h3>
+        </div>
+        <div class="p-6">
+            {% if my_consultations %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">상담일</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">학생</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">대분류</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">소분류</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">제목</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">작성일</th>
+                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">액션</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for consultation in my_consultations %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.consultation_date.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.student.name }}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 text-xs font-medium rounded
+                                    {% if consultation.major_category == '신규상담' %}bg-green-100 text-green-800
+                                    {% elif consultation.major_category == '퇴원상담' %}bg-red-100 text-red-800
+                                    {% elif consultation.major_category == '분기별상담' %}bg-blue-100 text-blue-800
+                                    {% elif consultation.major_category == '진로진학상담' %}bg-purple-100 text-purple-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ consultation.major_category }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                {{ consultation.sub_category or '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.title }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                {{ consultation.created_at.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <a href="{{ url_for('teacher.consultation_detail', consultation_id=consultation.consultation_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    상세보기
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">작성한 상담 기록이 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 공유된 상담 기록 -->
+    {% if shared_consultations %}
+    <div class="bg-white rounded-lg shadow-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">
+                🔗 데스크에서 공유한 상담 기록 ({{ shared_consultations|length }})
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">관리자가 참고하도록 공유한 상담 내용입니다</p>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">상담일</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">상담자</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">학생</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">대분류</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">제목</th>
+                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">액션</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for consultation in shared_consultations %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.consultation_date.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.counselor.name }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.student.name }}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 text-xs font-medium rounded
+                                    {% if consultation.major_category == '신규상담' %}bg-green-100 text-green-800
+                                    {% elif consultation.major_category == '퇴원상담' %}bg-red-100 text-red-800
+                                    {% elif consultation.major_category == '분기별상담' %}bg-blue-100 text-blue-800
+                                    {% elif consultation.major_category == '진로진학상담' %}bg-purple-100 text-purple-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ consultation.major_category }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ consultation.title }}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <a href="{{ url_for('teacher.consultation_detail', consultation_id=consultation.consultation_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    상세보기
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

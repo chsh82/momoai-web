@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}보강수업 신청 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔄 보강수업 관리{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">전체 보강 요청</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">보강수업 신청 관리</h2>
+        <p class="text-gray-600 mt-2">학생들의 보강수업 신청을 승인하거나 거절할 수 있습니다.</p>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">전체 신청</p>
+            <p class="text-2xl font-bold text-blue-600">{{ total_requests }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">대기 중</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ pending_requests }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">승인됨</p>
+            <p class="text-2xl font-bold text-green-600">{{ approved_requests }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">거절됨</p>
+            <p class="text-2xl font-bold text-red-600">{{ rejected_requests }}</p>
+        </div>
+    </div>
+
+    <!-- 필터 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="" class="flex gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
+                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>대기 중</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>승인됨</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>거절됨</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    필터 적용
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 신청 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        {% if requests %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청일</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학생</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청 수업</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청 사유</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for req in requests %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ req.request_date.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-800">{{ req.student.name }}</p>
+                            <p class="text-xs text-gray-500">{{ req.student.grade }}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-800">{{ req.requested_course.course_name }}</p>
+                            <p class="text-xs text-gray-500">{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700 max-w-xs">
+                            {{ req.reason or '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if req.status == 'pending' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                                ⏳ 대기 중
+                            </span>
+                            {% elif req.status == 'approved' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                                ✓ 승인됨
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
+                                ✗ 거절됨
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if req.status == 'pending' %}
+                            <div class="flex gap-2">
+                                <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}')"
+                                        class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1 rounded transition duration-200">
+                                    승인
+                                </button>
+                                <button onclick="showRejectModal('{{ req.request_id }}', '{{ req.student.name }}')"
+                                        class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1 rounded transition duration-200">
+                                    거절
+                                </button>
+                            </div>
+                            {% elif req.status == 'approved' and req.created_makeup_course %}
+                            <a href="{{ url_for('admin.course_detail', course_id=req.created_makeup_course_id) }}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                보강수업 보기 →
+                            </a>
+                            {% elif req.status == 'rejected' and req.admin_notes %}
+                            <span class="text-xs text-gray-500">{{ req.admin_notes }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <p class="text-gray-500 text-lg">보강수업 신청이 없습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 승인 모달 -->
+<div id="approveModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-2xl font-bold text-gray-800">보강수업 승인</h3>
+            <button onclick="closeApproveModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+
+        <form id="approveForm" method="POST" action="">
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2">학생: <span id="approveStudentName" class="font-bold text-gray-800"></span></p>
+                <p class="text-sm text-gray-600 mb-4">수업: <span id="approveCourseName" class="font-bold text-gray-800"></span></p>
+            </div>
+
+            <div class="mb-4">
+                <label for="makeup_date" class="block text-sm font-medium text-gray-700 mb-2">
+                    보강수업 날짜 <span class="text-red-500">*</span>
+                </label>
+                <input type="date" name="makeup_date" id="makeup_date" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-500 mt-1">입력하지 않으면 다음 주 같은 요일로 자동 설정됩니다</p>
+            </div>
+
+            <div class="mb-4">
+                <label for="admin_notes" class="block text-sm font-medium text-gray-700 mb-2">메모 (선택)</label>
+                <textarea name="admin_notes" id="admin_notes" rows="3"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="승인 메모를 입력하세요"></textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    승인하기
+                </button>
+                <button type="button" onclick="closeApproveModal()"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 거절 모달 -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-2xl font-bold text-gray-800">보강수업 거절</h3>
+            <button onclick="closeRejectModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+
+        <form id="rejectForm" method="POST" action="">
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-4">학생: <span id="rejectStudentName" class="font-bold text-gray-800"></span></p>
+            </div>
+
+            <div class="mb-4">
+                <label for="reject_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                    거절 사유 <span class="text-red-500">*</span>
+                </label>
+                <textarea name="reject_reason" id="reject_reason" rows="4" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="거절 사유를 입력하세요"></textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    거절하기
+                </button>
+                <button type="button" onclick="closeRejectModal()"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showApproveModal(requestId, studentName, courseName) {
+    const modal = document.getElementById('approveModal');
+    const form = document.getElementById('approveForm');
+
+    form.action = `/admin/makeup-requests/${requestId}/approve`;
+    document.getElementById('approveStudentName').textContent = studentName;
+    document.getElementById('approveCourseName').textContent = courseName;
+
+    // Set default date to next week
+    const today = new Date();
+    today.setDate(today.getDate() + 7);
+    document.getElementById('makeup_date').value = today.toISOString().split('T')[0];
+
+    modal.classList.remove('hidden');
+}
+
+function closeApproveModal() {
+    document.getElementById('approveModal').classList.add('hidden');
+    document.getElementById('admin_notes').value = '';
+}
+
+function showRejectModal(requestId, studentName) {
+    const modal = document.getElementById('rejectModal');
+    const form = document.getElementById('rejectForm');
+
+    form.action = `/admin/makeup-requests/${requestId}/reject`;
+    document.getElementById('rejectStudentName').textContent = studentName;
+
+    modal.classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+    document.getElementById('reject_reason').value = '';
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeApproveModal();
+        closeRejectModal();
+    }
+});
+</script>
+
+{% endblock %}

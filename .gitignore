@@ -39,11 +39,19 @@ tasks.db
 uploads/*
 outputs/html/*
 outputs/pdf/*
+static/uploads/*
+static/essays/*
+static/profile_images/*
+static/materials/*
 
 # Keep directory structure
 !uploads/.gitkeep
 !outputs/html/.gitkeep
 !outputs/pdf/.gitkeep
+!static/uploads/.gitkeep
+!static/essays/.gitkeep
+!static/profile_images/.gitkeep
+!static/materials/.gitkeep
 
 # IDE
 .vscode/
@@ -58,3 +66,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Process IDs
+*.pid
+server.pid

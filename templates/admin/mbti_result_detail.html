@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}독서 논술 MBTI 결과 - {{ result.student.name }} - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🧠 MBTI 결과 상세{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">독서논술 성향 분석</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.student_profile', student_id=result.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← {{ result.student.name }} 학생 프로필로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">독서 논술 MBTI 결과</h2>
+        <p class="text-gray-600 mt-2">{{ result.student.name }} 학생의 독서 논술 성향 분석</p>
+    </div>
+
+    <!-- 기본 정보 -->
+    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-6 border-2 border-purple-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- 유형 -->
+            <div class="text-center">
+                <p class="text-sm text-purple-600 font-medium mb-2">유형</p>
+                <p class="text-4xl font-bold text-purple-900 mb-2">{{ mbti_type.type_name }}</p>
+                <p class="text-sm text-purple-700">{{ result.type_combination }}</p>
+            </div>
+
+            <!-- 학생 정보 -->
+            <div class="text-center">
+                <p class="text-sm text-purple-600 font-medium mb-2">학생 정보</p>
+                <p class="text-xl font-bold text-gray-800 mb-1">{{ result.student.name }}</p>
+                <p class="text-sm text-gray-600">{{ result.student.grade }}</p>
+            </div>
+
+            <!-- 테스트 일시 -->
+            <div class="text-center">
+                <p class="text-sm text-purple-600 font-medium mb-2">테스트 일시</p>
+                <p class="text-lg font-medium text-gray-800">{{ result.created_at.strftime('%Y-%m-%d') }}</p>
+                <p class="text-sm text-gray-600">{{ result.created_at.strftime('%H:%M') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 유형 설명 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">💡 유형 설명</h3>
+        <div class="space-y-4">
+            <div>
+                <p class="text-sm text-gray-600 font-medium mb-2">특징</p>
+                <p class="text-gray-800">{{ mbti_type.full_description or '-' }}</p>
+            </div>
+            {% if mbti_type.combo_description %}
+            <div>
+                <p class="text-sm text-gray-600 font-medium mb-2">조합 설명</p>
+                <p class="text-gray-800">{{ mbti_type.combo_description }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 세부 점수 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- 읽기 (Read) -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-bold text-blue-900 mb-4">📖 읽기 (Read)</h3>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">어휘형</span>
+                    <span class="text-lg font-bold text-blue-700">{{ result.scores.read.vocab }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">재독형</span>
+                    <span class="text-lg font-bold text-blue-700">{{ result.scores.read.reread }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">분석형</span>
+                    <span class="text-lg font-bold text-blue-700">{{ result.scores.read.analyze }}</span>
+                </div>
+                <div class="pt-3 border-t border-gray-200">
+                    <p class="text-sm text-gray-600 mb-1">결정 유형</p>
+                    <p class="text-lg font-bold text-blue-900">{{ result.read_type }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 말하기 (Speech) -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-bold text-green-900 mb-4">💬 말하기 (Speech)</h3>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">텍스트형</span>
+                    <span class="text-lg font-bold text-green-700">{{ result.scores.speech.textual }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">확장형</span>
+                    <span class="text-lg font-bold text-green-700">{{ result.scores.speech.expand }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">선도형</span>
+                    <span class="text-lg font-bold text-green-700">{{ result.scores.speech.lead }}</span>
+                </div>
+                <div class="pt-3 border-t border-gray-200">
+                    <p class="text-sm text-gray-600 mb-1">결정 유형</p>
+                    <p class="text-lg font-bold text-green-900">{{ result.speech_type }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 쓰기 (Write) -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-bold text-orange-900 mb-4">✍️ 쓰기 (Write)</h3>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">요약형</span>
+                    <span class="text-lg font-bold text-orange-700">{{ result.scores.write.summary }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">논리형</span>
+                    <span class="text-lg font-bold text-orange-700">{{ result.scores.write.logic }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">재구성형</span>
+                    <span class="text-lg font-bold text-orange-700">{{ result.scores.write.rewrite }}</span>
+                </div>
+                <div class="pt-3 border-t border-gray-200">
+                    <p class="text-sm text-gray-600 mb-1">결정 유형</p>
+                    <p class="text-lg font-bold text-orange-900">{{ result.write_type }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 교육 권장사항 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">🎯 교육 권장사항</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 강점 -->
+            <div>
+                <p class="text-sm text-green-600 font-bold mb-3">✅ 강점</p>
+                <ul class="space-y-2">
+                    {% for strength in recommendations.strengths %}
+                    <li class="text-sm text-gray-700">• {{ strength }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- 약점 -->
+            <div>
+                <p class="text-sm text-red-600 font-bold mb-3">⚠️ 보완 필요</p>
+                <ul class="space-y-2">
+                    {% for weakness in recommendations.weaknesses %}
+                    <li class="text-sm text-gray-700">• {{ weakness }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- 지도 팁 -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <p class="text-sm text-blue-600 font-bold mb-3">💡 지도 팁</p>
+            <ul class="space-y-2">
+                {% for tip in recommendations.tips %}
+                <li class="text-sm text-gray-700">• {{ tip }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- 권장 접근법 -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <p class="text-sm text-purple-600 font-bold mb-3">📚 권장 접근법</p>
+            <ul class="space-y-2">
+                {% for approach in recommendations.recommended_approaches %}
+                <li class="text-sm text-gray-700">• {{ approach }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- 학습 스타일 상세 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- 읽기 스타일 -->
+        <div class="bg-blue-50 rounded-lg p-4">
+            <p class="text-sm text-blue-900 font-bold mb-2">📖 읽기 스타일</p>
+            <p class="text-sm text-gray-700">{{ recommendations.reading_style }}</p>
+        </div>
+
+        <!-- 말하기 스타일 -->
+        <div class="bg-green-50 rounded-lg p-4">
+            <p class="text-sm text-green-900 font-bold mb-2">💬 말하기 스타일</p>
+            <p class="text-sm text-gray-700">{{ recommendations.speaking_style }}</p>
+        </div>
+
+        <!-- 쓰기 스타일 -->
+        <div class="bg-orange-50 rounded-lg p-4">
+            <p class="text-sm text-orange-900 font-bold mb-2">✍️ 쓰기 스타일</p>
+            <p class="text-sm text-gray-700">{{ recommendations.writing_style }}</p>
+        </div>
+    </div>
+
+    <!-- 뒤로 가기 -->
+    <div class="text-center">
+        <a href="{{ url_for('admin.student_profile', student_id=result.student_id) }}"
+           class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+            ← 학생 프로필로 돌아가기
+        </a>
+    </div>
+</div>
+{% endblock %}

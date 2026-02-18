@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}과제 제출 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('student.index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 대시보드로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">새 과제 제출</h2>
+        <p class="text-gray-600 mt-2">제출하면 담당 강사({{ student.teacher.name }})에게 자동으로 알림이 전송됩니다.</p>
+    </div>
+
+    <!-- 과제 제출 폼 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('student.submit_essay') }}" enctype="multipart/form-data" onsubmit="return validateForm()">
+                <div class="mb-6">
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                        제목 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text"
+                           id="title"
+                           name="title"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="첨삭 제목을 입력하세요">
+                </div>
+
+                <!-- 파일 첨부 -->
+                <div class="mb-6">
+                    <label for="attachments" class="block text-sm font-medium text-gray-700 mb-2">
+                        첨부 파일 (선택사항, 최대 10개)
+                    </label>
+                    <input type="file"
+                           id="attachments"
+                           name="attachments"
+                           multiple
+                           accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.hwp,.txt"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                           onchange="updateFileList(this)">
+                    <div id="fileList" class="mt-3 space-y-2"></div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        💡 이미지, PDF, 워드, 한글 파일 등을 한 번에 최대 10개까지 첨부할 수 있습니다 (각 파일 최대 16MB)
+                    </p>
+                </div>
+
+                <script>
+                function updateFileList(input) {
+                    const fileList = document.getElementById('fileList');
+                    fileList.innerHTML = '';
+
+                    if (input.files.length > 10) {
+                        alert('최대 10개의 파일만 업로드할 수 있습니다.');
+                        input.value = '';
+                        return;
+                    }
+
+                    if (input.files.length > 0) {
+                        const heading = document.createElement('p');
+                        heading.className = 'text-sm font-medium text-gray-700';
+                        heading.textContent = `선택된 파일 (${input.files.length}개):`;
+                        fileList.appendChild(heading);
+
+                        for (let i = 0; i < input.files.length; i++) {
+                            const file = input.files[i];
+                            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+
+                            if (file.size > 16 * 1024 * 1024) {
+                                alert(`${file.name}의 크기가 16MB를 초과합니다.`);
+                                input.value = '';
+                                fileList.innerHTML = '';
+                                return;
+                            }
+
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded';
+                            fileItem.innerHTML = `
+                                <span class="text-blue-600">📎</span>
+                                <span class="flex-1">${file.name}</span>
+                                <span class="text-gray-400">(${fileSize} MB)</span>
+                            `;
+                            fileList.appendChild(fileItem);
+                        }
+                    }
+                }
+
+                function validateForm() {
+                    const title = document.getElementById('title').value.trim();
+                    const content = document.getElementById('content').value.trim();
+                    const attachments = document.getElementById('attachments').files;
+
+                    // 제목은 필수
+                    if (!title) {
+                        alert('제목을 입력해주세요.');
+                        return false;
+                    }
+
+                    // 본문 또는 첨부파일 중 하나는 있어야 함
+                    if (!content && attachments.length === 0) {
+                        alert('본문 내용을 입력하거나 파일을 첨부해주세요.');
+                        return false;
+                    }
+
+                    return true;
+                }
+                </script>
+
+                <div class="mb-6">
+                    <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
+                        본문 <span class="text-gray-400 text-xs">(첨부파일이 있으면 선택사항)</span>
+                    </label>
+                    <textarea id="content"
+                              name="content"
+                              rows="20"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                              placeholder="첨삭받을 내용을 입력하세요"></textarea>
+                    <p class="mt-2 text-sm text-gray-500">
+                        💡 팁: 본문 내용이 없어도 첨부파일만으로 과제 제출이 가능합니다.
+                    </p>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">💡</span>
+                        <div>
+                            <h4 class="font-medium text-blue-900 mb-1">과제 제출 안내</h4>
+                            <ul class="text-sm text-blue-800 space-y-1">
+                                <li>• 제출하면 담당 강사에게 자동으로 알림이 전송됩니다</li>
+                                <li>• 강사가 첨삭을 완료하면 알림을 받을 수 있습니다</li>
+                                <li>• 제출 후 수정이 필요한 경우 강사에게 문의해주세요</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        제출하기
+                    </button>
+                    <a href="{{ url_for('student.index') }}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

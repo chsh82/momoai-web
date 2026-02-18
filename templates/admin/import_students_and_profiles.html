@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}학생 + 프로필 일괄 생성 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.student_profiles') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 학생 프로필 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">학생 + 프로필 일괄 생성</h2>
+        <p class="text-gray-600 mt-2">Excel 파일에서 학생 등록과 프로필을 동시에 생성합니다</p>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-green-900 mb-3">🎯 이 기능의 장점</h3>
+        <ul class="space-y-2 text-sm text-green-800">
+            <li>✅ <strong>학생이 시스템에 없어도 OK!</strong> 자동으로 학생을 생성합니다</li>
+            <li>✅ <strong>프로필도 동시 생성!</strong> 한 번에 모든 정보가 입력됩니다</li>
+            <li>✅ <strong>중복 방지:</strong> 이미 있는 학생은 프로필만 추가합니다</li>
+            <li>✅ <strong>123명을 한번에!</strong> 수동 입력 불필요</li>
+        </ul>
+    </div>
+
+    <!-- Process Flow -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-3">📋 처리 프로세스</h3>
+        <div class="space-y-3 text-sm text-blue-800">
+            <div class="flex items-start gap-3">
+                <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
+                <div>
+                    <p class="font-semibold">Excel에서 학생 이름 확인</p>
+                    <p class="text-xs text-blue-700">각 행의 "1. 학생의 이름" 컬럼 읽기</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">2</span>
+                <div>
+                    <p class="font-semibold">시스템에 학생이 있는지 확인</p>
+                    <p class="text-xs text-blue-700">있으면 → 3번, 없으면 → 학생 생성 후 3번</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">3</span>
+                <div>
+                    <p class="font-semibold">프로필 생성</p>
+                    <p class="text-xs text-blue-700">독서역량, 성향, 진학목표 등 23개 항목 자동 입력</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Mapping -->
+    <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-purple-900 mb-3">📊 자동 추출되는 학생 정보</h3>
+        <div class="grid grid-cols-2 gap-3 text-sm text-purple-800">
+            <div>
+                <span class="font-semibold">✓</span> 이름
+            </div>
+            <div>
+                <span class="font-semibold">✓</span> 성별
+            </div>
+            <div>
+                <span class="font-semibold">✓</span> 생년월일
+            </div>
+            <div>
+                <span class="font-semibold">✓</span> 재학 학교
+            </div>
+            <div>
+                <span class="font-semibold">✓</span> 학년 (초1~고3)
+            </div>
+            <div>
+                <span class="font-semibold">✓</span> + 프로필 23개 항목
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" enctype="multipart/form-data" id="importForm">
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Excel 파일 선택</label>
+                <input type="file"
+                       name="file"
+                       accept=".xlsx,.xls"
+                       required
+                       class="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-lg file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-green-50 file:text-green-700
+                              hover:file:bg-green-100
+                              cursor-pointer">
+                <p class="mt-2 text-xs text-gray-500">파일: 3. 학생 기초 조사응답_원고지택배(2025).xlsx</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        id="submitBtn"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    🚀 학생 + 프로필 일괄 생성
+                </button>
+                <a href="{{ url_for('admin.student_profiles') }}"
+                   class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Import Errors (if any) -->
+    {% if session.get('import_errors') %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mt-6">
+        <h3 class="text-lg font-bold text-red-900 mb-3">❌ 오류 목록</h3>
+        <div class="space-y-1 text-sm text-red-700 max-h-96 overflow-y-auto">
+            {% for error in session.get('import_errors') %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% set _ = session.pop('import_errors', None) %}
+    {% endif %}
+</div>
+
+<script>
+// 폼 제출 시 로딩 상태 표시
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ 처리 중... (123명 처리 예상 시간: 1-2분)';
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+});
+</script>
+{% endblock %}

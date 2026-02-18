@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{% if video %}영상 수정{% else %}영상 등록{% endif %} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">
+            {% if video %}🎬 영상 수정{% else %}🎬 영상 등록{% endif %}
+        </h2>
+        <p class="text-gray-600 mt-2">학습 동영상을 등록하세요</p>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" class="bg-white rounded-lg shadow p-8">
+        <!-- Title -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                제목 <span class="text-red-500">*</span>
+            </label>
+            <input type="text"
+                   name="title"
+                   value="{% if video %}{{ video.title }}{% endif %}"
+                   required
+                   maxlength="200"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="영상 제목을 입력하세요">
+        </div>
+
+        <!-- YouTube URL -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                YouTube URL <span class="text-red-500">*</span>
+            </label>
+            <input type="url"
+                   name="youtube_url"
+                   value="{% if video %}{{ video.youtube_url }}{% endif %}"
+                   required
+                   maxlength="500"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="https://www.youtube.com/watch?v=...">
+            <p class="text-xs text-gray-500 mt-1">YouTube 영상 URL을 입력하세요</p>
+        </div>
+
+        <!-- Grade -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                학년 <span class="text-red-500">*</span>
+            </label>
+            <select name="grade"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">선택하세요</option>
+                <option value="초1" {% if video and video.grade == '초1' %}selected{% endif %}>초1</option>
+                <option value="초2" {% if video and video.grade == '초2' %}selected{% endif %}>초2</option>
+                <option value="초3" {% if video and video.grade == '초3' %}selected{% endif %}>초3</option>
+                <option value="초4" {% if video and video.grade == '초4' %}selected{% endif %}>초4</option>
+                <option value="초5" {% if video and video.grade == '초5' %}selected{% endif %}>초5</option>
+                <option value="초6" {% if video and video.grade == '초6' %}selected{% endif %}>초6</option>
+                <option value="중1" {% if video and video.grade == '중1' %}selected{% endif %}>중1</option>
+                <option value="중2" {% if video and video.grade == '중2' %}selected{% endif %}>중2</option>
+                <option value="중3" {% if video and video.grade == '중3' %}selected{% endif %}>중3</option>
+                <option value="고1" {% if video and video.grade == '고1' %}selected{% endif %}>고1</option>
+                <option value="고2" {% if video and video.grade == '고2' %}selected{% endif %}>고2</option>
+                <option value="고3" {% if video and video.grade == '고3' %}selected{% endif %}>고3</option>
+                <option value="전체" {% if video and video.grade == '전체' %}selected{% endif %}>전체</option>
+            </select>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                설명
+            </label>
+            <textarea name="description"
+                      rows="5"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="영상에 대한 설명을 입력하세요">{% if video %}{{ video.description or '' }}{% endif %}</textarea>
+        </div>
+
+        <!-- Date Range -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    게시 시작일 <span class="text-red-500">*</span>
+                </label>
+                <input type="date"
+                       name="publish_date"
+                       value="{% if video and video.publish_date %}{{ video.publish_date.strftime('%Y-%m-%d') }}{% endif %}"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    게시 종료일 <span class="text-red-500">*</span>
+                </label>
+                <input type="date"
+                       name="end_date"
+                       value="{% if video and video.end_date %}{{ video.end_date.strftime('%Y-%m-%d') }}{% endif %}"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+        </div>
+
+        <!-- Public Status -->
+        <div class="mb-6">
+            <label class="flex items-center">
+                <input type="checkbox"
+                       name="is_public"
+                       value="1"
+                       {% if not video or video.is_public %}checked{% endif %}
+                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <span class="ml-2 text-sm font-semibold text-gray-700">공개</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">체크 해제 시 학생들에게 보이지 않습니다</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <a href="{% if video %}{{ url_for('library.video_detail', video_id=video.video_id) }}{% else %}{{ url_for('library.videos') }}{% endif %}"
+               class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
+                취소
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                {% if video %}수정하기{% else %}등록하기{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

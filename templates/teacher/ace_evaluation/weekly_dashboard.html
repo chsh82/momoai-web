@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}주간평가 전체 대시보드{% endblock %}
+
+{% block page_title %}📊 주간평가 전체 대시보드{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">전체 학생 비교 분석</span>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    <!-- 상단 버튼 -->
+    <div class="flex justify-between items-center mb-6">
+        <a href="{{ url_for('teacher.ace_weekly') }}" class="btn btn-outline">
+            ← 주간 평가로
+        </a>
+        <h2 class="text-2xl font-bold text-gray-800">주간평가 전체 대시보드</h2>
+        <div></div>
+    </div>
+
+    {% if student_stats %}
+    <!-- 학생 선택 카드 -->
+    <div class="card-momo mb-6">
+        <h3 class="text-card-title mb-4">👩‍🎓 학생 선택 (개별 리포트 보기)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {% for stat in student_stats %}
+            <div class="card-momo-sm student-card-selectable"
+                 onclick="window.location.href='{{ url_for('teacher.ace_weekly_report', student_id=stat.student.student_id) }}'">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                        {{ stat.student.name[0] }}
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold text-base">{{ stat.student.name }}</div>
+                        <div class="text-sm text-gray-500">{{ stat.student.grade }}</div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-2 flex-wrap">
+                    {% if stat.eval_count > 0 %}
+                    <span class="badge badge-blue">평가 {{ stat.eval_count }}건</span>
+                    {% endif %}
+                    {% if stat.avg_score %}
+                    <span class="badge badge-green">평균 {{ stat.avg_score }}점</span>
+                    {% endif %}
+                    {% if stat.growth_rate != 0 %}
+                    <span class="badge {{ 'badge-purple' if stat.growth_rate > 0 else 'badge-red' }}">
+                        {{ stat.growth_rate }}%
+                        {% if stat.growth_rate > 0 %}↑{% else %}↓{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="text-sm text-gray-500 mt-4 text-center">💡 학생 카드를 클릭하면 개별 리포트 페이지로 이동합니다</p>
+    </div>
+    <!-- 전체 통계 요약 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">👥</div>
+            <div class="text-3xl font-bold text-blue-600">{{ student_stats|length }}</div>
+            <div class="text-sm text-gray-600 mt-1">담당 학생 수</div>
+        </div>
+
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">📝</div>
+            <div class="text-3xl font-bold text-green-600">
+                {{ (student_stats|sum(attribute='eval_count'))|int }}
+            </div>
+            <div class="text-sm text-gray-600 mt-1">총 평가 횟수</div>
+        </div>
+
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">📈</div>
+            <div class="text-3xl font-bold text-purple-600">
+                {{ "%.1f"|format((student_stats|sum(attribute='avg_score') / student_stats|length)) }}
+            </div>
+            <div class="text-sm text-gray-600 mt-1">전체 평균 점수</div>
+        </div>
+    </div>
+
+    <!-- 학생별 평균 점수 비교 -->
+    <div class="card-momo mb-6">
+        <h3 class="text-card-title mb-4">📊 학생별 평균 점수 비교</h3>
+        <div style="height: 400px;">
+            <canvas id="scoreComparisonChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 참여도/이해도 비교 -->
+    <div class="card-momo mb-6">
+        <h3 class="text-card-title mb-4">⭐ 학생별 참여도/이해도 평균</h3>
+        <div style="height: 400px;">
+            <canvas id="ratingComparisonChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 성장률 순위 -->
+    <div class="card-momo mb-6">
+        <h3 class="text-card-title mb-4">🏆 최근 성장률 순위 (Top 10)</h3>
+        <div class="overflow-x-auto">
+            <table class="table-momo w-full">
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>학생명</th>
+                        <th>학년</th>
+                        <th>평가 횟수</th>
+                        <th>평균 점수</th>
+                        <th>평균 참여도</th>
+                        <th>평균 이해도</th>
+                        <th>성장률</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in student_stats[:10] %}
+                    <tr>
+                        <td class="font-bold text-lg">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </td>
+                        <td class="font-semibold">{{ stat.student.name }}</td>
+                        <td>{{ stat.student.grade }}</td>
+                        <td>{{ stat.eval_count }}회</td>
+                        <td class="font-bold" style="color: {{ '#10B981' if stat.avg_score >= 80 else '#F59E0B' if stat.avg_score >= 60 else '#EF4444' }}">
+                            {{ stat.avg_score }}점
+                        </td>
+                        <td class="text-center">
+                            <span class="text-yellow-500">
+                                {% for i in range(stat.avg_participation|int) %}★{% endfor %}
+                                {% for i in range(5 - (stat.avg_participation|int)) %}☆{% endfor %}
+                            </span>
+                            <span class="text-xs text-gray-600 ml-1">{{ stat.avg_participation }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="text-yellow-500">
+                                {% for i in range(stat.avg_understanding|int) %}★{% endfor %}
+                                {% for i in range(5 - (stat.avg_understanding|int)) %}☆{% endfor %}
+                            </span>
+                            <span class="text-xs text-gray-600 ml-1">{{ stat.avg_understanding }}</span>
+                        </td>
+                        <td class="font-bold {{ 'text-green-600' if stat.growth_rate > 0 else 'text-red-600' if stat.growth_rate < 0 else 'text-gray-600' }}">
+                            {{ stat.growth_rate }}%
+                            {% if stat.growth_rate > 0 %}↑
+                            {% elif stat.growth_rate < 0 %}↓
+                            {% else %}→{% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('teacher.ace_weekly_report', student_id=stat.student.student_id) }}"
+                               class="btn btn-sm btn-primary">
+                                상세보기
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 전체 학생 목록 -->
+    <div class="card-momo">
+        <h3 class="text-card-title mb-4">📋 전체 학생 목록</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for stat in student_stats %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition duration-200">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                        {{ stat.student.name[0] }}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800">{{ stat.student.name }}</h4>
+                        <p class="text-sm text-gray-600">{{ stat.student.grade }}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-1 text-sm mb-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">평가 횟수:</span>
+                        <span class="font-semibold">{{ stat.eval_count }}회</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">평균 점수:</span>
+                        <span class="font-semibold">{{ stat.avg_score }}점</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">성장률:</span>
+                        <span class="font-semibold {{ 'text-green-600' if stat.growth_rate > 0 else 'text-red-600' if stat.growth_rate < 0 else 'text-gray-600' }}">
+                            {{ stat.growth_rate }}%
+                        </span>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('teacher.ace_weekly_report', student_id=stat.student.student_id) }}"
+                   class="btn btn-sm btn-primary w-full">
+                    📊 리포트 보기
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card-momo text-center py-12">
+        <div class="text-6xl mb-4">📭</div>
+        <p class="text-gray-600 text-lg">아직 평가 기록이 없습니다.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+{% if student_stats %}
+// 데이터 준비
+const studentNames = [{% for stat in student_stats %}'{{ stat.student.name }}'{{ ',' if not loop.last else '' }}{% endfor %}];
+const avgScores = [{% for stat in student_stats %}{{ stat.avg_score }}{{ ',' if not loop.last else '' }}{% endfor %}];
+const avgParticipation = [{% for stat in student_stats %}{{ stat.avg_participation }}{{ ',' if not loop.last else '' }}{% endfor %}];
+const avgUnderstanding = [{% for stat in student_stats %}{{ stat.avg_understanding }}{{ ',' if not loop.last else '' }}{% endfor %}];
+
+// 학생별 평균 점수 비교
+const scoreCompCtx = document.getElementById('scoreComparisonChart').getContext('2d');
+new Chart(scoreCompCtx, {
+    type: 'bar',
+    data: {
+        labels: studentNames,
+        datasets: [{
+            label: '평균 점수',
+            data: avgScores,
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            borderColor: '#3B82F6',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                    display: true,
+                    text: '점수'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// 참여도/이해도 비교
+const ratingCompCtx = document.getElementById('ratingComparisonChart').getContext('2d');
+new Chart(ratingCompCtx, {
+    type: 'bar',
+    data: {
+        labels: studentNames,
+        datasets: [
+            {
+                label: '참여도',
+                data: avgParticipation,
+                backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                borderColor: '#F59E0B',
+                borderWidth: 2
+            },
+            {
+                label: '이해도',
+                data: avgUnderstanding,
+                backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                borderColor: '#8B5CF6',
+                borderWidth: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 5,
+                ticks: {
+                    stepSize: 1
+                },
+                title: {
+                    display: true,
+                    text: '별점'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+
+{% endblock %}

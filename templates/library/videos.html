@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}유튜브 영상 자료 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 flex justify-between items-center">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">🎬 유튜브 영상 자료</h2>
+            <p class="text-gray-600 mt-2">학습에 도움이 되는 다양한 영상을 확인하세요</p>
+        </div>
+        {% if current_user.has_permission_level(2) %}
+        <a href="{{ url_for('library.create_video') }}"
+           class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2">
+            <span class="text-xl">✏️</span>
+            <span>영상 등록</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Videos Grid -->
+    {% if videos.items %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {% for video in videos.items %}
+        <a href="{{ url_for('library.video_detail', video_id=video.video_id) }}"
+           class="block group">
+            <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition duration-300">
+                <div class="bg-gray-100 overflow-hidden aspect-video relative">
+                    {% if video.youtube_video_id %}
+                    <img src="https://img.youtube.com/vi/{{ video.youtube_video_id }}/mqdefault.jpg"
+                         alt="{{ video.title }}"
+                         class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center">
+                        <span class="text-4xl">🎬</span>
+                    </div>
+                    {% endif %}
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition duration-300 flex items-center justify-center">
+                        <span class="text-white text-4xl opacity-0 group-hover:opacity-100 transition duration-300">▶</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-semibold text-gray-800 group-hover:text-blue-600 transition duration-200 line-clamp-2 mb-2">
+                        {{ video.title }}
+                    </h3>
+                    <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span>조회수 {{ video.view_count }}</span>
+                        <span>{{ video.created_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if videos.pages > 1 %}
+    <div class="flex justify-center items-center space-x-2">
+        {% if videos.has_prev %}
+        <a href="{{ url_for('library.videos', page=videos.prev_num) }}"
+           class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
+            이전
+        </a>
+        {% endif %}
+
+        {% for page_num in videos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == videos.page %}
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-md">{{ page_num }}</span>
+                {% else %}
+                <a href="{{ url_for('library.videos', page=page_num) }}"
+                   class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
+                    {{ page_num }}
+                </a>
+                {% endif %}
+            {% else %}
+                <span class="px-2 py-2">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if videos.has_next %}
+        <a href="{{ url_for('library.videos', page=videos.next_num) }}"
+           class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
+            다음
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <span class="text-6xl mb-4 block">🎬</span>
+        <p class="text-gray-500 text-lg">등록된 영상이 없습니다.</p>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="mt-8 text-center">
+        <a href="{{ url_for('library.index') }}"
+           class="inline-block px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
+            ← 학습 자료실 메인으로
+        </a>
+    </div>
+</div>
+{% endblock %}

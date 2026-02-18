@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}스키마퀴즈 결과 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Result Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6 text-center">
+        <div class="text-6xl mb-4">
+            {% if session.score >= 80 %}🎉
+            {% elif session.score >= 60 %}👏
+            {% else %}💪
+            {% endif %}
+        </div>
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">퀴즈 완료!</h2>
+        <p class="text-gray-600 mb-8">
+            {% if session.subject == 'social' %}🌏 사회{% else %}🔬 과학{% endif %} - {{ student.name }} 학생
+        </p>
+
+        <!-- Score -->
+        <div class="bg-gradient-to-r {% if session.subject == 'social' %}from-amber-500 to-orange-500{% else %}from-blue-500 to-purple-600{% endif %} rounded-lg p-8 mb-8 text-white">
+            <p class="text-lg mb-2">점수</p>
+            <p class="text-6xl font-bold mb-2">{{ session.score|round|int }}점</p>
+            <p class="{% if session.subject == 'social' %}text-amber-100{% else %}text-blue-100{% endif %}">{{ session.correct_count }} / {{ session.total_questions }} 정답</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <div class="bg-green-50 rounded-lg p-4">
+                <p class="text-sm text-gray-600 mb-1">정답</p>
+                <p class="text-2xl font-bold text-green-600">{{ session.correct_count }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4">
+                <p class="text-sm text-gray-600 mb-1">오답</p>
+                <p class="text-2xl font-bold text-red-600">{{ session.total_questions - session.correct_count }}</p>
+            </div>
+            <div class="{% if session.subject == 'social' %}bg-amber-50{% else %}bg-blue-50{% endif %} rounded-lg p-4">
+                <p class="text-sm text-gray-600 mb-1">정답률</p>
+                <p class="text-2xl font-bold {% if session.subject == 'social' %}text-amber-600{% else %}text-blue-600{% endif %}">{{ session.score|round|int }}%</p>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-8">
+            {% if session.score >= 90 %}
+            <p class="text-lg text-gray-800 font-medium">🌟 완벽합니다! 배경지식이 매우 풍부하네요!</p>
+            {% elif session.score >= 80 %}
+            <p class="text-lg text-gray-800 font-medium">👍 잘하셨습니다! 조금만 더 노력하면 완벽해요!</p>
+            {% elif session.score >= 60 %}
+            <p class="text-lg text-gray-800 font-medium">💪 좋아요! 계속 학습하면 더 좋아질 거예요!</p>
+            {% else %}
+            <p class="text-lg text-gray-800 font-medium">📚 다시 한 번 도전해보세요! 연습이 실력을 만듭니다!</p>
+            {% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-4 mb-8">
+            <a href="{{ url_for('student.schema_quiz') }}"
+               class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-4 rounded-lg transition duration-200">
+                메인으로
+            </a>
+            <a href="{{ url_for('student.schema_quiz_start', subject=session.subject) }}"
+               class="flex-1 {% if session.subject == 'social' %}bg-amber-600 hover:bg-amber-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %} text-white font-bold py-4 rounded-lg transition duration-200">
+                다시 도전하기
+            </a>
+        </div>
+    </div>
+
+    <!-- 상세 답안 비교 -->
+    {% if results %}
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">📝 상세 답안 보기</h3>
+
+        <div class="space-y-4">
+            {% for result in results %}
+            <div class="border-2 {% if result.is_correct %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %} rounded-lg p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-2xl">{% if result.is_correct %}✅{% else %}❌{% endif %}</span>
+                            <span class="font-bold text-gray-700">문제 {{ loop.index }}</span>
+                        </div>
+
+                        <!-- 문제 (정의) -->
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-1">다음 설명에 해당하는 용어는?</p>
+                            <p class="text-lg font-medium text-gray-800 bg-white rounded p-3">
+                                {{ result.quiz.correct_answer }}
+                            </p>
+                        </div>
+
+                        <!-- 내 답안 -->
+                        <div class="mb-2">
+                            <p class="text-sm {% if result.is_correct %}text-green-700{% else %}text-red-700{% endif %} font-medium mb-1">
+                                내 답안:
+                            </p>
+                            <p class="text-base {% if result.is_correct %}text-green-900{% else %}text-red-900{% endif %} font-bold bg-white rounded p-3">
+                                {{ result.student_answer or "(답안 없음)" }}
+                            </p>
+                        </div>
+
+                        <!-- 정답 (틀렸을 때만) -->
+                        {% if not result.is_correct %}
+                        <div>
+                            <p class="text-sm text-green-700 font-medium mb-1">정답:</p>
+                            <p class="text-base text-green-900 font-bold bg-white rounded p-3">
+                                {{ result.quiz.term }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

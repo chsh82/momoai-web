@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}과제에서 OCR - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 과제로 돌아가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">과제에서 OCR 인식</h2>
+        <div class="flex items-center gap-3 text-sm text-gray-600">
+            <span>👤 {{ student.name }}</span>
+            <span>📝 {{ essay.title or '제목 없음' }}</span>
+        </div>
+    </div>
+
+    <!-- 안내 -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <div class="flex items-start gap-3">
+            <span class="text-3xl">💡</span>
+            <div>
+                <h4 class="font-medium text-blue-900 mb-2">과제 첨부 파일에서 OCR</h4>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• 학생이 제출한 과제의 이미지 파일에서 텍스트를 추출합니다</li>
+                    <li>• 여러 파일을 동시에 선택하여 일괄 처리할 수 있습니다</li>
+                    <li>• 각 파일의 추출된 텍스트는 OCR 히스토리에 개별 저장됩니다</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 파일 선택 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800">이미지 파일 선택 ({{ image_attachments|length }}개)</h3>
+            <button type="button" onclick="toggleSelectAll()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                전체 선택/해제
+            </button>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('essays.ocr_from_essay', essay_id=essay.essay_id) }}" onsubmit="return validateAndShowProcessing()">
+                <div class="space-y-3 mb-6">
+                    {% for file_index, filename, filepath in image_attachments %}
+                    <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-400 cursor-pointer transition duration-200 file-item">
+                        <input type="checkbox"
+                               name="file_indices"
+                               value="{{ file_index if file_index is not none else '' }}"
+                               class="w-4 h-4 text-blue-600 file-checkbox">
+                        <span class="text-2xl">🖼️</span>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800">{{ filename }}</p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit"
+                            id="submit-button"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        OCR 인식 시작
+                    </button>
+                    <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+
+            <!-- 처리 중 메시지 -->
+            <div id="processing-message" class="hidden mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-700"></div>
+                    <div>
+                        <h4 class="font-medium text-yellow-900">OCR 처리 중...</h4>
+                        <p class="text-sm text-yellow-800">이미지에서 텍스트를 추출하고 있습니다. 잠시만 기다려주세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+}
+
+function validateAndShowProcessing() {
+    const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+
+    if (checkboxes.length === 0) {
+        alert('최소 1개 이상의 파일을 선택해주세요.');
+        return false;
+    }
+
+    const button = document.getElementById('submit-button');
+    const message = document.getElementById('processing-message');
+    const messageText = message.querySelector('p');
+
+    button.disabled = true;
+    button.classList.add('opacity-50', 'cursor-not-allowed');
+    message.classList.remove('hidden');
+
+    // 선택된 파일 수에 따라 메시지 업데이트
+    if (checkboxes.length === 1) {
+        messageText.textContent = '이미지에서 텍스트를 추출하고 있습니다. 약 10~60초 소요됩니다.';
+    } else {
+        messageText.textContent = `${checkboxes.length}개의 이미지를 순차적으로 처리하고 있습니다. 완료까지 ${checkboxes.length * 30}~${checkboxes.length * 60}초 정도 소요됩니다.`;
+    }
+
+    return true;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}{% if board %}글 수정{% else %}글 작성{% endif %} - 강사 게시판{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% if board %}{{ url_for('teacher.board_detail', board_id=board.board_id) }}{% else %}{{ url_for('teacher.board') }}{% endif %}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← {% if board %}뒤로가기{% else %}목록으로{% endif %}
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">
+            {% if board %}✏️ 글 수정{% else %}✏️ 글 작성{% endif %}
+        </h2>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-6 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-300{% elif category == 'success' %}bg-green-100 text-green-700 border border-green-300{% else %}bg-blue-100 text-blue-700 border border-blue-300{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <form method="POST" enctype="multipart/form-data" class="bg-white rounded-lg shadow p-8">
+        <!-- 제목 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                제목 <span class="text-red-500">*</span>
+            </label>
+            <input type="text"
+                   name="title"
+                   value="{% if board %}{{ board.title }}{% endif %}"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="제목을 입력하세요"
+                   required>
+        </div>
+
+        <!-- 공지사항 여부 (관리자만) -->
+        {% if current_user.is_admin %}
+        <div class="mb-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox"
+                       name="is_notice"
+                       {% if board and board.is_notice %}checked{% endif %}
+                       class="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                <span class="text-sm font-medium text-gray-700">공지사항으로 등록</span>
+            </label>
+        </div>
+        {% endif %}
+
+        <!-- 내용 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                내용 <span class="text-red-500">*</span>
+            </label>
+            <div class="border border-gray-300 rounded-lg overflow-hidden">
+                <!-- 에디터 툴바 -->
+                <div class="bg-gray-50 border-b border-gray-300 px-4 py-2 flex gap-2">
+                    <button type="button" onclick="execCommand('bold')" class="px-3 py-1 hover:bg-gray-200 rounded transition" title="굵게">
+                        <strong>B</strong>
+                    </button>
+                    <button type="button" onclick="execCommand('italic')" class="px-3 py-1 hover:bg-gray-200 rounded transition" title="기울임">
+                        <em>I</em>
+                    </button>
+                    <button type="button" onclick="execCommand('underline')" class="px-3 py-1 hover:bg-gray-200 rounded transition" title="밑줄">
+                        <u>U</u>
+                    </button>
+                    <div class="border-l border-gray-300 mx-2"></div>
+                    <button type="button" onclick="execCommand('insertUnorderedList')" class="px-3 py-1 hover:bg-gray-200 rounded transition" title="글머리 기호">
+                        ⋯
+                    </button>
+                    <button type="button" onclick="execCommand('insertOrderedList')" class="px-3 py-1 hover:bg-gray-200 rounded transition" title="번호 매기기">
+                        1.
+                    </button>
+                    <div class="border-l border-gray-300 mx-2"></div>
+                    <button type="button" onclick="insertImage()" class="px-3 py-1 hover:bg-gray-200 rounded transition" title="이미지 삽입">
+                        🖼️
+                    </button>
+                    <span class="text-xs text-gray-500 ml-auto self-center">Ctrl+V로 이미지 붙여넣기 가능</span>
+                </div>
+
+                <!-- 에디터 -->
+                <div id="editor"
+                     contenteditable="true"
+                     class="px-4 py-3 min-h-[400px] focus:outline-none prose max-w-none"
+                     placeholder="내용을 입력하세요. 이미지는 Ctrl+V로 붙여넣거나 드래그앤드롭할 수 있습니다.">{% if board %}{{ board.content | safe }}{% endif %}</div>
+
+                <!-- Hidden field to store HTML content -->
+                <input type="hidden" name="content" id="content">
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                💡 이미지를 복사(Ctrl+C)한 후 에디터에 붙여넣기(Ctrl+V)하면 자동으로 업로드됩니다.
+            </p>
+        </div>
+
+        <!-- 첨부파일 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                첨부파일 (최대 10개)
+            </label>
+
+            {% if board and board.attachments.count() > 0 %}
+            <!-- 기존 첨부파일 -->
+            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm font-medium text-gray-700 mb-3">현재 첨부파일</p>
+                <div class="space-y-2">
+                    {% for attachment in board.attachments %}
+                    <label class="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                        <input type="checkbox" name="delete_attachments" value="{{ attachment.attachment_id }}" class="w-4 h-4">
+                        <span class="text-sm text-gray-700">{{ attachment.original_filename }}</span>
+                        <span class="text-xs text-gray-500">({{ (attachment.file_size / 1024) | round(1) }} KB)</span>
+                        <span class="text-xs text-red-500 ml-auto">체크하면 삭제됨</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 새 파일 선택 -->
+            <input type="file"
+                   name="attachments"
+                   multiple
+                   accept="*/*"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   onchange="updateFileList(this)">
+            <p class="text-xs text-gray-500 mt-2" id="fileListInfo">
+                선택된 파일이 없습니다. (최대 10개, 파일당 최대 32MB)
+            </p>
+        </div>
+
+        <!-- 안내사항 -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-start">
+                <div class="text-blue-600 text-xl mr-3">ℹ️</div>
+                <div class="text-sm text-blue-800">
+                    <p class="font-medium mb-1">작성 안내</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>이미지는 클립보드에서 직접 붙여넣기(Ctrl+V) 가능합니다</li>
+                        <li>이미지 파일을 에디터에 드래그앤드롭할 수도 있습니다</li>
+                        <li>첨부파일은 최대 10개까지 업로드 가능합니다</li>
+                        <li>작성한 글은 모든 강사와 관리자가 볼 수 있습니다</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="flex gap-3">
+            <button type="submit"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                {% if board %}수정하기{% else %}등록하기{% endif %}
+            </button>
+            <a href="{% if board %}{{ url_for('teacher.board_detail', board_id=board.board_id) }}{% else %}{{ url_for('teacher.board') }}{% endif %}"
+               class="flex-1 text-center bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200">
+                취소
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- 이미지 업로드 hidden input -->
+<input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(this)">
+
+<script>
+// 에디터 placeholder 처리
+const editor = document.getElementById('editor');
+editor.addEventListener('focus', function() {
+    if (this.textContent.trim() === '') {
+        this.textContent = '';
+    }
+});
+
+// 폼 제출 시 에디터 내용을 hidden field에 복사
+document.querySelector('form').addEventListener('submit', function(e) {
+    const content = editor.innerHTML.trim();
+    if (!content || content === '<br>') {
+        alert('내용을 입력해주세요.');
+        e.preventDefault();
+        return;
+    }
+    document.getElementById('content').value = content;
+});
+
+// 에디터 명령 실행
+function execCommand(command) {
+    document.execCommand(command, false, null);
+    editor.focus();
+}
+
+// 이미지 삽입 버튼
+function insertImage() {
+    document.getElementById('imageInput').click();
+}
+
+// 파일 선택 시 이미지 업로드
+function handleImageSelect(input) {
+    if (input.files && input.files[0]) {
+        uploadImage(input.files[0]);
+    }
+}
+
+// 클립보드 붙여넣기 이벤트
+editor.addEventListener('paste', function(e) {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+            e.preventDefault();
+            const blob = items[i].getAsFile();
+            uploadImage(blob);
+            return;
+        }
+    }
+});
+
+// 드래그앤드롭
+editor.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.backgroundColor = '#f0f9ff';
+});
+
+editor.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.backgroundColor = '';
+});
+
+editor.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.backgroundColor = '';
+
+    const files = e.dataTransfer.files;
+    for (let i = 0; i < files.length; i++) {
+        if (files[i].type.indexOf('image') !== -1) {
+            uploadImage(files[i]);
+        }
+    }
+});
+
+// 이미지 업로드 함수
+function uploadImage(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    // 로딩 표시
+    const loadingSpan = document.createElement('span');
+    loadingSpan.textContent = '🔄 이미지 업로드 중...';
+    loadingSpan.className = 'text-blue-600';
+    document.execCommand('insertHTML', false, loadingSpan.outerHTML);
+
+    fetch('{{ url_for("teacher.board_upload_image") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 로딩 텍스트 제거
+        const loadingElements = editor.querySelectorAll('span');
+        loadingElements.forEach(el => {
+            if (el.textContent.includes('업로드 중')) {
+                el.remove();
+            }
+        });
+
+        if (data.success) {
+            // 이미지 삽입
+            const img = `<img src="${data.url}" alt="uploaded image" style="max-width: 100%; height: auto; margin: 10px 0;">`;
+            document.execCommand('insertHTML', false, img);
+        } else {
+            alert('이미지 업로드 실패: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('이미지 업로드 중 오류가 발생했습니다.');
+        console.error(error);
+    });
+}
+
+// 파일 목록 업데이트
+function updateFileList(input) {
+    const files = input.files;
+    const info = document.getElementById('fileListInfo');
+
+    if (files.length === 0) {
+        info.textContent = '선택된 파일이 없습니다. (최대 10개, 파일당 최대 32MB)';
+        info.className = 'text-xs text-gray-500 mt-2';
+    } else if (files.length > 10) {
+        info.textContent = `⚠️ 파일이 너무 많습니다. (${files.length}개 선택됨, 최대 10개)`;
+        info.className = 'text-xs text-red-600 mt-2';
+    } else {
+        const fileNames = Array.from(files).map(f => f.name).join(', ');
+        info.textContent = `✅ ${files.length}개 파일 선택됨: ${fileNames.length > 100 ? fileNames.substring(0, 100) + '...' : fileNames}`;
+        info.className = 'text-xs text-green-600 mt-2';
+    }
+}
+</script>
+
+<style>
+#editor:empty:before {
+    content: attr(placeholder);
+    color: #9ca3af;
+}
+
+#editor img {
+    max-width: 100%;
+    height: auto;
+    margin: 10px 0;
+    border-radius: 8px;
+}
+
+#editor:focus {
+    outline: none;
+}
+</style>
+{% endblock %}

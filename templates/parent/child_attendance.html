@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} 출석 현황 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}✅ 자녀 출결{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('parent.child_detail', student_id=student.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← {{ student.name }} 정보로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 출석 현황</h2>
+    </div>
+
+    <!-- 필터 -->
+    {% if enrollments|length > 1 %}
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="" class="flex items-center gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">수업 선택</label>
+                <select name="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체 수업</option>
+                    {% for enrollment in enrollments %}
+                    <option value="{{ enrollment.course_id }}" {% if course_filter == enrollment.course_id %}selected{% endif %}>
+                        {{ enrollment.course.course_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    필터 적용
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- 출석 통계 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {% for enrollment in enrollments %}
+        {% if not course_filter or course_filter == enrollment.course_id %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="text-sm text-gray-600 mb-2">{{ enrollment.course.course_name }}</h4>
+            <p class="text-2xl font-bold text-blue-600 mb-3">{{ "%.1f"|format(enrollment.attendance_rate) }}%</p>
+            <div class="text-xs text-gray-600 space-y-1">
+                <p>✓ 출석: {{ enrollment.attended_sessions }}회</p>
+                <p>⏰ 지각: {{ enrollment.late_sessions }}회</p>
+                <p>✗ 결석: {{ enrollment.absent_sessions }}회</p>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- 출석 기록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">출석 기록</h3>
+        </div>
+        <div class="p-6">
+            {% if attendance_data %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">수업</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">세션</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">날짜</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">시간</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">주제</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">출석 상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">메모</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for data in attendance_data %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-800">
+                                {{ data.course.course_name }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                세션 {{ data.session.session_number }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ data.session.session_date.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {% if data.session.start_time %}{{ data.session.start_time.strftime('%H:%M') }}{% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ data.session.topic or '-' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 text-xs font-medium rounded
+                                    {% if data.attendance.status == 'present' %}bg-green-100 text-green-800
+                                    {% elif data.attendance.status == 'late' %}bg-yellow-100 text-yellow-800
+                                    {% elif data.attendance.status == 'excused' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {% if data.attendance.status == 'present' %}✓ 출석
+                                    {% elif data.attendance.status == 'late' %}⏰ 지각
+                                    {% elif data.attendance.status == 'excused' %}📝 인정결석
+                                    {% else %}✗ 결석{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                {{ data.attendance.notes or '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">출석 기록이 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

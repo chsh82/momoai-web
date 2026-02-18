@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{% if post %}명예의 전당 수정{% else %}명예의 전당 등록{% endif %} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">
+            {% if post %}🏆 명예의 전당 수정{% else %}🏆 명예의 전당 등록{% endif %}
+        </h2>
+        <p class="text-gray-600 mt-2">우수한 학생 작품을 명예의 전당에 등록하세요</p>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" enctype="multipart/form-data" class="bg-white rounded-lg shadow p-8">
+        <!-- Title -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                제목 <span class="text-red-500">*</span>
+            </label>
+            <input type="text"
+                   name="title"
+                   value="{% if post %}{{ post.title }}{% endif %}"
+                   required
+                   maxlength="200"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="제목을 입력하세요">
+        </div>
+
+        <!-- Category -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                분류 <span class="text-red-500">*</span>
+            </label>
+            <select name="category"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">선택하세요</option>
+                <option value="excellent_answer" {% if post and post.category == 'excellent_answer' %}selected{% endif %}>📝 우수답안</option>
+                <option value="mock_exam_award" {% if post and post.category == 'mock_exam_award' %}selected{% endif %}>📊 모의고사 수상</option>
+                <option value="essay_award" {% if post and post.category == 'essay_award' %}selected{% endif %}>✍️ 에세이 수상</option>
+                <option value="other" {% if post and post.category == 'other' %}selected{% endif %}>🎯 기타</option>
+            </select>
+        </div>
+
+        <!-- Student Selection -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                학생 선택
+            </label>
+            <select name="student_id"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">선택 안함</option>
+                {% for student in students %}
+                <option value="{{ student.student_id }}" {% if post and post.student_id == student.student_id %}selected{% endif %}>
+                    {{ student.name }} ({{ student.student_code }}) - {{ student.grade }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Award Name -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                수상명
+            </label>
+            <input type="text"
+                   name="award_name"
+                   value="{% if post %}{{ post.award_name or '' }}{% endif %}"
+                   maxlength="200"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="예: 2024학년도 모의고사 1등, 우수 에세이상 등">
+        </div>
+
+        <!-- Grade -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                학년
+            </label>
+            <input type="text"
+                   name="grade"
+                   value="{% if post %}{{ post.grade or '' }}{% endif %}"
+                   maxlength="20"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="예: 고2, 중3 등">
+        </div>
+
+        <!-- Content -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                내용 <span class="text-red-500">*</span>
+            </label>
+            <textarea name="content"
+                      required
+                      rows="15"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="내용을 입력하세요">{% if post %}{{ post.content }}{% endif %}</textarea>
+        </div>
+
+        <!-- File Upload -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                첨부파일
+            </label>
+            {% if post and post.file_path %}
+            <div class="mb-2 p-3 bg-gray-50 rounded border border-gray-200">
+                <span class="text-sm text-gray-600">현재 파일: {{ post.file_path | basename }}</span>
+                <label class="ml-4 text-sm text-blue-600 cursor-pointer">
+                    <input type="checkbox" name="remove_file" value="1" class="mr-1">
+                    파일 삭제
+                </label>
+            </div>
+            {% endif %}
+            <input type="file"
+                   name="file"
+                   accept=".pdf,.doc,.docx,.hwp,.txt"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, HWP, TXT 파일만 업로드 가능 (최대 10MB)</p>
+        </div>
+
+        <!-- Published Status -->
+        <div class="mb-6">
+            <label class="flex items-center">
+                <input type="checkbox"
+                       name="is_published"
+                       value="1"
+                       {% if not post or post.is_published %}checked{% endif %}
+                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <span class="ml-2 text-sm font-semibold text-gray-700">공개</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">체크 해제 시 학생들에게 보이지 않습니다</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <a href="{% if post %}{{ url_for('library.hall_of_fame_detail', post_id=post.post_id) }}{% else %}{{ url_for('library.hall_of_fame') }}{% endif %}"
+               class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
+                취소
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                {% if post %}수정하기{% else %}등록하기{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

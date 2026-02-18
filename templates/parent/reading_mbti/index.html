@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}자녀 독서 논술 MBTI - 학부모 포털{% endblock %}
+
+{% block page_title %}🧠 독서논술 MBTI{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">자녀 학습 성향</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-3xl font-bold text-gray-800">📚 자녀 독서 논술 MBTI</h2>
+            <a href="{{ url_for('parent.index') }}"
+               class="text-blue-600 hover:text-blue-800 font-medium">
+                ← 대시보드
+            </a>
+        </div>
+        <p class="text-gray-600">
+            자녀의 독서, 발표/토론, 쓰기 스타일을 확인하고 학습 방향을 이해하세요.
+        </p>
+    </div>
+
+    <!-- 안내 카드 -->
+    <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-8 text-white mb-8">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="text-6xl">🎯</div>
+            <div>
+                <h3 class="text-2xl font-bold mb-2">독서 논술 MBTI란?</h3>
+                <p class="text-purple-100">
+                    학생의 독서, 발표/토론, 쓰기 스타일을 9가지 차원으로 분석하여<br>
+                    27가지 유형 중 하나로 진단하는 자가평가 시스템입니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                <div class="text-3xl mb-2">📖</div>
+                <div class="font-medium mb-1">독해 스타일</div>
+                <div class="text-sm text-purple-100">어휘탐험가, 반복독해왕, 분석비평가</div>
+            </div>
+            <div class="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                <div class="text-3xl mb-2">💬</div>
+                <div class="font-medium mb-1">발표/토론 스타일</div>
+                <div class="text-sm text-purple-100">교재토론러, 확장사고가, 토론리더</div>
+            </div>
+            <div class="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                <div class="text-3xl mb-2">✍️</div>
+                <div class="font-medium mb-1">쓰기 스타일</div>
+                <div class="text-sm text-purple-100">핵심정리왕, 논리설계사, 재구성작가</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 자녀 목록 -->
+    {% if children_stats %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for item in children_stats %}
+        {% set student = item.student %}
+        {% set latest = item.latest_result %}
+
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition">
+            <div class="p-6">
+                <!-- 학생 정보 -->
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">{{ student.name }}</h3>
+                        <p class="text-gray-600">{{ student.grade }} | {{ student.student_code }}</p>
+                    </div>
+                    <div class="text-4xl">👤</div>
+                </div>
+
+                <!-- 검사 상태 -->
+                {% if item.has_test %}
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm text-purple-700">최근 검사 결과</div>
+                        <div class="text-xs text-purple-600">
+                            {{ latest.created_at.strftime('%Y-%m-%d') }}
+                        </div>
+                    </div>
+                    <div class="text-lg font-bold text-purple-900 mb-1">
+                        {{ latest.mbti_type.type_name }}
+                    </div>
+                    <div class="text-sm text-purple-700">
+                        {{ latest.mbti_type.combo_description }}
+                    </div>
+                </div>
+
+                <!-- 통계 -->
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-gray-800">{{ item.total_tests }}</div>
+                        <div class="text-xs text-gray-600">총 검사 횟수</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-medium text-purple-600">
+                            {% if latest.read_type == 'vocab' %}어휘탐험가
+                            {% elif latest.read_type == 'reread' %}반복독해왕
+                            {% else %}분석비평가{% endif %}
+                        </div>
+                        <div class="text-xs text-gray-600">독해</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-medium text-indigo-600">
+                            {% if latest.speech_type == 'textual' %}교재토론러
+                            {% elif latest.speech_type == 'expand' %}확장사고가
+                            {% else %}토론리더{% endif %}
+                        </div>
+                        <div class="text-xs text-gray-600">발표/토론</div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <a href="{{ url_for('parent.child_mbti', student_id=student.student_id) }}"
+                   class="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
+                          text-white font-medium text-center py-3 rounded-lg transition">
+                    상세 결과 보기 →
+                </a>
+
+                {% else %}
+                <!-- 미검사 상태 -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4 text-center">
+                    <div class="text-4xl mb-2">📋</div>
+                    <div class="text-gray-700 font-medium mb-1">아직 검사를 진행하지 않았습니다</div>
+                    <div class="text-sm text-gray-600">
+                        학생 포털에서 검사를 진행할 수 있습니다
+                    </div>
+                </div>
+
+                <!-- 버튼 (비활성) -->
+                <div class="block w-full bg-gray-300 text-gray-500 font-medium text-center py-3 rounded-lg cursor-not-allowed">
+                    검사 결과 없음
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- 자녀 없음 -->
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">👨‍👩‍👧‍👦</div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">등록된 자녀가 없습니다</h3>
+        <p class="text-gray-600 mb-6">
+            관리자에게 문의하여 자녀를 연결해주세요.
+        </p>
+        <a href="{{ url_for('parent.index') }}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition">
+            대시보드로 돌아가기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}학부모 대시보드 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🏠 학부모 대시보드{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">자녀 학습 현황</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">학부모 대시보드</h2>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">내 자녀</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total_children }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">👨‍👩‍👧‍👦</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">수강 중인 수업</p>
+                    <p class="text-3xl font-bold text-green-600">{{ total_enrollments }}</p>
+                </div>
+                <div class="text-green-600 text-4xl">📚</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">읽지 않은 피드백</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ unread_feedbacks }}</p>
+                </div>
+                <div class="text-yellow-600 text-4xl">📬</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">미납 금액</p>
+                    <p class="text-2xl font-bold text-red-600">{{ "{:,}".format(total_unpaid) }}원</p>
+                </div>
+                <div class="text-red-600 text-4xl">💰</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 빠른 메뉴 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <a href="{{ url_for('parent.children') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">👨‍👩‍👧‍👦</span>
+            <span>내 자녀</span>
+        </a>
+
+        <a href="{{ url_for('parent.all_feedback') }}"
+           class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📬</span>
+            <span>피드백 확인</span>
+        </a>
+
+        <a href="{{ url_for('parent.all_payments') }}"
+           class="bg-green-600 hover:bg-green-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">💳</span>
+            <span>결제 내역</span>
+        </a>
+
+        <a href="{{ url_for('community.index') }}"
+           class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">💬</span>
+            <span>커뮤니티</span>
+        </a>
+    </div>
+
+    <!-- 차트 섹션 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 자녀별 출석률 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">자녀별 출석률</h3>
+                <p class="text-sm text-gray-600 mt-1">자녀들의 출석 현황 비교</p>
+            </div>
+            <div class="p-6">
+                <canvas id="attendanceChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- 자녀별 첨삭 수 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">자녀별 첨삭 수</h3>
+                <p class="text-sm text-gray-600 mt-1">자녀들의 첨삭 활동 비교</p>
+            </div>
+            <div class="p-6">
+                <canvas id="essayChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 월별 결제 금액 추이 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">월별 결제 금액 추이</h3>
+            <p class="text-sm text-gray-600 mt-1">최근 6개월간 결제 내역</p>
+        </div>
+        <div class="p-6">
+            <canvas id="paymentChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 내 자녀 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">내 자녀 ({{ children|length }}명)</h3>
+                <a href="{{ url_for('parent.children') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="p-6">
+                {% if children %}
+                <div class="space-y-4">
+                    {% for child in children %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                                {{ child.name[0] }}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-medium text-gray-800">{{ child.name }}</h4>
+                                    {% if child.tier %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if child.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif child.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif child.tier == 'C' %}bg-green-100 text-green-800
+                                        {% elif child.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ child.tier }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-600">{{ child.grade }}</p>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('parent.child_detail', student_id=child.student_id) }}"
+                           class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center text-sm font-medium py-2 rounded transition duration-200">
+                            상세 정보 보기
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">등록된 자녀가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 최근 피드백 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">최근 피드백</h3>
+                <a href="{{ url_for('parent.all_feedback') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_feedbacks %}
+                <div class="space-y-3">
+                    {% for feedback in recent_feedbacks %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200 {% if not feedback.is_read %}bg-yellow-50 border-yellow-300{% endif %}">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-medium text-gray-800">{{ feedback.title }}</h4>
+                                    {% if not feedback.is_read %}
+                                    <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                                        NEW
+                                    </span>
+                                    {% endif %}
+                                    {% if feedback.priority == 'high' %}
+                                    <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                                        중요
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-600">
+                                    {{ feedback.student.name }} | {{ feedback.teacher.name }} 강사
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('parent.view_feedback', feedback_id=feedback.feedback_id) }}"
+                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            자세히 보기 →
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">받은 피드백이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// 자녀별 출석률 차트
+const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+new Chart(attendanceCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ child_names|safe }},
+        datasets: [{
+            label: '출석률 (%)',
+            data: {{ child_attendance_rates|safe }},
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// 자녀별 첨삭 수 차트
+const essayCtx = document.getElementById('essayChart').getContext('2d');
+new Chart(essayCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ child_essay_names|safe }},
+        datasets: [{
+            label: '첨삭 수',
+            data: {{ child_essay_counts|safe }},
+            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// 월별 결제 금액 추이 차트
+const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+new Chart(paymentCtx, {
+    type: 'line',
+    data: {
+        labels: {{ payment_labels|safe }},
+        datasets: [{
+            label: '결제 금액 (원)',
+            data: {{ payment_data|safe }},
+            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+            borderColor: 'rgba(251, 191, 36, 1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString() + '원';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}출석 체크 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}✅ 출결 관리{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">수업별 출석 현황</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">✓ 출석 체크</h2>
+        <p class="text-gray-600 mt-2">수업 세션을 선택하여 출석을 체크하세요</p>
+    </div>
+
+    <!-- 검색 필터 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">🔍 지난 수업 검색</h3>
+            {% if search_mode %}
+            <a href="{{ url_for('teacher.attendance_list') }}"
+               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                ← 기본 화면으로
+            </a>
+            {% endif %}
+        </div>
+        <form method="GET" action="" class="space-y-4">
+            <input type="hidden" name="search" value="1">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 날짜 범위 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">시작일</label>
+                    <input type="date" name="date_from" value="{{ date_from }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">종료일</label>
+                    <input type="date" name="date_to" value="{{ date_to }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- 수업 선택 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">수업</label>
+                    <select name="course_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체 수업</option>
+                        {% for course in courses %}
+                        <option value="{{ course.course_id }}" {% if course_filter == course.course_id %}selected{% endif %}>
+                            {{ course.course_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 강사 선택 (관리자만) -->
+                {% if current_user.is_admin and teachers %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">강사</label>
+                    <select name="teacher_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체 강사</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
+                            {{ teacher.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- 상태 필터 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">상태</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체 상태</option>
+                        <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>예정</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex gap-3">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    🔍 검색
+                </button>
+                <a href="{{ url_for('teacher.attendance_list') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg transition duration-200">
+                    초기화
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 검색 결과 -->
+    {% if search_mode %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-purple-50">
+            <h3 class="text-xl font-bold text-purple-900">🔍 검색 결과 ({{ search_sessions|length }}개)</h3>
+            <p class="text-sm text-purple-700 mt-1">최근 50개 세션까지 표시</p>
+        </div>
+        <div class="p-6">
+            {% if search_sessions %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">날짜</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">수업명</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">강사</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">시간</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">학생 수</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for session in search_sessions %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ session.session_date.strftime('%Y-%m-%d') }}
+                                <span class="text-xs text-gray-500">
+                                    ({{ session.session_date.strftime('%a')|replace('Mon', '월')|replace('Tue', '화')|replace('Wed', '수')|replace('Thu', '목')|replace('Fri', '금')|replace('Sat', '토')|replace('Sun', '일') }})
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="text-sm font-medium text-gray-800">{{ session.course.course_name }}</div>
+                                <div class="text-xs text-gray-500">세션 {{ session.session_number }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ session.course.teacher.name if session.course.teacher else '미배정' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
+                                {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ session.course.enrolled_count }}명
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 text-xs font-medium rounded
+                                    {% if session.status == 'scheduled' %}bg-blue-100 text-blue-800
+                                    {% elif session.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif session.status == 'cancelled' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if session.status == 'scheduled' %}예정
+                                    {% elif session.status == 'completed' %}완료
+                                    {% elif session.status == 'cancelled' %}취소
+                                    {% else %}{{ session.status }}{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    {% if session.status == 'completed' %}출석 현황{% else %}출석 체크{% endif %} →
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">🔍</div>
+                <p class="text-gray-500 text-lg">검색 결과가 없습니다.</p>
+                <p class="text-gray-400 text-sm mt-2">검색 조건을 변경해보세요.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+
+    <!-- 오늘 세션 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+            <h3 class="text-xl font-bold text-blue-900">📅 오늘 세션 ({{ today_sessions|length }}개)</h3>
+            <p class="text-sm text-blue-700 mt-1">오늘 진행되는 수업</p>
+        </div>
+        <div class="p-6">
+            {% if today_sessions %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for session in today_sessions %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition duration-200">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800 mb-1">{{ session.course.course_name }}</h4>
+                            <p class="text-sm text-gray-600 mb-2">
+                                강사: {{ session.course.teacher.name if session.course.teacher else '미배정' }}
+                            </p>
+                            <div class="flex items-center gap-4 text-sm text-gray-600">
+                                <div class="flex items-center gap-1">
+                                    <span>🕐</span>
+                                    <span>
+                                        {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
+                                        {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span>👥</span>
+                                    <span>{{ session.course.enrolled_count }}명</span>
+                                </div>
+                                {% if session.course.grade %}
+                                <div class="flex items-center gap-1">
+                                    <span>📚</span>
+                                    <span>{{ session.course.grade }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 text-xs font-medium rounded
+                            {% if session.status == 'scheduled' %}bg-blue-100 text-blue-800
+                            {% elif session.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif session.status == 'cancelled' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% if session.status == 'scheduled' %}예정
+                            {% elif session.status == 'completed' %}완료
+                            {% elif session.status == 'cancelled' %}취소
+                            {% else %}{{ session.status }}{% endif %}
+                        </span>
+                    </div>
+
+                    {% if session.topic %}
+                    <p class="text-sm text-gray-700 mb-3 pb-3 border-b">
+                        <span class="font-medium">주제:</span> {{ session.topic }}
+                    </p>
+                    {% endif %}
+
+                    <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                       class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        {% if session.status == 'completed' %}출석 현황 보기{% else %}출석 체크하기{% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">📅</div>
+                <p class="text-gray-500 text-lg">오늘 예정된 세션이 없습니다.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 다가오는 세션 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">📆 다가오는 세션 (7일 이내)</h3>
+                <p class="text-sm text-gray-600 mt-1">곧 진행될 수업</p>
+            </div>
+            <div class="p-6">
+                {% if upcoming_sessions %}
+                <div class="space-y-3">
+                    {% for session in upcoming_sessions %}
+                    <div class="border border-gray-200 rounded-lg p-3 hover:border-green-400 transition duration-200">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-800 text-sm">{{ session.course.course_name }}</h4>
+                                <p class="text-xs text-gray-600 mt-1">
+                                    강사: {{ session.course.teacher.name if session.course.teacher else '미배정' }}
+                                </p>
+                            </div>
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                                세션 {{ session.session_number }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-600 mb-2">
+                            <span>📅 {{ session.session_date.strftime('%m/%d (%a)')|replace('Mon', '월')|replace('Tue', '화')|replace('Wed', '수')|replace('Thu', '목')|replace('Fri', '금')|replace('Sat', '토')|replace('Sun', '일') }}</span>
+                            <span>🕐
+                                {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
+                                {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            </span>
+                            <span>👥 {{ session.course.enrolled_count }}명</span>
+                        </div>
+                        <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                           class="block text-center bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium py-2 rounded transition duration-200">
+                            미리보기
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <p class="text-gray-500">다가오는 세션이 없습니다.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 최근 완료된 세션 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">✅ 최근 완료된 세션</h3>
+                <p class="text-sm text-gray-600 mt-1">지난 7일 동안 완료된 수업</p>
+            </div>
+            <div class="p-6">
+                {% if recent_sessions %}
+                <div class="space-y-3">
+                    {% for session in recent_sessions %}
+                    <div class="border border-gray-200 rounded-lg p-3 hover:border-green-400 transition duration-200 {% if session.status == 'completed' %}bg-green-50{% endif %}">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-800 text-sm">{{ session.course.course_name }}</h4>
+                                <p class="text-xs text-gray-600 mt-1">
+                                    강사: {{ session.course.teacher.name if session.course.teacher else '미배정' }}
+                                </p>
+                            </div>
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                                완료
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-600 mb-2">
+                            <span>📅 {{ session.session_date.strftime('%m/%d (%a)')|replace('Mon', '월')|replace('Tue', '화')|replace('Wed', '수')|replace('Thu', '목')|replace('Fri', '금')|replace('Sat', '토')|replace('Sun', '일') }}</span>
+                            <span>🕐
+                                {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
+                                {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            </span>
+                            <span>👥 {{ session.course.enrolled_count }}명</span>
+                        </div>
+                        {% if session.topic %}
+                        <p class="text-xs text-gray-700 mb-2">
+                            <span class="font-medium">주제:</span> {{ session.topic }}
+                        </p>
+                        {% endif %}
+                        <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                           class="block text-center bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium py-2 rounded transition duration-200">
+                            출석 현황 보기
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <p class="text-gray-500">최근 완료된 세션이 없습니다.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 안내 -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 class="font-medium text-blue-900 mb-2">💡 출석 체크 안내</h4>
+        <ul class="text-sm text-blue-800 space-y-1">
+            <li>• <strong>지난 수업 검색</strong>: 날짜, 수업, 상태로 필터링하여 과거 세션을 찾을 수 있습니다</li>
+            <li>• <strong>오늘 세션</strong>: 오늘 진행되는 수업의 출석을 체크하세요</li>
+            <li>• <strong>다가오는 세션</strong>: 미리 출석부를 확인할 수 있습니다</li>
+            <li>• <strong>완료된 세션</strong>: 이전 출석 기록을 확인하거나 수정할 수 있습니다</li>
+            <li>• 출석 상태: <span class="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">출석</span>
+                <span class="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">지각</span>
+                <span class="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs">결석</span>
+                <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">인정결석</span></li>
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

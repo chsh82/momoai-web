@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} 상담 기록 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('parent.consultations_index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 자녀 선택
+        </a>
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 학생 상담 기록</h2>
+                <p class="text-gray-600 mt-1">{{ student.grade }} | 총 {{ consultations|length }}건의 상담 기록</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="{{ url_for('parent.consultations', student_id=student.student_id) }}" class="flex gap-3">
+            <input type="text"
+                   name="search"
+                   value="{{ search }}"
+                   placeholder="제목으로 검색..."
+                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+            <select name="category"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">-- 전체 분류 --</option>
+                <option value="신규상담" {% if category == '신규상담' %}selected{% endif %}>신규상담</option>
+                <option value="정기상담" {% if category == '정기상담' %}selected{% endif %}>정기상담</option>
+                <option value="진로진학상담" {% if category == '진로진학상담' %}selected{% endif %}>진로진학상담</option>
+                <option value="학습상담" {% if category == '학습상담' %}selected{% endif %}>학습상담</option>
+                <option value="기타" {% if category == '기타' %}selected{% endif %}>기타</option>
+            </select>
+
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                🔍 검색
+            </button>
+
+            {% if search or category %}
+            <a href="{{ url_for('parent.consultations', student_id=student.student_id) }}"
+               class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                초기화
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Consultations List -->
+    <div class="bg-white rounded-lg shadow">
+        {% if consultations %}
+        <div class="divide-y divide-gray-200">
+            {% for consultation in consultations %}
+            <div class="p-6 hover:bg-gray-50 transition">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                {{ consultation.major_category }}
+                            </span>
+                            {% if consultation.student_mbti_type %}
+                            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                🎯 MBTI 맞춤 추천 포함
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">
+                            {{ consultation.title }}
+                        </h4>
+
+                        <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                            <span>👨‍🏫 {{ consultation.counselor.name }}</span>
+                            <span>📅 {{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}</span>
+                            {% if consultation.parent_shared_at %}
+                            <span class="text-green-600">✓ {{ consultation.parent_shared_at.strftime('%m/%d %H:%M') }} 공유됨</span>
+                            {% endif %}
+                        </div>
+
+                        {% if consultation.student_mbti_type %}
+                        <div class="bg-purple-50 border border-purple-200 rounded px-3 py-2 text-sm">
+                            <span class="font-semibold text-purple-900">MBTI 기반 수업 스타일:</span>
+                            <span class="text-purple-700">{{ consultation.recommended_teaching_style or consultation.student_mbti_type }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="ml-4">
+                        <a href="{{ url_for('parent.view_consultation', student_id=student.student_id, consultation_id=consultation.consultation_id) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200 text-sm">
+                            상세보기
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center text-gray-500">
+            <div class="text-4xl mb-3">📭</div>
+            {% if search or category %}
+            <p>검색 결과가 없습니다.</p>
+            {% else %}
+            <p>공유된 상담 기록이 없습니다.</p>
+            <p class="text-sm mt-2">강사나 관리자가 상담 기록을 공유하면 여기에 표시됩니다.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

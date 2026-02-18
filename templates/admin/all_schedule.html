@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}전체 수업현황 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📅 전체 수업 현황{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">주간 시간표</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">📊 전체 수업현황</h2>
+        <p class="text-gray-600 mt-1">강사별 주간 시간표를 확인하세요</p>
+    </div>
+
+    <!-- 강사 선택 및 주간 네비게이션 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- 강사 선택 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    강사 선택
+                </label>
+                <select id="teacherSelect"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onchange="changeTeacher()">
+                    <option value="">-- 강사 선택 --</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.user_id }}"
+                            {% if teacher.user_id == selected_teacher_id %}selected{% endif %}>
+                        {{ teacher.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 주간 네비게이션 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    기간
+                </label>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, week=week_offset-1) }}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition duration-200 text-center">
+                        ← 이전 주
+                    </a>
+                    <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, week=0) }}"
+                       class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-center">
+                        이번 주
+                    </a>
+                    <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, week=week_offset+1) }}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition duration-200 text-center">
+                        다음 주 →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 선택된 강사 정보 -->
+        {% if selected_teacher %}
+        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-blue-600 font-medium">선택된 강사</p>
+                    <p class="text-lg font-bold text-blue-900">{{ selected_teacher.name }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-blue-600">조회 기간</p>
+                    <p class="text-lg font-bold text-blue-900">
+                        {{ week_start.strftime('%Y년 %m월 %d일') }} ~ {{ week_end.strftime('%m월 %d일') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+            <p class="text-gray-600">위에서 강사를 선택하세요</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if selected_teacher %}
+    <!-- 시간표 -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[1000px]">
+                <!-- 요일 헤더 -->
+                <thead>
+                    <tr class="bg-gray-100 border-b border-gray-300">
+                        <th class="px-2 py-3 text-center text-sm font-semibold text-gray-700 w-20 border-r border-gray-300">
+                            시간
+                        </th>
+                        {% set days = ['월', '화', '수', '목', '금', '토', '일'] %}
+                        {% for i in range(7) %}
+                        {% set current_date = week_start + timedelta(days=i) %}
+                        <th class="px-3 py-3 text-center text-sm font-semibold border-r border-gray-300
+                            {% if current_date == today %}bg-blue-100 text-blue-800{% else %}text-gray-700{% endif %}">
+                            <div>{{ days[i] }}요일</div>
+                            <div class="text-xs font-normal mt-1
+                                {% if current_date == today %}text-blue-600{% else %}text-gray-500{% endif %}">
+                                {{ current_date.strftime('%m/%d') }}
+                            </div>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <!-- 시간대별 수업 -->
+                <tbody>
+                    {% for time_slot in time_slots %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <!-- 시간 열 -->
+                        <td class="px-2 py-4 text-center text-sm font-medium text-gray-600 bg-gray-50 border-r border-gray-300">
+                            {{ time_slot }}
+                        </td>
+
+                        <!-- 요일별 수업 -->
+                        {% for day_idx in range(7) %}
+                        {% set current_date = week_start + timedelta(days=day_idx) %}
+                        <td class="px-2 py-2 align-top border-r border-gray-300 relative
+                            {% if current_date == today %}bg-blue-50{% endif %}">
+                            <!-- 해당 시간대의 수업 표시 -->
+                            {% set hour = time_slot.split(':')[0]|int %}
+                            {% for session in weekly_schedule[day_idx] %}
+                                {% if session.start_time %}
+                                    {% set session_hour = session.start_time.hour if session.start_time.hour is not none else 0 %}
+                                    {% if session_hour == hour %}
+                                    <a href="{{ url_for('admin.course_detail', course_id=session.course.course_id) }}"
+                                       class="block mb-2 p-2 rounded-lg text-xs shadow-sm hover:shadow-md transition duration-200
+                                              {% if session.status == 'scheduled' %}bg-blue-100 border border-blue-300 text-blue-800
+                                              {% elif session.status == 'completed' %}bg-green-100 border border-green-300 text-green-800
+                                              {% elif session.status == 'cancelled' %}bg-red-100 border border-red-300 text-red-800
+                                              {% else %}bg-gray-100 border border-gray-300 text-gray-800{% endif %}">
+                                        <div class="font-semibold mb-1 truncate" title="{{ session.course.course_name }}">
+                                            {{ session.course.course_name[:15] }}{% if session.course.course_name|length > 15 %}...{% endif %}
+                                        </div>
+                                        <div class="flex items-center gap-1 text-xs opacity-80">
+                                            <span>🕐</span>
+                                            <span>
+                                                {% if session.start_time %}
+                                                {{ session.start_time.strftime('%H:%M') }}
+                                                {% endif %}
+                                                {% if session.end_time %}
+                                                - {{ session.end_time.strftime('%H:%M') }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-1 text-xs opacity-80 mt-1">
+                                            <span>👥</span>
+                                            <span>{{ session.course.enrolled_count }}명</span>
+                                        </div>
+                                        {% if session.course.grade %}
+                                        <div class="flex items-center gap-1 text-xs opacity-80 mt-1">
+                                            <span>📚</span>
+                                            <span>{{ session.course.grade }}</span>
+                                        </div>
+                                        {% endif %}
+                                        {% if session.status == 'scheduled' %}
+                                        <div class="mt-1 px-1 py-0.5 bg-blue-200 rounded text-center">
+                                            예정
+                                        </div>
+                                        {% elif session.status == 'completed' %}
+                                        <div class="mt-1 px-1 py-0.5 bg-green-200 rounded text-center">
+                                            완료
+                                        </div>
+                                        {% elif session.status == 'cancelled' %}
+                                        <div class="mt-1 px-1 py-0.5 bg-red-200 rounded text-center">
+                                            취소
+                                        </div>
+                                        {% endif %}
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 범례 -->
+    <div class="mt-6 bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-3">📌 범례</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
+                <span class="text-sm text-gray-700">예정된 수업</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                <span class="text-sm text-gray-700">완료된 수업</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+                <span class="text-sm text-gray-700">취소된 수업</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
+                <span class="text-sm text-gray-700">오늘</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {% set total_sessions = 0 %}
+        {% set scheduled_count = 0 %}
+        {% set completed_count = 0 %}
+        {% set cancelled_count = 0 %}
+        {% for day_sessions in weekly_schedule.values() %}
+            {% for session in day_sessions %}
+                {% set total_sessions = total_sessions + 1 %}
+                {% if session.status == 'scheduled' %}
+                    {% set scheduled_count = scheduled_count + 1 %}
+                {% elif session.status == 'completed' %}
+                    {% set completed_count = completed_count + 1 %}
+                {% elif session.status == 'cancelled' %}
+                    {% set cancelled_count = cancelled_count + 1 %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 수업</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ total_sessions }}</p>
+                </div>
+                <div class="text-gray-400 text-3xl">📚</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">예정</p>
+                    <p class="text-2xl font-bold text-blue-600">{{ scheduled_count }}</p>
+                </div>
+                <div class="text-blue-400 text-3xl">📅</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">완료</p>
+                    <p class="text-2xl font-bold text-green-600">{{ completed_count }}</p>
+                </div>
+                <div class="text-green-400 text-3xl">✅</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">취소</p>
+                    <p class="text-2xl font-bold text-red-600">{{ cancelled_count }}</p>
+                </div>
+                <div class="text-red-400 text-3xl">❌</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function changeTeacher() {
+    const teacherId = document.getElementById('teacherSelect').value;
+    if (teacherId) {
+        window.location.href = "{{ url_for('admin.all_schedule') }}?teacher_id=" + teacherId + "&week={{ week_offset }}";
+    } else {
+        window.location.href = "{{ url_for('admin.all_schedule') }}";
+    }
+}
+</script>
+{% endblock %}

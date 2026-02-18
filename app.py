@@ -54,6 +54,10 @@ def result(task_id):
     if task['status'] == 'failed':
         return "첨삭 중 오류가 발생했습니다.", 500
 
+    # HTML 경로 확인
+    if not task['html_path']:
+        return "HTML 파일 경로가 없습니다. 첨삭이 제대로 완료되지 않았을 수 있습니다.", 500
+
     # HTML 파일 읽기
     try:
         with open(task['html_path'], 'r', encoding='utf-8') as f:
@@ -140,7 +144,14 @@ def api_review():
                 database.update_task(task_id, 'completed', html_path=html_path)
 
             except Exception as e:
-                print(f"첨삭 중 오류: {e}")
+                import traceback
+                print(f"=== ERROR in process_review ===")
+                print(f"Task ID: {task_id}")
+                print(f"Student: {student_name}")
+                print(f"Error: {e}")
+                print(f"Traceback:")
+                traceback.print_exc()
+                print(f"=== END ERROR ===")
                 database.update_task(task_id, 'failed')
 
         thread = threading.Thread(target=process_review)

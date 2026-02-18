@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}상담 기록 상세 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🗣️ 상담 상세{% endblock %}
+
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.consultations') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 상담 기록 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">상담 기록 상세</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 상담 기록 상세 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg">
+                <!-- Header -->
+                <div class="border-b border-gray-200 p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">{{ consultation.title }}</h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">상담일:</span>
+                                    <span class="font-medium text-gray-800 ml-2">
+                                        {{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">상담자:</span>
+                                    <span class="font-medium text-gray-800 ml-2">
+                                        {{ consultation.counselor.name }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">학생:</span>
+                                    <span class="font-medium text-gray-800 ml-2">
+                                        {{ consultation.student.name }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">작성일:</span>
+                                    <span class="font-medium text-gray-800 ml-2">
+                                        {{ consultation.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Tags -->
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 text-sm font-medium rounded
+                            {% if consultation.major_category == '신규상담' %}bg-green-100 text-green-800
+                            {% elif consultation.major_category == '퇴원상담' %}bg-red-100 text-red-800
+                            {% elif consultation.major_category == '분기별상담' %}bg-blue-100 text-blue-800
+                            {% elif consultation.major_category == '진로진학상담' %}bg-purple-100 text-purple-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ consultation.major_category }}
+                        </span>
+                        {% if consultation.sub_category %}
+                        <span class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded">
+                            {{ consultation.sub_category }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">상담 내용</h4>
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">{{ consultation.content }}</p>
+                    </div>
+                </div>
+
+                <!-- MBTI 기반 추천 (있는 경우) -->
+                {% if consultation.teaching_recommendations %}
+                <div class="p-6 border-t border-gray-200">
+                    <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
+                        <h4 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 기반 맞춤 수업 추천</h4>
+                        {% if consultation.student_mbti_type %}
+                        <div class="bg-white rounded-lg p-4 mb-4">
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-purple-900">{{ consultation.recommended_teaching_style }}</div>
+                                <div class="text-sm text-purple-700 mt-1">{{ consultation.student_mbti_type }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="prose max-w-none whitespace-pre-wrap text-gray-700 text-sm">
+                            {{ consultation.teaching_recommendations }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 학부모 공유 상태 (있는 경우) -->
+                {% if consultation.share_with_parents %}
+                <div class="p-6 border-t border-gray-200">
+                    <div class="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-green-800">학부모에게 공유됨</div>
+                                {% if consultation.parent_shared_at %}
+                                <div class="text-xs text-gray-600">{{ consultation.parent_shared_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Footer -->
+                <div class="border-t border-gray-200 p-6 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            {% if consultation.updated_at and consultation.updated_at != consultation.created_at %}
+                            <p class="text-xs text-gray-500">마지막 수정: {{ consultation.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{{ url_for('teacher.edit_consultation', consultation_id=consultation.consultation_id) }}"
+                               class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                                ✏️ 수정
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.delete_consultation', consultation_id=consultation.consultation_id) }}"
+                                  onsubmit="return confirm('정말 삭제하시겠습니까?');" class="inline">
+                                <button type="submit"
+                                        class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                                    🗑️ 삭제
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 참고인 관리 패널 -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">🔗 참고인 설정</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    선택한 강사에게 이 상담 기록을 공유합니다.
+                </p>
+
+                <!-- 현재 참고인 -->
+                {% if reference_teachers %}
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">현재 공유된 강사</h4>
+                    <div class="space-y-2">
+                        {% for teacher in reference_teachers %}
+                        <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
+                            <span class="text-blue-600">👤</span>
+                            <span class="text-sm text-gray-800">{{ teacher.name }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 참고인 추가 폼 -->
+                <form method="POST" action="{{ url_for('admin.share_consultation', consultation_id=consultation.consultation_id) }}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            공유할 강사 선택
+                        </label>
+                        <div class="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto">
+                            {% for teacher in all_teachers %}
+                            <label class="flex items-center gap-2 py-2 hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="teacher_ids" value="{{ teacher.user_id }}"
+                                       {% if teacher.user_id in consultation.reference_teacher_ids %}checked{% endif %}
+                                       class="rounded text-blue-600 focus:ring-blue-500">
+                                <span class="text-sm text-gray-800">{{ teacher.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        참고인 설정 저장
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

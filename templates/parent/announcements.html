@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}공지사항 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">공지사항</h2>
+        <p class="text-gray-600 mt-1">학원의 공지사항을 확인할 수 있습니다.</p>
+    </div>
+
+    <!-- 공지사항 목록 -->
+    {% if announcements %}
+    <div class="space-y-4">
+        {% for item in announcements %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <a href="{{ url_for('parent.view_announcement', announcement_id=item.announcement.announcement_id) }}"
+               class="block p-6">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            {% if item.announcement.is_pinned %}
+                            <span class="text-red-600 text-xl">📌</span>
+                            {% endif %}
+
+                            <h3 class="text-xl font-medium text-gray-800 hover:text-blue-600">
+                                {{ item.announcement.title }}
+                            </h3>
+
+                            {% if not item.is_read %}
+                            <span class="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded">NEW</span>
+                            {% endif %}
+
+                            <!-- 공지 유형 배지 -->
+                            <span class="px-2 py-0.5 text-xs font-medium rounded
+                                {% if item.announcement.announcement_type == 'urgent' %}bg-red-100 text-red-800
+                                {% elif item.announcement.announcement_type == 'event' %}bg-purple-100 text-purple-800
+                                {% elif item.announcement.announcement_type == 'system' %}bg-gray-100 text-gray-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {% if item.announcement.announcement_type == 'urgent' %}긴급
+                                {% elif item.announcement.announcement_type == 'event' %}행사
+                                {% elif item.announcement.announcement_type == 'system' %}시스템
+                                {% else %}일반{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-3 text-sm text-gray-600">
+                            <span>📅 {{ item.announcement.created_at.strftime('%Y년 %m월 %d일') }}</span>
+                            <span>👤 {{ item.announcement.author.name if item.announcement.author else '관리자' }}</span>
+                            <span>👁️ {{ item.announcement.view_count }}회 조회</span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if item.announcement.content %}
+                <div class="bg-gray-50 rounded-lg p-4 mt-3">
+                    <p class="text-sm text-gray-700 line-clamp-2">
+                        {{ item.announcement.content[:200] }}{% if item.announcement.content|length > 200 %}...{% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📢</div>
+        <h3 class="text-xl font-medium text-gray-800 mb-2">공지사항이 없습니다</h3>
+        <p class="text-gray-600">아직 등록된 공지사항이 없습니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

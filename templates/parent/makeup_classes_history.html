@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}자녀 보강수업 신청 이력 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔄 보강 이력{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">전체 신청 내역</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">📋 {{ student.name }} 학생 보강수업 신청 이력</h2>
+            <p class="text-gray-600 mt-2">전체 보강수업 신청 내역을 확인할 수 있습니다.</p>
+        </div>
+        <a href="{{ url_for('parent.makeup_classes', student_id=student.student_id) }}"
+           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+            ← 보강수업 신청
+        </a>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-sm text-gray-600 mb-1">전체 신청</div>
+            <div class="text-3xl font-bold text-gray-800">{{ all_requests|length }}</div>
+        </div>
+
+        <div class="bg-yellow-50 rounded-lg shadow p-6">
+            <div class="text-sm text-yellow-600 mb-1">대기 중</div>
+            <div class="text-3xl font-bold text-yellow-700">{{ pending_count }}</div>
+        </div>
+
+        <div class="bg-green-50 rounded-lg shadow p-6">
+            <div class="text-sm text-green-600 mb-1">승인됨</div>
+            <div class="text-3xl font-bold text-green-700">{{ approved_count }}</div>
+        </div>
+
+        <div class="bg-red-50 rounded-lg shadow p-6">
+            <div class="text-sm text-red-600 mb-1">거절됨</div>
+            <div class="text-3xl font-bold text-red-700">{{ rejected_count }}</div>
+        </div>
+    </div>
+
+    <!-- 전체 이력 테이블 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">전체 신청 내역</h3>
+        </div>
+        <div class="p-6">
+            {% if all_requests %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">수업명</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">강사</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청 사유</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">처리일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">비고</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for req in all_requests %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                                {{ req.request_date.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-gray-800">{{ req.requested_course.course_name }}</p>
+                                <p class="text-xs text-gray-500">{{ req.requested_course.course_code }}</p>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ req.requested_course.teacher.name if req.requested_course.teacher else '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                <div class="max-w-xs truncate" title="{{ req.reason }}">
+                                    {{ req.reason or '-' }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                {% if req.status == 'pending' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                                    ⏳ 대기 중
+                                </span>
+                                {% elif req.status == 'approved' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                                    ✓ 승인됨
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
+                                    ✗ 거절됨
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                                {{ req.admin_response_date.strftime('%Y-%m-%d') if req.admin_response_date else '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                {% if req.status == 'approved' and req.created_makeup_course %}
+                                <span class="text-green-600 text-xs">보강수업 생성됨</span>
+                                {% elif req.status == 'rejected' and req.admin_notes %}
+                                <div class="text-xs text-red-600" title="{{ req.admin_notes }}">
+                                    {{ req.admin_notes[:30] }}{% if req.admin_notes|length > 30 %}...{% endif %}
+                                </div>
+                                {% elif req.status == 'pending' %}
+                                <form method="POST" action="{{ url_for('parent.cancel_makeup_request', student_id=student.student_id, request_id=req.request_id) }}"
+                                      onsubmit="return confirm('신청을 취소하시겠습니까?');" style="display: inline;">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                        취소
+                                    </button>
+                                </form>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">📋</div>
+                <p class="text-gray-500 text-lg mb-4">보강수업 신청 내역이 없습니다.</p>
+                <a href="{{ url_for('parent.makeup_classes', student_id=student.student_id) }}"
+                   class="text-blue-600 hover:text-blue-800 font-medium">
+                    보강수업 신청하러 가기 →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

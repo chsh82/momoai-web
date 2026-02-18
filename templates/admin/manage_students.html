@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}수강생 관리 - {{ course.course_name }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 수업 상세로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">수강생 관리</h2>
+        <p class="text-gray-600 mt-2">{{ course.course_name }} ({{ course.course_code }})</p>
+    </div>
+
+    <!-- 정원 현황 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">현재 수강 인원</p>
+                <p class="text-3xl font-bold text-blue-600">
+                    {{ course.enrolled_count }} / {{ course.max_students }}
+                </p>
+            </div>
+            <div>
+                {% if course.is_full %}
+                <span class="px-4 py-2 bg-red-100 text-red-800 font-medium rounded-lg">
+                    정원 초과
+                </span>
+                {% else %}
+                <span class="px-4 py-2 bg-green-100 text-green-800 font-medium rounded-lg">
+                    등록 가능 ({{ course.max_students - course.enrolled_count }}명)
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 현재 수강생 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">현재 수강생 ({{ enrollments|length }}명)</h3>
+            </div>
+            <div class="p-6">
+                {% if enrollments %}
+                <div class="space-y-3">
+                    {% for enrollment in enrollments %}
+                    <div class="border border-gray-200 rounded-lg p-4 {% if enrollment.status != 'active' %}opacity-60{% endif %}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-medium text-gray-800">{{ enrollment.student.name }}</h4>
+                                    {% if enrollment.student.tier %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if enrollment.student.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif enrollment.student.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif enrollment.student.tier == 'C' %}bg-green-100 text-green-800
+                                        {% elif enrollment.student.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ enrollment.student.tier }}
+                                    </span>
+                                    {% endif %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if enrollment.status == 'active' %}bg-green-100 text-green-800
+                                        {% elif enrollment.status == 'completed' %}bg-gray-100 text-gray-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {% if enrollment.status == 'active' %}수강 중
+                                        {% elif enrollment.status == 'completed' %}완료
+                                        {% else %}중도 포기{% endif %}
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-600">
+                                    등록일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }} |
+                                    출석률: {{ "%.1f"|format(enrollment.attendance_rate) }}%
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    출석: {{ enrollment.attended_sessions }}회 /
+                                    지각: {{ enrollment.late_sessions }}회 /
+                                    결석: {{ enrollment.absent_sessions }}회
+                                </p>
+                            </div>
+                            {% if enrollment.status == 'active' %}
+                            <form method="POST" action="{{ url_for('admin.remove_student', enrollment_id=enrollment.enrollment_id) }}"
+                                  onsubmit="return confirm('정말 이 학생을 제외하시겠습니까?');">
+                                <button type="submit"
+                                        class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-3 py-2 rounded transition duration-200">
+                                    제외
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">수강생이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 학생 추가 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">학생 추가</h3>
+            </div>
+            <div class="p-6">
+                {% if course.is_full %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <p class="text-yellow-800 text-sm">
+                        ⚠️ 수업 정원이 초과되었습니다. 정원을 늘리거나 다른 수강생을 제외해주세요.
+                    </p>
+                </div>
+                {% endif %}
+
+                {% if available_students %}
+                <form method="POST" action="{{ url_for('admin.add_student', course_id=course.course_id) }}" id="addStudentForm">
+                    <!-- 1단계: 학년 선택 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            1단계: 학년 선택 <span class="text-red-500">*</span>
+                        </label>
+                        <select id="gradeFilter"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                {% if course.is_full %}disabled{% endif %}>
+                            <option value="">-- 학년 선택 --</option>
+                            <option value="초1">초등 1학년</option>
+                            <option value="초2">초등 2학년</option>
+                            <option value="초3">초등 3학년</option>
+                            <option value="초4">초등 4학년</option>
+                            <option value="초5">초등 5학년</option>
+                            <option value="초6">초등 6학년</option>
+                            <option value="중1">중등 1학년</option>
+                            <option value="중2">중등 2학년</option>
+                            <option value="중3">중등 3학년</option>
+                            <option value="고1">고등 1학년</option>
+                            <option value="고2">고등 2학년</option>
+                            <option value="고3">고등 3학년</option>
+                        </select>
+                    </div>
+
+                    <!-- 2단계: 학생 선택 (학년 선택 후 활성화) -->
+                    <div class="mb-4" id="studentSelectWrapper" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            2단계: 학생 선택 <span class="text-red-500">*</span>
+                        </label>
+                        <select name="student_id"
+                                id="studentSelect"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                                {% if course.is_full %}disabled{% endif %}>
+                            <option value="">-- 학생 선택 --</option>
+                            {% for student in available_students %}
+                            <option value="{{ student.student_id }}"
+                                    data-grade="{{ student.grade }}"
+                                    data-display="{{ student.name }} ({{ student.grade }}){% if student.tier %} [{{ student.tier }}]{% endif %}">
+                                {{ student.name }} ({{ student.grade }})
+                                {% if student.tier %}[{{ student.tier }}]{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2" id="studentCount"></p>
+                    </div>
+
+                    <button type="submit"
+                            id="submitButton"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200
+                            {% if course.is_full %}opacity-50 cursor-not-allowed{% else %}opacity-50{% endif %}"
+                            disabled
+                            {% if course.is_full %}disabled{% endif %}>
+                        학생 추가
+                    </button>
+                </form>
+
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-medium text-blue-900 mb-2">ℹ️ 안내</h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>• 먼저 학년을 선택하면 해당 학년 학생들이 표시됩니다.</li>
+                        <li>• 학생을 추가하면 모든 세션에 대한 출석 레코드가 자동 생성됩니다.</li>
+                        <li>• 출석 체크는 강사가 각 세션에서 수동으로 진행합니다.</li>
+                        <li>• 결제는 출석한 회차를 기준으로 계산됩니다.</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <p class="text-gray-500 mb-4">등록 가능한 학생이 없습니다.</p>
+                    <a href="{{ url_for('students.new') }}"
+                       class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                        새 학생 등록하기
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 학년 기반 학생 필터링
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeFilter = document.getElementById('gradeFilter');
+    const studentSelect = document.getElementById('studentSelect');
+    const studentSelectWrapper = document.getElementById('studentSelectWrapper');
+    const submitButton = document.getElementById('submitButton');
+    const studentCount = document.getElementById('studentCount');
+
+    // 모든 학생 옵션 저장
+    const allStudentOptions = Array.from(studentSelect.options).slice(1); // 첫 번째 "-- 학생 선택 --" 제외
+
+    // 학년 선택 시
+    gradeFilter.addEventListener('change', function() {
+        const selectedGrade = this.value;
+
+        if (!selectedGrade) {
+            // 학년 선택 안 함
+            studentSelectWrapper.style.display = 'none';
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50');
+            submitButton.classList.remove('opacity-100');
+            return;
+        }
+
+        // 학생 선택 드롭다운 초기화
+        studentSelect.innerHTML = '<option value="">-- 학생 선택 --</option>';
+
+        // 선택한 학년에 맞는 학생만 필터링
+        const filteredStudents = allStudentOptions.filter(option =>
+            option.getAttribute('data-grade') === selectedGrade
+        );
+
+        // 필터링된 학생 추가
+        filteredStudents.forEach(option => {
+            studentSelect.appendChild(option.cloneNode(true));
+        });
+
+        // 학생 수 표시
+        if (filteredStudents.length > 0) {
+            studentCount.textContent = `${selectedGrade} 학생 ${filteredStudents.length}명`;
+            studentSelectWrapper.style.display = 'block';
+        } else {
+            studentCount.textContent = `${selectedGrade} 학생이 없습니다.`;
+            studentSelectWrapper.style.display = 'block';
+        }
+
+        // 제출 버튼 비활성화 (학생 선택 전)
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-50');
+        submitButton.classList.remove('opacity-100');
+    });
+
+    // 학생 선택 시
+    studentSelect.addEventListener('change', function() {
+        if (this.value) {
+            // 학생 선택됨
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50');
+            submitButton.classList.add('opacity-100');
+        } else {
+            // 학생 선택 안 함
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50');
+            submitButton.classList.remove('opacity-100');
+        }
+    });
+});
+</script>
+
+{% endblock %}

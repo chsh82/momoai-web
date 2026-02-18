@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}보강수업 신청 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔄 보강수업{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">보강 신청하기</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">📚 보강수업 신청</h2>
+        <p class="text-gray-600 mt-2">자신의 학년과 같은 보강 가능한 수업에 신청할 수 있습니다.</p>
+    </div>
+
+    <!-- 내 신청 내역 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-blue-900">내 보강수업 신청 내역 (최근 5건)</h3>
+            <a href="{{ url_for('student.makeup_classes_history') }}"
+               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                전체 이력 보기 →
+            </a>
+        </div>
+        <div class="p-6">
+            {% if my_requests %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">수업명</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청 사유</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for req in my_requests %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ req.request_date.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-gray-800">{{ req.requested_course.course_name }}</p>
+                                <p class="text-xs text-gray-500">{{ req.requested_course.teacher.name }}</p>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ req.reason or '-' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if req.status == 'pending' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                                    ⏳ 대기 중
+                                </span>
+                                {% elif req.status == 'approved' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                                    ✓ 승인됨
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
+                                    ✗ 거절됨
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if req.status == 'pending' %}
+                                <form method="POST" action="{{ url_for('student.cancel_makeup_request', request_id=req.request_id) }}"
+                                      onsubmit="return confirm('신청을 취소하시겠습니까?');" style="display: inline;">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                        취소
+                                    </button>
+                                </form>
+                                {% elif req.status == 'approved' and req.created_makeup_course %}
+                                <a href="{{ url_for('student.course_detail', course_id=req.created_makeup_course_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    보강수업 보기 →
+                                </a>
+                                {% elif req.status == 'rejected' and req.admin_notes %}
+                                <span class="text-xs text-gray-500">{{ req.admin_notes }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <p class="text-gray-500">보강수업 신청 내역이 없습니다.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 보강 가능한 수업 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+            <h3 class="text-xl font-bold text-green-900">신청 가능한 보강수업 ({{ student.grade }})</h3>
+        </div>
+        <div class="p-6">
+            {% if available_courses %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for course in available_courses %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="mb-3">
+                        <h4 class="font-bold text-gray-800 mb-1">{{ course.course_name }}</h4>
+                        <p class="text-sm text-gray-600">담당: {{ course.teacher.name if course.teacher else '미배정' }}</p>
+                    </div>
+
+                    <div class="space-y-1 mb-3 text-sm text-gray-700">
+                        {% if course.weekday is not none %}
+                        <p>📅 매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일</p>
+                        {% endif %}
+                        {% if course.start_time and course.end_time %}
+                        <p>🕐 {{ course.start_time.strftime('%H:%M') }} - {{ course.end_time.strftime('%H:%M') }}</p>
+                        {% endif %}
+                        <p>👥 {{ course.enrolled_count }}/{{ course.max_students }}명</p>
+                    </div>
+
+                    <button onclick="showRequestModal('{{ course.course_id }}', '{{ course.course_name }}')"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        신청하기
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500 text-lg">현재 신청 가능한 보강수업이 없습니다.</p>
+                <p class="text-gray-400 text-sm mt-2">나의 학년({{ student.grade }})과 같은 보강 가능한 수업이 개설되면 신청할 수 있습니다.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 신청 모달 -->
+<div id="requestModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-2xl font-bold text-gray-800">보강수업 신청</h3>
+            <button onclick="closeRequestModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+
+        <form id="requestForm" method="POST" action="">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">수업</label>
+                <p id="modalCourseName" class="text-lg font-bold text-blue-800"></p>
+            </div>
+
+            <div class="mb-4">
+                <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">신청 사유</label>
+                <textarea name="reason" id="reason" rows="4"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="보강수업 신청 사유를 입력하세요 (선택사항)"></textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    신청하기
+                </button>
+                <button type="button" onclick="closeRequestModal()"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showRequestModal(courseId, courseName) {
+    const modal = document.getElementById('requestModal');
+    const form = document.getElementById('requestForm');
+    const courseNameElem = document.getElementById('modalCourseName');
+
+    form.action = `/student/makeup-classes/request/${courseId}`;
+    courseNameElem.textContent = courseName;
+
+    modal.classList.remove('hidden');
+}
+
+function closeRequestModal() {
+    document.getElementById('requestModal').classList.add('hidden');
+    document.getElementById('reason').value = '';
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeRequestModal();
+    }
+});
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('requestModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeRequestModal();
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+            {% if post.is_important %}
+            <span class="bg-red-100 text-red-800 text-sm font-bold px-3 py-1 rounded-full animate-pulse">⚠️ 중요</span>
+            {% endif %}
+
+            {% if post.category == 'university' %}
+            <span class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">🎓 대학입시</span>
+            {% elif post.category == 'high_school' %}
+            <span class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">🏫 고등학교</span>
+            {% elif post.category == 'policy' %}
+            <span class="bg-purple-100 text-purple-800 text-sm font-bold px-3 py-1 rounded-full">📜 정책</span>
+            {% elif post.category == 'schedule' %}
+            <span class="bg-yellow-100 text-yellow-800 text-sm font-bold px-3 py-1 rounded-full">📅 일정</span>
+            {% elif post.category == 'tips' %}
+            <span class="bg-pink-100 text-pink-800 text-sm font-bold px-3 py-1 rounded-full">💡 입시 팁</span>
+            {% else %}
+            <span class="bg-gray-100 text-gray-800 text-sm font-bold px-3 py-1 rounded-full">🎯 기타</span>
+            {% endif %}
+
+            {% if post.target_grades %}
+            <span class="bg-indigo-50 text-indigo-700 text-sm font-semibold px-3 py-1 rounded-full">
+                👥 {{ post.target_grades }}
+            </span>
+            {% endif %}
+        </div>
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-3">{{ post.title }}</h2>
+
+        <div class="flex items-center space-x-4 text-sm text-gray-600">
+            <span>📅 {{ post.created_at.strftime('%Y-%m-%d') }}</span>
+            <span>👁️ 조회수 {{ post.view_count }}</span>
+            {% if post.publish_date %}
+            <span>🗓️ 게시일: {{ post.publish_date.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+            {% if post.expire_date %}
+            <span>⏰ 만료일: {{ post.expire_date.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-white rounded-lg shadow p-8 mb-6">
+        <div class="prose max-w-none">
+            <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {{ post.content }}
+            </div>
+        </div>
+    </div>
+
+    <!-- External Link -->
+    {% if post.external_url %}
+    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-indigo-800 mb-3">🔗 관련 링크</h3>
+        <div class="flex items-center justify-between">
+            <a href="{{ post.external_url }}"
+               target="_blank"
+               class="text-blue-600 hover:text-blue-800 hover:underline break-all">
+                {{ post.external_url }}
+            </a>
+            <a href="{{ post.external_url }}"
+               target="_blank"
+               class="ml-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-200 whitespace-nowrap">
+                방문하기 →
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Attached File -->
+    {% if post.file_path %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-blue-800 mb-3">📎 첨부파일</h3>
+        <div class="flex items-center justify-between">
+            <span class="text-gray-700">{{ post.file_path | basename }}</span>
+            <a href="{{ url_for('api_download', filename=post.file_path) }}"
+               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                다운로드
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Validity Period Notice -->
+    {% if post.publish_date or post.expire_date %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <span class="text-yellow-600 text-xl mr-3">⏰</span>
+            <div>
+                <h4 class="font-semibold text-yellow-800 mb-1">게시 기간 안내</h4>
+                <p class="text-sm text-yellow-700">
+                    {% if post.publish_date %}
+                    게시일: {{ post.publish_date.strftime('%Y년 %m월 %d일') }}
+                    {% endif %}
+                    {% if post.expire_date %}
+                    <br>만료일: {{ post.expire_date.strftime('%Y년 %m월 %d일') }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Admin Edit Button -->
+    {% if current_user.is_admin %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">관리자 전용</span>
+            <div class="space-x-2">
+                <a href="{{ url_for('library.edit_admission_info', post_id=post.post_id) }}"
+                   class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition duration-200">
+                    수정
+                </a>
+                <button onclick="if(confirm('정말 삭제하시겠습니까?')) { document.getElementById('deleteForm').submit(); }"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200">
+                    삭제
+                </button>
+            </div>
+        </div>
+        <form id="deleteForm"
+              action="{{ url_for('library.delete_admission_info', post_id=post.post_id) }}"
+              method="POST"
+              class="hidden">
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="flex justify-center space-x-4">
+        <a href="{{ url_for('library.admission_info') }}"
+           class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
+            ← 목록으로
+        </a>
+    </div>
+</div>
+{% endblock %}

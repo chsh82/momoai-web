@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('students.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 학생 목록으로
+        </a>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }}</h2>
+                <span class="px-4 py-2 text-sm font-medium rounded-full
+                    {% if student.grade == '초등' %}bg-green-100 text-green-800
+                    {% elif student.grade == '중등' %}bg-blue-100 text-blue-800
+                    {% else %}bg-purple-100 text-purple-800{% endif %}">
+                    {{ student.grade }}
+                </span>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ url_for('students.student_report', student_id=student.student_id) }}"
+                   class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    📊 리포트 보기
+                </a>
+                <a href="{{ url_for('students.edit', student_id=student.student_id) }}"
+                   class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    수정
+                </a>
+                <button onclick="confirmDelete()"
+                        class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    삭제
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Student Info -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">기본 정보</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <div class="text-sm text-gray-600 mb-1">이름</div>
+                <div class="text-lg font-medium text-gray-800">{{ student.name }}</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-600 mb-1">학년</div>
+                <div class="text-lg font-medium text-gray-800">{{ student.grade }}</div>
+            </div>
+            {% if student.email %}
+            <div>
+                <div class="text-sm text-gray-600 mb-1">이메일</div>
+                <div class="text-lg font-medium text-gray-800">{{ student.email }}</div>
+            </div>
+            {% endif %}
+            {% if student.phone %}
+            <div>
+                <div class="text-sm text-gray-600 mb-1">전화번호</div>
+                <div class="text-lg font-medium text-gray-800">{{ student.phone }}</div>
+            </div>
+            {% endif %}
+            <div>
+                <div class="text-sm text-gray-600 mb-1">등록일</div>
+                <div class="text-lg font-medium text-gray-800">{{ student.created_at.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+
+        {% if student.notes %}
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="text-sm text-gray-600 mb-2">메모</div>
+            <div class="text-gray-800 whitespace-pre-wrap">{{ student.notes }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="text-sm text-gray-600 mb-1">총 첨삭 수</div>
+            <div class="text-3xl font-bold text-blue-600">{{ student.essay_count }}건</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="text-sm text-gray-600 mb-1">완료된 첨삭</div>
+            <div class="text-3xl font-bold text-green-600">{{ student.completed_essay_count }}건</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="text-sm text-gray-600 mb-1">진행 중</div>
+            <div class="text-3xl font-bold text-orange-600">{{ student.essay_count - student.completed_essay_count }}건</div>
+        </div>
+    </div>
+
+    <!-- Phase 2: Score Growth Chart -->
+    {% if score_data.has_data %}
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">📈 점수 변화 추이</h3>
+        <div class="relative" style="height: 300px;">
+            <canvas id="scoreChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Phase 2: 18개 지표 레이더 차트 -->
+    {% if radar_data.has_data %}
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">🎯 최신 첨삭 분석 (18개 지표)</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 사고유형 레이더 차트 -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 text-center">📚 사고유형 분석</h4>
+                <div class="relative" style="height: 350px;">
+                    <canvas id="thinkingRadar"></canvas>
+                </div>
+            </div>
+
+            <!-- 통합지표 레이더 차트 -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-700 mb-4 text-center">🔍 통합지표 분석</h4>
+                <div class="relative" style="height: 350px;">
+                    <canvas id="integratedRadar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 강점/약점 분석 -->
+        <div class="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-green-50 rounded-lg p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-2xl">💪</span>
+                    <h5 class="font-semibold text-green-800">강점 영역</h5>
+                </div>
+                <p class="text-sm text-green-700" id="strengthText">8점 이상의 지표를 표시합니다</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-2xl">📈</span>
+                    <h5 class="font-semibold text-orange-800">개선 영역</h5>
+                </div>
+                <p class="text-sm text-orange-700" id="weaknessText">7점 미만의 지표를 표시합니다</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Essay History -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-gray-800">첨삭 이력</h3>
+            <!-- 향후 새 첨삭 시작 버튼 추가 -->
+        </div>
+
+        {% if essays %}
+        <div class="space-y-4">
+            {% for essay in essays %}
+            <div class="border border-gray-200 rounded-lg p-5 hover:border-blue-400 hover:shadow-md transition duration-200">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <!-- Title and Badges -->
+                        <div class="flex items-center gap-3 mb-3 flex-wrap">
+                            <h4 class="text-lg font-medium text-gray-800">
+                                {{ essay.title or '제목 없음' }}
+                            </h4>
+
+                            <!-- Status Badge -->
+                            <span class="px-3 py-1 text-xs font-medium rounded-full
+                                {% if essay.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif essay.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% elif essay.status == 'reviewing' %}bg-yellow-100 text-yellow-800
+                                {% elif essay.status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if essay.status == 'completed' %}✓ 완료
+                                {% elif essay.status == 'processing' %}⏳ 처리 중
+                                {% elif essay.status == 'reviewing' %}👀 검토 중
+                                {% elif essay.status == 'failed' %}✗ 실패
+                                {% else %}{{ essay.status }}{% endif %}
+                            </span>
+
+                            {% if essay.is_finalized %}
+                            <span class="px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                ⭐ 최종 완료
+                            </span>
+                            {% endif %}
+
+                            <!-- Grade Badge (Phase 2) -->
+                            {% if essay.result and essay.result.final_grade %}
+                            <span class="px-3 py-1 text-xs font-bold rounded-full
+                                {% if essay.result.final_grade == 'A+' %}bg-purple-100 text-purple-800
+                                {% elif essay.result.final_grade == 'A' %}bg-blue-100 text-blue-800
+                                {% elif essay.result.final_grade == 'B+' %}bg-green-100 text-green-800
+                                {% elif essay.result.final_grade == 'B' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                🏆 {{ essay.result.final_grade }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Meta Info -->
+                        <div class="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                            <div>
+                                📅 {{ essay.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </div>
+                            {% if essay.current_version > 1 %}
+                            <div>
+                                📄 버전 v{{ essay.current_version }}
+                            </div>
+                            {% endif %}
+                            <!-- Score (Phase 2) -->
+                            {% if essay.result and essay.result.total_score %}
+                            <div class="font-medium text-blue-600">
+                                📊 {{ essay.result.total_score }}점
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Score Progress Bar (Phase 2) -->
+                        {% if essay.result and essay.result.total_score %}
+                        <div class="mt-3">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs text-gray-500">점수</span>
+                                <span class="text-xs font-medium
+                                    {% if essay.result.total_score >= 90 %}text-purple-600
+                                    {% elif essay.result.total_score >= 80 %}text-blue-600
+                                    {% elif essay.result.total_score >= 70 %}text-green-600
+                                    {% else %}text-yellow-600{% endif %}">
+                                    {{ essay.result.total_score }}점 / 100점
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full transition-all duration-300
+                                    {% if essay.result.total_score >= 90 %}bg-purple-600
+                                    {% elif essay.result.total_score >= 80 %}bg-blue-600
+                                    {% elif essay.result.total_score >= 70 %}bg-green-600
+                                    {% else %}bg-yellow-600{% endif %}"
+                                    style="width: {{ essay.result.total_score }}%">
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="flex-shrink-0">
+                        <!-- 향후 첨삭 상세 페이지 링크 추가 -->
+                        <button class="text-gray-400 hover:text-blue-600 text-sm font-medium transition duration-200" disabled>
+                            상세보기
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-500">
+            <div class="text-6xl mb-4">📝</div>
+            <p>아직 첨삭 이력이 없습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal (Hidden Form) -->
+<form id="deleteForm" method="POST" action="{{ url_for('students.delete', student_id=student.student_id) }}" style="display: none;">
+</form>
+
+<script>
+function confirmDelete() {
+    if (confirm('{{ student.name }} 학생을 정말 삭제하시겠습니까?\n\n삭제하면 해당 학생의 모든 첨삭 기록도 함께 삭제됩니다.')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+
+// Phase 2: Score Growth Chart
+{% if score_data.has_data %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('scoreChart');
+
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ score_data.labels | tojson }},
+                datasets: [{
+                    label: '총점',
+                    data: {{ score_data.total_scores | tojson }},
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#3B82F6',
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#FFFFFF',
+                        bodyColor: '#FFFFFF',
+                        borderColor: '#3B82F6',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return '총점: ' + context.parsed.y.toFixed(1) + '점';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 10,
+                            callback: function(value) {
+                                return value + '점';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+{% endif %}
+
+// Phase 2: 18개 지표 레이더 차트
+{% if radar_data.has_data %}
+document.addEventListener('DOMContentLoaded', function() {
+    // 사고유형 데이터 준비
+    const thinkingTypes = {{ radar_data.thinking_types | tojson }};
+    const thinkingLabels = ['요약', '비교', '적용', '평가', '비판', '문제해결', '자료해석', '견해제시', '종합'];
+    const thinkingScores = thinkingLabels.map(label => thinkingTypes[label] || 0);
+
+    // 통합지표 데이터 준비
+    const integratedIndicators = {{ radar_data.integrated_indicators | tojson }};
+    const integratedLabels = ['결론', '구조/논리성', '표현/명료성', '문제인식', '개념/정보', '목적/적절성', '관점/다각성', '심층성', '완전성'];
+    const integratedScores = integratedLabels.map(label => integratedIndicators[label] || 0);
+
+    // 공통 옵션
+    const radarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#FFFFFF',
+                bodyColor: '#FFFFFF',
+                padding: 12,
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': ' + context.parsed.r.toFixed(1) + '점';
+                    }
+                }
+            }
+        },
+        scales: {
+            r: {
+                beginAtZero: true,
+                min: 0,
+                max: 10,
+                ticks: {
+                    stepSize: 2,
+                    backdropColor: 'transparent',
+                    font: {
+                        size: 10
+                    }
+                },
+                pointLabels: {
+                    font: {
+                        size: 11,
+                        weight: '600'
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                },
+                angleLines: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                }
+            }
+        }
+    };
+
+    // 사고유형 레이더 차트
+    const thinkingCtx = document.getElementById('thinkingRadar');
+    if (thinkingCtx) {
+        new Chart(thinkingCtx, {
+            type: 'radar',
+            data: {
+                labels: thinkingLabels,
+                datasets: [{
+                    label: '사고유형',
+                    data: thinkingScores,
+                    backgroundColor: 'rgba(217, 70, 239, 0.2)',
+                    borderColor: '#D946EF',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#D946EF',
+                    pointBorderColor: '#FFFFFF',
+                    pointHoverBackgroundColor: '#FFFFFF',
+                    pointHoverBorderColor: '#D946EF',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: radarOptions
+        });
+    }
+
+    // 통합지표 레이더 차트
+    const integratedCtx = document.getElementById('integratedRadar');
+    if (integratedCtx) {
+        new Chart(integratedCtx, {
+            type: 'radar',
+            data: {
+                labels: integratedLabels,
+                datasets: [{
+                    label: '통합지표',
+                    data: integratedScores,
+                    backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                    borderColor: '#06B6D4',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#06B6D4',
+                    pointBorderColor: '#FFFFFF',
+                    pointHoverBackgroundColor: '#FFFFFF',
+                    pointHoverBorderColor: '#06B6D4',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: radarOptions
+        });
+    }
+
+    // 강점/약점 분석
+    const allScores = {...thinkingTypes, ...integratedIndicators};
+    const strengths = [];
+    const weaknesses = [];
+
+    for (const [indicator, score] of Object.entries(allScores)) {
+        if (score >= 8.0) {
+            strengths.push(`${indicator} (${score.toFixed(1)}점)`);
+        } else if (score < 7.0) {
+            weaknesses.push(`${indicator} (${score.toFixed(1)}점)`);
+        }
+    }
+
+    // 강점 텍스트
+    const strengthElement = document.getElementById('strengthText');
+    if (strengthElement) {
+        if (strengths.length > 0) {
+            strengthElement.textContent = strengths.join(', ');
+        } else {
+            strengthElement.textContent = '8점 이상의 지표가 없습니다. 조금만 더 노력하면 강점이 생길 거예요!';
+        }
+    }
+
+    // 약점 텍스트
+    const weaknessElement = document.getElementById('weaknessText');
+    if (weaknessElement) {
+        if (weaknesses.length > 0) {
+            weaknessElement.textContent = weaknesses.join(', ');
+        } else {
+            weaknessElement.textContent = '개선이 필요한 지표가 없습니다. 훌륭합니다!';
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

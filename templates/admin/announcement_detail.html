@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}{{ announcement.title }} - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📢 공지사항 상세{% endblock %}
+
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.announcements') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 공지사항 목록으로
+        </a>
+        <div class="flex items-center justify-between">
+            <h2 class="text-3xl font-bold text-gray-800">공지사항 상세</h2>
+            <div class="flex gap-2">
+                <a href="{{ url_for('admin.edit_announcement', announcement_id=announcement.announcement_id) }}"
+                   class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-4 py-2 rounded transition duration-200">
+                    수정
+                </a>
+                <form method="POST" action="{{ url_for('admin.toggle_announcement_publish', announcement_id=announcement.announcement_id) }}"
+                      class="inline">
+                    <button type="submit"
+                            class="{% if announcement.is_published %}bg-gray-600 hover:bg-gray-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white font-medium px-4 py-2 rounded transition duration-200">
+                        {% if announcement.is_published %}비게시{% else %}게시{% endif %}
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.delete_announcement', announcement_id=announcement.announcement_id) }}"
+                      onsubmit="return confirm('정말 이 공지사항을 삭제하시겠습니까?');"
+                      class="inline">
+                    <button type="submit"
+                            class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded transition duration-200">
+                        삭제
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-blue-600 text-2xl mb-1">👁️</div>
+                <p class="text-sm text-gray-600">조회수</p>
+                <p class="text-2xl font-bold text-blue-600">{{ announcement.view_count }}회</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-green-600 text-2xl mb-1">✅</div>
+                <p class="text-sm text-gray-600">읽은 사람</p>
+                <p class="text-2xl font-bold text-green-600">{{ total_reads }}명</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-purple-600 text-2xl mb-1">📊</div>
+                <p class="text-sm text-gray-600">읽음 비율</p>
+                <p class="text-2xl font-bold text-purple-600">{{ "%.1f"|format(read_percentage) }}%</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 공지사항 내용 -->
+    <div class="bg-white rounded-lg shadow p-8 mb-6">
+        <!-- 제목 및 상태 -->
+        <div class="mb-6">
+            <div class="flex items-center gap-2 mb-3">
+                {% if announcement.is_pinned %}
+                <span class="text-red-600 text-2xl">📌</span>
+                {% endif %}
+                <h3 class="text-2xl font-bold text-gray-800">{{ announcement.title }}</h3>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap mb-4">
+                <!-- 공지 유형 -->
+                <span class="px-3 py-1 text-sm font-medium rounded
+                    {% if announcement.announcement_type == 'urgent' %}bg-red-100 text-red-800
+                    {% elif announcement.announcement_type == 'event' %}bg-purple-100 text-purple-800
+                    {% elif announcement.announcement_type == 'system' %}bg-gray-100 text-gray-800
+                    {% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {% if announcement.announcement_type == 'urgent' %}긴급
+                    {% elif announcement.announcement_type == 'event' %}행사
+                    {% elif announcement.announcement_type == 'system' %}시스템
+                    {% else %}일반{% endif %}
+                </span>
+
+                <!-- 게시 상태 -->
+                <span class="px-3 py-1 text-sm font-medium rounded
+                    {% if announcement.is_published %}bg-green-100 text-green-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {% if announcement.is_published %}게시 중{% else %}비게시{% endif %}
+                </span>
+
+                {% if announcement.is_popup %}
+                <span class="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-800 rounded">
+                    팝업 표시
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="text-sm text-gray-600 space-y-1">
+                <p>작성자: {{ announcement.author.name if announcement.author else '관리자' }}</p>
+                <p>작성일: {{ announcement.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</p>
+                {% if announcement.updated_at != announcement.created_at %}
+                <p>수정일: {{ announcement.updated_at.strftime('%Y년 %m월 %d일 %H:%M') }}</p>
+                {% endif %}
+                <p>
+                    대상:
+                    {% if announcement.target_roles == 'all' %}
+                        전체
+                    {% else %}
+                        {{ announcement.target_roles_list|join(', ') }}
+                    {% endif %}
+                    {% if announcement.target_tiers %}
+                        ({{ announcement.target_tiers_list|join(', ') }} 등급)
+                    {% endif %}
+                </p>
+                {% if announcement.publish_start %}
+                <p>게시 시작: {{ announcement.publish_start.strftime('%Y-%m-%d %H:%M') }}</p>
+                {% endif %}
+                {% if announcement.publish_end %}
+                <p>게시 종료: {{ announcement.publish_end.strftime('%Y-%m-%d %H:%M') }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr class="my-6">
+
+        <!-- 내용 -->
+        <div class="prose max-w-none">
+            <div class="whitespace-pre-wrap text-gray-700 leading-relaxed">{{ announcement.content }}</div>
+        </div>
+    </div>
+
+    <!-- 읽음 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">읽은 사용자 ({{ total_reads }}명)</h3>
+        </div>
+        <div class="p-6">
+            {% if announcement.reads %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for read in announcement.reads|sort(attribute='read_at', reverse=True) %}
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-gray-800">{{ read.user.name }}</p>
+                            <p class="text-xs text-gray-500">{{ read.user.role }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-600">{{ read.read_at.strftime('%m/%d') }}</p>
+                            <p class="text-xs text-gray-500">{{ read.read_at.strftime('%H:%M') }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">아직 읽은 사용자가 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

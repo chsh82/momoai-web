@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} 주간평가 리포트{% endblock %}
+
+{% block page_title %}📊 {{ student.name }} 주간평가 리포트{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">성장 추이 분석</span>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    <!-- 상단 버튼 -->
+    <div class="flex justify-between items-center mb-6">
+        <a href="{{ url_for('teacher.students') }}" class="btn btn-outline">
+            ← 돌아가기
+        </a>
+
+        <!-- 기간 필터 -->
+        <div class="flex gap-2">
+            <a href="{{ url_for('teacher.ace_weekly_report', student_id=student.student_id, period='3months') }}"
+               class="btn {{ 'btn-primary' if period == '3months' else 'btn-outline' }}">
+                최근 3개월
+            </a>
+            <a href="{{ url_for('teacher.ace_weekly_report', student_id=student.student_id, period='6months') }}"
+               class="btn {{ 'btn-primary' if period == '6months' else 'btn-outline' }}">
+                최근 6개월
+            </a>
+            <a href="{{ url_for('teacher.ace_weekly_report', student_id=student.student_id, period='1year') }}"
+               class="btn {{ 'btn-primary' if period == '1year' else 'btn-outline' }}">
+                최근 1년
+            </a>
+            <a href="{{ url_for('teacher.ace_weekly_report', student_id=student.student_id, period='all') }}"
+               class="btn {{ 'btn-primary' if period == 'all' else 'btn-outline' }}">
+                전체
+            </a>
+        </div>
+    </div>
+
+    <!-- 학생 정보 -->
+    <div class="card-momo mb-6">
+        <div class="flex items-center gap-4">
+            <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-bold text-3xl">
+                {{ student.name[0] }}
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">{{ student.name }}</h2>
+                <p class="text-gray-600">{{ student.grade }} | {{ student.school or '학교 미등록' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- 총 평가 횟수 -->
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">📝</div>
+            <div class="text-3xl font-bold text-blue-600">{{ total_count }}</div>
+            <div class="text-sm text-gray-600 mt-1">총 평가 횟수</div>
+        </div>
+
+        <!-- 평균 글쓰기 점수 -->
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">✍️</div>
+            <div class="text-3xl font-bold text-green-600">{{ avg_score }}</div>
+            <div class="text-sm text-gray-600 mt-1">평균 글쓰기 점수</div>
+            <div class="text-xs text-gray-500 mt-1">최고: {{ max_score }} | 최저: {{ min_score }}</div>
+        </div>
+
+        <!-- 평균 참여도/이해도 -->
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">⭐</div>
+            <div class="flex justify-center gap-3">
+                <div>
+                    <div class="text-2xl font-bold text-yellow-600">{{ avg_participation }}</div>
+                    <div class="text-xs text-gray-600">참여도</div>
+                </div>
+                <div class="text-gray-300">/</div>
+                <div>
+                    <div class="text-2xl font-bold text-purple-600">{{ avg_understanding }}</div>
+                    <div class="text-xs text-gray-600">이해도</div>
+                </div>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">평균 별점 (5점 만점)</div>
+        </div>
+
+        <!-- 최근 성장률 -->
+        <div class="card-momo text-center">
+            <div class="text-3xl mb-2">📈</div>
+            <div class="text-3xl font-bold {{ 'text-green-600' if growth_rate > 0 else 'text-red-600' if growth_rate < 0 else 'text-gray-600' }}">
+                {{ growth_rate }}%
+            </div>
+            <div class="text-sm text-gray-600 mt-1">최근 성장률</div>
+            <div class="text-xs text-gray-500 mt-1">
+                {% if growth_rate > 0 %}↑ 상승{% elif growth_rate < 0 %}↓ 하락{% else %}→ 유지{% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if evaluations %}
+    <!-- 통합 시계열 그래프 -->
+    <div class="card-momo mb-6">
+        <h3 class="text-card-title mb-4">📈 종합 성장 추이</h3>
+        <div style="height: 400px;">
+            <canvas id="combinedChart"></canvas>
+        </div>
+        <div class="mt-4 flex justify-center gap-6 text-sm">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                <span>글쓰기 점수</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-yellow-500 rounded"></div>
+                <span>참여도 (×20)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-green-500 rounded"></div>
+                <span>이해도 (×20)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 개별 그래프 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 글쓰기 점수 추이 -->
+        <div class="card-momo">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">✍️ 글쓰기 점수 추이</h3>
+            <div style="height: 300px;">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 별점 추이 -->
+        <div class="card-momo">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">⭐ 참여도/이해도 추이</h3>
+            <div style="height: 300px;">
+                <canvas id="ratingChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 평가 이력 테이블 -->
+    <div class="card-momo">
+        <h3 class="text-card-title mb-4">📋 평가 이력</h3>
+        <div class="overflow-x-auto">
+            <table class="table-momo w-full">
+                <thead>
+                    <tr>
+                        <th>날짜</th>
+                        <th>주차</th>
+                        <th>도서</th>
+                        <th>점수</th>
+                        <th>등급</th>
+                        <th>참여도</th>
+                        <th>이해도</th>
+                        <th>코멘트</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eval in evaluations|reverse %}
+                    <tr>
+                        <td>{{ eval.eval_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ eval.week_number }}주</td>
+                        <td>{{ eval.book_title or '-' }}</td>
+                        <td class="font-bold" style="color: {{ '#10B981' if eval.score >= 80 else '#F59E0B' if eval.score >= 60 else '#EF4444' }}">
+                            {{ eval.score }}
+                        </td>
+                        <td>
+                            <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3B82F6;">
+                                {{ eval.grade }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="text-yellow-500">{% for i in range(eval.participation_score) %}★{% endfor %}{% for i in range(5 - eval.participation_score) %}☆{% endfor %}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="text-yellow-500">{% for i in range(eval.understanding_score) %}★{% endfor %}{% for i in range(5 - eval.understanding_score) %}☆{% endfor %}</span>
+                        </td>
+                        <td class="text-sm text-gray-600 max-w-xs">
+                            <div class="truncate" title="{{ eval.comment or '' }}">
+                                {{ eval.comment or '-' }}
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('teacher.ace_weekly_edit', eval_id=eval.id) }}"
+                               class="px-3 py-1.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded transition duration-200 inline-block">
+                                수정
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-momo text-center py-12">
+        <div class="text-6xl mb-4">📭</div>
+        <p class="text-gray-600 text-lg">아직 평가 기록이 없습니다.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+{% if evaluations %}
+// 데이터 준비
+const labels = [{% for eval in evaluations %}'{{ eval.eval_date.strftime("%m/%d") }} ({{ eval.week_number }}주)'{{ ',' if not loop.last else '' }}{% endfor %}];
+const scores = [{% for eval in evaluations %}{{ eval.score }}{{ ',' if not loop.last else '' }}{% endfor %}];
+const participation = [{% for eval in evaluations %}{{ eval.participation_score * 20 }}{{ ',' if not loop.last else '' }}{% endfor %}];
+const understanding = [{% for eval in evaluations %}{{ eval.understanding_score * 20 }}{{ ',' if not loop.last else '' }}{% endfor %}];
+const participationRaw = [{% for eval in evaluations %}{{ eval.participation_score }}{{ ',' if not loop.last else '' }}{% endfor %}];
+const understandingRaw = [{% for eval in evaluations %}{{ eval.understanding_score }}{{ ',' if not loop.last else '' }}{% endfor %}];
+
+// 통합 시계열 그래프
+const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+new Chart(combinedCtx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: '글쓰기 점수',
+                data: scores,
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: '참여도 (×20)',
+                data: participation,
+                borderColor: '#F59E0B',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: '이해도 (×20)',
+                data: understanding,
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.3,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                    display: true,
+                    text: '점수'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        }
+    }
+});
+
+// 글쓰기 점수 추이
+const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+new Chart(scoreCtx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: '글쓰기 점수',
+            data: scores,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// 별점 추이
+const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+new Chart(ratingCtx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: '참여도',
+                data: participationRaw,
+                borderColor: '#F59E0B',
+                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: '이해도',
+                data: understandingRaw,
+                borderColor: '#8B5CF6',
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                tension: 0.3,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 5,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}어휘퀴즈 결과 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Result Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6 text-center">
+        <div class="text-6xl mb-4">
+            {% if session.score >= 80 %}🎉
+            {% elif session.score >= 60 %}👏
+            {% else %}💪
+            {% endif %}
+        </div>
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">퀴즈 완료!</h2>
+        <p class="text-gray-600 mb-8">Level {{ session.level }} - {{ student.name }} 학생</p>
+
+        <!-- Score -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-8 mb-8 text-white">
+            <p class="text-lg mb-2">점수</p>
+            <p class="text-6xl font-bold mb-2">{{ session.score|round|int }}점</p>
+            <p class="text-blue-100">{{ session.correct_count }} / {{ session.total_questions }} 정답</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <div class="bg-green-50 rounded-lg p-4">
+                <p class="text-sm text-gray-600 mb-1">정답</p>
+                <p class="text-2xl font-bold text-green-600">{{ session.correct_count }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4">
+                <p class="text-sm text-gray-600 mb-1">오답</p>
+                <p class="text-2xl font-bold text-red-600">{{ session.total_questions - session.correct_count }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+                <p class="text-sm text-gray-600 mb-1">정답률</p>
+                <p class="text-2xl font-bold text-blue-600">{{ session.score|round|int }}%</p>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-8">
+            {% if session.score >= 90 %}
+            <p class="text-lg text-gray-800 font-medium">🌟 완벽합니다! 어휘력이 매우 뛰어나네요!</p>
+            {% elif session.score >= 80 %}
+            <p class="text-lg text-gray-800 font-medium">👍 잘하셨습니다! 조금만 더 노력하면 완벽해요!</p>
+            {% elif session.score >= 60 %}
+            <p class="text-lg text-gray-800 font-medium">💪 좋아요! 계속 연습하면 더 좋아질 거예요!</p>
+            {% else %}
+            <p class="text-lg text-gray-800 font-medium">📚 다시 한 번 도전해보세요! 연습이 실력을 만듭니다!</p>
+            {% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-4">
+            <a href="{{ url_for('student.vocabulary_quiz') }}"
+               class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-4 rounded-lg transition duration-200">
+                메인으로
+            </a>
+            <a href="{{ url_for('student.vocabulary_quiz_start', level=session.level) }}"
+               class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg transition duration-200">
+                다시 도전하기
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

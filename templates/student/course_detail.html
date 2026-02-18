@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.course_name }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('student.courses') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 수업 목록으로
+        </a>
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                    <h2 class="text-3xl font-bold text-gray-800">{{ course.course_name }}</h2>
+                    {% if course.tier %}
+                    <span class="px-3 py-1 text-sm font-medium rounded
+                        {% if course.tier == 'A' %}bg-red-100 text-red-800
+                        {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
+                        {% elif course.tier == 'C' %}bg-green-100 text-green-800
+                        {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ course.tier }}등급
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-600">👨‍🏫 {{ course.teacher.name }} 강사</p>
+            </div>
+            {% if course.teacher.zoom_token %}
+            <div class="flex-shrink-0">
+                <a href="{{ url_for('zoom.join', token=course.teacher.zoom_token) }}"
+                   class="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-3 rounded-lg transition duration-200 font-medium shadow-lg">
+                    <span class="text-xl">🎥</span>
+                    <span>온라인 강의실 입장</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 출석 통계 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">출석률</p>
+                    <p class="text-3xl font-bold text-green-600">{{ "%.1f"|format(enrollment.attendance_rate) }}%</p>
+                </div>
+                <div class="text-green-600 text-4xl">✅</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">출석</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ enrollment.attended_sessions }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">✓</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">지각</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ enrollment.late_sessions }}</p>
+                </div>
+                <div class="text-yellow-600 text-4xl">⏰</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">결석</p>
+                    <p class="text-3xl font-bold text-red-600">{{ enrollment.absent_sessions }}</p>
+                </div>
+                <div class="text-red-600 text-4xl">✗</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수업 정보 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">수업 정보</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% if course.schedule_type == 'weekly' and course.weekday is not none %}
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">수업 시간</p>
+                    <p class="text-gray-800 font-medium">
+                        매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일
+                        {% if course.start_time %}{{ course.start_time.strftime('%H:%M') }}{% endif %}
+                    </p>
+                </div>
+                {% endif %}
+
+                {% if course.total_sessions %}
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 회차</p>
+                    <p class="text-gray-800 font-medium">{{ course.total_sessions }}회</p>
+                </div>
+                {% endif %}
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">등록일</p>
+                    <p class="text-gray-800 font-medium">{{ enrollment.enrolled_at.strftime('%Y년 %m월 %d일') }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">담당 강사</p>
+                    <p class="text-gray-800 font-medium">{{ course.teacher.name }}</p>
+                </div>
+            </div>
+
+            {% if course.description %}
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <p class="text-sm text-gray-600 mb-2">수업 설명</p>
+                <p class="text-gray-800">{{ course.description }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 출석 기록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">출석 기록</h3>
+        </div>
+        <div class="p-6">
+            {% if attendances %}
+            <div class="space-y-2">
+                {% for attendance in attendances %}
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-800">
+                            {{ attendance.session.session_number }}회차
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            {{ attendance.session.session_date.strftime('%Y년 %m월 %d일') }}
+                        </p>
+                    </div>
+                    <span class="px-3 py-1 text-sm font-medium rounded
+                        {% if attendance.status == 'present' %}bg-green-100 text-green-800
+                        {% elif attendance.status == 'late' %}bg-yellow-100 text-yellow-800
+                        {% elif attendance.status == 'absent' %}bg-red-100 text-red-800
+                        {% elif attendance.status == 'excused' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {% if attendance.status == 'present' %}출석
+                        {% elif attendance.status == 'late' %}지각
+                        {% elif attendance.status == 'absent' %}결석
+                        {% elif attendance.status == 'excused' %}결석 (사유)
+                        {% else %}미체크{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">출석 기록이 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

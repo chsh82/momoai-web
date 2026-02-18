@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}자료 수정{% else %}자료 업로드{% endif %} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('teacher.materials') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 자료 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">
+            {% if is_edit %}자료 수정{% else %}자료 업로드{% endif %}
+        </h2>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="POST" enctype="multipart/form-data">
+            <!-- 제목 -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">
+                    자료명 <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="title" required
+                       value="{% if material %}{{ material.title }}{% endif %}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="예: 중급 영작문 교재 1과">
+            </div>
+
+            <!-- 설명 -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">
+                    설명
+                </label>
+                <textarea name="description" rows="3"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="자료에 대한 간단한 설명을 입력하세요">{% if material %}{{ material.description }}{% endif %}</textarea>
+            </div>
+
+            <!-- 파일 업로드 -->
+            {% if not is_edit %}
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">
+                    파일 <span class="text-red-500">*</span>
+                </label>
+                <input type="file" name="file" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       accept=".pdf,.docx,.pptx,.xlsx,.txt,.zip,.png,.jpg,.jpeg">
+                <p class="text-sm text-gray-500 mt-1">
+                    허용 형식: PDF, DOCX, PPTX, XLSX, TXT, ZIP, PNG, JPG | 최대 32MB
+                </p>
+            </div>
+            {% else %}
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">현재 파일</label>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-700">{{ material.file_name }}</p>
+                    <p class="text-xs text-gray-500">{{ material.file_type.upper() }} | {{ material.file_size_mb }}MB</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <!-- 카테고리 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">카테고리</label>
+                    <select name="category"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="general" {% if material and material.category == 'general' %}selected{% endif %}>일반</option>
+                        <option value="textbook" {% if material and material.category == 'textbook' %}selected{% endif %}>교재</option>
+                        <option value="reference" {% if material and material.category == 'reference' %}selected{% endif %}>참고자료</option>
+                        <option value="example" {% if material and material.category == 'example' %}selected{% endif %}>예시답안</option>
+                        <option value="past_exam" {% if material and material.category == 'past_exam' %}selected{% endif %}>기출문제</option>
+                    </select>
+                </div>
+
+                <!-- 태그 -->
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">태그</label>
+                    <input type="text" name="tags"
+                           value="{% if material %}{{ material.tags }}{% endif %}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="쉼표로 구분, 예: 문법,작문,중급">
+                </div>
+            </div>
+
+            <!-- 연결 수업 -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">연결 수업</label>
+                <select name="course_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- 전체 (수업 무관) --</option>
+                    {% for course in courses %}
+                    <option value="{{ course.course_id }}"
+                            {% if material and material.course_id == course.course_id %}selected{% endif %}>
+                        {{ course.course_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 접근 제어 -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">접근 제한</label>
+                <select name="access_level" id="access_level"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all" {% if material and material.access_level == 'all' %}selected{% endif %}>전체 공개</option>
+                    <option value="course" {% if material and material.access_level == 'course' %}selected{% endif %}>수업별 제한</option>
+                    <option value="tier" {% if material and material.access_level == 'tier' %}selected{% endif %}>티어별 제한</option>
+                </select>
+            </div>
+
+            <!-- 티어 제한 -->
+            <div class="mb-6" id="tier_restriction_div" style="display: {% if material and material.access_level == 'tier' %}block{% else %}none{% endif %};">
+                <label class="block text-gray-700 font-medium mb-2">허용 티어 (쉼표로 구분)</label>
+                <input type="text" name="tier_restriction"
+                       value="{% if material %}{{ material.tier_restriction }}{% endif %}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="예: A,B,VIP">
+                <p class="text-sm text-gray-500 mt-1">
+                    허용할 학생 티어를 입력하세요. 예: A, B, C, VIP
+                </p>
+            </div>
+
+            <!-- 게시 여부 -->
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input type="checkbox" name="is_published"
+                           {% if not material or material.is_published %}checked{% endif %}
+                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-gray-700">즉시 게시 (체크 해제 시 비공개)</span>
+                </label>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                    {% if is_edit %}수정 완료{% else %}업로드{% endif %}
+                </button>
+                <a href="{{ url_for('teacher.materials') }}"
+                   class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium px-6 py-3 rounded-lg transition duration-200 text-center">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// 접근 제한 선택 시 티어 제한 표시/숨김
+document.getElementById('access_level').addEventListener('change', function() {
+    const tierDiv = document.getElementById('tier_restriction_div');
+    if (this.value === 'tier') {
+        tierDiv.style.display = 'block';
+    } else {
+        tierDiv.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

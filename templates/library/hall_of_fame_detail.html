@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+            {% if post.category == 'excellent_answer' %}
+            <span class="bg-yellow-100 text-yellow-800 text-sm font-bold px-3 py-1 rounded-full">📝 우수답안</span>
+            {% elif post.category == 'mock_exam_award' %}
+            <span class="bg-purple-100 text-purple-800 text-sm font-bold px-3 py-1 rounded-full">📊 모의고사</span>
+            {% elif post.category == 'essay_award' %}
+            <span class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">✍️ 수상작</span>
+            {% else %}
+            <span class="bg-gray-100 text-gray-800 text-sm font-bold px-3 py-1 rounded-full">🎯 기타</span>
+            {% endif %}
+
+            {% if post.award_name %}
+            <span class="bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">🏆 {{ post.award_name }}</span>
+            {% endif %}
+        </div>
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-3">{{ post.title }}</h2>
+
+        <div class="flex items-center space-x-4 text-sm text-gray-600">
+            {% if post.student_name %}
+            <span>👤 {{ post.student_name }}</span>
+            {% endif %}
+            {% if post.grade %}
+            <span>📚 {{ post.grade }}</span>
+            {% endif %}
+            <span>📅 {{ post.created_at.strftime('%Y-%m-%d') }}</span>
+            <span>👁️ 조회수 {{ post.view_count }}</span>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-white rounded-lg shadow p-8 mb-6">
+        <div class="prose max-w-none">
+            <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {{ post.content }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Attached File -->
+    {% if post.file_path %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-blue-800 mb-3">📎 첨부파일</h3>
+        <div class="flex items-center justify-between">
+            <span class="text-gray-700">{{ post.file_path | basename }}</span>
+            <a href="{{ url_for('api_download', filename=post.file_path) }}"
+               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                다운로드
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Admin Edit Button -->
+    {% if current_user.is_admin %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">관리자 전용</span>
+            <div class="space-x-2">
+                <a href="{{ url_for('library.edit_hall_of_fame', post_id=post.post_id) }}"
+                   class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition duration-200">
+                    수정
+                </a>
+                <button onclick="if(confirm('정말 삭제하시겠습니까?')) { document.getElementById('deleteForm').submit(); }"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200">
+                    삭제
+                </button>
+            </div>
+        </div>
+        <form id="deleteForm"
+              action="{{ url_for('library.delete_hall_of_fame', post_id=post.post_id) }}"
+              method="POST"
+              class="hidden">
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="flex justify-center space-x-4">
+        <a href="{{ url_for('library.hall_of_fame') }}"
+           class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
+            ← 목록으로
+        </a>
+    </div>
+</div>
+{% endblock %}

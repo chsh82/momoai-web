@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}⭐ ACE 분기 평가{% endblock %}
+
+{% block page_title %}⭐ ACE 분기 평가{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">자녀의 역량 평가 결과 조회</span>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    {% if not children_stats %}
+    <!-- 자녀가 없는 경우 -->
+    <div class="card-momo">
+        <div class="text-center py-12">
+            <div class="text-5xl mb-4">👨‍👩‍👧</div>
+            <h3 class="text-xl font-bold mb-2">등록된 자녀가 없습니다</h3>
+            <p class="text-gray-600 mb-4">자녀를 먼저 연결해주세요.</p>
+            <a href="{{ url_for('parent.link_requests') }}" class="btn btn-primary">
+                <span>🔗 자녀 연결하기</span>
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+
+    <!-- 자녀 선택 -->
+    <div class="card-momo mb-4">
+        <h3 class="text-card-title mb-4">👨‍👩‍👧 자녀 선택</h3>
+        <p class="text-sm text-gray-600 mb-4">자녀를 선택하면 ACE 분기 평가 결과를 확인할 수 있습니다.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for child_stat in children_stats %}
+            <div class="card-momo-sm hover:shadow-lg transition cursor-pointer"
+                 onclick="window.location.href='{{ url_for('parent.child_ace_evaluation', student_id=child_stat.student.student_id) }}'">
+
+                <!-- 학생 정보 -->
+                <div class="flex items-center gap-3 mb-3 pb-3 border-b">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold">
+                        {{ child_stat.student.name[0] }}
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold text-base">{{ child_stat.student.name }}</div>
+                        <div class="text-sm text-gray-500">{{ child_stat.student.grade }}</div>
+                    </div>
+                </div>
+
+                <!-- 평가 통계 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="text-center p-3 bg-purple-50 rounded-lg">
+                        <div class="text-xs text-gray-600 mb-1">ACE 평가</div>
+                        <div class="text-2xl font-bold text-purple-600 mono">{{ child_stat.ace_count }}</div>
+                        <div class="text-xs text-gray-500">건</div>
+                    </div>
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <div class="text-xs text-gray-600 mb-1">주차 평가</div>
+                        <div class="text-2xl font-bold text-blue-600 mono">{{ child_stat.weekly_count }}</div>
+                        <div class="text-xs text-gray-500">건</div>
+                    </div>
+                </div>
+
+                <!-- 최근 평가 정보 -->
+                {% if child_stat.latest_ace %}
+                <div class="mt-3 pt-3 border-t">
+                    <div class="text-xs text-gray-500 mb-1">최근 ACE 평가</div>
+                    <div class="text-sm font-semibold">
+                        {{ child_stat.latest_ace.year }}년 {{ child_stat.latest_ace.quarter }}
+                    </div>
+                    <div class="text-sm text-gray-600 mono">
+                        총점: {{ child_stat.latest_ace.get_total_score() }}/75
+                    </div>
+                </div>
+                {% else %}
+                <div class="mt-3 pt-3 border-t text-center text-sm text-gray-500">
+                    아직 ACE 평가가 없습니다
+                </div>
+                {% endif %}
+
+                <!-- 화살표 아이콘 -->
+                <div class="text-right mt-2">
+                    <span class="text-gray-400">→</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 안내 메시지 -->
+    <div class="card-momo bg-gradient-to-r from-purple-50 to-pink-50">
+        <div class="flex items-start gap-3">
+            <span class="text-2xl">💡</span>
+            <div>
+                <h4 class="font-bold mb-2">ACE 평가란?</h4>
+                <p class="text-sm text-gray-700 leading-relaxed">
+                    ACE 평가는 <strong>3개월 단위</strong>로 실시되는 종합 역량 평가입니다.<br>
+                    <strong>독해력, 사고력, 서술능력, 창의력, 소통능력</strong> 5개 축, 총 15개 항목을 평가합니다.<br>
+                    자녀의 성장 과정을 체계적으로 확인하고, 강점과 보완점을 파악할 수 있습니다.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}

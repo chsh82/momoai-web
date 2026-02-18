@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}피드백 작성 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('teacher.students') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 학생 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">학부모 피드백 작성</h2>
+        <p class="text-gray-600 mt-2">학생은 이 피드백을 볼 수 없습니다.</p>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+        <div class="flex items-center gap-2">
+            <span class="text-lg">ℹ️</span>
+            <p class="text-sm text-blue-800">
+                <strong>비공개 피드백:</strong> 학부모에게만 전달되며 학생은 볼 수 없습니다.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="" id="feedbackForm">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 학생 선택 -->
+                <div>
+                    {{ form.student_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.student_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.student_id.errors else ""), onchange="loadParents(this.value)") }}
+                    {% if form.student_id.errors %}
+                        {% for error in form.student_id.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 학부모 선택 -->
+                <div>
+                    {{ form.parent_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.parent_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.parent_id.errors else ""), id="parentSelect") }}
+                    {% if form.parent_id.errors %}
+                        {% for error in form.parent_id.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 피드백 유형 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.feedback_type.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.feedback_type(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    </div>
+
+                    <div>
+                        {{ form.priority.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.priority(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    </div>
+                </div>
+
+                <!-- 제목 -->
+                <div>
+                    {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else ""), placeholder="예: 이번 주 수업 피드백") }}
+                    {% if form.title.errors %}
+                        {% for error in form.title.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 내용 -->
+                <div>
+                    <label for="content" class="block text-sm font-medium text-gray-700 mb-2">내용 *</label>
+                    <textarea
+                        id="content"
+                        name="content"
+                        rows="10"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical{% if form.content.errors %} border-red-500{% endif %}"
+                        placeholder="학생의 수업 참여도, 학습 진도, 개선이 필요한 부분 등을 상세히 작성해주세요..."
+                        required>{{ form.content.data if form.content.data else '' }}</textarea>
+                    {% if form.content.errors %}
+                        {% for error in form.content.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        피드백 전송
+                    </button>
+                    <a href="{{ url_for('teacher.students') }}"
+                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// 학생 선택 시 학부모 목록 로드
+function loadParents(studentId, selectedParentId = null) {
+    if (!studentId) {
+        document.getElementById('parentSelect').innerHTML = '<option value="">-- 먼저 학생을 선택하세요 --</option>';
+        return;
+    }
+
+    fetch(`/teacher/api/students/${studentId}/parents`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const parentSelect = document.getElementById('parentSelect');
+                parentSelect.innerHTML = '<option value="">-- 학부모 선택 --</option>';
+
+                data.parents.forEach(parent => {
+                    const option = document.createElement('option');
+                    option.value = parent.user_id;
+                    option.textContent = `${parent.name} (${parent.email})`;
+                    // 이전에 선택된 학부모가 있으면 자동 선택
+                    if (selectedParentId && parent.user_id === selectedParentId) {
+                        option.selected = true;
+                    }
+                    parentSelect.appendChild(option);
+                });
+
+                if (data.parents.length === 0) {
+                    parentSelect.innerHTML = '<option value="">-- 등록된 학부모가 없습니다 --</option>';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('학부모 정보를 불러오는데 실패했습니다.');
+        });
+}
+
+// 페이지 로드 시 자동으로 학부모 목록 복원
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.querySelector('select[name="student_id"]');
+    const parentSelect = document.getElementById('parentSelect');
+
+    // 학생이 이미 선택되어 있으면 (폼 제출 실패 후 재로드 시)
+    if (studentSelect && studentSelect.value) {
+        const selectedParentId = parentSelect.value; // 선택된 학부모 ID 저장
+        loadParents(studentSelect.value, selectedParentId);
+    }
+});
+</script>
+{% endblock %}

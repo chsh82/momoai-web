@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}자녀 출결 현황 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}✅ 출결 현황{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">자녀 출석 상세</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">📋 출결 현황</h2>
+                <p class="text-gray-600 mt-2">{{ student.name }} 학생의 수업별 출결 현황입니다.</p>
+            </div>
+            <a href="{{ url_for('parent.attendance_index') }}"
+               class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200">
+                ← 돌아가기
+            </a>
+        </div>
+    </div>
+
+    {% if course_attendance_data %}
+    <!-- 전체 통계 요약 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {% set total_all = namespace(value=0) %}
+        {% set present_all = namespace(value=0) %}
+        {% set late_all = namespace(value=0) %}
+        {% set absent_all = namespace(value=0) %}
+
+        {% for data in course_attendance_data %}
+            {% set total_all.value = total_all.value + data.stats.total %}
+            {% set present_all.value = present_all.value + data.stats.present %}
+            {% set late_all.value = late_all.value + data.stats.late %}
+            {% set absent_all.value = absent_all.value + data.stats.absent %}
+        {% endfor %}
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-sm text-gray-600 mb-1">전체 수업</div>
+            <div class="text-3xl font-bold text-gray-800">{{ total_all.value }}</div>
+        </div>
+
+        <div class="bg-green-50 rounded-lg shadow p-6">
+            <div class="text-sm text-green-600 mb-1">출석</div>
+            <div class="text-3xl font-bold text-green-700">{{ present_all.value }}</div>
+        </div>
+
+        <div class="bg-yellow-50 rounded-lg shadow p-6">
+            <div class="text-sm text-yellow-600 mb-1">지각</div>
+            <div class="text-3xl font-bold text-yellow-700">{{ late_all.value }}</div>
+        </div>
+
+        <div class="bg-red-50 rounded-lg shadow p-6">
+            <div class="text-sm text-red-600 mb-1">결석</div>
+            <div class="text-3xl font-bold text-red-700">{{ absent_all.value }}</div>
+        </div>
+    </div>
+
+    <!-- 수업별 출결 현황 -->
+    <div class="space-y-6">
+        {% for data in course_attendance_data %}
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">{{ data.course.course_name }}</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            {{ data.course.course_code }} |
+                            강사: {{ data.course.teacher.name if data.course.teacher else '미정' }}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-blue-600">{{ data.stats.rate }}%</div>
+                        <div class="text-sm text-gray-600">출석률</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 출석 통계 -->
+            <div class="p-6 bg-gray-50 border-b border-gray-200">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="text-center">
+                        <div class="text-sm text-gray-600 mb-1">전체</div>
+                        <div class="text-2xl font-bold text-gray-800">{{ data.stats.total }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-green-600 mb-1">출석</div>
+                        <div class="text-2xl font-bold text-green-700">{{ data.stats.present }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-yellow-600 mb-1">지각</div>
+                        <div class="text-2xl font-bold text-yellow-700">{{ data.stats.late }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-red-600 mb-1">결석</div>
+                        <div class="text-2xl font-bold text-red-700">{{ data.stats.absent }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-gray-600 mb-1">사유</div>
+                        <div class="text-2xl font-bold text-gray-600">{{ data.stats.excused }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 출석 기록 상세 -->
+            {% if data.attendance_records %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                날짜
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                시간
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                수업 내용
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                출결 상태
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                비고
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for attendance in data.attendance_records %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ attendance.session.session_date.strftime('%Y-%m-%d') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ attendance.session.start_time.strftime('%H:%M') if attendance.session.start_time else '-' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                {{ attendance.session.topic if attendance.session.topic else '수업 진행' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if attendance.status == 'present' %}
+                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    ✓ 출석
+                                </span>
+                                {% elif attendance.status == 'late' %}
+                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                    ⏰ 지각
+                                </span>
+                                {% elif attendance.status == 'absent' %}
+                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    ✗ 결석
+                                </span>
+                                {% elif attendance.status == 'excused' %}
+                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                    📋 사유
+                                </span>
+                                {% else %}
+                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                    - 미확인
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ attendance.notes if attendance.notes else '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-500">
+                아직 출석 기록이 없습니다.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📋</div>
+        <p class="text-gray-500 text-lg mb-4">수강 중인 수업이 없습니다.</p>
+        <p class="text-gray-400 text-sm">수업에 등록되면 출결 현황을 확인할 수 있습니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

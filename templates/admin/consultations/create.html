@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}상담 기록 작성 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">📝 상담 기록 작성</h2>
+                <p class="text-gray-600 mt-1">MBTI 기반 맞춤형 수업 추천이 자동으로 생성됩니다</p>
+            </div>
+            <a href="{{ url_for('admin.consultations') }}"
+               class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                목록으로
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.create_consultation') }}" id="consultationForm">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 왼쪽: 기본 정보 입력 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 기본 정보 카드 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">기본 정보</h3>
+
+                    <!-- 학생 선택 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            학생 선택 <span class="text-red-500">*</span>
+                        </label>
+                        <select name="student_id" id="studentSelect" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- 학생을 선택하세요 --</option>
+                            {% for student in students %}
+                            <option value="{{ student.student_id }}" data-grade="{{ student.grade }}">
+                                {{ student.name }} ({{ student.grade }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 상담일 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            상담일 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="consultation_date" value="{{ today }}" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- 상담 분류 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            상담 분류 <span class="text-red-500">*</span>
+                        </label>
+                        <select name="major_category" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- 분류 선택 --</option>
+                            <option value="신규상담">신규상담</option>
+                            <option value="정기상담">정기상담</option>
+                            <option value="진로진학상담">진로진학상담</option>
+                            <option value="학습상담">학습상담</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+
+                    <!-- 제목 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            상담 제목 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="title" required
+                               placeholder="예: MBTI 기반 맞춤 학습 계획"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- 상담 내용 카드 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">상담 내용</h3>
+                    <textarea name="content" rows="10" required
+                              placeholder="상담 내용을 작성하세요..."
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <!-- 학부모 공유 설정 -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="share_with_parents" checked
+                               class="w-5 h-5 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                        <span class="ml-3 text-sm font-medium text-green-900">
+                            학부모에게 공유 (추천)
+                        </span>
+                    </label>
+                    <p class="text-xs text-green-700 mt-2 ml-8">
+                        체크 시 학부모가 상담 기록과 MBTI 추천을 확인할 수 있습니다.
+                    </p>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex gap-3">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200">
+                        💾 상담 기록 저장
+                    </button>
+                    <a href="{{ url_for('admin.consultations') }}"
+                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </div>
+
+            <!-- 오른쪽: MBTI 정보 (자동 표시) -->
+            <div class="lg:col-span-1">
+                <div id="mbtiPanel" class="bg-purple-50 border-2 border-purple-200 rounded-lg p-6 sticky top-4" style="display: none;">
+                    <h3 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 분석</h3>
+
+                    <!-- MBTI 유형 정보 -->
+                    <div id="mbtiInfo" class="mb-4">
+                        <!-- AJAX로 채워질 내용 -->
+                    </div>
+
+                    <!-- 로딩 표시 -->
+                    <div id="mbtiLoading" class="text-center py-8" style="display: none;">
+                        <div class="spinner mx-auto mb-3"></div>
+                        <p class="text-sm text-purple-700">MBTI 분석 중...</p>
+                    </div>
+
+                    <!-- MBTI 없음 -->
+                    <div id="mbtiNone" class="text-center py-8" style="display: none;">
+                        <p class="text-sm text-gray-600">MBTI 검사 결과가 없습니다.</p>
+                        <p class="text-xs text-gray-500 mt-2">독서 논술 MBTI 검사를 먼저 진행해주세요.</p>
+                    </div>
+
+                    <!-- 추천 미리보기 버튼 -->
+                    <button type="button" id="previewBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 mt-4"
+                            style="display: none;">
+                        📋 추천 전체보기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- MBTI 추천 미리보기 모달 -->
+<div id="recommendModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="display: none;">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto m-4">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800">📊 MBTI 기반 추천 내용</h3>
+            <button type="button" id="closeModal" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="recommendContent" class="prose max-w-none whitespace-pre-wrap">
+                <!-- AJAX로 채워질 내용 -->
+            </div>
+        </div>
+        <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4">
+            <button type="button" id="closeModalBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                닫기
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentRecommendations = null;
+
+// 학생 선택 시 MBTI 정보 로드
+document.getElementById('studentSelect').addEventListener('change', function() {
+    const studentId = this.value;
+    const mbtiPanel = document.getElementById('mbtiPanel');
+    const mbtiInfo = document.getElementById('mbtiInfo');
+    const mbtiLoading = document.getElementById('mbtiLoading');
+    const mbtiNone = document.getElementById('mbtiNone');
+    const previewBtn = document.getElementById('previewBtn');
+
+    if (!studentId) {
+        mbtiPanel.style.display = 'none';
+        return;
+    }
+
+    // 패널 표시
+    mbtiPanel.style.display = 'block';
+    mbtiLoading.style.display = 'block';
+    mbtiInfo.style.display = 'none';
+    mbtiNone.style.display = 'none';
+    previewBtn.style.display = 'none';
+
+    // AJAX로 MBTI 정보 가져오기
+    fetch(`/admin/api/student-mbti/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            mbtiLoading.style.display = 'none';
+
+            if (data.success) {
+                currentRecommendations = data;
+
+                // MBTI 정보 표시
+                mbtiInfo.innerHTML = `
+                    <div class="bg-white rounded-lg p-4 mb-3 border border-purple-200">
+                        <div class="text-center mb-3">
+                            <div class="text-2xl font-bold text-purple-900">${data.type_name}</div>
+                            <div class="text-sm text-purple-700">${data.type_code}</div>
+                            <div class="text-xs text-gray-600 mt-1">${data.combo_description}</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <div class="font-semibold text-purple-900 mb-1">📚 독서 스타일</div>
+                            <div class="text-gray-700 text-xs">${data.reading_style}</div>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-purple-900 mb-1">💬 말하기 스타일</div>
+                            <div class="text-gray-700 text-xs">${data.speaking_style}</div>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-purple-900 mb-1">✍️ 쓰기 스타일</div>
+                            <div class="text-gray-700 text-xs">${data.writing_style}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-purple-200">
+                        <div class="font-semibold text-green-700 mb-2 text-sm">✨ 강점 ${data.strengths.length}가지</div>
+                        <div class="font-semibold text-orange-700 mb-2 text-sm">⚠️ 보완 필요 ${data.weaknesses.length}가지</div>
+                        <div class="font-semibold text-blue-700 text-sm">🎓 추천 교수법 ${data.recommended_approaches.length}가지</div>
+                    </div>
+                `;
+                mbtiInfo.style.display = 'block';
+                previewBtn.style.display = 'block';
+            } else {
+                mbtiNone.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            mbtiLoading.style.display = 'none';
+            mbtiNone.style.display = 'block';
+            console.error('Error:', error);
+        });
+});
+
+// 추천 미리보기 버튼
+document.getElementById('previewBtn').addEventListener('click', function() {
+    if (currentRecommendations) {
+        document.getElementById('recommendContent').textContent = currentRecommendations.formatted_recommendations;
+        document.getElementById('recommendModal').style.display = 'flex';
+    }
+});
+
+// 모달 닫기
+document.getElementById('closeModal').addEventListener('click', function() {
+    document.getElementById('recommendModal').style.display = 'none';
+});
+document.getElementById('closeModalBtn').addEventListener('click', function() {
+    document.getElementById('recommendModal').style.display = 'none';
+});
+</script>
+{% endblock %}

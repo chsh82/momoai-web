@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}보강수업 신청 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔄 보강수업{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">보강 신청 및 이력</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">📚 보강수업 신청</h2>
+        <p class="text-gray-600 mt-2">자녀를 선택하여 보강수업을 신청하세요.</p>
+    </div>
+
+    <!-- 자녀 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        {% if children %}
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for child in children %}
+                <a href="{{ url_for('parent.makeup_classes', student_id=child.student_id) }}"
+                   class="block border-2 border-gray-200 rounded-lg p-6 hover:border-blue-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center mb-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-bold text-2xl mr-4">
+                            {{ child.name[0] }}
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">{{ child.name }}</h3>
+                            <p class="text-gray-600">{{ child.grade }}</p>
+                        </div>
+                    </div>
+
+                    {% if child.tier %}
+                    <div class="mb-3">
+                        <span class="px-3 py-1 text-sm font-medium rounded
+                            {% if child.tier == 'A' %}bg-red-100 text-red-800
+                            {% elif child.tier == 'B' %}bg-blue-100 text-blue-800
+                            {% elif child.tier == 'C' %}bg-green-100 text-green-800
+                            {% elif child.tier == 'VIP' %}bg-purple-100 text-purple-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ child.tier }}등급
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">보강수업 신청하기</span>
+                            <span class="text-blue-600 font-medium">→</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="text-6xl mb-4">👨‍👩‍👧‍👦</div>
+            <p class="text-gray-500 text-lg mb-4">등록된 자녀가 없습니다.</p>
+            <p class="text-gray-400 text-sm">자녀 정보를 먼저 등록해주세요.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 도움말 -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start">
+            <span class="text-2xl mr-3">💡</span>
+            <div>
+                <p class="text-sm text-blue-900 font-medium mb-1">보강수업 신청 안내</p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• 자녀를 선택하면 해당 학년의 보강 가능한 수업 목록을 볼 수 있습니다</li>
+                    <li>• 신청한 보강수업은 관리자 승인 후 확정됩니다</li>
+                    <li>• 승인되면 알림을 통해 확인하실 수 있습니다</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

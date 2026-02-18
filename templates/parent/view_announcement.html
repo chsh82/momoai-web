@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ announcement.title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{{ url_for('parent.announcements') }}"
+           class="inline-flex items-center text-blue-600 hover:text-blue-700">
+            ← 공지사항 목록으로 돌아가기
+        </a>
+    </div>
+
+    <!-- 공지사항 상세 -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <!-- Header -->
+        <div class="border-b border-gray-200 pb-6 mb-6">
+            <div class="flex items-center gap-2 mb-3">
+                {% if announcement.is_pinned %}
+                <span class="text-red-600 text-xl">📌</span>
+                {% endif %}
+
+                <h1 class="text-3xl font-bold text-gray-800">
+                    {{ announcement.title }}
+                </h1>
+
+                <!-- 공지 유형 배지 -->
+                <span class="px-3 py-1 text-sm font-medium rounded
+                    {% if announcement.announcement_type == 'urgent' %}bg-red-100 text-red-800
+                    {% elif announcement.announcement_type == 'event' %}bg-purple-100 text-purple-800
+                    {% elif announcement.announcement_type == 'system' %}bg-gray-100 text-gray-800
+                    {% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {% if announcement.announcement_type == 'urgent' %}긴급
+                    {% elif announcement.announcement_type == 'event' %}행사
+                    {% elif announcement.announcement_type == 'system' %}시스템
+                    {% else %}일반{% endif %}
+                </span>
+            </div>
+
+            <div class="flex items-center gap-4 text-sm text-gray-600">
+                <span>👤 작성자: {{ announcement.author.name if announcement.author else '관리자' }}</span>
+                <span>📅 작성일: {{ announcement.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                <span>👁️ 조회수: {{ announcement.view_count }}회</span>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="prose max-w-none">
+            <div class="text-gray-800 leading-relaxed whitespace-pre-wrap">{{ announcement.content }}</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-gray-200 pt-6 mt-8">
+            <a href="{{ url_for('parent.announcements') }}"
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                목록으로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

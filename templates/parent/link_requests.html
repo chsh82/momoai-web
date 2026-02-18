@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}자녀 연결 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔗 연결 요청 관리{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">신청 이력 조회</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">👨‍👩‍👧‍👦 자녀 연결 관리</h2>
+        <a href="{{ url_for('parent.link_child') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 flex items-center gap-2">
+            <span class="text-xl">➕</span>
+            <span>새 자녀 연결 신청</span>
+        </a>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">연결된 자녀</p>
+                    <p class="text-3xl font-bold text-green-600">{{ linked_children|length }}</p>
+                </div>
+                <div class="text-green-600 text-4xl">✓</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">대기 중</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ pending_count }}</p>
+                </div>
+                <div class="text-yellow-600 text-4xl">⏳</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">승인됨</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ approved_count }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">👍</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">거절됨</p>
+                    <p class="text-3xl font-bold text-red-600">{{ rejected_count }}</p>
+                </div>
+                <div class="text-red-600 text-4xl">✗</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 연결된 자녀 목록 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+            <h3 class="text-xl font-bold text-green-900">연결된 자녀 ({{ linked_children|length }}명)</h3>
+        </div>
+        <div class="p-6">
+            {% if linked_children %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for child in linked_children %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-lg font-bold text-gray-800">{{ child.name }}</h4>
+                        <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                            ✓ 연결됨
+                        </span>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-700 mb-3">
+                        <p>📚 {{ child.grade }}</p>
+                        {% if child.school %}
+                        <p>🏫 {{ child.school }}</p>
+                        {% endif %}
+                        <p>👥 수강 중인 수업: {{ child.enrollment_count }}개</p>
+                    </div>
+                    <a href="{{ url_for('parent.child_detail', student_id=child.student_id) }}"
+                       class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                        자세히 보기
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500 text-lg">연결된 자녀가 없습니다.</p>
+                <p class="text-gray-400 text-sm mt-2">자녀 연결 신청 후 관리자 승인을 기다려주세요.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 신청 내역 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+            <h3 class="text-xl font-bold text-blue-900">신청 내역</h3>
+        </div>
+        <div class="p-6">
+            {% if requests %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학생 이름</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학년</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관계</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for req in requests %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-gray-800">{{ req.student_name }}</p>
+                                {% if req.student_birth_date %}
+                                <p class="text-xs text-gray-500">{{ req.student_birth_date.strftime('%Y-%m-%d') }}</p>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ req.student_grade or '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {{ req.relation_type or '-' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if req.status == 'pending' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                                    ⏳ 대기 중
+                                </span>
+                                {% elif req.status == 'approved' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                                    ✓ 승인됨
+                                </span>
+                                {% elif req.status == 'rejected' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
+                                    ✗ 거절됨
+                                </span>
+                                {% elif req.status == 'cancelled' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">
+                                    취소됨
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if req.status == 'pending' %}
+                                <form method="POST" action="{{ url_for('parent.cancel_link_request', request_id=req.request_id) }}"
+                                      onsubmit="return confirm('신청을 취소하시겠습니까?');" style="display: inline;">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                        취소
+                                    </button>
+                                </form>
+                                {% elif req.status == 'rejected' and req.admin_notes %}
+                                <button onclick="showRejectReason('{{ req.student_name }}', '{{ req.admin_notes }}')"
+                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    거절 사유 보기
+                                </button>
+                                {% elif req.status == 'approved' and req.matched_student %}
+                                <a href="{{ url_for('parent.child_detail', student_id=req.matched_student_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    자녀 정보 보기
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500 text-lg">신청 내역이 없습니다.</p>
+                <a href="{{ url_for('parent.link_child') }}"
+                   class="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium">
+                    자녀 연결 신청하기 →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 거절 사유 모달 -->
+<div id="rejectReasonModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-xl font-bold text-gray-800">거절 사유</h3>
+            <button onclick="closeRejectReasonModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">학생</label>
+            <p id="modalStudentName" class="text-lg font-bold text-gray-800"></p>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">거절 사유</label>
+            <div id="modalRejectReason" class="p-4 bg-red-50 border border-red-200 rounded-lg text-gray-800"></div>
+        </div>
+
+        <button onclick="closeRejectReasonModal()"
+                class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-lg transition duration-200">
+            닫기
+        </button>
+    </div>
+</div>
+
+<script>
+function showRejectReason(studentName, reason) {
+    const modal = document.getElementById('rejectReasonModal');
+    document.getElementById('modalStudentName').textContent = studentName;
+    document.getElementById('modalRejectReason').textContent = reason;
+    modal.classList.remove('hidden');
+}
+
+function closeRejectReasonModal() {
+    document.getElementById('rejectReasonModal').classList.add('hidden');
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeRejectReasonModal();
+    }
+});
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('rejectReasonModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeRejectReasonModal();
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}학생 프로필 일괄 임포트 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.student_profiles') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 학생 프로필 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">Excel 일괄 임포트</h2>
+        <p class="text-gray-600 mt-2">구글 설문 결과 Excel 파일을 업로드하여 여러 학생의 프로필을 한번에 생성합니다</p>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-bold text-blue-900 mb-3">📌 사용 방법</h3>
+        <ol class="space-y-2 text-sm text-blue-800">
+            <li>1. 구글 설문 결과를 Excel 파일(.xlsx 또는 .xls)로 다운로드합니다</li>
+            <li>2. Excel 파일의 "1. 학생의 이름" 컬럼에 있는 이름으로 시스템의 학생을 찾습니다</li>
+            <li>3. 시스템에 해당 학생이 존재하고 프로필이 없는 경우에만 생성됩니다</li>
+            <li>4. 이미 프로필이 있는 학생은 건너뜁니다</li>
+        </ol>
+    </div>
+
+    <!-- Warning -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-2">
+            <span class="text-xl">⚠️</span>
+            <div>
+                <p class="text-sm text-yellow-800 font-medium">주의사항</p>
+                <p class="text-sm text-yellow-700 mt-1">• Excel 파일의 학생 이름이 시스템에 등록된 학생 이름과 정확히 일치해야 합니다</p>
+                <p class="text-sm text-yellow-700">• 이미 프로필이 있는 학생은 업데이트되지 않습니다 (수동 수정 필요)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" enctype="multipart/form-data" id="importForm">
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Excel 파일 선택</label>
+                <input type="file"
+                       name="file"
+                       accept=".xlsx,.xls"
+                       required
+                       class="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-lg file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-blue-50 file:text-blue-700
+                              hover:file:bg-blue-100
+                              cursor-pointer">
+                <p class="mt-2 text-xs text-gray-500">지원 형식: .xlsx, .xls</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        id="submitBtn"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    📤 업로드 및 임포트
+                </button>
+                <a href="{{ url_for('admin.student_profiles') }}"
+                   class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Import Errors (if any) -->
+    {% if session.get('import_errors') %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mt-6">
+        <h3 class="text-lg font-bold text-red-900 mb-3">❌ 임포트 오류 목록</h3>
+        <div class="space-y-1 text-sm text-red-700 max-h-96 overflow-y-auto">
+            {% for error in session.get('import_errors') %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% set _ = session.pop('import_errors', None) %}
+    {% endif %}
+</div>
+
+<script>
+// 폼 제출 시 로딩 상태 표시
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ 처리 중... (최대 1-2분 소요)';
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+});
+</script>
+{% endblock %}

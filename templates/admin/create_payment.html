@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{% block title %}결제 생성 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.payments') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 결제 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">💳 결제 생성</h2>
+        <p class="text-gray-600 mt-1">월별/분기별 결제를 생성하고 할인을 적용하세요</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-6 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-300{% elif category == 'success' %}bg-green-100 text-green-700 border border-green-300{% elif category == 'warning' %}bg-yellow-100 text-yellow-700 border border-yellow-300{% else %}bg-blue-100 text-blue-700 border border-blue-300{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="{{ url_for('admin.create_payment') }}" id="paymentForm">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 학생 검색 -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-medium text-gray-800 mb-4">👤 학생 선택 <span class="text-red-500">*</span></h4>
+
+                    <!-- 학년 필터 -->
+                    <div class="mb-4">
+                        {{ form.grade_filter.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.grade_filter(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="gradeFilter") }}
+                        <p class="text-xs text-gray-500 mt-1">선택 시 해당 학년 학생만 검색됩니다</p>
+                    </div>
+
+                    <!-- 학생 검색 입력 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">학생 이름 검색</label>
+                        <div class="relative">
+                            <input type="text"
+                                   id="studentSearch"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="학생 이름을 입력하세요..."
+                                   autocomplete="off">
+                            <div id="searchResults" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- 선택된 학생 표시 -->
+                    <div id="selectedStudent" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">선택된 학생</p>
+                                    <p class="font-medium text-gray-800" id="selectedStudentName">-</p>
+                                    <p class="text-xs text-gray-600" id="selectedStudentInfo">-</p>
+                                </div>
+                                <button type="button" onclick="clearStudentSelection()" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                    변경
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden field for student_id -->
+                    {{ form.student_id() }}
+                    {% if form.student_id.errors %}
+                        {% for error in form.student_id.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 수업 선택 -->
+                <div>
+                    {{ form.course_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    <span class="text-red-500">*</span>
+                    {{ form.course_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="courseSelect") }}
+                    {% if form.course_id.errors %}
+                        {% for error in form.course_id.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                    <p class="text-xs text-gray-500 mt-1">✨ 학생 선택 시 자동으로 수강 중인 수업이 선택됩니다</p>
+                </div>
+
+                <!-- 결제 주기 -->
+                <div>
+                    {{ form.payment_period.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    <span class="text-red-500">*</span>
+                    {{ form.payment_period(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="calculateAmount()") }}
+                    {% if form.payment_period.errors %}
+                        {% for error in form.payment_period.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                    <p class="text-xs text-gray-500 mt-1">기본값: 월별 결제</p>
+                </div>
+
+                <!-- 이월결석 -->
+                <div>
+                    {{ form.carryover_option.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.carryover_option(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="toggleCustomCarryover()") }}
+                    <p class="text-xs text-gray-500 mt-1">지난 달에 결석한 수업 횟수를 선택하세요 (이월결석은 결제 회차에서 차감됩니다)</p>
+                </div>
+
+                <!-- 이월결석 직접 입력 -->
+                <div id="customCarryoverDiv" style="display: none;">
+                    {{ form.carryover_absences.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.carryover_absences(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", oninput="calculateAmount()", id="customCarryoverInput") }}
+                    {% if form.carryover_absences.errors %}
+                        {% for error in form.carryover_absences.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                    <p class="text-xs text-gray-500 mt-1">0-12회 사이의 숫자를 입력하세요</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 수업료 선택 -->
+                    <div>
+                        {{ form.price_option.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.price_option(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="toggleCustomPrice()") }}
+                    </div>
+
+                    <!-- 회당 수업료 (직접 입력) -->
+                    <div id="customPriceDiv" style="display: none;">
+                        {{ form.price_per_session.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.price_per_session(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", oninput="calculateAmount()", id="customPriceInput") }}
+                        {% if form.price_per_session.errors %}
+                            {% for error in form.price_per_session.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 할인 유형 -->
+                <div>
+                    {{ form.discount_type.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.discount_type(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="calculateAmount()") }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        • 지인 할인: 20% | 형제 할인: 10% | 분기별 결제 할인: 5%
+                    </p>
+                </div>
+
+                <!-- 결제 금액 계산 결과 -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h4 class="font-medium text-blue-900 mb-4">💰 결제 금액 계산</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-blue-800">결제 주기</span>
+                            <span id="periodText" class="font-medium text-blue-900">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-blue-800">회당 수업료</span>
+                            <span id="pricePerSession" class="font-medium text-blue-900">0원</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-blue-800">기본 회차</span>
+                            <span id="baseSessionCount" class="font-medium text-blue-900">0회</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-blue-800 text-sm">- 이월결석 차감</span>
+                            <span id="carryoverText" class="font-medium text-orange-600">0회</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-blue-300 pt-2">
+                            <span class="text-blue-800 font-medium">실제 결제 회차</span>
+                            <span id="sessionCount" class="font-bold text-blue-900">0회</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-blue-300 pt-3 mt-3">
+                            <span class="text-blue-800">원금액</span>
+                            <span id="originalAmount" class="font-medium text-blue-900">0원</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-blue-800">할인</span>
+                            <span id="discountInfo" class="font-medium text-red-600">0원 (0%)</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t-2 border-blue-400 pt-3">
+                            <span class="text-lg font-bold text-blue-900">최종 결제 금액</span>
+                            <span id="finalAmount" class="text-2xl font-bold text-blue-900">0원</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 결제 방법 -->
+                    <div>
+                        {{ form.payment_method.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.payment_method(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    </div>
+
+                    <!-- 납부 기한 -->
+                    <div>
+                        {{ form.due_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.due_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    </div>
+                </div>
+
+                <!-- 메모 -->
+                <div>
+                    {{ form.notes.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.notes(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+
+                <!-- 안내 사항 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <div class="text-yellow-600 text-xl mr-3">ℹ️</div>
+                        <div class="text-sm text-yellow-800">
+                            <p class="font-medium mb-1">결제 생성 안내</p>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li><strong>학생 선택 시</strong> 수강 중인 수업이 자동으로 선택됩니다</li>
+                                <li><strong>기본 설정:</strong> 월별 결제(4회), 65,000원/회, 할인 없음, 이월결석 0회</li>
+                                <li><strong>이월결석:</strong> 지난 달 결석한 수업 횟수를 선택하면 결제 회차에서 자동으로 차감됩니다<br>
+                                    <span class="text-xs">(예: 월별 4회 - 이월결석 1회 = 실제 결제 3회)</span></li>
+                                <li><strong>납부 기한:</strong> 자동으로 해당 월 말일로 설정됩니다</li>
+                                <li>월별 결제는 4회, 분기별 결제는 12회 기준입니다</li>
+                                <li>생성된 결제는 '대기' 상태로 시작됩니다</li>
+                                <li>나중에 결제 API 연동이 가능합니다</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    {{ form.submit(class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200") }}
+                    <a href="{{ url_for('admin.payments') }}"
+                       class="flex-1 text-center bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let searchTimeout = null;
+let selectedStudentId = null;
+
+// 학생 검색
+document.getElementById('studentSearch').addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+    const grade = document.getElementById('gradeFilter').value;
+
+    clearTimeout(searchTimeout);
+
+    if (query.length < 1) {
+        document.getElementById('searchResults').classList.add('hidden');
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        fetch(`/admin/api/students/search?q=${encodeURIComponent(query)}&grade=${encodeURIComponent(grade)}`)
+            .then(response => response.json())
+            .then(students => {
+                displaySearchResults(students);
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+            });
+    }, 300);
+});
+
+// 검색 결과 표시
+function displaySearchResults(students) {
+    const resultsDiv = document.getElementById('searchResults');
+
+    if (students.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-4 text-gray-500 text-sm">검색 결과가 없습니다</div>';
+        resultsDiv.classList.remove('hidden');
+        return;
+    }
+
+    let html = '';
+    students.forEach(student => {
+        html += `
+            <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                 onclick="selectStudent('${student.student_id}', '${student.name}', '${student.grade}', '${student.school}', ${student.course_count})">
+                <div class="font-medium text-gray-800">${student.name}</div>
+                <div class="text-xs text-gray-600">
+                    ${student.grade ? student.grade : ''}
+                    ${student.school ? '| ' + student.school : ''}
+                    | 수강 ${student.course_count}개
+                </div>
+            </div>
+        `;
+    });
+
+    resultsDiv.innerHTML = html;
+    resultsDiv.classList.remove('hidden');
+}
+
+// 학생 선택
+function selectStudent(studentId, name, grade, school, courseCount) {
+    selectedStudentId = studentId;
+
+    // Hidden field에 학생 ID 설정
+    document.querySelector('input[name="student_id"]').value = studentId;
+
+    // 선택된 학생 정보 표시
+    document.getElementById('selectedStudentName').textContent = name;
+    document.getElementById('selectedStudentInfo').textContent =
+        `${grade ? grade : ''} ${school ? '| ' + school : ''} | 수강 ${courseCount}개`;
+    document.getElementById('selectedStudent').classList.remove('hidden');
+
+    // 검색 결과 숨기기
+    document.getElementById('searchResults').classList.add('hidden');
+    document.getElementById('studentSearch').value = '';
+
+    // 수업 자동 선택
+    autoSelectCourse(studentId);
+}
+
+// 학생 선택 해제
+function clearStudentSelection() {
+    selectedStudentId = null;
+    document.querySelector('input[name="student_id"]').value = '';
+    document.getElementById('selectedStudent').classList.add('hidden');
+    document.getElementById('studentSearch').value = '';
+    document.getElementById('courseSelect').value = '';
+}
+
+// 학생 선택 시 수업 자동 선택
+function autoSelectCourse(studentId) {
+    if (!studentId) return;
+
+    fetch(`/admin/api/students/${studentId}/courses`)
+        .then(response => response.json())
+        .then(data => {
+            const courseSelect = document.getElementById('courseSelect');
+            if (data.courses && data.courses.length > 0) {
+                courseSelect.value = data.courses[0];
+            } else {
+                courseSelect.value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading courses:', error);
+        });
+}
+
+// 검색창 외부 클릭 시 결과 숨기기
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#studentSearch') && !e.target.closest('#searchResults')) {
+        document.getElementById('searchResults').classList.add('hidden');
+    }
+});
+
+// 수업료 직접 입력 토글
+function toggleCustomPrice() {
+    const priceOption = document.querySelector('select[name="price_option"]').value;
+    const customPriceDiv = document.getElementById('customPriceDiv');
+    const customPriceInput = document.getElementById('customPriceInput');
+
+    if (priceOption === 'custom') {
+        customPriceDiv.style.display = 'block';
+        customPriceInput.required = true;
+    } else {
+        customPriceDiv.style.display = 'none';
+        customPriceInput.required = false;
+    }
+
+    calculateAmount();
+}
+
+// 이월결석 직접 입력 토글
+function toggleCustomCarryover() {
+    const carryoverOption = document.querySelector('select[name="carryover_option"]').value;
+    const customCarryoverDiv = document.getElementById('customCarryoverDiv');
+    const customCarryoverInput = document.getElementById('customCarryoverInput');
+
+    if (carryoverOption === 'custom') {
+        customCarryoverDiv.style.display = 'block';
+        customCarryoverInput.required = true;
+    } else {
+        customCarryoverDiv.style.display = 'none';
+        customCarryoverInput.required = false;
+    }
+
+    calculateAmount();
+}
+
+function calculateAmount() {
+    // 입력값 가져오기
+    const period = document.querySelector('select[name="payment_period"]').value;
+    const priceOption = document.querySelector('select[name="price_option"]').value;
+    const customPrice = parseInt(document.querySelector('input[name="price_per_session"]').value) || 0;
+    const carryoverOption = document.querySelector('select[name="carryover_option"]').value;
+    const customCarryover = parseInt(document.querySelector('input[name="carryover_absences"]').value) || 0;
+    const discountType = document.querySelector('select[name="discount_type"]').value;
+
+    // 수업료 결정
+    let pricePerSession = 0;
+    if (priceOption === 'custom') {
+        pricePerSession = customPrice;
+    } else if (priceOption) {
+        pricePerSession = parseInt(priceOption);
+    }
+
+    // 기본 회차 수 계산
+    const baseSessionCount = period === 'monthly' ? 4 : (period === 'quarterly' ? 12 : 0);
+
+    // 이월결석 처리
+    let carryover = 0;
+    if (carryoverOption === 'custom') {
+        carryover = customCarryover;
+    } else if (carryoverOption) {
+        carryover = parseInt(carryoverOption);
+    }
+
+    // 실제 결제 회차 (이월결석 차감)
+    const sessionCount = Math.max(0, baseSessionCount - carryover);
+
+    // 원금액 계산
+    const originalAmount = pricePerSession * sessionCount;
+
+    // 할인율 계산
+    let discountRate = 0;
+    if (discountType === 'acquaintance') discountRate = 0.20;
+    else if (discountType === 'sibling') discountRate = 0.10;
+    else if (discountType === 'quarterly') discountRate = 0.05;
+
+    // 할인 금액 계산
+    const discountAmount = Math.floor(originalAmount * discountRate);
+
+    // 최종 금액 계산
+    const finalAmount = originalAmount - discountAmount;
+
+    // 화면에 표시
+    document.getElementById('periodText').textContent =
+        period === 'monthly' ? '월별 결제' : (period === 'quarterly' ? '분기별 결제' : '-');
+    document.getElementById('pricePerSession').textContent = pricePerSession.toLocaleString() + '원';
+    document.getElementById('baseSessionCount').textContent = baseSessionCount + '회';
+    document.getElementById('carryoverText').textContent = carryover + '회';
+    document.getElementById('sessionCount').textContent = sessionCount + '회';
+    document.getElementById('originalAmount').textContent = originalAmount.toLocaleString() + '원';
+    document.getElementById('discountInfo').textContent =
+        discountAmount.toLocaleString() + '원 (' + (discountRate * 100) + '%)';
+    document.getElementById('finalAmount').textContent = finalAmount.toLocaleString() + '원';
+}
+
+// 페이지 로드 시 초기 설정
+window.addEventListener('DOMContentLoaded', function() {
+    toggleCustomPrice();
+    toggleCustomCarryover();
+    calculateAmount();
+});
+</script>
+{% endblock %}

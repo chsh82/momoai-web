@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}새 첨삭 시작 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('essays.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 첨삭 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">새 첨삭 시작</h2>
+        <p class="text-gray-600 mt-2">학생의 논술문을 입력하고 AI 첨삭을 시작하세요.</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% elif category == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="{{ url_for('essays.new') }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <!-- Student Selection -->
+            <div class="mb-6">
+                {{ form.student_id.label(class="block text-gray-700 font-medium mb-2") }}
+                {{ form.student_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.student_id.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.student_id.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Title (Optional) -->
+            <div class="mb-6">
+                {{ form.title.label(class="block text-gray-700 font-medium mb-2") }}
+                <span class="text-sm text-gray-500">(선택사항 - 비워두면 자동 생성)</span>
+                {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="예: 스마트폰 사용 제한에 대한 논술") }}
+                {% if form.title.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.title.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Essay Text -->
+            <div class="mb-6">
+                {{ form.essay_text.label(class="block text-gray-700 font-medium mb-2") }}
+                <div class="text-sm text-gray-500 mb-2">최소 50자 이상 입력해주세요.</div>
+                {{ form.essay_text(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm") }}
+                {% if form.essay_text.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.essay_text.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="text-sm text-gray-500 mt-1" id="charCount">0자</div>
+            </div>
+
+            <!-- Notes (Optional) -->
+            <div class="mb-6">
+                {{ form.notes.label(class="block text-gray-700 font-medium mb-2") }}
+                <span class="text-sm text-gray-500">(선택사항)</span>
+                {{ form.notes(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.notes.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.notes.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- File Attachment (Optional) -->
+            <div class="mb-6">
+                {{ form.attachment.label(class="block text-gray-700 font-medium mb-2") }}
+                <span class="text-sm text-gray-500">(선택사항 - 이미지, PDF, 워드, 한글 파일 등)</span>
+                <div class="mt-2">
+                    {{ form.attachment(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100") }}
+                </div>
+                {% if form.attachment.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.attachment.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="text-sm text-gray-500 mt-2">
+                    💡 지원 형식: JPG, PNG, GIF, PDF, DOC, DOCX, HWP, TXT (최대 16MB)
+                </div>
+            </div>
+
+            <!-- Phase 3: Reference Books (Optional) -->
+            <div class="mb-6">
+                {{ form.book_ids.label(class="block text-gray-700 font-medium mb-2") }}
+                <span class="text-sm text-gray-500">(선택사항 - Ctrl/Cmd 클릭으로 여러 개 선택 가능)</span>
+                {{ form.book_ids(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                {% if form.book_ids.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.book_ids.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="text-sm text-gray-500 mt-2">
+                    💡 참고한 도서가 없다면 <a href="{{ url_for('books.new') }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">여기</a>에서 먼저 추가하세요.
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <div class="text-blue-600 text-xl mr-3">ℹ️</div>
+                    <div class="text-sm text-blue-800">
+                        <p class="font-medium mb-1">첨삭 시작 안내</p>
+                        <ul class="list-disc list-inside space-y-1 text-blue-700">
+                            <li>첨삭 시작 버튼을 누르면 AI가 논술문을 분석합니다.</li>
+                            <li>처리 시간은 약 2-5분 정도 소요됩니다.</li>
+                            <li>처리 중에는 진행 상황 페이지가 표시됩니다.</li>
+                            <li>완료 후 수정이 필요하면 재생성을 요청할 수 있습니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-4">
+                {{ form.submit(class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200", id="submitBtn") }}
+                <a href="{{ url_for('essays.index') }}" class="flex-1 text-center bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Character counter
+const essayTextarea = document.querySelector('#essay_text');
+const charCount = document.querySelector('#charCount');
+
+if (essayTextarea && charCount) {
+    essayTextarea.addEventListener('input', function() {
+        const count = this.value.length;
+        charCount.textContent = count + '자';
+        if (count < 50) {
+            charCount.classList.add('text-red-600');
+            charCount.classList.remove('text-gray-500');
+        } else {
+            charCount.classList.remove('text-red-600');
+            charCount.classList.add('text-gray-500');
+        }
+    });
+
+    // Initial count
+    const initialCount = essayTextarea.value.length;
+    charCount.textContent = initialCount + '자';
+}
+
+// Prevent double submission
+const form = document.querySelector('form');
+const submitBtn = document.querySelector('#submitBtn');
+
+if (form && submitBtn) {
+    form.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '첨삭 시작 중...';
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    });
+}
+</script>
+{% endblock %}

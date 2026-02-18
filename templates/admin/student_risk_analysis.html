@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}학생 위험도 분석 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🤖 학생 위험도 분석{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">AI 기반 교차분석 대시보드</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">🤖 학생 위험도 분석 대시보드</h2>
+        <p class="text-gray-600 mt-2">AI 기반 교차분석을 통한 학생 관리 우선순위</p>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <!-- 전체 학생 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 학생</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+                </div>
+                <div class="text-4xl">👥</div>
+            </div>
+        </div>
+
+        <!-- 높은 관심 필요 -->
+        <div class="bg-red-50 rounded-lg shadow p-6 border-2 border-red-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-red-600 font-medium mb-1">높은 관심 필요</p>
+                    <p class="text-3xl font-bold text-red-700">{{ stats.high_risk }}</p>
+                </div>
+                <div class="text-4xl">🔴</div>
+            </div>
+            <p class="text-xs text-red-600 mt-2">즉시 조치 필요</p>
+        </div>
+
+        <!-- 주의 관찰 필요 -->
+        <div class="bg-yellow-50 rounded-lg shadow p-6 border-2 border-yellow-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-yellow-600 font-medium mb-1">주의 관찰 필요</p>
+                    <p class="text-3xl font-bold text-yellow-700">{{ stats.medium_risk }}</p>
+                </div>
+                <div class="text-4xl">🟡</div>
+            </div>
+            <p class="text-xs text-yellow-600 mt-2">모니터링 권장</p>
+        </div>
+
+        <!-- 양호 -->
+        <div class="bg-green-50 rounded-lg shadow p-6 border-2 border-green-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-green-600 font-medium mb-1">양호</p>
+                    <p class="text-3xl font-bold text-green-700">{{ stats.low_risk }}</p>
+                </div>
+                <div class="text-4xl">🟢</div>
+            </div>
+            <p class="text-xs text-green-600 mt-2">정상 관리</p>
+        </div>
+    </div>
+
+    <!-- 높은 관심 필요 학생 -->
+    {% if risk_analysis.high_risk %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 bg-red-50 border-b-2 border-red-200">
+            <h3 class="text-xl font-bold text-red-900">🔴 높은 관심 필요 ({{ risk_analysis.high_risk|length }}명)</h3>
+            <p class="text-sm text-red-700 mt-1">즉시 조치가 필요한 학생</p>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                {% for student_data in risk_analysis.high_risk %}
+                <a href="{{ url_for('admin.student_profile', student_id=student_data.student.student_id) }}"
+                   class="block border-2 border-red-200 rounded-lg p-5 hover:border-red-400 hover:bg-red-50 transition duration-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-4">
+                            <div class="text-3xl">🔴</div>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">{{ student_data.student.name }}</h4>
+                                <p class="text-sm text-gray-600">{{ student_data.student.grade }} | {{ student_data.student.student_id[:8] }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-red-700">{{ student_data.risk_score }}점</p>
+                            <p class="text-xs text-red-600">위험도 점수</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 pt-3 border-t border-red-200">
+                        <div class="text-center">
+                            <p class="text-lg font-bold text-red-700">{{ student_data.risk_count }}</p>
+                            <p class="text-xs text-gray-600">위험 요소</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-lg font-bold text-yellow-700">{{ student_data.warning_count }}</p>
+                            <p class="text-xs text-gray-600">주의 요소</p>
+                        </div>
+                        <div class="text-center">
+                            {% if student_data.recent_attendance is not none %}
+                            <p class="text-lg font-bold {% if student_data.recent_attendance >= 90 %}text-green-700{% elif student_data.recent_attendance >= 70 %}text-yellow-700{% else %}text-red-700{% endif %}">
+                                {{ student_data.recent_attendance }}%
+                            </p>
+                            {% else %}
+                            <p class="text-lg font-bold text-gray-400">-</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-600">최근 출석률</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-right">
+                        <span class="text-sm text-red-600 font-medium">상세 보기 →</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 주의 관찰 필요 학생 -->
+    {% if risk_analysis.medium_risk %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 bg-yellow-50 border-b-2 border-yellow-200">
+            <h3 class="text-xl font-bold text-yellow-900">🟡 주의 관찰 필요 ({{ risk_analysis.medium_risk|length }}명)</h3>
+            <p class="text-sm text-yellow-700 mt-1">모니터링이 권장되는 학생</p>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for student_data in risk_analysis.medium_risk %}
+                <a href="{{ url_for('admin.student_profile', student_id=student_data.student.student_id) }}"
+                   class="block border border-yellow-200 rounded-lg p-4 hover:border-yellow-400 hover:bg-yellow-50 transition duration-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">🟡</div>
+                            <div>
+                                <h4 class="font-bold text-gray-900">{{ student_data.student.name }}</h4>
+                                <p class="text-xs text-gray-600">{{ student_data.student.grade }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-yellow-700">{{ student_data.risk_score }}점</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 pt-2 border-t border-yellow-200">
+                        <div class="text-center">
+                            <p class="text-sm font-bold text-red-700">{{ student_data.risk_count }}</p>
+                            <p class="text-xs text-gray-600">위험</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-bold text-yellow-700">{{ student_data.warning_count }}</p>
+                            <p class="text-xs text-gray-600">주의</p>
+                        </div>
+                        <div class="text-center">
+                            {% if student_data.recent_attendance is not none %}
+                            <p class="text-sm font-bold {% if student_data.recent_attendance >= 90 %}text-green-700{% elif student_data.recent_attendance >= 70 %}text-yellow-700{% else %}text-red-700{% endif %}">
+                                {{ student_data.recent_attendance }}%
+                            </p>
+                            {% else %}
+                            <p class="text-sm font-bold text-gray-400">-</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-600">출석</p>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 양호 학생 -->
+    {% if risk_analysis.low_risk %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 bg-green-50 border-b border-green-200 flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-bold text-green-900">🟢 양호 ({{ risk_analysis.low_risk|length }}명)</h3>
+                <p class="text-sm text-green-700 mt-1">정상적으로 관리되는 학생</p>
+            </div>
+            <button onclick="toggleLowRisk()" id="toggle-btn" class="text-green-700 hover:text-green-900 font-medium text-sm">
+                <span id="toggle-text">펼치기 ▼</span>
+            </button>
+        </div>
+        <div id="low-risk-content" class="hidden p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {% for student_data in risk_analysis.low_risk %}
+                <a href="{{ url_for('admin.student_profile', student_id=student_data.student.student_id) }}"
+                   class="block border border-gray-200 rounded-lg p-3 hover:border-green-400 hover:bg-green-50 transition duration-200">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="text-xl">🟢</div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-gray-900 truncate">{{ student_data.student.name }}</h4>
+                            <p class="text-xs text-gray-600 truncate">{{ student_data.student.grade }}</p>
+                        </div>
+                    </div>
+                    {% if student_data.recent_attendance is not none %}
+                    <div class="text-center pt-2 border-t border-gray-200">
+                        <p class="text-sm font-bold text-green-700">{{ student_data.recent_attendance }}%</p>
+                        <p class="text-xs text-gray-600">출석률</p>
+                    </div>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 안내 -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start gap-3">
+            <span class="text-2xl">ℹ️</span>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-blue-900 mb-2">AI 기반 교차분석 안내</p>
+                <ul class="text-xs text-blue-800 space-y-1">
+                    <li>• 출석률, 상담이력, MBTI, 프로필, 학부모 연결 등 다양한 데이터를 종합적으로 분석합니다.</li>
+                    <li>• 위험도 점수는 자동으로 계산되며, 점수가 높을수록 관심이 필요합니다.</li>
+                    <li>• 각 학생을 클릭하면 상세한 인사이트와 추천 액션을 확인할 수 있습니다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleLowRisk() {
+    const content = document.getElementById('low-risk-content');
+    const toggleText = document.getElementById('toggle-text');
+
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        toggleText.textContent = '접기 ▲';
+    } else {
+        content.classList.add('hidden');
+        toggleText.textContent = '펼치기 ▼';
+    }
+}
+</script>
+{% endblock %}

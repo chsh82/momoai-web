@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '프로필 수정' if is_edit else '프로필 생성' }} - {{ student.name }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('admin.student_profile', student_id=student.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 학생 프로필로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">
+            {{ '프로필 수정' if is_edit else '프로필 생성' }} - {{ student.name }}
+        </h2>
+    </div>
+
+    <form method="POST" action="" class="space-y-6">
+        {{ form.hidden_tag() }}
+
+        <!-- 기본 정보 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">기본 정보</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form.survey_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.survey_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div>
+                    {{ form.current_school.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.current_school(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div>
+                    {{ form.parent_contact.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.parent_contact(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div>
+                    {{ form.referral_source.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.referral_source(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div class="md:col-span-2">
+                    {{ form.address.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.address(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=2) }}
+                </div>
+                <div class="md:col-span-2">
+                    {{ form.sibling_info.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.sibling_info(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=2) }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 독서 경험 및 역량 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">독서 경험 및 역량</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form.reading_experience.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.reading_experience(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div>
+                    {{ form.reading_competency.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.reading_competency(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div>
+                    {{ form.weekly_reading_amount.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.weekly_reading_amount(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+                <div>
+                    {{ form.preferred_genres.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.preferred_genres(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", size=4) }}
+                    <p class="text-xs text-gray-500 mt-1">Ctrl 또는 Cmd 키를 누른 채 여러 개 선택 가능</p>
+                </div>
+                <div>
+                    {{ form.personality_traits.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.personality_traits(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", size=4) }}
+                    <p class="text-xs text-gray-500 mt-1">Ctrl 또는 Cmd 키를 누른 채 여러 개 선택 가능</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수업 목표 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">수업 목표 및 요청사항</h3>
+            <div class="space-y-4">
+                <div>
+                    {{ form.main_improvement_goal.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.main_improvement_goal(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=2) }}
+                </div>
+                <div>
+                    {{ form.preferred_class_style.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.preferred_class_style(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=2) }}
+                </div>
+                <div>
+                    {{ form.teacher_request.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.teacher_request(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=3) }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 진로/진학 정보 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">진로 및 진학 정보</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    {{ form.academic_goals.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.academic_goals(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", size=5) }}
+                    <p class="text-xs text-gray-500 mt-1">여러 개 선택 가능</p>
+                </div>
+                <div>
+                    {{ form.career_interests.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.career_interests(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", size=5) }}
+                    <p class="text-xs text-gray-500 mt-1">여러 개 선택 가능</p>
+                </div>
+                <div>
+                    {{ form.education_info_needs.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.education_info_needs(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", size=5) }}
+                    <p class="text-xs text-gray-500 mt-1">여러 개 선택 가능</p>
+                </div>
+                <div class="md:col-span-3">
+                    {{ form.other_interests.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.other_interests(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=3) }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3">
+            {{ form.submit(class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200") }}
+            <a href="{{ url_for('admin.student_profile', student_id=student.student_id) }}"
+               class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                취소
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

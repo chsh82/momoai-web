@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name}} 학생 리포트 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('students.detail', student_id=student.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← {{ student.name }} 학생 정보로
+        </a>
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 학생 리포트</h2>
+                <p class="text-gray-600 mt-1">{{ period_name }} ({{ report.period.start.strftime('%Y-%m-%d') }} ~ {{ report.period.end.strftime('%Y-%m-%d') }})</p>
+            </div>
+            <div class="flex gap-2">
+                <!-- 기간 선택 -->
+                <select onchange="window.location.href='?period=' + this.value"
+                        class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>최근 1개월</option>
+                    <option value="quarter" {% if period == 'quarter' %}selected{% endif %}>최근 3개월</option>
+                    <option value="semester" {% if period == 'semester' %}selected{% endif %}>최근 6개월</option>
+                </select>
+                <!-- PDF 다운로드 (추후 구현) -->
+                <button class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded transition duration-200"
+                        onclick="alert('PDF 다운로드 기능은 곧 추가될 예정입니다.')">
+                    📄 PDF 다운로드
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 종합 평가 -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg p-8 mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold mb-2">종합 평가</h3>
+                <p class="text-blue-100">{{ period_name }} 학습 성과</p>
+            </div>
+            <div class="text-right">
+                <div class="text-6xl font-bold">{{ report.summary.overall_grade }}</div>
+                <p class="text-blue-100 mt-2">Overall Grade</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 주요 통계 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-blue-600 text-3xl mb-2">📝</div>
+                <p class="text-sm text-gray-600 mb-1">완료한 첨삭</p>
+                <p class="text-2xl font-bold text-blue-600">{{ report.essays.completed }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-green-600 text-3xl mb-2">📊</div>
+                <p class="text-sm text-gray-600 mb-1">평균 점수</p>
+                <p class="text-2xl font-bold text-green-600">{{ report.essays.avg_score }}점</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-purple-600 text-3xl mb-2">✅</div>
+                <p class="text-sm text-gray-600 mb-1">출석률</p>
+                <p class="text-2xl font-bold text-purple-600">{{ report.attendance.attendance_rate }}%</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="{% if report.progress.growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %} text-3xl mb-2">
+                    {% if report.progress.growth_rate >= 0 %}📈{% else %}📉{% endif %}
+                </div>
+                <p class="text-sm text-gray-600 mb-1">점수 성장률</p>
+                <p class="text-2xl font-bold {% if report.progress.growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {% if report.progress.growth_rate > 0 %}+{% endif %}{{ report.progress.growth_rate }}%
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2열 그리드 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 점수 추이 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">점수 변화 추이</h3>
+            </div>
+            <div class="p-6">
+                {% if report.progress.timeline %}
+                <canvas id="scoreChart" width="400" height="250"></canvas>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">점수 데이터가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 출석 통계 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">출석 통계</h3>
+            </div>
+            <div class="p-6">
+                {% if report.attendance.total_sessions > 0 %}
+                <canvas id="attendanceChart" width="400" height="250"></canvas>
+                <div class="mt-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">출석</span>
+                        <span class="font-bold text-green-600">{{ report.attendance.attended }}회</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">지각</span>
+                        <span class="font-bold text-yellow-600">{{ report.attendance.late }}회</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">결석</span>
+                        <span class="font-bold text-red-600">{{ report.attendance.absent }}회</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">출석 데이터가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 강점/약점 분석 -->
+    {% if report.scores %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">지표별 분석</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 강점 -->
+                <div>
+                    <h4 class="font-bold text-green-700 mb-3">💪 강점 (상위 3개 지표)</h4>
+                    <div class="space-y-2">
+                        {% for indicator, score in report.scores.strengths %}
+                        <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                            <span class="text-gray-700">{{ indicator }}</span>
+                            <span class="font-bold text-green-700">{{ score }}점</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 약점 -->
+                <div>
+                    <h4 class="font-bold text-red-700 mb-3">📉 개선 필요 (하위 3개 지표)</h4>
+                    <div class="space-y-2">
+                        {% for indicator, score in report.scores.weaknesses %}
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                            <span class="text-gray-700">{{ indicator }}</span>
+                            <span class="font-bold text-red-700">{{ score }}점</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 동급생 비교 -->
+    {% if report.comparison %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">동급생 평균과 비교</h3>
+        </div>
+        <div class="p-6">
+            <div class="flex items-center justify-around">
+                <div class="text-center">
+                    <p class="text-gray-600 mb-2">내 평균 점수</p>
+                    <p class="text-4xl font-bold text-blue-600">{{ report.comparison.my_avg }}점</p>
+                </div>
+                <div class="text-2xl text-gray-400">vs</div>
+                <div class="text-center">
+                    <p class="text-gray-600 mb-2">동급생 평균</p>
+                    <p class="text-4xl font-bold text-gray-600">{{ report.comparison.peer_avg }}점</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-600 mb-2">차이</p>
+                    <p class="text-4xl font-bold {% if report.comparison.difference >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if report.comparison.difference > 0 %}+{% endif %}{{ report.comparison.difference }}점
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 종합 코멘트 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">종합 의견</h3>
+        </div>
+        <div class="p-6">
+            <ul class="space-y-2">
+                {% for comment in report.summary.comments %}
+                <li class="flex items-start">
+                    <span class="text-blue-600 mr-2">✓</span>
+                    <span class="text-gray-700">{{ comment }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// 점수 추이 차트
+{% if report.progress.timeline %}
+const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+new Chart(scoreCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in report.progress.timeline %}'{{ item.date }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: '점수',
+            data: [{% for item in report.progress.timeline %}{{ item.score }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                min: 50,
+                max: 100
+            }
+        }
+    }
+});
+{% endif %}
+
+// 출석 차트
+{% if report.attendance.total_sessions > 0 %}
+const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+new Chart(attendanceCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['출석', '지각', '결석'],
+        datasets: [{
+            data: [{{ report.attendance.attended }}, {{ report.attendance.late }}, {{ report.attendance.absent }}],
+            backgroundColor: [
+                'rgb(34, 197, 94)',
+                'rgb(234, 179, 8)',
+                'rgb(239, 68, 68)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

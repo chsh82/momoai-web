@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}📝 주차 평가 수정{% endblock %}
+
+{% block page_title %}📝 주차 평가 수정{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">평가 정보 수정</span>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    <!-- 주차 평가 수정 폼 -->
+    <div class="card-momo mb-4">
+        <h3 class="text-card-title mb-4">📝 주차 평가 수정</h3>
+
+        <form method="POST" action="{{ url_for('teacher.ace_weekly_edit', eval_id=eval.id) }}">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <!-- 학생 (읽기 전용) -->
+                <div class="form-group">
+                    <label class="text-label">학생</label>
+                    <input type="text" class="input-momo w-full bg-gray-100"
+                           value="{{ eval.student.name }} ({{ eval.student.grade }})"
+                           readonly>
+                </div>
+
+                <!-- 평가 날짜 -->
+                <div class="form-group">
+                    <label class="text-label">평가 날짜</label>
+                    <input type="date" name="eval_date" class="input-momo w-full"
+                           value="{{ eval.eval_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+
+                <!-- 주차 -->
+                <div class="form-group">
+                    <label class="text-label">주차</label>
+                    <input type="number" name="week_number" class="input-momo w-full"
+                           min="1" value="{{ eval.week_number }}" required>
+                </div>
+
+                <!-- 수업 도서 -->
+                <div class="form-group">
+                    <label class="text-label">수업 도서</label>
+                    <input type="text" name="book_title" class="input-momo w-full"
+                           value="{{ eval.book_title or '' }}" placeholder="예: 어린왕자">
+                </div>
+
+                <!-- 수업 유형 -->
+                <div class="form-group">
+                    <label class="text-label">수업 유형</label>
+                    <select name="class_type" class="select-momo w-full" required>
+                        {% for class_type in class_types %}
+                        <option value="{{ class_type }}" {{ 'selected' if eval.class_type == class_type else '' }}>
+                            {{ class_type }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 첨삭 점수 -->
+                <div class="form-group">
+                    <label class="text-label">첨삭 점수 (100점 만점)</label>
+                    <input type="number" name="score" class="input-momo w-full"
+                           min="0" max="100" value="{{ eval.score }}" required>
+                </div>
+
+                <!-- 등급 -->
+                <div class="form-group">
+                    <label class="text-label">등급</label>
+                    <select name="grade" class="select-momo w-full" required>
+                        {% for grade in weekly_grades %}
+                        <option value="{{ grade }}" {{ 'selected' if eval.grade == grade else '' }}>
+                            {{ grade }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 별점 평가 -->
+            <div class="bg-blue-50 rounded-lg p-6 mb-4">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">⭐ 별점 평가 (5점 만점)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 참여도 -->
+                    <div class="form-group">
+                        <label class="text-label mb-3">참여도</label>
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1" id="participation-stars">
+                                <span class="star cursor-pointer text-3xl" data-score="1" onclick="setRating('participation', 1)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="2" onclick="setRating('participation', 2)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="3" onclick="setRating('participation', 3)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="4" onclick="setRating('participation', 4)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="5" onclick="setRating('participation', 5)">☆</span>
+                            </div>
+                            <span id="participation-score-text" class="text-lg font-bold text-blue-600 ml-2">{{ eval.participation_score }}점</span>
+                        </div>
+                        <input type="hidden" name="participation_score" id="participation-score" value="{{ eval.participation_score }}">
+                    </div>
+
+                    <!-- 이해도 -->
+                    <div class="form-group">
+                        <label class="text-label mb-3">이해도</label>
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1" id="understanding-stars">
+                                <span class="star cursor-pointer text-3xl" data-score="1" onclick="setRating('understanding', 1)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="2" onclick="setRating('understanding', 2)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="3" onclick="setRating('understanding', 3)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="4" onclick="setRating('understanding', 4)">☆</span>
+                                <span class="star cursor-pointer text-3xl" data-score="5" onclick="setRating('understanding', 5)">☆</span>
+                            </div>
+                            <span id="understanding-score-text" class="text-lg font-bold text-blue-600 ml-2">{{ eval.understanding_score }}점</span>
+                        </div>
+                        <input type="hidden" name="understanding_score" id="understanding-score" value="{{ eval.understanding_score }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 강사 코멘트 -->
+            <div class="form-group mb-4">
+                <label class="text-label">강사 코멘트</label>
+
+                <!-- 빠른 선택 -->
+                <div class="mb-2">
+                    <label class="text-sm text-gray-600 mb-1 block">빠른 선택 (선택사항)</label>
+                    <select id="comment-select" class="select-momo w-full" onchange="fillComment()">
+                        <option value="">-- 코멘트 선택 또는 직접 입력 --</option>
+                        {% for comment in teacher_comments %}
+                        <option value="{{ comment }}">{{ comment }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 직접 입력 -->
+                <textarea name="comment" id="comment-textarea" class="input-momo w-full"
+                          rows="4"
+                          placeholder="위에서 선택하거나 직접 입력하세요...">{{ eval.comment or '' }}</textarea>
+                <p class="text-sm text-gray-500 mt-1">💡 위 드롭다운에서 선택하거나 직접 입력/수정할 수 있습니다</p>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                <a href="{{ url_for('teacher.ace_weekly') }}" class="btn btn-outline">
+                    <span>← 취소</span>
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <span>💾 수정 완료</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+// 별점 평가 설정
+function setRating(type, score) {
+    const input = document.getElementById(type + '-score');
+    const text = document.getElementById(type + '-score-text');
+    const starsContainer = document.getElementById(type + '-stars');
+    const stars = starsContainer.querySelectorAll('.star');
+
+    // 점수 저장
+    input.value = score;
+    text.textContent = score + '점';
+
+    // 별 표시 업데이트
+    stars.forEach((star, index) => {
+        if (index < score) {
+            star.textContent = '★';
+            star.style.color = '#F59E0B'; // 노란색
+        } else {
+            star.textContent = '☆';
+            star.style.color = '#D1D5DB'; // 회색
+        }
+    });
+}
+
+// 페이지 로드 시 기존 별점으로 설정
+document.addEventListener('DOMContentLoaded', function() {
+    const participationScore = {{ eval.participation_score }};
+    const understandingScore = {{ eval.understanding_score }};
+
+    setRating('participation', participationScore);
+    setRating('understanding', understandingScore);
+});
+
+// 별에 마우스 오버 시 미리보기
+document.addEventListener('DOMContentLoaded', function() {
+    ['participation', 'understanding'].forEach(type => {
+        const starsContainer = document.getElementById(type + '-stars');
+        const stars = starsContainer.querySelectorAll('.star');
+
+        stars.forEach((star, index) => {
+            star.addEventListener('mouseenter', function() {
+                const score = index + 1;
+                stars.forEach((s, i) => {
+                    if (i < score) {
+                        s.textContent = '★';
+                        s.style.color = '#FBBF24'; // 밝은 노란색
+                    } else {
+                        s.textContent = '☆';
+                        s.style.color = '#D1D5DB';
+                    }
+                });
+            });
+        });
+
+        starsContainer.addEventListener('mouseleave', function() {
+            const currentScore = parseInt(document.getElementById(type + '-score').value);
+            setRating(type, currentScore);
+        });
+    });
+});
+
+// 코멘트 선택 시 textarea에 자동 입력
+function fillComment() {
+    const select = document.getElementById('comment-select');
+    const textarea = document.getElementById('comment-textarea');
+    const selectedComment = select.value;
+
+    if (selectedComment) {
+        textarea.value = selectedComment;
+        // 선택 후 드롭다운 초기화
+        select.selectedIndex = 0;
+    }
+}
+</script>
+
+{% endblock %}

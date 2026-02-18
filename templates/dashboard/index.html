@@ -1,0 +1,785 @@
+{% extends "base.html" %}
+
+{% block title %}대시보드 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">대시보드</h2>
+        <p class="text-gray-600 mt-2">{{ current_user.name }}님, 환영합니다!</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% elif category == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- 총 첨삭 수 -->
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-medium opacity-90">총 첨삭 수</div>
+                <div class="text-2xl">📝</div>
+            </div>
+            <div class="text-4xl font-bold mb-1">{{ total_essays }}</div>
+            <div class="text-sm opacity-75">전체 첨삭 작업</div>
+        </div>
+
+        <!-- 진행 중 -->
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-medium opacity-90">진행 중</div>
+                <div class="text-2xl">⏳</div>
+            </div>
+            <div class="text-4xl font-bold mb-1">{{ in_progress_essays }}</div>
+            <div class="text-sm opacity-75">처리 중 + 검토 중</div>
+        </div>
+
+        <!-- 이번 달 -->
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-medium opacity-90">이번 달</div>
+                <div class="text-2xl">📅</div>
+            </div>
+            <div class="text-4xl font-bold mb-1">{{ this_month_essays }}</div>
+            <div class="text-sm opacity-75">이번 달 첨삭 수</div>
+        </div>
+
+        <!-- 학생 수 -->
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-medium opacity-90">학생 수</div>
+                <div class="text-2xl">👥</div>
+            </div>
+            <div class="text-4xl font-bold mb-1">{{ total_students }}</div>
+            <div class="text-sm opacity-75">담당 학생</div>
+        </div>
+    </div>
+
+    <!-- Phase 3: 커뮤니티 & 도서 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- 커뮤니티 통계 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">💬 커뮤니티</h3>
+                <a href="{{ url_for('community.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-600">{{ total_posts }}</div>
+                    <div class="text-sm text-gray-600 mt-1">내 게시글</div>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl font-bold text-green-600">
+                        {{ popular_posts|length }}
+                    </div>
+                    <div class="text-sm text-gray-600 mt-1">인기 게시글</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 도서 통계 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">📚 도서 관리</h3>
+                <a href="{{ url_for('books.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <div class="text-3xl font-bold text-purple-600">{{ total_books }}</div>
+                    <div class="text-sm text-gray-600 mt-1">등록된 도서</div>
+                </div>
+                <div class="text-center p-4 bg-orange-50 rounded-lg">
+                    <div class="text-3xl font-bold text-orange-600">
+                        {{ most_referenced_books|length }}
+                    </div>
+                    <div class="text-sm text-gray-600 mt-1">참고 도서</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 빠른 시작 버튼 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <a href="{{ url_for('essays.new') }}" class="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-6 text-center transition duration-200 border-2 border-transparent hover:border-blue-500">
+            <div class="text-4xl mb-3">✍️</div>
+            <div class="text-lg font-bold text-gray-800 mb-1">새 첨삭 시작</div>
+            <div class="text-sm text-gray-600">논술문 첨삭 시작하기</div>
+        </a>
+
+        <a href="{{ url_for('students.new') }}" class="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-6 text-center transition duration-200 border-2 border-transparent hover:border-green-500">
+            <div class="text-4xl mb-3">➕</div>
+            <div class="text-lg font-bold text-gray-800 mb-1">학생 추가</div>
+            <div class="text-sm text-gray-600">새 학생 등록하기</div>
+        </a>
+
+        <a href="{{ url_for('essays.index') }}" class="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-6 text-center transition duration-200 border-2 border-transparent hover:border-purple-500">
+            <div class="text-4xl mb-3">📋</div>
+            <div class="text-lg font-bold text-gray-800 mb-1">첨삭 목록</div>
+            <div class="text-sm text-gray-600">모든 첨삭 보기</div>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- 진행 중인 첨삭 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">진행 중인 첨삭</h3>
+                <a href="{{ url_for('essays.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+
+            {% if processing_list %}
+            <div class="space-y-3">
+                {% for essay in processing_list %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 mb-1">
+                                {{ essay.title or essay.student.name + '의 논술' }}
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                {{ essay.student.name }} ({{ essay.student.grade }}) ·
+                                {{ essay.created_at.strftime('%m/%d %H:%M') }}
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            {% if essay.status == 'processing' %}
+                            <a href="{{ url_for('essays.processing', essay_id=essay.essay_id) }}"
+                               class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                                진행 중
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
+                               class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                                검토 중
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">🎉</div>
+                <p>진행 중인 첨삭이 없습니다</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 최근 완료된 첨삭 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">최근 완료된 첨삭</h3>
+                <a href="{{ url_for('essays.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+
+            {% if recent_completed %}
+            <div class="space-y-3">
+                {% for essay in recent_completed %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-green-400 transition duration-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="font-medium text-gray-800">
+                                    {{ essay.title or essay.student.name + '의 논술' }}
+                                </div>
+                                {% if essay.is_finalized %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                                    완료
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                {{ essay.student.name }} ({{ essay.student.grade }}) ·
+                                v{{ essay.current_version }} ·
+                                {{ essay.completed_at.strftime('%m/%d %H:%M') if essay.completed_at else essay.created_at.strftime('%m/%d %H:%M') }}
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
+                               class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                                보기
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">📝</div>
+                <p>완료된 첨삭이 없습니다</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Phase 3: 커뮤니티 & 도서 활동 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- 인기 게시글 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">🔥 인기 게시글 (30일)</h3>
+                <a href="{{ url_for('community.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+
+            {% if popular_posts %}
+            <div class="space-y-3">
+                {% for post in popular_posts %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200">
+                    <a href="{{ url_for('community.detail', post_id=post.post_id) }}" class="block">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-medium text-gray-800 flex-1 line-clamp-1">{{ post.title }}</h4>
+                            <span class="ml-2 px-2 py-1 text-xs font-medium rounded
+                                {% if post.category == 'notice' %}bg-red-100 text-red-800
+                                {% elif post.category == 'question' %}bg-yellow-100 text-yellow-800
+                                {% elif post.category == 'free' %}bg-green-100 text-green-800
+                                {% elif post.category == 'resource' %}bg-purple-100 text-purple-800
+                                {% endif %}">
+                                {% if post.category == 'notice' %}공지
+                                {% elif post.category == 'question' %}질문
+                                {% elif post.category == 'free' %}자유
+                                {% elif post.category == 'resource' %}자료
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            👁 {{ post.views }} · ❤️ {{ post.likes_count }} · 💬 {{ post.comment_count }}
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">💬</div>
+                <p>인기 게시글이 없습니다</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 많이 참고된 도서 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">📖 많이 참고된 도서</h3>
+                <a href="{{ url_for('books.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+
+            {% if most_referenced_books %}
+            <div class="space-y-3">
+                {% for book in most_referenced_books %}
+                <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-blue-400 transition duration-200">
+                    <div class="flex-shrink-0 w-12 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded flex items-center justify-center">
+                        {% if book.cover_image_url %}
+                        <img src="{{ book.cover_image_url }}" alt="{{ book.title }}" class="h-full w-full object-cover rounded">
+                        {% else %}
+                        📖
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <a href="{{ url_for('books.detail', book_id=book.book_id) }}" class="block">
+                            <h4 class="font-medium text-gray-800 truncate">{{ book.title }}</h4>
+                            {% if book.author %}
+                            <p class="text-sm text-gray-600 truncate">{{ book.author }}</p>
+                            {% endif %}
+                        </a>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-600">{{ book.reference_count }}</div>
+                        <div class="text-xs text-gray-500">참조</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">📚</div>
+                <p>참고된 도서가 없습니다</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 추가 통계 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 학생별 첨삭 수 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">학생별 첨삭 수 (Top 5)</h3>
+                <a href="{{ url_for('students.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                    전체 보기 →
+                </a>
+            </div>
+
+            {% if top_students %}
+            <div class="space-y-3">
+                {% for student in top_students %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                            {{ loop.index }}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">{{ student.name }}</div>
+                            <div class="text-sm text-gray-600">{{ student.grade }}</div>
+                        </div>
+                    </div>
+                    <div class="text-lg font-bold text-blue-600">{{ student.essay_count }}건</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <p>학생이 없습니다</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 최근 활동 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">최근 활동 (7일)</h3>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">최근 7일 첨삭</div>
+                        <div class="text-2xl font-bold text-blue-600">{{ recent_essays }}건</div>
+                    </div>
+                    <div class="text-4xl">📊</div>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">완료된 첨삭</div>
+                        <div class="text-2xl font-bold text-green-600">{{ completed_essays }}건</div>
+                    </div>
+                    <div class="text-4xl">✅</div>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">평균 버전</div>
+                        <div class="text-2xl font-bold text-purple-600">
+                            {% if total_essays > 0 %}
+                            {{ "%.1f"|format((completed_essays * 1.0 / total_essays) if total_essays > 0 else 0) }}
+                            {% else %}
+                            0.0
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="text-4xl">🔄</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 3: 최근 활동 피드 -->
+    <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">🕐 최근 활동</h3>
+
+        <div class="space-y-4">
+            <!-- 최근 게시글 활동 -->
+            {% if recent_posts %}
+            {% for post in recent_posts[:3] %}
+            <div class="flex items-start gap-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <div class="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl">
+                    💬
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-800">새 게시글 작성</span>
+                        <span class="text-xs text-gray-500">{{ post.created_at.strftime('%m/%d %H:%M') }}</span>
+                    </div>
+                    <a href="{{ url_for('community.detail', post_id=post.post_id) }}" class="text-blue-700 hover:text-blue-900">
+                        {{ post.title }}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- 최근 도서 활동 -->
+            {% if recent_books %}
+            {% for book in recent_books[:3] %}
+            <div class="flex items-start gap-4 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                <div class="flex-shrink-0 w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center text-xl">
+                    📚
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-800">새 도서 등록</span>
+                        <span class="text-xs text-gray-500">{{ book.created_at.strftime('%m/%d %H:%M') }}</span>
+                    </div>
+                    <a href="{{ url_for('books.detail', book_id=book.book_id) }}" class="text-purple-700 hover:text-purple-900">
+                        {{ book.title }}{% if book.author %} - {{ book.author }}{% endif %}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if not recent_posts and not recent_books %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-2">📋</div>
+                <p>최근 활동이 없습니다</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Phase 2: 차트 섹션 -->
+    {% if monthly_data.has_data or score_trend_data.has_data or student_avg_data.has_data or radar_avg_data.has_data %}
+    <div class="mt-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">📊 분석 차트</h3>
+
+        <!-- 상단 차트 2개 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- 1. 월별 첨삭 수 -->
+            {% if monthly_data.has_data %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">📅 월별 첨삭 수 (최근 6개월)</h4>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 2. 평균 점수 추이 -->
+            {% if score_trend_data.has_data %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">📈 점수 추이 (최근 10개 첨삭)</h4>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="scoreTrendChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 하단 차트 2개 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 3. 학생별 평균 점수 -->
+            {% if student_avg_data.has_data %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">🏆 학생별 평균 점수 (Top 5)</h4>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="studentAvgChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 4. 18개 지표 전체 평균 -->
+            {% if radar_avg_data.has_data %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">🎯 18개 지표 전체 평균</h4>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="radarAvgChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Phase 2: 차트 렌더링
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. 월별 첨삭 수 바 차트
+    {% if monthly_data.has_data %}
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (monthlyCtx) {
+        new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ monthly_data.labels | tojson }},
+                datasets: [{
+                    label: '첨삭 수',
+                    data: {{ monthly_data.counts | tojson }},
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: '#3B82F6',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return '첨삭 수: ' + context.parsed.y + '건';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value + '건';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // 2. 점수 추이 라인 차트
+    {% if score_trend_data.has_data %}
+    const trendCtx = document.getElementById('scoreTrendChart');
+    if (trendCtx) {
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ score_trend_data.labels | tojson }},
+                datasets: [{
+                    label: '점수',
+                    data: {{ score_trend_data.scores | tojson }},
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#10B981',
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return '점수: ' + context.parsed.y.toFixed(1) + '점';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 10,
+                            callback: function(value) {
+                                return value + '점';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // 3. 학생별 평균 점수 바 차트
+    {% if student_avg_data.has_data %}
+    const studentAvgCtx = document.getElementById('studentAvgChart');
+    if (studentAvgCtx) {
+        new Chart(studentAvgCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ student_avg_data.labels | tojson }},
+                datasets: [{
+                    label: '평균 점수',
+                    data: {{ student_avg_data.scores | tojson }},
+                    backgroundColor: 'rgba(168, 85, 247, 0.6)',
+                    borderColor: '#A855F7',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return '평균: ' + context.parsed.x.toFixed(1) + '점';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 10,
+                            callback: function(value) {
+                                return value + '점';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // 4. 18개 지표 전체 평균 레이더 차트
+    {% if radar_avg_data.has_data %}
+    const radarAvgCtx = document.getElementById('radarAvgChart');
+    if (radarAvgCtx) {
+        const thinkingTypes = {{ radar_avg_data.thinking_types | tojson }};
+        const integratedIndicators = {{ radar_avg_data.integrated_indicators | tojson }};
+
+        // 모든 지표 합치기
+        const allLabels = [];
+        const allScores = [];
+
+        // 사고유형 9개
+        const thinkingLabels = ['요약', '비교', '적용', '평가', '비판', '문제해결', '자료해석', '견해제시', '종합'];
+        thinkingLabels.forEach(label => {
+            allLabels.push(label);
+            allScores.push(thinkingTypes[label] || 0);
+        });
+
+        // 통합지표 9개
+        const integratedLabels = ['결론', '구조/논리성', '표현/명료성', '문제인식', '개념/정보', '목적/적절성', '관점/다각성', '심층성', '완전성'];
+        integratedLabels.forEach(label => {
+            allLabels.push(label);
+            allScores.push(integratedIndicators[label] || 0);
+        });
+
+        new Chart(radarAvgCtx, {
+            type: 'radar',
+            data: {
+                labels: allLabels,
+                datasets: [{
+                    label: '평균 점수',
+                    data: allScores,
+                    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                    borderColor: '#F97316',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#F97316',
+                    pointBorderColor: '#FFFFFF',
+                    pointHoverBackgroundColor: '#FFFFFF',
+                    pointHoverBorderColor: '#F97316',
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.r.toFixed(1) + '점';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: 10,
+                        ticks: {
+                            stepSize: 2,
+                            backdropColor: 'transparent',
+                            font: {
+                                size: 9
+                            }
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 9,
+                                weight: '600'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        angleLines: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

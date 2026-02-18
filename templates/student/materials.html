@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}학습 자료 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">학습 자료</h2>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-blue-600 text-2xl mb-1">📚</div>
+                <p class="text-sm text-gray-600">이용 가능한 자료</p>
+                <p class="text-2xl font-bold text-blue-600">{{ materials|length }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-green-600 text-2xl mb-1">📖</div>
+                <p class="text-sm text-gray-600">수강 중인 수업</p>
+                <p class="text-2xl font-bold text-green-600">{{ enrollments|length }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-purple-600 text-2xl mb-1">⭐</div>
+                <p class="text-sm text-gray-600">내 티어</p>
+                <p class="text-2xl font-bold text-purple-600">{{ student.tier }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 카테고리별 자료 -->
+    {% if materials %}
+        {% for category_name, category_materials in categories.items() %}
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    {% if category_name == 'textbook' %}📚 교재
+                    {% elif category_name == 'reference' %}📖 참고자료
+                    {% elif category_name == 'example' %}✍️ 예시답안
+                    {% elif category_name == 'past_exam' %}📝 기출문제
+                    {% else %}📄 일반 자료{% endif %}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for material in category_materials %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800 mb-1">{{ material.title }}</h4>
+
+                                {% if material.description %}
+                                <p class="text-sm text-gray-600 mb-2">{{ material.description[:100] }}{% if material.description|length > 100 %}...{% endif %}</p>
+                                {% endif %}
+
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                                        {{ material.file_type.upper() }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">{{ material.file_size_mb }}MB</span>
+                                    {% if material.course %}
+                                    <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">
+                                        {{ material.course.course_name }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+
+                                {% if material.tags %}
+                                <div class="flex flex-wrap gap-1 mb-2">
+                                    {% for tag in material.tags.split(',') %}
+                                    <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                        {{ tag.strip() }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <p class="text-xs text-gray-500">
+                                    업로드: {{ material.created_at.strftime('%Y-%m-%d') }} | 다운로드: {{ material.download_count }}회
+                                </p>
+                            </div>
+
+                            <a href="{{ url_for('student.download_material', material_id=material.material_id) }}"
+                               class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200 ml-4">
+                                다운로드
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <p class="text-gray-500 text-lg">이용 가능한 학습 자료가 없습니다.</p>
+        <p class="text-gray-400 text-sm mt-2">강사가 자료를 업로드하면 여기에 표시됩니다.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

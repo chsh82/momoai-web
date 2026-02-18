@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}자녀 과제 및 첨삭 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📝 과제 및 첨삭{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">자녀 과제 현황</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">📝 자녀 과제 및 첨삭</h2>
+        <p class="text-gray-600 mt-2">자녀를 선택하여 과제 제출 및 첨삭 현황을 확인하세요.</p>
+    </div>
+
+    <!-- 자녀 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        {% if children %}
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for child in children %}
+                <a href="{{ url_for('parent.essays', student_id=child.student_id) }}"
+                   class="block border-2 border-gray-200 rounded-lg p-6 hover:border-blue-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center mb-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-full flex items-center justify-center font-bold text-2xl mr-4">
+                            {{ child.name[0] }}
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">{{ child.name }}</h3>
+                            <p class="text-gray-600">{{ child.grade }}</p>
+                        </div>
+                    </div>
+
+                    <!-- 통계 -->
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <div class="text-center p-2 bg-gray-50 rounded">
+                            <div class="text-lg font-bold text-gray-800">{{ child.essay_count }}</div>
+                            <div class="text-xs text-gray-600">전체</div>
+                        </div>
+                        <div class="text-center p-2 bg-yellow-50 rounded">
+                            <div class="text-lg font-bold text-yellow-700">{{ child.pending_count }}</div>
+                            <div class="text-xs text-yellow-600">대기</div>
+                        </div>
+                        <div class="text-center p-2 bg-green-50 rounded">
+                            <div class="text-lg font-bold text-green-700">{{ child.completed_count }}</div>
+                            <div class="text-xs text-green-600">완료</div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">첨삭 내역 확인하기</span>
+                            <span class="text-blue-600 font-medium">→</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="text-6xl mb-4">👨‍👩‍👧‍👦</div>
+            <p class="text-gray-500 text-lg mb-4">등록된 자녀가 없습니다.</p>
+            <p class="text-gray-400 text-sm">자녀 정보를 먼저 등록해주세요.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 도움말 -->
+    <div class="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <div class="flex items-start">
+            <span class="text-2xl mr-3">💡</span>
+            <div>
+                <p class="text-sm text-purple-900 font-medium mb-1">과제 및 첨삭 안내</p>
+                <ul class="text-sm text-purple-800 space-y-1">
+                    <li>• 자녀를 선택하면 제출한 과제와 첨삭 내역을 확인할 수 있습니다</li>
+                    <li>• 첨삭 완료 시 알림을 통해 확인하실 수 있습니다</li>
+                    <li>• 첨삭 내용과 평가를 상세하게 확인하세요</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

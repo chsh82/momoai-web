@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}상담 기록 - {{ consultation.title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('parent.consultations', student_id=student.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 학생 상담 기록</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 왼쪽: 상담 내용 -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- 기본 정보 카드 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded">
+                                {{ consultation.major_category }}
+                            </span>
+                            <span class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded">
+                                ✓ 학부모 공유
+                            </span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900">{{ consultation.title }}</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm border-t border-gray-200 pt-4 mt-4">
+                    <div>
+                        <span class="text-gray-500">학생:</span>
+                        <span class="font-semibold text-gray-800">{{ student.name }} ({{ student.grade }})</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">상담자:</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.counselor.name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">상담일:</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">공유일:</span>
+                        <span class="font-semibold text-gray-800">
+                            {% if consultation.parent_shared_at %}
+                                {{ consultation.parent_shared_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                {{ consultation.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 상담 내용 카드 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">상담 내용</h4>
+                <div class="prose max-w-none whitespace-pre-wrap text-gray-700">
+                    {{ consultation.content }}
+                </div>
+            </div>
+
+            <!-- MBTI 기반 추천 (있는 경우) -->
+            {% if consultation.teaching_recommendations %}
+            <div class="bg-purple-50 border-2 border-purple-200 rounded-lg shadow-lg p-6">
+                <h4 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 기반 맞춤 수업 추천</h4>
+                <div class="prose max-w-none whitespace-pre-wrap text-gray-700 text-sm">
+                    {{ consultation.teaching_recommendations }}
+                </div>
+                <div class="mt-4 p-4 bg-purple-100 border border-purple-300 rounded-lg">
+                    <p class="text-xs text-purple-800">
+                        💡 <strong>안내:</strong> 위 추천 내용은 자녀의 독서 논술 MBTI 검사 결과를 바탕으로 생성되었습니다.
+                        자녀의 학습 스타일에 맞는 최적의 수업 방식과 지도 방법을 제시하고 있습니다.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 오른쪽: 요약 정보 -->
+        <div class="lg:col-span-1">
+            <!-- MBTI 정보 카드 -->
+            {% if consultation.student_mbti_type %}
+            <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-6 mb-6">
+                <h4 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 정보</h4>
+
+                <div class="bg-white rounded-lg p-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-purple-900">{{ consultation.recommended_teaching_style }}</div>
+                        <div class="text-sm text-purple-700 mt-1">{{ consultation.student_mbti_type }}</div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-purple-700">
+                    자녀의 독서 논술 MBTI 검사 결과를 바탕으로 맞춤형 수업 추천이 제공되었습니다.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 안내 카드 -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h4 class="text-lg font-bold text-blue-900 mb-3">📌 상담 기록 안내</h4>
+                <div class="text-sm text-blue-800 space-y-2">
+                    <p>• 강사/관리자가 작성한 상담 기록입니다.</p>
+                    {% if consultation.student_mbti_type %}
+                    <p>• MBTI 기반 맞춤 수업 추천이 포함되어 있습니다.</p>
+                    {% endif %}
+                    <p>• 자녀의 학습 현황과 지도 방향을 확인하실 수 있습니다.</p>
+                    <p class="pt-2 border-t border-blue-300">
+                        문의사항이 있으시면 담당 강사 또는 관리자에게 연락해주세요.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

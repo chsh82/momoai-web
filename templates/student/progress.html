@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}학습 진도 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">내 학습 진도</h2>
+
+    <!-- 전체 진도율 -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-8 mb-6 text-white">
+        <div class="text-center mb-4">
+            <p class="text-xl font-medium mb-2">전체 학습 진도율</p>
+            <p class="text-6xl font-bold">{{ overall_progress.total_progress }}%</p>
+        </div>
+        <div class="w-full bg-white bg-opacity-30 rounded-full h-4">
+            <div class="bg-white rounded-full h-4 transition-all duration-500"
+                 style="width: {{ overall_progress.total_progress }}%"></div>
+        </div>
+    </div>
+
+    <!-- 주요 지표 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-center">
+                <div class="text-blue-600 text-3xl mb-2">📚</div>
+                <p class="text-sm text-gray-600 mb-1">수강 수업</p>
+                <p class="text-3xl font-bold text-blue-600">{{ overall_progress.courses_count }}</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-center">
+                <div class="text-green-600 text-3xl mb-2">✅</div>
+                <p class="text-sm text-gray-600 mb-1">평균 출석률</p>
+                <p class="text-3xl font-bold text-green-600">{{ overall_progress.avg_attendance_rate }}%</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-center">
+                <div class="text-purple-600 text-3xl mb-2">📝</div>
+                <p class="text-sm text-gray-600 mb-1">과제 완료율</p>
+                <p class="text-3xl font-bold text-purple-600">{{ overall_progress.avg_assignment_completion }}%</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-center">
+                <div class="text-orange-600 text-3xl mb-2">✍️</div>
+                <p class="text-sm text-gray-600 mb-1">총 첨삭 수</p>
+                <p class="text-3xl font-bold text-orange-600">{{ overall_progress.total_essays }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트: 수업별 진도율 -->
+    {% if course_progress %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">수업별 진도 현황</h3>
+        </div>
+        <div class="p-6">
+            <canvas id="courseProgressChart" height="100"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 차트: 주간 활동 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">주간 활동 추이 (최근 4주)</h3>
+        </div>
+        <div class="p-6">
+            <canvas id="weeklyActivityChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <!-- 과제 현황 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">과제 현황</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">전체</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ assignment_status.status_counts.total }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">완료</p>
+                    <p class="text-2xl font-bold text-green-600">{{ assignment_status.status_counts.completed }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">대기</p>
+                    <p class="text-2xl font-bold text-yellow-600">{{ assignment_status.status_counts.pending }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">지각</p>
+                    <p class="text-2xl font-bold text-red-600">{{ assignment_status.status_counts.overdue }}</p>
+                </div>
+            </div>
+
+            <!-- 과제 목록 -->
+            {% if assignment_status.assignments %}
+            <div class="space-y-3">
+                {% for item in assignment_status.assignments[:5] %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-medium text-gray-800">{{ item.assignment.title }}</h4>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded
+                                    {% if item.status == 'graded' %}bg-green-100 text-green-800
+                                    {% elif item.status == 'submitted' %}bg-yellow-100 text-yellow-800
+                                    {% elif item.status == 'overdue' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if item.status == 'graded' %}채점완료
+                                    {% elif item.status == 'submitted' %}제출완료
+                                    {% elif item.status == 'overdue' %}마감됨
+                                    {% else %}진행중{% endif %}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                {% if item.assignment.course %}{{ item.assignment.course.course_name }} | {% endif %}
+                                마감: {{ item.assignment.due_date.strftime('%m/%d %H:%M') }}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('student.assignment_detail', assignment_id=item.assignment.assignment_id) }}"
+                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">등록된 과제가 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 학습 성과 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">학습 성과</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-2 gap-6">
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <p class="text-sm text-gray-600 mb-2">평균 과제 점수</p>
+                    <p class="text-3xl font-bold text-blue-700">{{ performance.avg_assignment_score }}점</p>
+                    <p class="text-xs text-gray-500 mt-1">채점 완료: {{ performance.graded_assignments_count }}개</p>
+                </div>
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <p class="text-sm text-gray-600 mb-2">첨삭 완료</p>
+                    <p class="text-3xl font-bold text-green-700">{{ performance.completed_essays_count }}개</p>
+                    <p class="text-xs text-gray-500 mt-1">최종 완료된 첨삭</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// 수업별 진도율 차트
+{% if course_progress %}
+const courseCtx = document.getElementById('courseProgressChart').getContext('2d');
+new Chart(courseCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ course_labels|safe }},
+        datasets: [
+            {
+                label: '출석률 (%)',
+                data: {{ course_attendance|safe }},
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+            },
+            {
+                label: '과제 완료율 (%)',
+                data: {{ course_assignments|safe }},
+                backgroundColor: 'rgba(168, 85, 247, 0.7)',
+                borderColor: 'rgba(168, 85, 247, 1)',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// 주간 활동 차트
+const weeklyCtx = document.getElementById('weeklyActivityChart').getContext('2d');
+new Chart(weeklyCtx, {
+    type: 'line',
+    data: {
+        labels: {{ weekly_labels|safe }},
+        datasets: [
+            {
+                label: '출석',
+                data: {{ weekly_attendance|safe }},
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: '과제 제출',
+                data: {{ weekly_assignments|safe }},
+                backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                borderColor: 'rgba(168, 85, 247, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: '첨삭',
+                data: {{ weekly_essays|safe }},
+                backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                borderColor: 'rgba(251, 191, 36, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

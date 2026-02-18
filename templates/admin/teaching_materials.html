@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}학습자료 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📚 학습 교재 관리{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">교재 업로드 및 관리</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">학습자료 관리</h2>
+        <a href="{{ url_for('admin.create_teaching_material') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 flex items-center gap-2">
+            <span class="text-xl">➕</span>
+            <span>새 자료 등록</span>
+        </a>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">전체 자료</p>
+            <p class="text-2xl font-bold text-blue-600">{{ stats['total'] }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">공개 중</p>
+            <p class="text-2xl font-bold text-green-600">{{ stats['active'] }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">비공개</p>
+            <p class="text-2xl font-bold text-gray-600">{{ stats['inactive'] }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">총 다운로드</p>
+            <p class="text-2xl font-bold text-purple-600">{{ stats['total_downloads'] }}</p>
+        </div>
+    </div>
+
+    <!-- 필터 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">학년</label>
+                <select name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    {% for grade in ['초1', '초2', '초3', '초4', '초5', '초6', '중1', '중2', '중3', '고1', '고2', '고3'] %}
+                    <option value="{{ grade }}" {% if grade_filter == grade %}selected{% endif %}>{{ grade }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">공개여부</label>
+                <select name="is_public" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    <option value="1" {% if is_public_filter == '1' %}selected{% endif %}>공개</option>
+                    <option value="0" {% if is_public_filter == '0' %}selected{% endif %}>비공개</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">시작일</label>
+                <input type="date" name="start_date" value="{{ start_date_filter or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">종료일</label>
+                <input type="date" name="end_date" value="{{ end_date_filter or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                    필터 적용
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 자료 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        {% if materials %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학년</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">파일</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">게시기간</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">공개여부</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">조회/다운로드</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for material in materials %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div>
+                                <p class="font-medium text-gray-800">{{ material.title }}</p>
+                                {% if material.description %}
+                                <p class="text-sm text-gray-500 mt-1">{{ material.description[:50] }}{% if material.description|length > 50 %}...{% endif %}</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {% if material.target_type == 'grade' %}
+                                {% if material.target_grades %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for grade in material.target_grades[:3] %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">{{ grade }}</span>
+                                    {% endfor %}
+                                    {% if material.target_grades|length > 3 %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">+{{ material.target_grades|length - 3 }}</span>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                전체
+                                {% endif %}
+                            {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">수업별</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            <div>
+                                <p class="font-medium">{{ material.original_filename }}</p>
+                                <p class="text-xs text-gray-500">{{ (material.file_size / 1024 / 1024)|round(2) }} MB</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {{ material.publish_date.strftime('%Y-%m-%d') if material.publish_date }}<br>
+                            ~ {{ material.end_date.strftime('%Y-%m-%d') if material.end_date else '무제한' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if material.is_public %}bg-green-100 text-green-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if material.is_public %}공개{% else %}비공개{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            <div>
+                                <p>조회: {{ material.view_count }}</p>
+                                <p>다운로드: {{ material.download_count }}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ url_for('admin.teaching_material_detail', material_id=material.material_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    상세
+                                </a>
+                                <a href="{{ url_for('admin.edit_teaching_material', material_id=material.material_id) }}"
+                                   class="text-gray-600 hover:text-gray-800 text-sm font-medium">
+                                    수정
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_teaching_material', material_id=material.material_id) }}"
+                                      onsubmit="return confirm('정말 이 자료를 삭제하시겠습니까?');" class="inline">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                        삭제
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <p class="text-gray-500 text-lg mb-4">등록된 학습자료가 없습니다.</p>
+            <a href="{{ url_for('admin.create_teaching_material') }}"
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                첫 자료 등록하기
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}{{ result.mbti_type.type_name }} - 독서 논술 MBTI{% endblock %}
+
+{% block page_title %}🎯 MBTI 결과{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">내 독서논술 성향</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <a href="{{ url_for('student.reading_mbti') }}"
+               class="text-blue-600 hover:text-blue-800 font-medium">
+                ← 테스트 목록
+            </a>
+            <div class="text-sm text-gray-600">
+                검사일: {{ result.created_at.strftime('%Y년 %m월 %d일') }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 유형 결과 카드 -->
+    <div class="bg-gradient-to-br from-purple-500 via-indigo-600 to-purple-700 rounded-lg shadow-xl p-8 text-white mb-8">
+        <div class="text-center mb-8">
+            <div class="text-6xl mb-4">🎯</div>
+            <div class="text-4xl font-bold mb-2">{{ result.mbti_type.type_name }}</div>
+            <div class="text-xl text-purple-100 mb-4">{{ result.mbti_type.combo_description }}</div>
+            <div class="inline-block bg-white/20 rounded-full px-6 py-2 text-lg font-medium">
+                {{ result.mbti_type.type_code }}
+            </div>
+        </div>
+
+        <div class="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+            <p class="text-lg leading-relaxed">
+                {{ result.mbti_type.full_description }}
+            </p>
+        </div>
+    </div>
+
+    <!-- 점수 차트 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <span class="text-2xl">📊</span>
+            나의 역량 프로필
+        </h3>
+
+        <!-- 레이더 차트 -->
+        <div class="mb-8">
+            <div class="max-w-2xl mx-auto">
+                <canvas id="radarChart" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- 상세 점수 (접기 가능) -->
+        <details class="mt-6">
+            <summary class="cursor-pointer text-gray-700 font-medium hover:text-purple-600 transition">
+                📋 상세 점수 보기
+            </summary>
+        <div class="space-y-6 mt-4">
+            <!-- 독해 영역 -->
+            <div>
+                <div class="font-medium text-gray-700 mb-3">📖 독해력 (읽기 역량)</div>
+                <div class="space-y-2">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">초급 (기본 문해력)</span>
+                            <span class="text-sm font-medium text-purple-600">
+                                {{ result.scores.read.beginner }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-400 transition-all"
+                                 style="width: {{ (result.scores.read.beginner / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">중급 (구조적 독해)</span>
+                            <span class="text-sm font-medium text-purple-600">
+                                {{ result.scores.read.intermediate }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-500 transition-all"
+                                 style="width: {{ (result.scores.read.intermediate / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">고급 (비판적 독해)</span>
+                            <span class="text-sm font-medium text-purple-600">
+                                {{ result.scores.read.advanced }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-600 transition-all"
+                                 style="width: {{ (result.scores.read.advanced / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">독해력 총점</span>
+                            <span class="text-base font-bold text-purple-600">
+                                {{ result.scores.read.beginner + result.scores.read.intermediate + result.scores.read.advanced }}점
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            수준:
+                            {% set read_total = result.scores.read.beginner + result.scores.read.intermediate + result.scores.read.advanced %}
+                            {% if read_total <= 25 %}초급{% elif read_total <= 50 %}중급{% else %}고급{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 발표/토론 영역 -->
+            <div>
+                <div class="font-medium text-gray-700 mb-3">💬 사고력 (발표/토론)</div>
+                <div class="space-y-2">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">초급 (내용 전달)</span>
+                            <span class="text-sm font-medium text-indigo-600">
+                                {{ result.scores.speech.beginner }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-400 transition-all"
+                                 style="width: {{ (result.scores.speech.beginner / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">중급 (논리적 표현)</span>
+                            <span class="text-sm font-medium text-indigo-600">
+                                {{ result.scores.speech.intermediate }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-500 transition-all"
+                                 style="width: {{ (result.scores.speech.intermediate / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">고급 (창의적 확장)</span>
+                            <span class="text-sm font-medium text-indigo-600">
+                                {{ result.scores.speech.advanced }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-600 transition-all"
+                                 style="width: {{ (result.scores.speech.advanced / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">사고력 총점</span>
+                            <span class="text-base font-bold text-indigo-600">
+                                {{ result.scores.speech.beginner + result.scores.speech.intermediate + result.scores.speech.advanced }}점
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            수준:
+                            {% set speech_total = result.scores.speech.beginner + result.scores.speech.intermediate + result.scores.speech.advanced %}
+                            {% if speech_total <= 25 %}초급{% elif speech_total <= 50 %}중급{% else %}고급{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 서술력 영역 -->
+            <div>
+                <div class="font-medium text-gray-700 mb-3">✍️ 서술력 (글쓰기 역량)</div>
+                <div class="space-y-2">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">초급 (간결한 요약)</span>
+                            <span class="text-sm font-medium text-pink-600">
+                                {{ result.scores.write.beginner }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-pink-400 transition-all"
+                                 style="width: {{ (result.scores.write.beginner / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">중급 (체계적 구성)</span>
+                            <span class="text-sm font-medium text-pink-600">
+                                {{ result.scores.write.intermediate }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-pink-500 transition-all"
+                                 style="width: {{ (result.scores.write.intermediate / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">고급 (창의적 재구성)</span>
+                            <span class="text-sm font-medium text-pink-600">
+                                {{ result.scores.write.advanced }}점 / 25점
+                            </span>
+                        </div>
+                        <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-pink-600 transition-all"
+                                 style="width: {{ (result.scores.write.advanced / 25 * 100) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">서술력 총점</span>
+                            <span class="text-base font-bold text-pink-600">
+                                {{ result.scores.write.beginner + result.scores.write.intermediate + result.scores.write.advanced }}점
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            수준:
+                            {% set write_total = result.scores.write.beginner + result.scores.write.intermediate + result.scores.write.advanced %}
+                            {% if write_total <= 25 %}초급{% elif write_total <= 50 %}중급{% else %}고급{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </details>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- 독해 스타일 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span class="text-2xl">📖</span>
+                독해 스타일
+            </h4>
+            <p class="text-gray-700 leading-relaxed">
+                {{ result.mbti_type.reading_style }}
+            </p>
+        </div>
+
+        <!-- 발표/토론 스타일 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span class="text-2xl">💬</span>
+                발표/토론 스타일
+            </h4>
+            <p class="text-gray-700 leading-relaxed">
+                {{ result.mbti_type.speaking_style }}
+            </p>
+        </div>
+
+        <!-- 쓰기 스타일 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span class="text-2xl">✍️</span>
+                쓰기 스타일
+            </h4>
+            <p class="text-gray-700 leading-relaxed">
+                {{ result.mbti_type.writing_style }}
+            </p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- 강점 -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h4 class="text-lg font-bold text-green-800 mb-3 flex items-center gap-2">
+                <span class="text-2xl">💪</span>
+                강점
+            </h4>
+            <ul class="space-y-2">
+                {% for strength in result.mbti_type.strengths %}
+                <li class="flex items-start gap-2 text-green-700">
+                    <span class="text-green-600 mt-1">✓</span>
+                    <span>{{ strength }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- 약점 -->
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <h4 class="text-lg font-bold text-orange-800 mb-3 flex items-center gap-2">
+                <span class="text-2xl">⚠️</span>
+                보완할 점
+            </h4>
+            <ul class="space-y-2">
+                {% for weakness in result.mbti_type.weaknesses %}
+                <li class="flex items-start gap-2 text-orange-700">
+                    <span class="text-orange-600 mt-1">•</span>
+                    <span>{{ weakness }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- 학습 팁 -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h4 class="text-lg font-bold text-blue-800 mb-3 flex items-center gap-2">
+                <span class="text-2xl">💡</span>
+                학습 팁
+            </h4>
+            <ul class="space-y-2">
+                {% for tip in result.mbti_type.tips %}
+                <li class="flex items-start gap-2 text-blue-700">
+                    <span class="text-blue-600 mt-1">→</span>
+                    <span>{{ tip }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="flex gap-4">
+        <a href="{{ url_for('student.reading_mbti') }}"
+           class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium text-center py-3 rounded-lg transition">
+            테스트 목록으로
+        </a>
+        <a href="{{ url_for('student.take_reading_mbti', test_id=result.test_id) }}"
+           class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
+                  text-white font-medium text-center py-3 rounded-lg transition">
+            다시 검사하기 🔄
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+
+    const radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: [
+                '기본 문해력',
+                '구조적 독해',
+                '비판적 독해',
+                '내용 전달',
+                '논리적 표현',
+                '창의적 확장',
+                '간결한 요약',
+                '체계적 구성',
+                '창의적 재구성'
+            ],
+            datasets: [{
+                label: '나의 점수',
+                data: [
+                    {{ result.scores.read.beginner }},
+                    {{ result.scores.read.intermediate }},
+                    {{ result.scores.read.advanced }},
+                    {{ result.scores.speech.beginner }},
+                    {{ result.scores.speech.intermediate }},
+                    {{ result.scores.speech.advanced }},
+                    {{ result.scores.write.beginner }},
+                    {{ result.scores.write.intermediate }},
+                    {{ result.scores.write.advanced }}
+                ],
+                fill: true,
+                backgroundColor: 'rgba(147, 51, 234, 0.2)',
+                borderColor: 'rgb(147, 51, 234)',
+                pointBackgroundColor: 'rgb(147, 51, 234)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(147, 51, 234)',
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 25,
+                    min: 0,
+                    ticks: {
+                        stepSize: 5,
+                        font: {
+                            size: 12
+                        }
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 13,
+                            weight: 'bold'
+                        },
+                        color: '#374151'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    angleLines: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return '점수: ' + context.parsed.r + '점 / 25점';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

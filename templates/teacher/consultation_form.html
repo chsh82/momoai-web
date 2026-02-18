@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}{% if consultation %}상담 기록 수정{% else %}상담 기록 작성{% endif %} - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}✍️ 상담 기록 작성{% endblock %}
+
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('teacher.consultations') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 상담 기록 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">
+            {% if consultation %}상담 기록 수정{% else %}상담 기록 작성{% endif %}
+        </h2>
+        <p class="text-gray-600 mt-2">학생과의 상담 내용을 기록합니다</p>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-2">
+            <span class="text-lg">ℹ️</span>
+            <p class="text-sm text-blue-800">
+                <strong>자동 제목 생성:</strong> 제목은 [대분류] 학생명 - 날짜 형식으로 자동 생성됩니다.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="" id="consultationForm">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 상담일 및 상담자 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.consultation_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.consultation_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.consultation_date.errors else "")) }}
+                        {% if form.consultation_date.errors %}
+                            {% for error in form.consultation_date.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        {% if is_admin %}
+                            {{ form.counselor_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.counselor_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.counselor_id.errors else "")) }}
+                            {% if form.counselor_id.errors %}
+                                {% for error in form.counselor_id.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        {% else %}
+                            {{ form.counselor_id(type="hidden") }}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">상담자</label>
+                            <div class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+                                {{ current_user.name }} (자동 설정)
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">강사는 자동으로 본인이 상담자로 설정됩니다</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 학생 선택 -->
+                <div>
+                    {{ form.student_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.student_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.student_id.errors else "")) }}
+                    {% if form.student_id.errors %}
+                        {% for error in form.student_id.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 대분류 및 소분류 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.major_category.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.major_category(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.major_category.errors else ""), onchange="loadSubcategories(this.value)") }}
+                        {% if form.major_category.errors %}
+                            {% for error in form.major_category.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        {{ form.sub_category.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.sub_category(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="subCategorySelect") }}
+                        <p class="text-xs text-gray-500 mt-1">선택사항입니다</p>
+                    </div>
+                </div>
+
+                <!-- 내용 -->
+                <div>
+                    {{ form.content.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.content(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical" + (" border-red-500" if form.content.errors else ""), placeholder="상담 내용을 상세히 작성해주세요...") }}
+                    {% if form.content.errors %}
+                        {% for error in form.content.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" id="submitBtn"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        {% if consultation %}수정하기{% else %}저장하기{% endif %}
+                    </button>
+                    <a href="{{ url_for('teacher.consultations') }}"
+                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// 대분류 선택 시 소분류 자동 로드
+function loadSubcategories(majorCategory) {
+    if (!majorCategory) {
+        document.getElementById('subCategorySelect').innerHTML = '<option value="">-- 선택하세요 --</option>';
+        return;
+    }
+
+    fetch(`/teacher/api/consultation-subcategories/${majorCategory}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const subSelect = document.getElementById('subCategorySelect');
+                const currentValue = subSelect.value;
+
+                subSelect.innerHTML = '<option value="">-- 선택하세요 --</option>';
+
+                data.subcategories.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = sub;
+                    if (sub === currentValue) {
+                        option.selected = true;
+                    }
+                    subSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+// 페이지 로드 시 소분류 자동 로드
+document.addEventListener('DOMContentLoaded', function() {
+    const majorSelect = document.querySelector('select[name="major_category"]');
+    if (majorSelect && majorSelect.value) {
+        loadSubcategories(majorSelect.value);
+    }
+
+    // 폼 중복 제출 방지
+    const form = document.getElementById('consultationForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            // 제출 버튼 비활성화 (중복 제출 방지)
+            submitBtn.disabled = true;
+            submitBtn.textContent = '저장 중...';
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // 3초 후 다시 활성화 (에러 발생 시를 위해)
+            setTimeout(function() {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '{% if consultation %}수정하기{% else %}저장하기{% endif %}';
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }, 3000);
+        });
+    }
+});
+</script>
+{% endblock %}

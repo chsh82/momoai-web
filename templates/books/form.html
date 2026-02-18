@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% if is_edit %}{{ url_for('books.detail', book_id=book.book_id) }}{% else %}{{ url_for('books.index') }}{% endif %}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 뒤로 가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">{{ title }}</h2>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 도서 제목 -->
+                <div>
+                    {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else ""), id="titleInput") }}
+                    {% if form.title.errors %}
+                        {% for error in form.title.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 저자 -->
+                    <div>
+                        {{ form.author.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.author(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="authorInput") }}
+                    </div>
+
+                    <!-- 출판사 -->
+                    <div>
+                        {{ form.publisher.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.publisher(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="publisherInput") }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ISBN -->
+                    <div>
+                        {{ form.isbn.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        <div class="flex gap-2">
+                            {{ form.isbn(class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="978-89-xxxxx-xx-x", id="isbnInput") }}
+                            <button type="button" onclick="lookupISBN()" id="isbnLookupBtn"
+                                    class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                                조회
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1">ISBN을 입력하고 조회 버튼을 누르면 자동으로 정보가 입력됩니다</p>
+                    </div>
+
+                    <!-- 출판년도 -->
+                    <div>
+                        {{ form.publication_year.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.publication_year(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="2024", id="publicationYearInput") }}
+                        {% if form.publication_year.errors %}
+                            {% for error in form.publication_year.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 카테고리 -->
+                <div>
+                    {{ form.category.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.category(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                </div>
+
+                <!-- 표지 이미지 URL -->
+                <div>
+                    {{ form.cover_image_url.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.cover_image_url(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="https://example.com/cover.jpg", id="coverImageUrlInput") }}
+                    <p class="text-sm text-gray-500 mt-1">표지 이미지 URL을 입력하세요 (선택사항)</p>
+                </div>
+
+                <!-- 도서 설명 -->
+                <div>
+                    {{ form.description.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.description(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=6, placeholder="도서에 대한 설명을 입력하세요...", id="descriptionInput") }}
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        {% if is_edit %}수정 완료{% else %}도서 추가{% endif %}
+                    </button>
+                    <a href="{% if is_edit %}{{ url_for('books.detail', book_id=book.book_id) }}{% else %}{{ url_for('books.index') }}{% endif %}"
+                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ISBN 조회
+function lookupISBN() {
+    console.log('[ISBN 조회] 함수 시작');
+
+    const isbn = document.getElementById('isbnInput').value.trim();
+    const btn = document.getElementById('isbnLookupBtn');
+
+    console.log('[ISBN 조회] 입력된 ISBN:', isbn);
+
+    if (!isbn) {
+        alert('ISBN을 입력하세요.');
+        console.log('[ISBN 조회] ISBN이 입력되지 않음');
+        return;
+    }
+
+    // 버튼 비활성화
+    btn.disabled = true;
+    btn.textContent = '조회 중...';
+    console.log('[ISBN 조회] 버튼 비활성화, API 호출 시작');
+
+    // CSRF 토큰 가져오기
+    const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
+    const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
+
+    console.log('[ISBN 조회] CSRF 토큰:', csrfToken ? '존재함' : '없음');
+
+    fetch('/books/api/isbn-lookup', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ isbn: isbn })
+    })
+    .then(response => {
+        console.log('[ISBN 조회] 응답 상태:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('[ISBN 조회] 응답 데이터:', data);
+
+        if (data.success) {
+            // 도서 정보 자동 입력
+            const book = data.book;
+            let fieldsUpdated = 0;
+
+            if (book.title) {
+                document.getElementById('titleInput').value = book.title;
+                fieldsUpdated++;
+                console.log('[ISBN 조회] 제목 입력:', book.title);
+            }
+            if (book.author) {
+                document.getElementById('authorInput').value = book.author;
+                fieldsUpdated++;
+                console.log('[ISBN 조회] 저자 입력:', book.author);
+            }
+            if (book.publisher) {
+                document.getElementById('publisherInput').value = book.publisher;
+                fieldsUpdated++;
+                console.log('[ISBN 조회] 출판사 입력:', book.publisher);
+            }
+            if (book.publication_year) {
+                document.getElementById('publicationYearInput').value = book.publication_year;
+                fieldsUpdated++;
+                console.log('[ISBN 조회] 출판년도 입력:', book.publication_year);
+            }
+            if (book.cover_image_url) {
+                document.getElementById('coverImageUrlInput').value = book.cover_image_url;
+                fieldsUpdated++;
+                console.log('[ISBN 조회] 표지 이미지 입력:', book.cover_image_url);
+            }
+            if (book.description) {
+                document.getElementById('descriptionInput').value = book.description;
+                fieldsUpdated++;
+                console.log('[ISBN 조회] 설명 입력:', book.description.substring(0, 50) + '...');
+            }
+
+            console.log('[ISBN 조회] 총 ' + fieldsUpdated + '개 필드 업데이트 완료');
+            alert('✅ 도서 정보를 불러왔습니다!\n업데이트된 필드: ' + fieldsUpdated + '개');
+        } else {
+            console.log('[ISBN 조회] 실패:', data.message);
+            alert('❌ ' + (data.message || 'ISBN으로 도서 정보를 찾을 수 없습니다.'));
+        }
+    })
+    .catch(error => {
+        console.error('[ISBN 조회] 오류:', error);
+        alert('❌ ISBN 조회 중 오류가 발생했습니다.\n브라우저 콘솔(F12)을 확인하세요.');
+    })
+    .finally(() => {
+        // 버튼 활성화
+        btn.disabled = false;
+        btn.textContent = '조회';
+        console.log('[ISBN 조회] 함수 종료');
+    });
+}
+
+// 페이지 로드 시 확인
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[ISBN] 페이지 로드 완료');
+    console.log('[ISBN] ISBN 입력 필드:', document.getElementById('isbnInput') ? '존재' : '없음');
+    console.log('[ISBN] 조회 버튼:', document.getElementById('isbnLookupBtn') ? '존재' : '없음');
+    console.log('[ISBN] CSRF 토큰:', document.querySelector('input[name="csrf_token"]') ? '존재' : '없음');
+});
+</script>
+{% endblock %}

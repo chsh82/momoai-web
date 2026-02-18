@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}계정 생성 완료 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <!-- Success Icon -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800">계정 생성 완료!</h2>
+            <p class="text-gray-600 mt-2">직원 계정이 성공적으로 생성되었습니다.</p>
+        </div>
+
+        <!-- 경고 메시지 -->
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">중요!</h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p>아래 초기 비밀번호는 <strong>이 페이지를 떠나면 다시 확인할 수 없습니다.</strong></p>
+                        <p class="mt-1">반드시 본인에게 안전하게 전달해주세요!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 계정 정보 -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">생성된 계정 정보</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">이름</p>
+                    <p class="text-lg font-bold text-gray-800">{{ user.name }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">이메일 (로그인 ID)</p>
+                    <p class="text-lg font-mono text-gray-800">{{ user.email }}</p>
+                </div>
+
+                {% if user.phone %}
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전화번호</p>
+                    <p class="text-lg text-gray-800">{{ user.phone }}</p>
+                </div>
+                {% endif %}
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">역할</p>
+                    <p class="text-lg text-gray-800">
+                        {% if user.role == 'teacher' %}
+                        강사
+                        {% elif user.role == 'admin' %}
+                        관리자
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- 초기 비밀번호 -->
+                <div class="border-t-2 border-red-500 pt-4 mt-4">
+                    <p class="text-sm text-gray-600 mb-1">초기 비밀번호</p>
+                    <div class="flex items-center gap-3">
+                        <code id="password" class="flex-1 text-2xl font-mono font-bold text-red-600 bg-white px-4 py-3 rounded border-2 border-red-300">
+                            {{ initial_password }}
+                        </code>
+                        <button onclick="copyPassword()"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-3 rounded transition duration-200">
+                            복사
+                        </button>
+                    </div>
+                    <p class="text-xs text-red-600 mt-2">
+                        * 첫 로그인 시 비밀번호 변경이 필요합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 안내사항 -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 class="font-bold text-blue-900 mb-2">본인에게 전달할 내용:</h4>
+            <div class="text-sm text-blue-800 space-y-1">
+                <p>1. 로그인 주소: <strong>{{ request.host_url }}auth/login</strong></p>
+                <p>2. 이메일: <strong>{{ user.email }}</strong></p>
+                <p>3. 초기 비밀번호: <strong>{{ initial_password }}</strong></p>
+                <p>4. 첫 로그인 시 반드시 비밀번호를 변경해주세요.</p>
+            </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="flex gap-3">
+            <a href="{{ url_for('admin.create_staff') }}"
+               class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                다른 계정 생성
+            </a>
+            <a href="{{ url_for('admin.staff_list') }}"
+               class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
+                직원 목록으로
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyPassword() {
+    const password = document.getElementById('password').textContent.trim();
+    navigator.clipboard.writeText(password).then(function() {
+        alert('비밀번호가 클립보드에 복사되었습니다!');
+    }, function() {
+        alert('복사에 실패했습니다. 수동으로 복사해주세요.');
+    });
+}
+
+// 페이지 떠날 때 경고
+window.addEventListener('beforeunload', function (e) {
+    e.preventDefault();
+    e.returnValue = '초기 비밀번호를 복사하셨나요? 이 페이지를 떠나면 다시 확인할 수 없습니다.';
+});
+</script>
+
+{% endblock %}

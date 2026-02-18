@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}학생 확인 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">🔍 기존 학생 확인</h2>
+        <p class="text-gray-600 mt-2">입력하신 정보와 일치하는 학생을 발견했습니다.</p>
+    </div>
+
+    <!-- Alert -->
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800">중복 확인</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                    <p>입력하신 <strong>{{ submitted_name }}</strong> ({{ submitted_birthdate.strftime('%Y년 %m월 %d일') }}) 학생과 동일한 정보를 가진 학생이 이미 시스템에 등록되어 있습니다.</p>
+                    <p class="mt-2">아래 학생이 자녀분이 맞는지 확인해주세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matching Students -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">일치하는 학생 정보</h3>
+
+        {% for student in matching_students %}
+        <div class="border border-gray-200 rounded-lg p-6 mb-4 hover:border-blue-400 transition">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            {{ student.grade }}
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-800">{{ student.name }}</h4>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-500">생년월일:</span>
+                            <span class="font-semibold text-gray-800">{{ student.birth_date.strftime('%Y년 %m월 %d일') }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">학교:</span>
+                            <span class="font-semibold text-gray-800">{{ student.school or '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">등급:</span>
+                            <span class="font-semibold text-gray-800">{{ student.tier or '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">학생 코드:</span>
+                            <span class="font-mono text-xs text-gray-600">{{ student.student_id[:8] }}...</span>
+                        </div>
+                    </div>
+
+                    {% if student.profile %}
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <p class="text-xs text-gray-500 mb-2">프로필 정보:</p>
+                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                            {% if student.profile.current_school %}
+                            <div>📚 {{ student.profile.current_school }}</div>
+                            {% endif %}
+                            {% if student.profile.reading_experience %}
+                            <div>📖 {{ student.profile.reading_experience }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Buttons for this student -->
+            <div class="mt-6 pt-4 border-t border-gray-100 flex gap-3">
+                <form method="POST" action="{{ url_for('parent.registration_link_existing') }}" class="flex-1">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="student_id" value="{{ student.student_id }}">
+                    <input type="hidden" name="form_data" value="{{ form_data_json }}">
+                    <button type="submit"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                        ✅ 네, 이 학생이 제 자녀입니다
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Create New Student Option -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">🆕 위 학생이 아닌 경우</h3>
+        <p class="text-gray-600 mb-6">
+            위에 표시된 학생이 자녀분이 아니라면 (동명이인인 경우),
+            새로운 학생으로 등록할 수 있습니다.
+        </p>
+
+        <form method="POST" action="{{ url_for('parent.registration_create_new') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="form_data" value="{{ form_data_json }}">
+            <input type="hidden" name="force_create" value="true">
+
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    🆕 아니오, 새로운 학생으로 등록합니다
+                </button>
+                <a href="{{ url_for('parent.registration_survey') }}"
+                   class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 text-center">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

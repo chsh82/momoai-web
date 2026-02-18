@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}온라인 강의실 대기 중{% endblock %}
+
+{% block page_title %}⏰ 수업 대기{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">수업 시작 전</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+    <div class="max-w-md w-full mx-4">
+        <!-- 메인 카드 -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <!-- 아이콘 -->
+            <div class="mb-6">
+                <div class="inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full">
+                    <span class="text-5xl">⏰</span>
+                </div>
+            </div>
+
+            <!-- 제목 -->
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">
+                아직 입장 시간이 아닙니다
+            </h1>
+
+            <!-- 메시지 -->
+            <p class="text-gray-600 mb-6">
+                {{ message }}
+            </p>
+
+            <!-- 강사 정보 -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 mb-6 text-white">
+                <p class="text-sm text-blue-100 mb-1">강사</p>
+                <p class="text-lg font-semibold">{{ teacher.name }}</p>
+            </div>
+
+            <!-- 수업 정보 -->
+            {% if session %}
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">수업</span>
+                        <span class="font-medium text-gray-800">{{ session.course.course_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">수업 시작</span>
+                        <span class="font-medium text-gray-800">
+                            {{ session.session_date.strftime('%Y-%m-%d %H:%M') }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">입장 가능</span>
+                        <span class="font-medium text-green-600">
+                            {{ (session.session_date.replace(minute=session.session_date.minute - 10)).strftime('%H:%M') }}부터
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 안내 사항 -->
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 text-left">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            수업 시작 <strong>10분 전</strong>부터 온라인 강의실에 입장할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="space-y-3">
+                <button onclick="location.reload()"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition">
+                    🔄 새로고침
+                </button>
+                <a href="{{ url_for('student_portal.courses') }}"
+                   class="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition">
+                    ← 내 수업 목록으로
+                </a>
+            </div>
+
+            <!-- 자동 새로고침 안내 -->
+            <p class="mt-6 text-xs text-gray-500">
+                💡 입장 시간이 되면 페이지를 새로고침해주세요
+            </p>
+        </div>
+
+        <!-- 하단 정보 -->
+        <div class="mt-6 text-center text-sm text-gray-500">
+            <p>문제가 계속되면 강사님께 문의해주세요</p>
+        </div>
+    </div>
+</div>
+
+<!-- 자동 새로고침 스크립트 (선택사항) -->
+<script>
+// 1분마다 자동 새로고침 (선택사항)
+setTimeout(function() {
+    location.reload();
+}, 60000); // 60초
+</script>
+{% endblock %}

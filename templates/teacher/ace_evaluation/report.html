@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+
+{% block title %}📄 학부모 리포트 - {{ student.name }}{% endblock %}
+
+{% block page_title %}📄 학부모 리포트{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">{{ student.name }} 학생 역량 평가 리포트</span>
+{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+.chart-wrap { position: relative; width: 100%; height: 280px; }
+.chart-wrap.short { height: 220px; }
+.print-btn-container { position: fixed; top: 90px; right: 20px; z-index: 50; }
+
+@media print {
+    .no-print, .print-btn-container, .header-navy, .sidebar-navy {
+        display: none !important;
+    }
+    .main { padding: 0; }
+    body { background: white; }
+    .card-momo { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+    .chart-wrap { height: 240px !important; }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    <!-- 인쇄 버튼 (화면에만 표시) -->
+    <div class="print-btn-container no-print">
+        <button onclick="window.print()" class="btn btn-primary shadow-lg">
+            <span>🖨</span>
+            <span>프린트</span>
+        </button>
+    </div>
+
+    <!-- 리포트 헤더 -->
+    <div class="card-momo mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div class="text-center py-6">
+            <div class="text-sm opacity-90 mb-2">모모의 책장</div>
+            <div class="text-3xl font-extrabold mb-1">학생 학습 역량 리포트</div>
+            <div class="text-sm opacity-80">ACE Evaluation Report</div>
+        </div>
+    </div>
+
+    <!-- 학생 기본 정보 -->
+    <div class="card-momo mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 학생 정보 카드 -->
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-100">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                        {{ student.name[0] }}
+                    </div>
+                    <div>
+                        <div class="text-xs text-blue-600 font-semibold mb-1">STUDENT</div>
+                        <div class="text-xl font-extrabold text-gray-800">{{ student.name }}</div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center py-2 border-b border-blue-200">
+                        <span class="text-sm text-gray-600 font-medium">학년</span>
+                        <span class="text-sm font-bold text-gray-800">{{ student.grade }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-600 font-medium">학교</span>
+                        <span class="text-sm font-bold text-gray-800">{{ student.school or '미등록' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 평가 정보 카드 -->
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-2xl">📊</span>
+                    <div>
+                        <div class="text-xs text-purple-600 font-semibold mb-1">EVALUATION</div>
+                        <div class="text-lg font-extrabold text-gray-800">평가 정보</div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center py-2 border-b border-purple-200">
+                        <span class="text-sm text-gray-600 font-medium">담당 강사</span>
+                        <span class="text-sm font-bold text-gray-800">{{ student.teacher.name if student.teacher else '미배정' }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2 border-b border-purple-200">
+                        <span class="text-sm text-gray-600 font-medium">발행일</span>
+                        <span class="text-sm font-bold text-gray-800">{{ report_date.strftime('%Y년 %m월 %d일') }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-600 font-medium">평가 기간</span>
+                        <span class="text-sm font-bold text-gray-800">
+                            {% if ace_evals %}
+                            {{ ace_evals[0].year }} {{ ace_evals[0].quarter[:3] }} ~ {{ ace_evals[-1].year }} {{ ace_evals[-1].quarter[:3] }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 분기 선택 (ACE 평가가 있는 경우만) -->
+    {% if ace_evals %}
+    <div class="card-momo mb-4 no-print">
+        <div class="flex items-center gap-4">
+            <label for="quarterSelect" class="text-sm font-bold text-gray-700 whitespace-nowrap">📅 분기 선택</label>
+            <select id="quarterSelect"
+                    class="select-momo flex-1"
+                    onchange="window.location.href='{{ url_for('teacher.ace_report', student_id=student.student_id) }}?quarter_idx=' + this.value"
+                    style="max-width: 300px;">
+                {% for eval in ace_evals %}
+                <option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == selected_quarter_idx else '' }}>
+                    {{ eval.year }}년 {{ eval.quarter }} (총점: {{ eval.get_total_score() }}/75)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 주차별 성장 곡선 -->
+    {% if weekly_evals %}
+    <div class="card-momo mb-4">
+        <h3 class="text-base font-bold mb-1">📈 주차별 첨삭 점수 추이</h3>
+        <p class="text-xs text-gray-500 mb-3">최근 {{ weekly_evals|length }}주 기록</p>
+
+        <div class="chart-wrap short">
+            <canvas id="growthChart"></canvas>
+        </div>
+
+        <table class="table-momo w-full mt-4">
+            <thead>
+                <tr>
+                    <th>주차</th>
+                    <th>도서</th>
+                    <th>점수</th>
+                    <th>등급</th>
+                    <th>강사 코멘트</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eval in weekly_evals|reverse %}
+                <tr>
+                    <td>{{ eval.week_number }}주</td>
+                    <td>{{ eval.book_title or '-' }}</td>
+                    <td class="mono font-bold" style="color: {{ '#10B981' if eval.score >= 80 else '#F59E0B' if eval.score >= 60 else '#EF4444' }}">
+                        {{ eval.score }}
+                    </td>
+                    <td>
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3B82F6;">
+                            {{ eval.grade }}
+                        </span>
+                    </td>
+                    <td class="text-sm text-gray-600">{{ eval.comment or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- ACE 분기 평가 -->
+    {% if selected_ace %}
+    <div class="card-momo mb-4">
+        <h3 class="text-base font-bold mb-1">🏆 ACE 분기 평가 — {{ selected_ace.year }} {{ selected_ace.quarter }}</h3>
+        <p class="text-xs text-gray-500 mb-3">5개 축 15개 항목 평가 결과</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- 레이더 차트 -->
+            <div>
+                <div class="chart-wrap">
+                    <canvas id="aceRadar"></canvas>
+                </div>
+            </div>
+
+            <!-- 항목별 점수 테이블 -->
+            <div>
+                <table class="table-momo w-full">
+                    <thead>
+                        <tr>
+                            <th>평가 축</th>
+                            <th>항목</th>
+                            <th>등급</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for axis in ace_axes %}
+                        {% for item in axis['items'] %}
+                        <tr>
+                            {% if loop.index0 == 0 %}
+                            <td rowspan="{{ axis['items']|length }}" class="font-bold" style="color: {{ axis.color }}; vertical-align: middle;">
+                                {{ axis.name }}
+                            </td>
+                            {% endif %}
+                            <td>{{ item.name }}</td>
+                            <td>
+                                {% set grade = selected_ace.scores.get(item.name, '중') %}
+                                <span class="badge" style="background: {{ '#ECFDF5' if grade == '특' else '#EFF6FF' if grade == '상' else '#FFFBEB' if grade == '중' else '#FFF7ED' if grade == '하' else '#FEF2F2' }};
+                                                       color: {{ '#059669' if grade == '특' else '#2563EB' if grade == '상' else '#D97706' if grade == '중' else '#EA580C' if grade == '하' else '#DC2626' }};">
+                                    {{ grade }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 종합 의견 -->
+        {% if selected_ace.comment %}
+        <div class="mt-4 p-4 bg-light rounded-xl text-sm text-gray-700">
+            <strong>종합 의견:</strong> {{ selected_ace.comment }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 분기별 글쓰기 성적 추이 -->
+    {% if weekly_evals and ace_evals %}
+    <div class="card-momo mb-4">
+        <h3 class="text-base font-bold mb-1">✍️ 분기별 글쓰기 성적 추이</h3>
+        <p class="text-xs text-gray-500 mb-3">평가 기간 내 주차별 글쓰기 점수 변화</p>
+
+        <div style="position: relative; width: 100%; height: 320px;">
+            <canvas id="quarterlyWritingChart"></canvas>
+        </div>
+
+        <!-- 분기별 평균 점수 요약 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            {% for eval in ace_evals %}
+            <div class="text-center p-3 rounded-lg" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                <div class="text-xs text-gray-600 mb-1">{{ eval.year }} {{ eval.quarter[:3] }}</div>
+                <div class="text-2xl font-bold text-purple-600 mono" id="avg-score-{{ loop.index0 }}">-</div>
+                <div class="text-xs text-gray-500">평균</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ACE 분기별 비교 (2개 이상일 때) -->
+    {% if ace_evals|length >= 2 %}
+    <div class="card-momo mb-4">
+        <h3 class="text-base font-bold mb-1">📊 분기별 성장 비교 (레이더)</h3>
+        <p class="text-xs text-gray-500 mb-3">ACE 평가 분기 간 비교</p>
+
+        <div class="chart-wrap short">
+            <canvas id="aceOverlay"></canvas>
+        </div>
+    </div>
+
+    <!-- 영역별 분기 성장 추이 (막대그래프) -->
+    <div class="card-momo mb-4">
+        <h3 class="text-base font-bold mb-1">📊 영역별 분기 성장 추이</h3>
+        <p class="text-xs text-gray-500 mb-3">5개 영역의 분기별 점수 변화</p>
+
+        <div style="position: relative; width: 100%; height: 380px;">
+            <canvas id="axisGrowthBar"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 분기별 강사 코멘트 이력 -->
+    {% if ace_evals %}
+    <div class="card-momo mb-4">
+        <h3 class="text-base font-bold mb-1">💬 분기별 강사 코멘트 이력</h3>
+        <p class="text-xs text-gray-500 mb-3">분기별 종합 평가 및 성장 기록</p>
+
+        <div class="timeline">
+            {% for eval in ace_evals|reverse %}
+            <div class="timeline-item">
+                <div class="timeline-qtr">
+                    {{ eval.quarter }}
+                    <span class="timeline-year">{{ eval.year }} · {{ eval.teacher.name if eval.teacher else '강사' }}</span>
+                </div>
+                <div class="timeline-comment">{{ eval.comment or '코멘트 없음' }}</div>
+                <div class="timeline-scores">
+                    {% for axis in ace_axes %}
+                    <span style="color: {{ axis.color }}; font-weight: 600;">
+                        {{ axis.name[:2] }}
+                    </span>
+                    {{ "%.1f"|format(eval.get_axis_average(axis.item_names)) }}{{ ' · ' if not loop.last else '' }}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 푸터 -->
+    <div class="text-center py-5 text-xs text-gray-500">
+        본 리포트는 모모의 책장에서 발행되었습니다.
+    </div>
+
+</div>
+
+<script>
+// 주차별 성장 곡선
+{% if weekly_evals %}
+const growthCtx = document.getElementById('growthChart');
+if (growthCtx) {
+    new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for eval in weekly_evals %}'{{ eval.week_number }}주'{{ ',' if not loop.last else '' }}{% endfor %}],
+            datasets: [{
+                label: '점수',
+                data: [{% for eval in weekly_evals %}{{ eval.score }}{{ ',' if not loop.last else '' }}{% endfor %}],
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#3B82F6',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, grid: { color: '#F1F5F9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+{% endif %}
+
+// ACE 레이더 차트
+{% if selected_ace %}
+const aceCtx = document.getElementById('aceRadar');
+if (aceCtx) {
+    new Chart(aceCtx, {
+        type: 'radar',
+        data: {
+            labels: [{% for axis in ace_axes %}'{{ axis.name }}'{{ ',' if not loop.last else '' }}{% endfor %}],
+            datasets: [{
+                data: [{% for axis in ace_axes %}{{ "%.1f"|format(selected_ace.get_axis_average(axis.item_names)) }}{{ ',' if not loop.last else '' }}{% endfor %}],
+                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                borderColor: '#3B82F6',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#3B82F6',
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                r: {
+                    min: 0,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1,
+                        font: { size: 10 },
+                        backdropColor: 'transparent'
+                    },
+                    grid: { color: '#E2E8F0' },
+                    pointLabels: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+{% endif %}
+
+// 분기별 비교 (오버레이 레이더)
+{% if ace_evals|length >= 2 %}
+const overlayCtx = document.getElementById('aceOverlay');
+if (overlayCtx) {
+    const OVERLAY_COLORS = ['rgba(59,130,246,0.5)', 'rgba(16,185,129,0.5)', 'rgba(139,92,246,0.5)', 'rgba(245,158,11,0.5)'];
+    new Chart(overlayCtx, {
+        type: 'radar',
+        data: {
+            labels: [{% for axis in ace_axes %}'{{ axis.name }}'{{ ',' if not loop.last else '' }}{% endfor %}],
+            datasets: [
+                {% for eval in ace_evals %}
+                {
+                    label: '{{ eval.year }} {{ eval.quarter[:3] }}',
+                    data: [{% for axis in ace_axes %}{{ "%.1f"|format(eval.get_axis_average(axis.item_names)) }}{{ ',' if not loop.last else '' }}{% endfor %}],
+                    backgroundColor: OVERLAY_COLORS[{{ loop.index0 }} % 4].replace('0.5', '0.08'),
+                    borderColor: OVERLAY_COLORS[{{ loop.index0 }} % 4],
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    pointBackgroundColor: OVERLAY_COLORS[{{ loop.index0 }} % 4].replace('0.5', '1')
+                }{{ ',' if not loop.last else '' }}
+                {% endfor %}
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: { size: 11, family: 'Noto Sans KR' },
+                        usePointStyle: true
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    min: 0,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1,
+                        font: { size: 10 },
+                        backdropColor: 'transparent'
+                    },
+                    grid: { color: '#E2E8F0' },
+                    pointLabels: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+// 영역별 분기 성장 추이 (막대그래프) - 영역별로 분기 데이터 표시
+const barCtx = document.getElementById('axisGrowthBar');
+if (barCtx) {
+    const quarterColors = ['rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(236, 72, 153, 0.8)'];
+
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for axis in ace_axes %}'{{ axis.name }}'{{ ',' if not loop.last else '' }}{% endfor %}],
+            datasets: [
+                {% for eval in ace_evals %}
+                {
+                    label: '{{ eval.year }} {{ eval.quarter[:3] }}',
+                    data: [{% for axis in ace_axes %}{{ "%.1f"|format(eval.get_axis_average(axis.item_names)) }}{{ ',' if not loop.last else '' }}{% endfor %}],
+                    backgroundColor: quarterColors[{{ loop.index0 }} % quarterColors.length],
+                    borderColor: quarterColors[{{ loop.index0 }} % quarterColors.length].replace('0.8', '1'),
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barThickness: 28
+                }{{ ',' if not loop.last else '' }}
+                {% endfor %}
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: { size: 12, family: 'Noto Sans KR', weight: '600' },
+                        usePointStyle: true,
+                        padding: 18,
+                        boxWidth: 12,
+                        boxHeight: 12
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '점';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 5,
+                    ticks: {
+                        stepSize: 0.5,
+                        font: { size: 12 }
+                    },
+                    grid: {
+                        color: '#E2E8F0',
+                        lineWidth: 1
+                    },
+                    title: {
+                        display: true,
+                        text: '점수 (0-5)',
+                        font: { size: 13, weight: 'bold', family: 'Noto Sans KR' },
+                        padding: { top: 10, bottom: 10 }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 12, weight: '600', family: 'Noto Sans KR' }
+                    },
+                    title: {
+                        display: true,
+                        text: 'ACE 5개 영역',
+                        font: { size: 13, weight: 'bold', family: 'Noto Sans KR' },
+                        padding: { top: 10, bottom: 5 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 분기별 글쓰기 성적 추이
+{% if weekly_evals and ace_evals %}
+const quarterlyWritingCtx = document.getElementById('quarterlyWritingChart');
+if (quarterlyWritingCtx) {
+    // 분기 정보 파싱
+    const quarterMap = {
+        '1분기 (12~2월)': { start: 12, end: 2 },
+        '2분기 (3~5월)': { start: 3, end: 5 },
+        '3분기 (6~8월)': { start: 6, end: 8 },
+        '4분기 (9~11월)': { start: 9, end: 11 }
+    };
+
+    // 주차 평가를 분기별로 그룹화
+    const weeklyByQuarter = {};
+    const quarterColors = ['rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'];
+
+    {% for eval in ace_evals %}
+    const quarter{{ loop.index0 }} = '{{ eval.year }} {{ eval.quarter }}';
+    const year{{ loop.index0 }} = {{ eval.year }};
+    const qInfo{{ loop.index0 }} = quarterMap['{{ eval.quarter }}'];
+    weeklyByQuarter[quarter{{ loop.index0 }}] = [];
+
+    {% for weekly in weekly_evals %}
+    const evalDate{{ loop.index0 }}_{{ loop.parent.loop.index0 }} = new Date('{{ weekly.eval_date.strftime("%Y-%m-%d") }}');
+    const evalMonth = evalDate{{ loop.index0 }}_{{ loop.parent.loop.index0 }}.getMonth() + 1;
+    const evalYear = evalDate{{ loop.index0 }}_{{ loop.parent.loop.index0 }}.getFullYear();
+
+    if (evalYear === year{{ loop.parent.loop.index0 }}) {
+        if ((qInfo{{ loop.parent.loop.index0 }}.start <= qInfo{{ loop.parent.loop.index0 }}.end && evalMonth >= qInfo{{ loop.parent.loop.index0 }}.start && evalMonth <= qInfo{{ loop.parent.loop.index0 }}.end) ||
+            (qInfo{{ loop.parent.loop.index0 }}.start > qInfo{{ loop.parent.loop.index0 }}.end && (evalMonth >= qInfo{{ loop.parent.loop.index0 }}.start || evalMonth <= qInfo{{ loop.parent.loop.index0 }}.end))) {
+            weeklyByQuarter[quarter{{ loop.parent.loop.index0 }}].push({
+                week: {{ weekly.week_number }},
+                score: {{ weekly.score }},
+                date: '{{ weekly.eval_date.strftime("%m/%d") }}'
+            });
+        }
+    }
+    {% endfor %}
+    {% endfor %}
+
+    // 차트 데이터셋 생성
+    const datasets = [];
+    let datasetIndex = 0;
+    for (const [quarter, data] of Object.entries(weeklyByQuarter)) {
+        if (data.length > 0) {
+            // 평균 계산
+            const avg = data.reduce((sum, d) => sum + d.score, 0) / data.length;
+            const avgEl = document.getElementById('avg-score-' + datasetIndex);
+            if (avgEl) avgEl.textContent = avg.toFixed(1);
+
+            datasets.push({
+                label: quarter,
+                data: data.map(d => d.score),
+                borderColor: quarterColors[datasetIndex % quarterColors.length],
+                backgroundColor: quarterColors[datasetIndex % quarterColors.length].replace('0.8', '0.1'),
+                fill: false,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: quarterColors[datasetIndex % quarterColors.length],
+                pointBorderWidth: 2.5,
+                borderWidth: 3
+            });
+        }
+        datasetIndex++;
+    }
+
+    // 차트 생성
+    new Chart(quarterlyWritingCtx, {
+        type: 'line',
+        data: {
+            labels: Array.from({length: Math.max(...Object.values(weeklyByQuarter).map(d => d.length))}, (_, i) => `${i + 1}주차`),
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: { size: 12, family: 'Noto Sans KR', weight: '600' },
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y + '점';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 10,
+                        font: { size: 11 }
+                    },
+                    grid: { color: '#E2E8F0' },
+                    title: {
+                        display: true,
+                        text: '점수 (0-100)',
+                        font: { size: 12, weight: 'bold', family: 'Noto Sans KR' }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 11 }
+                    },
+                    title: {
+                        display: true,
+                        text: '주차',
+                        font: { size: 12, weight: 'bold', family: 'Noto Sans KR' }
+                    }
+                }
+            }
+        }
+    });
+}
+{% endif %}
+{% endif %}
+</script>
+
+{% endblock %}

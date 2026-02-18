@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} - 학생 종합 정보{% endblock %}
+
+{% block page_title %}👤 {{ student.name }} 학생 정보{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">{{ student.grade }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('teacher.students') }}"
+                   class="text-blue-600 hover:text-blue-800 font-medium">
+                    ← 학생 목록
+                </a>
+                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }}</h2>
+                <span class="px-3 py-1 {% if student.tier == 'VIP' %}bg-yellow-100 text-yellow-800{% elif student.tier == 'A' %}bg-green-100 text-green-800{% elif student.tier == 'B' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %} text-sm font-medium rounded-full">
+                    {{ student.tier }}
+                </span>
+            </div>
+        </div>
+        <p class="text-gray-600">{{ student.grade }} | {{ student.student_code }}</p>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="flex -mb-px">
+                <button onclick="showTab('basic')" id="tab-basic"
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+                    📋 기본정보
+                </button>
+                <button onclick="showTab('profile')" id="tab-profile"
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    📝 프로필
+                </button>
+                <button onclick="showTab('mbti')" id="tab-mbti"
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    🧠 MBTI
+                </button>
+                <button onclick="showTab('consultation')" id="tab-consultation"
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    💬 상담이력
+                </button>
+                <button onclick="showTab('insights')" id="tab-insights"
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    🤖 AI 인사이트
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 탭 콘텐츠 -->
+    <div id="tab-content">
+        <!-- 기본정보 탭 -->
+        <div id="content-basic" class="tab-content">
+            <!-- 학생 정보 카드 -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">학생 정보</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">학생 코드</div>
+                            <div class="font-medium">{{ student.student_code }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">학년</div>
+                            <div class="font-medium">{{ student.grade }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">이메일</div>
+                            <div class="font-medium">{{ student.email or '-' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">전화번호</div>
+                            <div class="font-medium">{{ student.phone or '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학부모 정보 -->
+            {% if parents %}
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">학부모 정보</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for parent in parents %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                                <div class="font-medium">{{ parent.name }}</div>
+                                <div class="text-sm text-gray-600">{{ parent.email }}</div>
+                                {% if parent.phone %}
+                                <div class="text-sm text-gray-600">📞 {{ parent.phone }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 수강 내역 -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-800">수강 내역</h3>
+                    <span class="text-sm text-gray-600">총 {{ enrollments|length }}개 수업</span>
+                </div>
+                <div class="p-6">
+                    {% if enrollments %}
+                    <div class="space-y-4">
+                        {% for enrollment in enrollments %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <div class="font-medium text-lg">{{ enrollment.course.name }}</div>
+                                    <div class="text-sm text-gray-600">{{ enrollment.course.course_type }} | {{ enrollment.course.grade }}</div>
+                                </div>
+                                <span class="px-3 py-1 {% if enrollment.status == 'active' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %} text-sm font-medium rounded-full">
+                                    {% if enrollment.status == 'active' %}수강중{% else %}종료{% endif %}
+                                </span>
+                            </div>
+
+                            <!-- 출석 통계 -->
+                            <div class="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-green-600">{{ enrollment.attended_sessions }}</div>
+                                    <div class="text-xs text-gray-600">출석</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-orange-600">{{ enrollment.late_sessions }}</div>
+                                    <div class="text-xs text-gray-600">지각</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-red-600">{{ enrollment.absent_sessions }}</div>
+                                    <div class="text-xs text-gray-600">결석</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-purple-600">
+                                        {% set total = enrollment.attended_sessions + enrollment.late_sessions + enrollment.absent_sessions %}
+                                        {% if total > 0 %}
+                                            {{ ((enrollment.attended_sessions / total) * 100)|round(1) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-xs text-gray-600">출석률</div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <a href="{{ url_for('teacher.course_detail', course_id=enrollment.course_id) }}"
+                                   class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                    수업 상세 보기 →
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <div class="text-4xl mb-4">📚</div>
+                        <p>수강 중인 수업이 없습니다.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 피드백 이력 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-800">내가 작성한 피드백</h3>
+                    <a href="{{ url_for('teacher.create_feedback', student_id=student.student_id) }}"
+                       class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        + 새 피드백 작성
+                    </a>
+                </div>
+                <div class="p-6">
+                    {% if feedbacks %}
+                    <div class="space-y-4">
+                        {% for feedback in feedbacks %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-sm text-gray-600">
+                                    {{ feedback.created_at.strftime('%Y년 %m월 %d일') }}
+                                </div>
+                                <span class="px-2 py-1 {% if feedback.feedback_type == 'positive' %}bg-green-100 text-green-800{% elif feedback.feedback_type == 'improvement' %}bg-orange-100 text-orange-800{% else %}bg-blue-100 text-blue-800{% endif %} text-xs rounded-full">
+                                    {% if feedback.feedback_type == 'positive' %}칭찬{% elif feedback.feedback_type == 'improvement' %}개선{% else %}일반{% endif %}
+                                </span>
+                            </div>
+                            <div class="text-gray-700 mb-2">{{ feedback.content }}</div>
+                            {% if feedback.hidden_from_student %}
+                            <div class="text-xs text-gray-500 flex items-center gap-1">
+                                <span>🔒</span>
+                                <span>학생에게 비공개 (학부모만 확인 가능)</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <div class="text-4xl mb-4">💭</div>
+                        <p>작성한 피드백이 없습니다.</p>
+                        <p class="text-sm mt-2">학생의 학습 상황을 학부모님께 공유해보세요.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 프로필 탭 -->
+        <div id="content-profile" class="tab-content hidden">
+            {% if profile %}
+            <!-- 주요 특징 카드 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-5 border border-blue-200">
+                    <h3 class="text-sm font-semibold text-blue-900 mb-3">📚 독서 역량</h3>
+                    <div class="text-3xl font-bold text-blue-700 mb-1">
+                        {% if profile.reading_competency %}{{ profile.reading_competency }}/5{% else %}-{% endif %}
+                    </div>
+                    <div class="text-xs text-blue-600">
+                        {% if profile.weekly_reading_amount %}{{ profile.weekly_reading_amount }}{% endif %}
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-5 border border-green-200">
+                    <h3 class="text-sm font-semibold text-green-900 mb-3">✏️ 수업 경험</h3>
+                    <div class="text-lg font-bold text-green-700 mb-1">
+                        {% if profile.reading_experience %}{{ profile.reading_experience }}{% else %}없음{% endif %}
+                    </div>
+                    <div class="text-xs text-green-600">독서논술 수업</div>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-5 border border-purple-200">
+                    <h3 class="text-sm font-semibold text-purple-900 mb-3">🎯 진학 목표</h3>
+                    <div class="text-sm font-medium text-purple-700 line-clamp-2">
+                        {% if profile.academic_goals_list %}
+                        {{ profile.academic_goals_list[0] }}
+                        {% if profile.academic_goals_list|length > 1 %}<span class="text-xs">외 {{ profile.academic_goals_list|length - 1 }}개</span>{% endif %}
+                        {% else %}미정{% endif %}
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow p-5 border border-orange-200">
+                    <h3 class="text-sm font-semibold text-orange-900 mb-3">👤 학생 성향</h3>
+                    <div class="text-sm font-medium text-orange-700 line-clamp-2">
+                        {% if profile.personality_traits_list %}
+                        {{ profile.personality_traits_list[0] }}
+                        {% if profile.personality_traits_list|length > 1 %}<span class="text-xs">외 {{ profile.personality_traits_list|length - 1 }}개</span>{% endif %}
+                        {% else %}-{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 상세 정보 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-800">기본 정보</h3>
+                    </div>
+                    <div class="p-6 space-y-3 text-sm">
+                        <div>
+                            <p class="text-gray-600 mb-1">재학 학교</p>
+                            <p class="font-medium text-gray-800">{{ profile.current_school or '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 mb-1">학부모 연락처</p>
+                            <p class="font-medium text-gray-800">{{ profile.parent_contact or '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 mb-1">주소</p>
+                            <p class="font-medium text-gray-800">{{ profile.address or '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-800">독서 성향</h3>
+                    </div>
+                    <div class="p-6 space-y-3 text-sm">
+                        <div>
+                            <p class="text-gray-600 mb-2">선호 독서 분야</p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for genre in profile.preferred_genres_list %}
+                                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ genre }}</span>
+                                {% else %}
+                                <p class="text-gray-500">-</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-800">수업 목표</h3>
+                    </div>
+                    <div class="p-6 space-y-3 text-sm">
+                        <div>
+                            <p class="text-gray-600 mb-1">주요 향상 목표</p>
+                            <p class="font-medium text-gray-800">{{ profile.main_improvement_goal or '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 mb-1">선호 수업 스타일</p>
+                            <p class="font-medium text-gray-800">{{ profile.preferred_class_style or '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+                <div class="text-5xl mb-4">📋</div>
+                <p class="text-gray-700 font-medium">아직 기초 조사 프로필이 작성되지 않았습니다.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- MBTI 탭 -->
+        <div id="content-mbti" class="tab-content hidden">
+            {% if mbti_result and mbti_type %}
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-6 border-2 border-purple-200">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-purple-900 mb-2">{{ mbti_type.type_name }}</h3>
+                    <p class="text-purple-700">{{ mbti_result.type_combination }}</p>
+                    <p class="text-sm text-gray-600 mt-2">테스트 일시: {{ mbti_result.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+
+                <div class="bg-white bg-opacity-60 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-purple-600 font-medium mb-2">특징</p>
+                    <p class="text-gray-800">{{ mbti_type.full_description or '-' }}</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white bg-opacity-60 rounded-lg p-4">
+                        <p class="text-xs text-blue-600 font-bold mb-2">📖 읽기</p>
+                        <p class="text-lg font-bold text-blue-900">{{ mbti_result.read_type }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-60 rounded-lg p-4">
+                        <p class="text-xs text-green-600 font-bold mb-2">💬 말하기</p>
+                        <p class="text-lg font-bold text-green-900">{{ mbti_result.speech_type }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-60 rounded-lg p-4">
+                        <p class="text-xs text-orange-600 font-bold mb-2">✍️ 쓰기</p>
+                        <p class="text-lg font-bold text-orange-900">{{ mbti_result.write_type }}</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+                <div class="text-5xl mb-4">🧠</div>
+                <p class="text-gray-700 font-medium">아직 MBTI 테스트 결과가 없습니다.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 상담이력 탭 -->
+        <div id="content-consultation" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-800">💬 상담 이력</h3>
+                    <span class="text-sm text-gray-600">최근 10건</span>
+                </div>
+                <div class="p-6">
+                    {% if consultations %}
+                    <div class="space-y-3">
+                        {% for consultation in consultations %}
+                        <a href="{{ url_for('teacher.consultation_detail', consultation_id=consultation.consultation_id) }}"
+                           class="block border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-3">
+                                    <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded">
+                                        {{ consultation.major_category }}
+                                    </span>
+                                    {% if consultation.sub_category %}
+                                    <span class="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded">
+                                        {{ consultation.sub_category }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="text-xs text-gray-500">{{ consultation.consultation_date.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                            <p class="text-sm font-medium text-gray-800 mb-1">{{ consultation.title }}</p>
+                            <p class="text-xs text-gray-600 line-clamp-1">{{ consultation.content }}</p>
+                            <div class="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                                <span>👤 {{ consultation.counselor.name }}</span>
+                                <span class="text-gray-400">•</span>
+                                <span class="text-blue-600">상세보기 →</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <div class="text-4xl mb-3">📭</div>
+                        <p>상담 기록이 없습니다.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 인사이트 탭 -->
+        <div id="content-insights" class="tab-content hidden">
+            <!-- 전체 상태 카드 -->
+            <div class="mb-6 p-6 rounded-lg {% if insights.overall_color == 'red' %}bg-red-50 border-2 border-red-300{% elif insights.overall_color == 'yellow' %}bg-yellow-50 border-2 border-yellow-300{% else %}bg-green-50 border-2 border-green-300{% endif %}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold {% if insights.overall_color == 'red' %}text-red-900{% elif insights.overall_color == 'yellow' %}text-yellow-900{% else %}text-green-900{% endif %}">
+                            종합 상태: {{ insights.overall_label }}
+                        </h3>
+                        <p class="text-sm {% if insights.overall_color == 'red' %}text-red-700{% elif insights.overall_color == 'yellow' %}text-yellow-700{% else %}text-green-700{% endif %} mt-1">
+                            위험 요소 {{ insights.risk_factors|length }}개, 주의 요소 {{ insights.warning_factors|length }}개
+                        </p>
+                    </div>
+                    <div class="text-5xl">
+                        {% if insights.overall_color == 'red' %}🔴
+                        {% elif insights.overall_color == 'yellow' %}🟡
+                        {% else %}🟢{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- 위험 요소 -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+                        <h3 class="text-lg font-bold text-red-900">🔴 위험 요소</h3>
+                    </div>
+                    <div class="p-6">
+                        {% if insights.risk_factors %}
+                        <div class="space-y-3">
+                            {% for factor in insights.risk_factors %}
+                            <div class="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                                <span class="text-2xl">{{ factor.icon }}</span>
+                                <div class="flex-1">
+                                    <p class="font-medium text-red-900 text-sm">{{ factor.category }}</p>
+                                    <p class="text-sm text-red-800 mt-1">{{ factor.description }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <p class="text-sm">위험 요소가 없습니다 ✓</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 주의 요소 -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-yellow-50">
+                        <h3 class="text-lg font-bold text-yellow-900">🟡 주의 요소</h3>
+                    </div>
+                    <div class="p-6">
+                        {% if insights.warning_factors %}
+                        <div class="space-y-3">
+                            {% for factor in insights.warning_factors %}
+                            <div class="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <span class="text-2xl">{{ factor.icon }}</span>
+                                <div class="flex-1">
+                                    <p class="font-medium text-yellow-900 text-sm">{{ factor.category }}</p>
+                                    <p class="text-sm text-yellow-800 mt-1">{{ factor.description }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <p class="text-sm">주의 요소가 없습니다 ✓</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 강점 -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                        <h3 class="text-lg font-bold text-green-900">🟢 강점</h3>
+                    </div>
+                    <div class="p-6">
+                        {% if insights.strengths %}
+                        <div class="space-y-3">
+                            {% for strength in insights.strengths %}
+                            <div class="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                <span class="text-2xl">{{ strength.icon }}</span>
+                                <div class="flex-1">
+                                    <p class="font-medium text-green-900 text-sm">{{ strength.category }}</p>
+                                    <p class="text-sm text-green-800 mt-1">{{ strength.description }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <p class="text-sm">데이터 부족</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 추천 액션 -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                        <h3 class="text-lg font-bold text-blue-900">💡 추천 액션</h3>
+                    </div>
+                    <div class="p-6">
+                        {% if insights.recommendations %}
+                        <div class="space-y-3">
+                            {% for rec in insights.recommendations %}
+                            <div class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <span class="text-lg {% if rec.priority == 'high' %}text-red-600{% elif rec.priority == 'medium' %}text-yellow-600{% else %}text-blue-600{% endif %}">
+                                    {% if rec.priority == 'high' %}🔥
+                                    {% elif rec.priority == 'medium' %}⚠️
+                                    {% else %}💡{% endif %}
+                                </span>
+                                <div class="flex-1">
+                                    <p class="font-medium text-blue-900 text-sm">{{ rec.category }}</p>
+                                    <p class="text-sm text-blue-800 mt-1">{{ rec.action }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <p class="text-sm">추천 액션이 없습니다</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 안내 문구 -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-xs text-gray-600 text-center">
+                    💡 AI 인사이트는 출석률, 상담이력, MBTI, 프로필 데이터를 교차분석하여 자동 생성됩니다.
+                    실제 상담 시 참고자료로만 활용해주세요.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // 모든 탭 버튼 비활성화
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
+
+    // 모든 탭 콘텐츠 숨기기
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+
+    // 선택된 탭 활성화
+    document.getElementById('tab-' + tabName).classList.remove('border-transparent', 'text-gray-500');
+    document.getElementById('tab-' + tabName).classList.add('border-blue-500', 'text-blue-600');
+
+    // 선택된 콘텐츠 표시
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+
+    // 선택된 탭을 localStorage에 저장
+    localStorage.setItem('selectedTab', tabName);
+}
+
+// 페이지 로드 시 저장된 탭 또는 기본 탭 표시
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTab = localStorage.getItem('selectedTab') || 'basic';
+    showTab(savedTab);
+});
+</script>
+{% endblock %}

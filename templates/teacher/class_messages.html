@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}수업 공지/과제 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}💬 수업 공지/과제{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">학생 메시지 발송</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">📢 수업 공지 및 과제 메시지</h2>
+        <p class="text-gray-600 mt-2">반 전체 또는 개별 학생에게 공지나 과제를 전달하세요.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 반별 공지 발송 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center mb-4">
+                <span class="text-3xl mr-3">👥</span>
+                <h3 class="text-xl font-bold text-gray-800">반 전체 공지</h3>
+            </div>
+
+            <form method="POST" action="{{ url_for('teacher.send_course_message') }}" id="courseMessageForm">
+                <!-- 수업 선택 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">수업 선택</label>
+                    <select name="course_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">수업을 선택하세요</option>
+                        {% for course in courses %}
+                        <option value="{{ course.course_id }}">
+                            {{ course.course_name }} ({{ course.enrollments|length }}명)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 메시지 유형 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">메시지 유형</label>
+                    <select name="message_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="announcement">수업 공지</option>
+                        <option value="homework">과제 안내</option>
+                    </select>
+                </div>
+
+                <!-- 제목 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                    <input type="text" name="title" required maxlength="100"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="예: 다음 주 수업 안내">
+                </div>
+
+                <!-- 내용 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                    <textarea name="message" required rows="5"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="학생들에게 전달할 메시지를 입력하세요..."></textarea>
+                </div>
+
+                <!-- 학부모 발송 옵션 -->
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="send_to_parents" value="1" checked
+                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">학부모에게도 함께 발송</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-6">체크 해제 시 학생에게만 발송됩니다</p>
+                </div>
+
+                <!-- 발송 버튼 -->
+                <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                    반 전체에 발송하기
+                </button>
+            </form>
+        </div>
+
+        <!-- 개별 학생 메시지 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center mb-4">
+                <span class="text-3xl mr-3">👤</span>
+                <h3 class="text-xl font-bold text-gray-800">개별 학생 메시지</h3>
+            </div>
+
+            <form method="POST" action="{{ url_for('teacher.send_student_message') }}" id="studentMessageForm">
+                <!-- 학생 선택 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">학생 선택</label>
+                    <select name="student_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">학생을 선택하세요</option>
+                        {% for student in students %}
+                        <option value="{{ student.student_id }}">
+                            {{ student.name }} ({{ student.grade }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 메시지 유형 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">메시지 유형</label>
+                    <select name="message_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="homework">개별 과제</option>
+                        <option value="announcement">개별 메시지</option>
+                    </select>
+                </div>
+
+                <!-- 제목 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                    <input type="text" name="title" required maxlength="100"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                           placeholder="예: 추가 과제 안내">
+                </div>
+
+                <!-- 내용 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                    <textarea name="message" required rows="5"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                              placeholder="학생에게 전달할 메시지를 입력하세요..."></textarea>
+                </div>
+
+                <!-- 학부모 발송 옵션 -->
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="send_to_parents" value="1" checked
+                               class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                        <span class="ml-2 text-sm text-gray-700">학부모에게도 함께 발송</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-6">체크 해제 시 학생에게만 발송됩니다</p>
+                </div>
+
+                <!-- 발송 버튼 -->
+                <button type="submit"
+                        class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200">
+                    학생에게 발송하기
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 최근 발송 내역 -->
+    {% if recent_messages %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">📝 최근 발송 내역</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            날짜
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            유형
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            제목
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            내용
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for msg in recent_messages %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ msg.created_at.strftime('%m/%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if msg.notification_type == 'class_announcement' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                                공지
+                            </span>
+                            {% elif msg.notification_type == 'homework_assignment' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                                과제
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                            {{ msg.title }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            <div class="max-w-md truncate">{{ msg.message }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📭</div>
+        <p class="text-gray-500 text-lg">아직 발송한 메시지가 없습니다.</p>
+    </div>
+    {% endif %}
+
+    <!-- 도움말 -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start">
+            <span class="text-2xl mr-3">💡</span>
+            <div>
+                <p class="text-sm text-blue-900 font-medium mb-1">수업 공지/과제 안내</p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• <strong>반 전체 공지:</strong> 해당 수업의 모든 학생과 학부모에게 알림이 전송됩니다</li>
+                    <li>• <strong>개별 학생 메시지:</strong> 특정 학생과 해당 학생의 학부모에게 알림이 전송됩니다</li>
+                    <li>• 발송된 메시지는 학생/학부모 포털의 알림함에서 확인할 수 있습니다</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 폼 제출 확인
+document.getElementById('courseMessageForm').addEventListener('submit', function(e) {
+    const courseName = this.querySelector('select[name="course_id"] option:checked').text;
+    if (!confirm(`${courseName}의 전체 학생에게 메시지를 발송하시겠습니까?`)) {
+        e.preventDefault();
+    }
+});
+
+document.getElementById('studentMessageForm').addEventListener('submit', function(e) {
+    const studentName = this.querySelector('select[name="student_id"] option:checked').text;
+    if (!confirm(`${studentName}에게 메시지를 발송하시겠습니까?`)) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

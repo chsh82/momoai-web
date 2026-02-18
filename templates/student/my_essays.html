@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}내 첨삭 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">내 첨삭 ({{ essays|length }})</h2>
+            <p class="text-gray-600 mt-1">제출한 첨삭 기록을 확인할 수 있습니다.</p>
+        </div>
+        <a href="{{ url_for('student.submit_essay') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            + 새 과제 제출
+        </a>
+    </div>
+
+    <!-- 첨삭 목록 -->
+    {% if essays %}
+    <div class="grid grid-cols-1 gap-4">
+        {% for essay in essays %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <a href="{{ url_for('student.view_essay', essay_id=essay.essay_id) }}"
+               class="block p-6">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-medium text-gray-800 hover:text-blue-600 mb-2">
+                            {{ essay.title }}
+                        </h3>
+                        <div class="flex items-center gap-3 text-sm text-gray-600">
+                            <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일') }}</span>
+                            <span>👨‍🏫 {{ essay.user.name }} 강사</span>
+                            {% if essay.is_finalized %}
+                            <span>✅ {{ essay.finalized_at.strftime('%Y년 %m월 %d일') }} 완료</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <span class="px-3 py-1 text-sm font-medium rounded
+                            {% if essay.is_finalized %}bg-green-100 text-green-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {% if essay.is_finalized %}첨삭 완료{% else %}진행 중{% endif %}
+                        </span>
+                        {% if essay.is_finalized and essay.total_score %}
+                        <span class="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded">
+                            총점: {{ essay.total_score }}점
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if essay.is_finalized and essay.overall_feedback %}
+                <div class="bg-gray-50 rounded-lg p-4 mt-3">
+                    <p class="text-sm text-gray-700 line-clamp-2">
+                        <span class="font-medium">종합 평가:</span> {{ essay.overall_feedback[:200] }}{% if essay.overall_feedback|length > 200 %}...{% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📝</div>
+        <h3 class="text-xl font-medium text-gray-800 mb-2">제출한 첨삭이 없습니다</h3>
+        <p class="text-gray-600 mb-6">첫 번째 첨삭을 제출해보세요!</p>
+        <a href="{{ url_for('student.submit_essay') }}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            과제 제출하기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

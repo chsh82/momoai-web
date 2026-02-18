@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}🏆 ACE 분기 평가{% endblock %}
+
+{% block page_title %}🏆 ACE 분기 평가{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">3개월 단위 종합 역량 평가</span>
+{% endblock %}
+
+{% block extra_css %}
+<!-- ACE evaluation button styles are in style.css -->
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    <!-- ACE 분기 평가 입력 폼 -->
+    <div class="card-momo mb-4">
+        <h3 class="text-card-title mb-4">🏆 ACE 분기 평가 입력</h3>
+
+        <form method="POST" action="{{ url_for('teacher.ace_quarterly') }}" id="aceForm">
+            <!-- 기본 정보 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <!-- 학생 선택 -->
+                <div class="form-group">
+                    <label class="text-label">학생</label>
+                    <select name="student_id" class="select-momo w-full" required>
+                        <option value="">학생 선택</option>
+                        {% for student in students %}
+                        <option value="{{ student.student_id }}" {{ 'selected' if selected_student_id and student.student_id == selected_student_id else '' }}>
+                            {{ student.name }} ({{ student.grade }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 연도 -->
+                <div class="form-group">
+                    <label class="text-label">연도</label>
+                    <input type="number" name="year" class="input-momo w-full"
+                           value="{{ current_year }}" min="2020" max="2030" required>
+                </div>
+
+                <!-- 분기 -->
+                <div class="form-group col-span-2">
+                    <label class="text-label">분기</label>
+                    <select name="quarter" class="select-momo w-full" required>
+                        {% for quarter in quarters %}
+                        <option value="{{ quarter }}">{{ quarter }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- ACE 5개 축 평가 -->
+            {% for axis in ace_axes %}
+            {% set axis_index = loop.index0 %}
+            <div class="mb-6">
+                <!-- 축 제목 -->
+                <div class="flex items-center gap-3 mb-3 pb-2 border-b-2" style="border-color: {{ axis.color }}20;">
+                    <div style="width: 4px; height: 24px; border-radius: 2px; background: {{ axis.color }};"></div>
+                    <span class="text-base font-bold">{{ axis.name }}</span>
+                    <span class="text-xs text-gray-500 ml-auto mono">
+                        <span id="axis-{{ axis_index }}-score">9</span>/15
+                    </span>
+                </div>
+
+                <!-- 3개 항목 평가 -->
+                {% for item in axis['items'] %}
+                <div class="grade-row">
+                    <div class="grade-label">
+                        <strong>{{ item.name }}</strong><br>
+                        <span style="font-size: 11px; color: var(--text3);">{{ item.desc }}</span>
+                    </div>
+                    <div class="grade-btns">
+                        {% for grade_label in grade_labels %}
+                        {% set grade_idx = loop.index0 %}
+                        <button type="button"
+                                class="grade-btn {{ 'active g-mid' if grade_label == '중' else '' }}"
+                                data-axis="{{ axis_index }}"
+                                data-item="{{ item.name }}"
+                                data-grade="{{ grade_label }}"
+                                data-grade-idx="{{ grade_idx }}"
+                                onclick="selectGrade(this, event)">
+                            {{ grade_label }}
+                        </button>
+                        {% endfor %}
+                        <input type="hidden" name="score_{{ item.name }}" value="중">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <!-- 종합 코멘트 -->
+            <div class="form-group mb-4">
+                <label class="text-label">종합 코멘트</label>
+                <textarea name="comment" class="input-momo w-full"
+                          rows="4"
+                          placeholder="학생 전반적 역량 평가, 성장 방향, 강점 및 보완점 등을 입력하세요..."></textarea>
+            </div>
+
+            <!-- 총점 및 저장 버튼 -->
+            <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                <div>
+                    <span class="text-sm text-gray-600">총점</span>
+                    <span class="mono text-3xl font-bold mx-2" id="total-score">45</span>
+                    <span class="text-sm text-gray-500">/ 75</span>
+                </div>
+                <div class="flex gap-3">
+                    <a href="{{ url_for('teacher.ace_evaluation') }}" class="btn btn-outline">
+                        <span>← 돌아가기</span>
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾 ACE 평가 저장</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ACE 평가 이력 -->
+    {% if ace_evals %}
+    <div class="card-momo">
+        <h3 class="text-card-title mb-4">📋 ACE 평가 이력 (최근 20개)</h3>
+
+        <div class="overflow-x-auto">
+            <table class="table-momo w-full">
+                <thead>
+                    <tr>
+                        <th>학생</th>
+                        <th>연도</th>
+                        <th>분기</th>
+                        <th>총점</th>
+                        <th>축별 평균</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eval in ace_evals %}
+                    <tr>
+                        <td class="font-semibold">
+                            {{ eval.student.name if eval.student else '?' }}
+                        </td>
+                        <td>{{ eval.year }}</td>
+                        <td>{{ eval.quarter[:3] }}</td>
+                        <td class="mono font-bold">{{ eval.get_total_score() }}/75</td>
+                        <td class="text-sm">
+                            {% for axis in ace_axes %}
+                            <span style="color: {{ axis.color }}; font-weight: 600;">
+                                {{ axis.name[:2] }} {{ "%.1f"|format(eval.get_axis_average(axis.item_names)) }}
+                            </span>{{ ' · ' if not loop.last else '' }}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <div class="flex gap-2">
+                                <a href="{{ url_for('teacher.ace_report', student_id=eval.student_id, quarter_idx=loop.index0) }}"
+                                   class="btn btn-sm btn-outline"
+                                   target="_blank"
+                                   title="리포트 출력">
+                                    🖨 리포트
+                                </a>
+                                <form method="POST" action="{{ url_for('teacher.ace_quarterly_delete', eval_id=eval.id) }}"
+                                      onsubmit="return confirm('이 평가를 삭제하시겠습니까?');"
+                                      style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger">삭제</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-momo">
+        <div class="text-center py-12 text-gray-500">
+            <p class="text-base mb-2">아직 작성한 ACE 평가가 없습니다</p>
+            <p class="text-sm">위 폼에서 첫 번째 평가를 입력해보세요.</p>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+const GRADE_SCORES = {'특': 5, '상': 4, '중': 3, '하': 2, '저': 1};
+const GRADE_CLASSES = ['g-top', 'g-high', 'g-mid', 'g-low', 'g-bottom'];
+
+function selectGrade(button, event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const axis = button.dataset.axis;
+    const itemName = button.dataset.item;
+    const grade = button.dataset.grade;
+    const gradeIdx = parseInt(button.dataset.gradeIdx);
+
+    console.log('🎯 Selecting grade:', grade, 'for item:', itemName);
+
+    // 색상 매핑
+    const colorMap = {
+        0: { bg: '#10B981', border: '#059669', name: 'g-top' },     // 특 - 초록
+        1: { bg: '#3B82F6', border: '#2563EB', name: 'g-high' },    // 상 - 파랑
+        2: { bg: '#F59E0B', border: '#D97706', name: 'g-mid' },     // 중 - 오렌지
+        3: { bg: '#F97316', border: '#EA580C', name: 'g-low' },     // 하 - 주황
+        4: { bg: '#EF4444', border: '#DC2626', name: 'g-bottom' }   // 저 - 빨강
+    };
+
+    // 같은 항목의 다른 버튼들 초기화
+    const itemButtons = document.querySelectorAll(`button[data-item="${itemName}"]`);
+    itemButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.remove('g-top', 'g-high', 'g-mid', 'g-low', 'g-bottom');
+        // 스타일 초기화
+        btn.style.backgroundColor = '';
+        btn.style.border = '';
+        btn.style.color = '';
+        btn.style.transform = '';
+        btn.style.boxShadow = '';
+        btn.style.fontWeight = '';
+    });
+
+    // 현재 버튼에 클래스 추가
+    const gradeClass = GRADE_CLASSES[gradeIdx];
+    button.classList.add('active');
+    button.classList.add(gradeClass);
+
+    // 인라인 스타일로 직접 색상 적용 (확실한 시각적 피드백)
+    const color = colorMap[gradeIdx];
+    button.style.backgroundColor = color.bg;
+    button.style.border = `2px solid ${color.border}`;
+    button.style.color = '#fff';
+    button.style.fontWeight = '900';
+    button.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+
+    // 시각적 피드백 (애니메이션)
+    button.style.transform = 'scale(1.15)';
+    setTimeout(() => {
+        button.style.transform = 'scale(1.08)';
+    }, 100);
+
+    console.log('✅ Button classes:', Array.from(button.classList));
+    console.log('✅ Applied color:', color.bg);
+
+    // hidden input 업데이트
+    const hiddenInput = document.querySelector(`input[name="score_${itemName}"]`);
+    if (hiddenInput) {
+        hiddenInput.value = grade;
+        console.log('✅ Updated input:', hiddenInput.name, '=', grade);
+    } else {
+        console.error('❌ Hidden input not found for:', itemName);
+    }
+
+    // 축별 점수 및 총점 업데이트
+    updateScores();
+}
+
+function updateScores() {
+    // 모든 hidden inputs에서 점수 수집
+    const scoreInputs = document.querySelectorAll('input[type="hidden"][name^="score_"]');
+    let totalScore = 0;
+
+    // 축별 점수 계산 (5개 축)
+    const axisScores = [0, 0, 0, 0, 0];
+    const axisCounts = [0, 0, 0, 0, 0];
+
+    scoreInputs.forEach(input => {
+        const itemName = input.name.replace('score_', '');
+        const grade = input.value;
+        const score = GRADE_SCORES[grade] || 3;
+        totalScore += score;
+
+        // 축 찾기 (data-axis 속성 사용)
+        const button = document.querySelector(`button[data-item="${itemName}"].active`);
+        if (button) {
+            const axisIdx = parseInt(button.dataset.axis);
+            axisScores[axisIdx] += score;
+            axisCounts[axisIdx]++;
+        }
+    });
+
+    // 총점 표시
+    document.getElementById('total-score').textContent = totalScore;
+
+    // 축별 점수 표시
+    axisScores.forEach((score, idx) => {
+        const el = document.getElementById(`axis-${idx}-score`);
+        if (el) {
+            el.textContent = score;
+        }
+    });
+}
+
+// 초기화 함수
+function initializeForm() {
+    console.log('Initializing ACE evaluation form...');
+
+    // 모든 '중' 버튼에 active 클래스가 제대로 적용되었는지 확인
+    let initializedCount = 0;
+    document.querySelectorAll('.grade-btn').forEach(btn => {
+        if (btn.dataset.grade === '중') {
+            // '중' 버튼에 active와 색상 클래스 추가
+            if (!btn.classList.contains('active')) {
+                btn.classList.add('active');
+            }
+            if (!btn.classList.contains('g-mid')) {
+                btn.classList.add('g-mid');
+            }
+            // 인라인 스타일로 색상 적용 (중 = 오렌지)
+            btn.style.backgroundColor = '#F59E0B';
+            btn.style.border = '2px solid #D97706';
+            btn.style.color = '#fff';
+            btn.style.fontWeight = '900';
+            btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+            btn.style.transform = 'scale(1.08)';
+            initializedCount++;
+        }
+    });
+
+    console.log(`✅ Initialized ${initializedCount} default grade buttons with inline styles`);
+
+    // 초기 점수 계산
+    updateScores();
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    initializeForm();
+});
+</script>
+
+{% endblock %}

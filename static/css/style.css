@@ -1,45 +1,814 @@
-/* Custom styles for MOMOAI Web */
+/* 모모의 책장 디자인 시스템 v1.0 */
+/* MOMOAI Web - Design System Implementation */
 
-/* Print optimization for HTML reports */
-@media print {
-    body {
-        margin: 0;
-        padding: 0;
-    }
+/* ============================================
+   1. CSS Variables (Design Tokens)
+   ============================================ */
+:root {
+  /* Primary Navy Colors */
+  --navy: #1A2744;
+  --navy2: #1E3A5F;
+  --navy-dark: #0F172A;
 
-    .no-print {
-        display: none !important;
-    }
+  /* Accent Colors */
+  --blue: #3B82F6;
+  --purple: #8B5CF6;
+  --green: #10B981;
+  --amber: #F59E0B;
+  --red: #EF4444;
+  --teal: #14B8A6;
+  --rose: #F43F5E;
+
+  /* Background & Surface */
+  --bg: #F0F2F5;
+  --card: #FFFFFF;
+  --light: #F8FAFC;
+
+  /* Text Colors */
+  --text: #1E293B;
+  --text2: #475569;
+  --text3: #94A3B8;
+
+  /* Borders & Lines */
+  --border: #E2E8F0;
+
+  /* Grade Colors - Excellent */
+  --grade-excellent-text: #059669;
+  --grade-excellent-bg: #ECFDF5;
+
+  /* Grade Colors - Good */
+  --grade-good-text: #2563EB;
+  --grade-good-bg: #EFF6FF;
+
+  /* Grade Colors - Average */
+  --grade-average-text: #D97706;
+  --grade-average-bg: #FFFBEB;
+
+  /* Grade Colors - Warning */
+  --grade-warning-text: #DC2626;
+  --grade-warning-bg: #FEF2F2;
+
+  /* Spacing & Layout */
+  --radius-card: 14px;
+  --radius-button: 10px;
+  --radius-badge: 20px;
+  --shadow: 0 2px 8px rgba(26, 39, 68, 0.06);
+  --shadow-hover: 0 4px 16px rgba(26, 39, 68, 0.12);
+  --shadow-header: 0 4px 20px rgba(15, 23, 42, 0.25);
+
+  /* Container */
+  --container-max: 1280px;
 }
 
-/* Smooth transitions */
+/* ============================================
+   2. Base Styles & Typography
+   ============================================ */
 * {
-    transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-/* Custom scrollbar */
+body {
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* Typography Scale */
+.text-header {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.text-section {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.text-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.text-body {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.text-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.text-number {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* ============================================
+   3. Header with Navy Gradient
+   ============================================ */
+.header-navy {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%);
+  box-shadow: var(--shadow-header);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-navbar {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%);
+  box-shadow: var(--shadow-header);
+}
+
+/* Sidebar Navy Gradient */
+.sidebar-navy {
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy2) 100%);
+}
+
+/* Sidebar Menu Active States */
+.sidebar-link.active {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--navy) !important;
+  font-weight: 700 !important;
+  border-left-color: #60A5FA !important;
+}
+
+.sidebar-link-sub.active,
+.sidebar-link-sub[class*="text-"][class*="-600"] {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--navy) !important;
+  font-weight: 600;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: 0.5rem;
+}
+
+/* ============================================
+   4. Cards & Containers
+   ============================================ */
+.card-momo {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.card-momo:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card-momo-sm {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.card-bordered {
+  border: 1.5px solid var(--border);
+}
+
+.card-selected {
+  border: 2px solid var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================
+   5. Buttons
+   ============================================ */
+.btn-primary {
+  background: var(--blue);
+  color: white;
+  border-radius: var(--radius-button);
+  padding: 10px 20px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #2563EB;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-outline {
+  background: white;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-button);
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.btn-danger {
+  background: var(--grade-warning-bg);
+  color: var(--red);
+  border: 1px solid #FCA5A5;
+  border-radius: var(--radius-button);
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #FEE2E2;
+}
+
+/* ============================================
+   6. Badges & Labels
+   ============================================ */
+.badge-momo {
+  padding: 3px 10px;
+  border-radius: var(--radius-badge);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.badge-blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--blue);
+}
+
+.badge-green {
+  background: var(--grade-excellent-bg);
+  color: var(--grade-excellent-text);
+}
+
+.badge-amber {
+  background: var(--grade-average-bg);
+  color: var(--grade-average-text);
+}
+
+.badge-red {
+  background: var(--grade-warning-bg);
+  color: var(--grade-warning-text);
+}
+
+.badge-purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--purple);
+}
+
+/* ============================================
+   7. Form Elements
+   ============================================ */
+.input-momo {
+  padding: 9px 14px;
+  border-radius: var(--radius-button);
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  background: white;
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+.input-momo:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.select-momo {
+  padding: 9px 14px;
+  border-radius: var(--radius-button);
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  background: white;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.select-momo:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================
+   8. Grade Badges (A+ through F)
+   ============================================ */
+.grade-a {
+  background: var(--grade-excellent-bg);
+  color: var(--grade-excellent-text);
+}
+
+.grade-b {
+  background: var(--grade-good-bg);
+  color: var(--grade-good-text);
+}
+
+.grade-c {
+  background: var(--grade-average-bg);
+  color: var(--grade-average-text);
+}
+
+.grade-d {
+  background: #FFF7ED;
+  color: #EA580C;
+}
+
+.grade-e,
+.grade-f {
+  background: var(--grade-warning-bg);
+  color: var(--grade-warning-text);
+}
+
+/* ============================================
+   9. Status Colors
+   ============================================ */
+.status-excellent {
+  color: var(--grade-excellent-text);
+}
+
+.status-good {
+  color: var(--grade-good-text);
+}
+
+.status-average {
+  color: var(--grade-average-text);
+}
+
+.status-warning {
+  color: var(--grade-warning-text);
+}
+
+.bg-excellent {
+  background: var(--grade-excellent-bg);
+}
+
+.bg-good {
+  background: var(--grade-good-bg);
+}
+
+.bg-average {
+  background: var(--grade-average-bg);
+}
+
+.bg-warning {
+  background: var(--grade-warning-bg);
+}
+
+/* ============================================
+   10. Tab Navigation (Rounded)
+   ============================================ */
+.tab-momo {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-button);
+  padding: 8px 16px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.tab-momo:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.tab-momo-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   11. Tables
+   ============================================ */
+.table-momo thead {
+  background: var(--light);
+}
+
+.table-momo th {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-momo td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-momo tr:hover {
+  background: var(--light);
+}
+
+/* ============================================
+   12. Charts (Chart.js Support)
+   ============================================ */
+.chart-container {
+  position: relative;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+/* ============================================
+   13. Custom Scrollbar
+   ============================================ */
 ::-webkit-scrollbar {
-    width: 10px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+  background: var(--light);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
+  background: var(--border);
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+  background: var(--text3);
 }
 
-/* Code blocks in file format guide */
+/* ============================================
+   14. Utilities
+   ============================================ */
+.text-navy {
+  color: var(--navy);
+}
+
+.text-blue {
+  color: var(--blue);
+}
+
+.text-purple {
+  color: var(--purple);
+}
+
+.text-green {
+  color: var(--green);
+}
+
+.text-amber {
+  color: var(--amber);
+}
+
+.text-red {
+  color: var(--red);
+}
+
+.bg-navy {
+  background: var(--navy);
+}
+
+.bg-blue {
+  background: var(--blue);
+}
+
+.bg-light {
+  background: var(--light);
+}
+
+.border-momo {
+  border: 1px solid var(--border);
+}
+
+.rounded-momo {
+  border-radius: var(--radius-card);
+}
+
+.rounded-button {
+  border-radius: var(--radius-button);
+}
+
+.shadow-momo {
+  box-shadow: var(--shadow);
+}
+
+.shadow-momo-hover:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* ============================================
+   15. Animations
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+/* ============================================
+   16. Print Optimization
+   ============================================ */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .card-momo {
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+
+  .header-navy,
+  .sidebar-navy {
+    background: white !important;
+    color: var(--text) !important;
+    box-shadow: none;
+  }
+}
+
+/* ============================================
+   17. Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .card-momo {
+    padding: 16px;
+  }
+
+  .text-header {
+    font-size: 18px;
+  }
+
+  .text-section {
+    font-size: 16px;
+  }
+}
+
+/* ============================================
+   18. Code Blocks
+   ============================================ */
 code {
-    background-color: #f3f4f6;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9em;
+  background-color: var(--light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.9em;
+  color: var(--purple);
+}
+
+pre {
+  background: var(--light);
+  border-radius: var(--radius-button);
+  padding: 16px;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ============================================
+   19. Loading States
+   ============================================ */
+.loading-spinner {
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--blue);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================
+   20. Focus States (Accessibility)
+   ============================================ */
+*:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   21. Timeline (for ACE evaluation comments)
+   ============================================ */
+.timeline {
+  border-left: 3px solid var(--blue);
+  margin-left: 8px;
+  padding-left: 20px;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 18px;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--blue);
+  border: 2px solid #fff;
+  box-shadow: var(--shadow);
+}
+
+.timeline-qtr {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timeline-year {
+  font-size: 11px;
+  color: var(--text3);
+  margin-left: 6px;
+}
+
+.timeline-comment {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 4px;
+  line-height: 1.7;
+}
+
+.timeline-scores {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* ============================================
+   22. ACE Evaluation Grade Buttons
+   ============================================ */
+.grade-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.grade-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.grade-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.grade-btn {
+  width: 48px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--light);
+  color: var(--text3);
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.grade-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.grade-btn.active {
+  color: #fff !important;
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  font-weight: 900;
+}
+
+/* 특 - 초록색 */
+button.grade-btn.g-top.active,
+button.grade-btn.active.g-top {
+  background: #10B981 !important;
+  border: 2px solid #059669 !important;
+}
+
+/* 상 - 파란색 */
+button.grade-btn.g-high.active,
+button.grade-btn.active.g-high {
+  background: #3B82F6 !important;
+  border: 2px solid #2563EB !important;
+}
+
+/* 중 - 오렌지색 */
+button.grade-btn.g-mid.active,
+button.grade-btn.active.g-mid {
+  background: #F59E0B !important;
+  border: 2px solid #D97706 !important;
+}
+
+/* 하 - 주황색 */
+button.grade-btn.g-low.active,
+button.grade-btn.active.g-low {
+  background: #F97316 !important;
+  border: 2px solid #EA580C !important;
+}
+
+/* 저 - 빨간색 */
+button.grade-btn.g-bottom.active,
+button.grade-btn.active.g-bottom {
+  background: #EF4444 !important;
+  border: 2px solid #DC2626 !important;
+}
+
+/* ============================================
+   23. Student Card Hover Effects (ACE Evaluation)
+   ============================================ */
+.student-card-selectable {
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 2px solid transparent !important;
+}
+
+.card-momo-sm.student-card-selectable:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+  border: 2px solid #64748B !important;
+  background: #F1F5F9 !important;
+}
+
+.card-momo-sm.student-card-selectable:hover .font-bold {
+  color: #1E293B !important;
+  font-weight: 900 !important;
+}
+
+.card-momo-sm.student-card-selectable:hover .text-gray-500 {
+  color: #475569 !important;
+}
+
+.card-momo-sm.student-card-selectable.selected {
+  border: 2px solid #10B981 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.card-momo-sm.student-card-selectable.selected .font-bold {
+  color: #10B981 !important;
 }

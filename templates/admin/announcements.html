@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}공지사항 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📢 공지사항 관리{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">전체 공지사항</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">공지사항 관리</h2>
+        <a href="{{ url_for('admin.create_announcement') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            ➕ 새 공지사항 작성
+        </a>
+    </div>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-blue-600 text-2xl mb-1">📢</div>
+                <p class="text-sm text-gray-600">전체 공지</p>
+                <p class="text-2xl font-bold text-blue-600">{{ announcements|length }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-green-600 text-2xl mb-1">✅</div>
+                <p class="text-sm text-gray-600">게시 중</p>
+                <p class="text-2xl font-bold text-green-600">{{ announcements|selectattr('is_published')|list|length }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-red-600 text-2xl mb-1">📌</div>
+                <p class="text-sm text-gray-600">상단 고정</p>
+                <p class="text-2xl font-bold text-red-600">{{ announcements|selectattr('is_pinned')|list|length }}개</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 공지사항 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">전체 공지사항</h3>
+        </div>
+        <div class="p-6">
+            {% if announcements %}
+            <div class="space-y-3">
+                {% for announcement in announcements %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                {% if announcement.is_pinned %}
+                                <span class="text-red-600">📌</span>
+                                {% endif %}
+                                <h4 class="text-lg font-medium text-gray-800">{{ announcement.title }}</h4>
+
+                                <!-- 공지 유형 -->
+                                <span class="px-2 py-0.5 text-xs font-medium rounded
+                                    {% if announcement.announcement_type == 'urgent' %}bg-red-100 text-red-800
+                                    {% elif announcement.announcement_type == 'event' %}bg-purple-100 text-purple-800
+                                    {% elif announcement.announcement_type == 'system' %}bg-gray-100 text-gray-800
+                                    {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {% if announcement.announcement_type == 'urgent' %}긴급
+                                    {% elif announcement.announcement_type == 'event' %}행사
+                                    {% elif announcement.announcement_type == 'system' %}시스템
+                                    {% else %}일반{% endif %}
+                                </span>
+
+                                <!-- 게시 상태 -->
+                                <span class="px-2 py-0.5 text-xs font-medium rounded
+                                    {% if announcement.is_published %}bg-green-100 text-green-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if announcement.is_published %}게시 중{% else %}비게시{% endif %}
+                                </span>
+
+                                {% if announcement.is_popup %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                                    팝업
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <p class="text-sm text-gray-600 mb-2">
+                                대상:
+                                {% if announcement.target_roles == 'all' %}
+                                    전체
+                                {% else %}
+                                    {{ announcement.target_roles_list|join(', ') }}
+                                {% endif %}
+                                {% if announcement.target_tiers %}
+                                    ({{ announcement.target_tiers_list|join(', ') }} 등급)
+                                {% endif %}
+                            </p>
+
+                            <p class="text-xs text-gray-500">
+                                작성: {{ announcement.author.name if announcement.author else '관리자' }} |
+                                조회: {{ announcement.view_count }}회 |
+                                작성일: {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('admin.announcement_detail', announcement_id=announcement.announcement_id) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                            상세보기
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-12">등록된 공지사항이 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

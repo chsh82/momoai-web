@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} 학생 프로필 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('teacher.index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 대시보드로
+        </a>
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 학생 프로필</h2>
+            <p class="text-gray-600 mt-1">학생 ID: {{ student.student_id[:8] }}</p>
+        </div>
+    </div>
+
+    {% if profile %}
+    <!-- 주요 특징 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- 독서 역량 -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-5 border border-blue-200">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-blue-900">📚 독서 역량</h3>
+            </div>
+            <div class="text-3xl font-bold text-blue-700 mb-1">
+                {% if profile.reading_competency %}
+                {{ profile.reading_competency }}/5
+                {% else %}
+                -
+                {% endif %}
+            </div>
+            <div class="text-xs text-blue-600">
+                {% if profile.weekly_reading_amount %}
+                {{ profile.weekly_reading_amount }}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 수업 경험 -->
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-5 border border-green-200">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-green-900">✏️ 수업 경험</h3>
+            </div>
+            <div class="text-lg font-bold text-green-700 mb-1">
+                {% if profile.reading_experience %}
+                {{ profile.reading_experience }}
+                {% else %}
+                없음
+                {% endif %}
+            </div>
+            <div class="text-xs text-green-600">독서논술 수업</div>
+        </div>
+
+        <!-- 진학 목표 -->
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-5 border border-purple-200">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-purple-900">🎯 진학 목표</h3>
+            </div>
+            <div class="text-sm font-medium text-purple-700 line-clamp-2">
+                {% if profile.academic_goals_list %}
+                {{ profile.academic_goals_list[0] }}
+                {% if profile.academic_goals_list|length > 1 %}
+                <span class="text-xs">외 {{ profile.academic_goals_list|length - 1 }}개</span>
+                {% endif %}
+                {% else %}
+                미정
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 성향 -->
+        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow p-5 border border-orange-200">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-orange-900">👤 학생 성향</h3>
+            </div>
+            <div class="text-sm font-medium text-orange-700 line-clamp-2">
+                {% if profile.personality_traits_list %}
+                {{ profile.personality_traits_list[0] }}
+                {% if profile.personality_traits_list|length > 1 %}
+                <span class="text-xs">외 {{ profile.personality_traits_list|length - 1 }}개</span>
+                {% endif %}
+                {% else %}
+                -
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 정보 섹션 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- 기본 정보 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">기본 정보</h3>
+            </div>
+            <div class="p-6 space-y-3 text-sm">
+                <div>
+                    <p class="text-gray-600 mb-1">재학 학교</p>
+                    <p class="font-medium text-gray-800">{{ profile.current_school or '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600 mb-1">학부모 연락처</p>
+                    <p class="font-medium text-gray-800">{{ profile.parent_contact or '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600 mb-1">주소</p>
+                    <p class="font-medium text-gray-800">{{ profile.address or '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600 mb-1">유입 경로</p>
+                    <p class="font-medium text-gray-800">{{ profile.referral_source or '-' }}</p>
+                </div>
+                {% if profile.sibling_info %}
+                <div>
+                    <p class="text-gray-600 mb-1">형제자매</p>
+                    <p class="font-medium text-gray-800">{{ profile.sibling_info }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 독서 성향 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">독서 성향</h3>
+            </div>
+            <div class="p-6 space-y-3 text-sm">
+                <div>
+                    <p class="text-gray-600 mb-2">선호 독서 분야</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for genre in profile.preferred_genres_list %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ genre }}</span>
+                        {% else %}
+                        <p class="text-gray-500">-</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <p class="text-gray-600 mb-2">학생 성향</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for trait in profile.personality_traits_list %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ trait }}</span>
+                        {% else %}
+                        <p class="text-gray-500">-</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수업 목표 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">수업 목표</h3>
+            </div>
+            <div class="p-6 space-y-3 text-sm">
+                <div>
+                    <p class="text-gray-600 mb-1">주요 향상 목표</p>
+                    <p class="font-medium text-gray-800">{{ profile.main_improvement_goal or '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600 mb-1">선호 수업 스타일</p>
+                    <p class="font-medium text-gray-800">{{ profile.preferred_class_style or '-' }}</p>
+                </div>
+                {% if profile.teacher_request %}
+                <div>
+                    <p class="text-gray-600 mb-1">강사 요청사항</p>
+                    <p class="font-medium text-gray-800 bg-yellow-50 p-2 rounded border border-yellow-200">{{ profile.teacher_request }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 진로/진학 정보 -->
+    {% if profile.academic_goals_list or profile.career_interests_list or profile.education_info_needs_list %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">진로 및 진학 정보</h3>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div>
+                <p class="text-gray-600 mb-2 font-medium">진학 목표</p>
+                <div class="space-y-1">
+                    {% for goal in profile.academic_goals_list %}
+                    <p class="text-gray-800">• {{ goal }}</p>
+                    {% else %}
+                    <p class="text-gray-500">-</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <p class="text-gray-600 mb-2 font-medium">진로 관심 분야</p>
+                <div class="space-y-1">
+                    {% for interest in profile.career_interests_list %}
+                    <p class="text-gray-800">• {{ interest }}</p>
+                    {% else %}
+                    <p class="text-gray-500">-</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <p class="text-gray-600 mb-2 font-medium">필요한 교육 정보</p>
+                <div class="space-y-1">
+                    {% for need in profile.education_info_needs_list %}
+                    <p class="text-gray-800">• {{ need }}</p>
+                    {% else %}
+                    <p class="text-gray-500">-</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% if profile.other_interests %}
+        <div class="px-6 pb-6">
+            <p class="text-gray-600 mb-1 font-medium text-sm">기타 관심사항</p>
+            <p class="text-gray-800 text-sm bg-gray-50 p-3 rounded">{{ profile.other_interests }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- 프로필 없음 -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+        <div class="text-5xl mb-4">📋</div>
+        <p class="text-gray-700 font-medium">아직 기초 조사 프로필이 작성되지 않았습니다.</p>
+        <p class="text-gray-600 text-sm mt-2">관리자가 프로필을 작성하면 여기에 표시됩니다.</p>
+    </div>
+    {% endif %}
+
+    <!-- 상담 이력 섹션 -->
+    <div class="bg-white rounded-lg shadow mt-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-800">💬 상담 이력</h3>
+            <span class="text-sm text-gray-600">총 {{ consultations|length }}건</span>
+        </div>
+        <div class="p-6">
+            {% if consultations %}
+            <div class="space-y-4">
+                {% for consultation in consultations %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition duration-200">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <a href="{{ url_for('teacher.consultation_detail', consultation_id=consultation.consultation_id) }}"
+                               class="text-blue-600 hover:text-blue-800 font-medium">
+                                {{ consultation.title }}
+                            </a>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                                <span>📅 {{ consultation.consultation_date.strftime('%Y-%m-%d') }}</span>
+                                <span>👤 {{ consultation.counselor.name }}</span>
+                                <span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{{ consultation.major_category }}</span>
+                                {% if consultation.sub_category %}
+                                <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{{ consultation.sub_category }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-700 line-clamp-2">{{ consultation.content }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 text-gray-500">
+                <div class="text-4xl mb-3">📭</div>
+                <p>아직 상담 기록이 없습니다.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}프로필 수정 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('profile.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 프로필로 돌아가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">프로필 수정</h2>
+        <p class="text-gray-600 mt-1">기본 정보를 수정할 수 있습니다</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="{{ url_for('profile.edit') }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 이름 -->
+                <div>
+                    {{ form.name.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.name(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.name.errors else "")) }}
+                    {% if form.name.errors %}
+                        {% for error in form.name.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 이메일 -->
+                <div>
+                    {{ form.email.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.email(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.email.errors else ""), type="email") }}
+                    {% if form.email.errors %}
+                        {% for error in form.email.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- 전화번호 -->
+                <div>
+                    {{ form.phone.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {{ form.phone(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="010-1234-5678") }}
+                    {% if form.phone.errors %}
+                        {% for error in form.phone.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                {% if current_user.role == 'student' %}
+                <!-- 학생 전용 필드 -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">📚 학생 정보</h3>
+
+                    <!-- 학년 -->
+                    <div class="mb-4">
+                        {{ form.grade.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.grade(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        {% if form.grade.errors %}
+                            {% for error in form.grade.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <!-- 학교 -->
+                    <div class="mb-4">
+                        {{ form.school.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.school(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                                       list="schoolList",
+                                       placeholder="학교명을 입력하거나 선택하세요",
+                                       autocomplete="off") }}
+                        <datalist id="schoolList">
+                            <option value="서울초등학교">
+                            <option value="서울중학교">
+                            <option value="서울고등학교">
+                            <option value="강남초등학교">
+                            <option value="강남중학교">
+                            <option value="강남고등학교">
+                            <option value="목동초등학교">
+                            <option value="목동중학교">
+                            <option value="목동고등학교">
+                            <option value="분당초등학교">
+                            <option value="분당중학교">
+                            <option value="분당고등학교">
+                            <option value="일산초등학교">
+                            <option value="일산중학교">
+                            <option value="일산고등학교">
+                            <option value="광교초등학교">
+                            <option value="광교중학교">
+                            <option value="광교고등학교">
+                            <option value="평촌초등학교">
+                            <option value="평촌중학교">
+                            <option value="평촌고등학교">
+                        </datalist>
+                        <p class="text-xs text-gray-500 mt-1">목록에 없으면 직접 입력하세요</p>
+                        {% if form.school.errors %}
+                            {% for error in form.school.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <!-- 생년월일 -->
+                    <div class="mb-4">
+                        {{ form.birth_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.birth_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        <p class="text-xs text-gray-500 mt-1">예: 2010-03-15</p>
+                        {% if form.birth_date.errors %}
+                            {% for error in form.birth_date.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 프로필 이미지 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">프로필 이미지</label>
+                    {% if current_user.profile_image_path %}
+                    <div class="mb-4">
+                        <img src="{{ url_for('profile.profile_image', user_id=current_user.user_id) }}"
+                             alt="프로필 이미지"
+                             class="w-32 h-32 rounded-full object-cover border-4 border-gray-200">
+                    </div>
+                    {% endif %}
+                    <input type="file"
+                           name="profile_image"
+                           accept="image/*"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="mt-2 text-sm text-gray-500">
+                        JPG, PNG, GIF 형식 (최대 5MB)
+                    </p>
+                </div>
+
+                <!-- 정보 박스 -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <div class="text-blue-600 text-xl mr-3">ℹ️</div>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">프로필 수정 안내</p>
+                            <ul class="list-disc list-inside space-y-1 text-blue-700">
+                                <li>이메일 주소는 로그인 시 사용됩니다</li>
+                                <li>다른 사용자가 사용 중인 이메일은 사용할 수 없습니다</li>
+                                <li>비밀번호 변경은 별도 메뉴를 이용하세요</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    {{ form.submit(class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200") }}
+                    <a href="{{ url_for('profile.index') }}"
+                       class="flex-1 text-center bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

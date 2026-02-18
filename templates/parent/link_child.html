@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}자녀 연결 신청 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔗 자녀 연결{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">학생 계정 연결 신청</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('parent.link_requests') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 돌아가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">👨‍👩‍👧‍👦 자녀 연결 신청</h2>
+        <p class="text-gray-600 mt-2">자녀 정보를 입력하시면 관리자 확인 후 연결됩니다.</p>
+    </div>
+
+    <!-- 안내 메시지 -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>안내사항:</strong><br>
+                    • 입력하신 정보를 바탕으로 관리자가 자녀를 확인합니다.<br>
+                    • 정확한 정보를 입력해주시면 신속하게 처리됩니다.<br>
+                    • 한 명의 자녀에 대해 여러 학부모(엄마, 아빠 등)가 연결할 수 있습니다.<br>
+                    • 승인 결과는 알림으로 전달됩니다.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 신청 폼 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-xl font-bold text-gray-800">자녀 정보 입력</h3>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('parent.link_child') }}">
+                <!-- 학생 이름 -->
+                <div class="mb-6">
+                    <label for="student_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        학생 이름 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="student_name" name="student_name" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="자녀의 이름을 입력하세요">
+                    <p class="mt-1 text-sm text-gray-500">시스템에 등록된 이름과 정확히 일치해야 합니다.</p>
+                </div>
+
+                <!-- 생년월일 -->
+                <div class="mb-6">
+                    <label for="student_birth_date" class="block text-sm font-medium text-gray-700 mb-2">
+                        생년월일
+                    </label>
+                    <input type="date" id="student_birth_date" name="student_birth_date"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="mt-1 text-sm text-gray-500">정확한 확인을 위해 입력해주세요.</p>
+                </div>
+
+                <!-- 학년 -->
+                <div class="mb-6">
+                    <label for="student_grade" class="block text-sm font-medium text-gray-700 mb-2">
+                        학년
+                    </label>
+                    <select id="student_grade" name="student_grade"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">선택하세요</option>
+                        <option value="초1">초등 1학년</option>
+                        <option value="초2">초등 2학년</option>
+                        <option value="초3">초등 3학년</option>
+                        <option value="초4">초등 4학년</option>
+                        <option value="초5">초등 5학년</option>
+                        <option value="초6">초등 6학년</option>
+                        <option value="중1">중학교 1학년</option>
+                        <option value="중2">중학교 2학년</option>
+                        <option value="중3">중학교 3학년</option>
+                        <option value="고1">고등학교 1학년</option>
+                        <option value="고2">고등학교 2학년</option>
+                        <option value="고3">고등학교 3학년</option>
+                    </select>
+                </div>
+
+                <!-- 학교명 -->
+                <div class="mb-6">
+                    <label for="student_school" class="block text-sm font-medium text-gray-700 mb-2">
+                        학교명
+                    </label>
+                    <input type="text" id="student_school" name="student_school"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="재학 중인 학교명">
+                </div>
+
+                <!-- 관계 -->
+                <div class="mb-6">
+                    <label for="relation_type" class="block text-sm font-medium text-gray-700 mb-2">
+                        관계
+                    </label>
+                    <select id="relation_type" name="relation_type"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">선택하세요</option>
+                        <option value="모">모(엄마)</option>
+                        <option value="부">부(아빠)</option>
+                        <option value="조모">조모(할머니)</option>
+                        <option value="조부">조부(할아버지)</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+
+                <!-- 추가 정보 -->
+                <div class="mb-6">
+                    <label for="additional_info" class="block text-sm font-medium text-gray-700 mb-2">
+                        추가 정보
+                    </label>
+                    <textarea id="additional_info" name="additional_info" rows="4"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="관리자가 자녀를 확인하는데 도움이 될 추가 정보를 입력하세요 (선택사항)"></textarea>
+                    <p class="mt-1 text-sm text-gray-500">예: 수강 중인 수업명, 담당 강사명 등</p>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex gap-3">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        신청하기
+                    </button>
+                    <a href="{{ url_for('parent.link_requests') }}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// 폼 제출 시 확인
+document.querySelector('form').addEventListener('submit', function(e) {
+    const studentName = document.getElementById('student_name').value.trim();
+
+    if (!studentName) {
+        e.preventDefault();
+        alert('학생 이름을 입력해주세요.');
+        return;
+    }
+
+    if (!confirm(`"${studentName}" 학생과의 연결을 신청하시겠습니까?`)) {
+        e.preventDefault();
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}어휘퀴즈 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-4xl font-bold text-gray-800 mb-2">📖 어휘퀴즈</h2>
+        <p class="text-gray-600">학습도구어 어휘 실력을 테스트해보세요! (초1~고3, 6개 레벨)</p>
+    </div>
+
+    <!-- 학년 정보 -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 mb-8 text-white">
+        <div class="flex items-center gap-4">
+            <div class="text-5xl">👨‍🎓</div>
+            <div>
+                <h3 class="text-2xl font-bold mb-1">{{ student.name }} 학생</h3>
+                <p class="text-blue-100">현재 학년: {{ student.grade }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 레벨 선택 -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">레벨을 선택하세요</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for level in range(1, 7) %}
+            <div class="border-2 border-gray-200 rounded-lg p-6 hover:border-blue-500 hover:shadow-md transition cursor-pointer">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="text-4xl">
+                        {% if level == 1 %}🌱
+                        {% elif level == 2 %}🌿
+                        {% elif level == 3 %}🌳
+                        {% elif level == 4 %}⭐
+                        {% elif level == 5 %}💎
+                        {% else %}👑
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-gray-800">Level {{ level }}</h4>
+                        <p class="text-sm text-gray-600">
+                            {% if level == 1 %}초1~초2
+                            {% elif level == 2 %}초3~초4
+                            {% elif level == 3 %}초5~초6
+                            {% elif level == 4 %}중1~중2
+                            {% elif level == 5 %}중3~고1
+                            {% else %}고2~고3
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ url_for('student.vocabulary_quiz_start', level=level) }}"
+                   class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                    시작하기
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 안내 -->
+    <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-6 rounded">
+        <h4 class="font-bold text-blue-900 mb-2">💡 이용 안내</h4>
+        <ul class="text-blue-800 space-y-1 text-sm">
+            <li>• 각 레벨은 학년에 맞춰 구성되어 있습니다.</li>
+            <li>• 학습도구어 중심의 어휘를 학습할 수 있습니다.</li>
+            <li>• 퀴즈 결과는 자동으로 저장됩니다.</li>
+            <li>• 관리자가 어휘 데이터베이스를 업로드하면 퀴즈를 시작할 수 있습니다.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

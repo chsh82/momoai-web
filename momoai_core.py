@@ -37,6 +37,14 @@ class MOMOAICore:
 
 위 논술문을 MOMOAI v3.3.0 규칙에 따라 첨삭해주세요.
 반드시 HTML 완전 템플릿 형식으로 출력하고, 모든 규칙을 준수해주세요.
+
+v3.3.0 필수 포함 사항:
+1. 윤문 완성본 (원문 대비 1.3~2배 분량, 통계+사례 필수)
+2. 💭 생각해볼 쟁점 세 가지 (내용첨삭과 비중복되는 심화 질문)
+3. 교사 종합 제언
+4. 푸터까지 완전한 HTML 문서
+
+특히 "생각해볼 쟁점 세 가지" 섹션은 필수입니다. 내용 첨삭에서 지적한 문제가 아닌, 글을 넘어서는 심화 토론 주제 3가지를 제시해주세요.
 """
 
     def analyze_essay(self, student_name: str, grade: str, essay_text: str) -> str:
@@ -56,7 +64,8 @@ class MOMOAICore:
         try:
             response = self.client.messages.create(
                 model="claude-opus-4-5-20251101",
-                max_tokens=16000,
+                max_tokens=24000,
+                timeout=600.0,  # 10분 타임아웃
                 system=self.system_prompt,
                 messages=[
                     {"role": "user", "content": user_prompt}
@@ -66,11 +75,34 @@ class MOMOAICore:
             # Extract HTML from response
             html_content = response.content[0].text
 
-            # HTML 태그가 없으면 에러
-            if not html_content.strip().startswith('<!DOCTYPE') and not html_content.strip().startswith('<html'):
-                raise Exception("API 응답이 올바른 HTML 형식이 아닙니다.")
+            # Remove markdown code blocks if present
+            if '```html' in html_content:
+                # Extract HTML from markdown code block
+                start = html_content.find('```html') + 7
+                end = html_content.find('```', start)
+                if end != -1:
+                    html_content = html_content[start:end].strip()
+            elif '```' in html_content:
+                # Extract from generic code block
+                start = html_content.find('```') + 3
+                end = html_content.find('```', start)
+                if end != -1:
+                    html_content = html_content[start:end].strip()
 
-            return html_content
+            # Find DOCTYPE or <html tag in the response
+            if '<!DOCTYPE' in html_content or '<html' in html_content:
+                # Extract from DOCTYPE if exists
+                if '<!DOCTYPE' in html_content:
+                    html_start = html_content.find('<!DOCTYPE')
+                    html_content = html_content[html_start:]
+                elif '<html' in html_content:
+                    html_start = html_content.find('<html')
+                    html_content = html_content[html_start:]
+
+                return html_content
+            else:
+                raise Exception("API 응답에서 HTML을 찾을 수 없습니다.")
+
 
         except Exception as e:
             raise Exception(f"첨삭 중 오류가 발생했습니다: {e}")

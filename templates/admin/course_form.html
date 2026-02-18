@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}➕ 수업 생성{% endblock %}
+
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% if is_edit %}{{ url_for('admin.course_detail', course_id=course.course_id) }}{% else %}{{ url_for('admin.courses') }}{% endif %}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 뒤로 가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">{{ title }}</h2>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 기본 정보 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">기본 정보</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 수업명 -->
+                        <div class="md:col-span-2">
+                            {{ form.course_name.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.course_name(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.course_name.errors else "")) }}
+                            {% if form.course_name.errors %}
+                                {% for error in form.course_name.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 수업 코드 -->
+                        <div>
+                            {{ form.course_code.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.course_code(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.course_code.errors else "")) }}
+                            {% if form.course_code.errors %}
+                                {% for error in form.course_code.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 등급 -->
+                        <div>
+                            {{ form.tier.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.tier(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+
+                        <!-- 수업 설명 -->
+                        <div class="md:col-span-2">
+                            {{ form.description.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.description(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 담당 정보 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">담당 정보</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 담당 강사 -->
+                        <div>
+                            {{ form.teacher_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.teacher_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.teacher_id.errors else "")) }}
+                            {% if form.teacher_id.errors %}
+                                {% for error in form.teacher_id.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 최대 정원 -->
+                        <div>
+                            {{ form.max_students.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.max_students(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.max_students.errors else "")) }}
+                            {% if form.max_students.errors %}
+                                {% for error in form.max_students.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 스케줄 정보 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">스케줄 정보</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 스케줄 유형 -->
+                        <div>
+                            {{ form.schedule_type.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.schedule_type(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+
+                        <!-- 요일 -->
+                        <div>
+                            {{ form.weekday.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.weekday(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                            <p class="text-xs text-gray-500 mt-1">매주 반복 스케줄인 경우 선택하세요</p>
+                        </div>
+
+                        <!-- 시작 시간 -->
+                        <div>
+                            {{ form.start_time.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.start_time(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+
+                        <!-- 종료 시간 -->
+                        <div>
+                            {{ form.end_time.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.end_time(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+
+                        <!-- 수업 시간 -->
+                        <div>
+                            {{ form.duration_minutes.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.duration_minutes(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기간 정보 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">수업 기간</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 시작일 -->
+                        <div>
+                            {{ form.start_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.start_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.start_date.errors else "")) }}
+                            {% if form.start_date.errors %}
+                                {% for error in form.start_date.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 종료일 -->
+                        <div>
+                            {{ form.end_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.end_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.end_date.errors else "")) }}
+                            {% if form.end_date.errors %}
+                                {% for error in form.end_date.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 가격 정보 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">가격 정보</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 회당 수업료 -->
+                        <div>
+                            {{ form.price_per_session.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.price_per_session(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.price_per_session.errors else "")) }}
+                            {% if form.price_per_session.errors %}
+                                {% for error in form.price_per_session.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 상태 -->
+                        <div>
+                            {{ form.status.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.status(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+
+                        <!-- 보강신청 가능여부 -->
+                        <div class="md:col-span-2">
+                            <label class="flex items-center">
+                                {{ form.makeup_class_allowed(class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
+                                <span class="text-sm font-medium text-gray-700">보강신청 가능</span>
+                            </label>
+                            <p class="text-xs text-gray-500 mt-1 ml-6">체크하면 보강수업 신청이 가능합니다</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        {% if is_edit %}수정 완료{% else %}수업 생성{% endif %}
+                    </button>
+                    <a href="{% if is_edit %}{{ url_for('admin.course_detail', course_id=course.course_id) }}{% else %}{{ url_for('admin.courses') }}{% endif %}"
+                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

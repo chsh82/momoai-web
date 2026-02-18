@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('community.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 목록으로
+        </a>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Post -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <!-- 카테고리 및 제목 -->
+        <div class="mb-6">
+            <div class="flex items-center gap-2 mb-3">
+                {% if post.is_pinned %}
+                <span class="px-3 py-1 text-sm font-bold bg-red-100 text-red-800 rounded">📌 공지</span>
+                {% endif %}
+                <span class="px-3 py-1 text-sm font-medium rounded
+                    {% if post.category == 'notice' %}bg-red-100 text-red-800
+                    {% elif post.category == 'question' %}bg-yellow-100 text-yellow-800
+                    {% elif post.category == 'free' %}bg-green-100 text-green-800
+                    {% elif post.category == 'resource' %}bg-purple-100 text-purple-800
+                    {% endif %}">
+                    {% if post.category == 'notice' %}📢 공지
+                    {% elif post.category == 'question' %}❓ 질문
+                    {% elif post.category == 'free' %}💬 자유
+                    {% elif post.category == 'resource' %}📚 자료
+                    {% endif %}
+                </span>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ post.title }}</h1>
+        </div>
+
+        <!-- 작성자 및 메타 정보 -->
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {{ post.user.name[0] }}
+                </div>
+                <div>
+                    <div class="font-medium text-gray-800">{{ post.user.name }}</div>
+                    <div class="text-sm text-gray-500">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-sm text-gray-600">
+                <span>👁 {{ post.views }}</span>
+                <button onclick="toggleLike()" id="likeButton"
+                        class="flex items-center gap-1 px-3 py-1 rounded transition duration-200
+                        {% if post.is_liked_by(current_user.user_id) %}bg-red-100 text-red-600{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                    <span>❤️</span>
+                    <span id="likeCount">{{ post.likes_count }}</span>
+                </button>
+                <button onclick="toggleBookmark()" id="bookmarkButton"
+                        class="flex items-center gap-1 px-3 py-1 rounded transition duration-200
+                        {% if post.is_bookmarked_by(current_user.user_id) %}bg-yellow-100 text-yellow-600{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                    <span>🔖</span>
+                    <span>북마크</span>
+                </button>
+                <span>💬 {{ post.comment_count }}</span>
+            </div>
+        </div>
+
+        <!-- 내용 -->
+        <div class="prose max-w-none mb-6">
+            <div class="text-gray-700 whitespace-pre-wrap">{{ post.content }}</div>
+        </div>
+
+        <!-- 태그 -->
+        {% if post.tags %}
+        <div class="flex flex-wrap gap-2 mb-6 pb-6 border-b border-gray-200">
+            {% for tag in post.tags %}
+            <a href="{{ url_for('community.tag_posts', tag_name=tag.name) }}"
+               class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition duration-200">
+                #{{ tag.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 첨부 파일 -->
+        {% if post.files %}
+        <div class="mb-6 pb-6 border-b border-gray-200">
+            <h4 class="font-medium text-gray-800 mb-3">📎 첨부 파일 ({{ post.files|length }}개)</h4>
+            <div class="space-y-2">
+                {% for file in post.files %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 transition duration-200">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        {% if file.is_image %}
+                        <span class="text-2xl">🖼️</span>
+                        {% else %}
+                        <span class="text-2xl">📄</span>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-gray-800 truncate">{{ file.filename }}</div>
+                            <div class="text-xs text-gray-500">{{ file.file_size_str }}</div>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('community.download_file', file_id=file.file_id) }}"
+                       class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200 flex-shrink-0">
+                        다운로드
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 버튼 -->
+        {% if post.user_id == current_user.user_id %}
+        <div class="flex gap-2 pt-4 border-t border-gray-200">
+            <a href="{{ url_for('community.edit', post_id=post.post_id) }}"
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded transition duration-200">
+                수정
+            </a>
+            <button onclick="confirmDelete()"
+                    class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded transition duration-200">
+                삭제
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Comments -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">
+            💬 댓글 <span class="text-blue-600">{{ comments|length }}</span>
+        </h3>
+
+        <!-- 댓글 작성 폼 -->
+        <div class="mb-8">
+            <div class="flex gap-3">
+                <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                    {{ current_user.name[0] }}
+                </div>
+                <div class="flex-1">
+                    <textarea id="commentContent"
+                              placeholder="댓글을 입력하세요..."
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              rows="3"></textarea>
+                    <button onclick="submitComment()"
+                            class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                        댓글 작성
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 댓글 목록 -->
+        <div id="commentsList" class="space-y-4">
+            {% for comment in comments %}
+            <div class="flex gap-3" id="comment-{{ comment.comment_id }}">
+                <div class="w-10 h-10 bg-gray-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                    {{ comment.user.name[0] }}
+                </div>
+                <div class="flex-1">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-medium text-gray-800">{{ comment.user.name }}</div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                {% if comment.user_id == current_user.user_id %}
+                                <button onclick="deleteComment('{{ comment.comment_id }}')"
+                                        class="text-xs text-red-600 hover:text-red-800">
+                                    삭제
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-gray-700">{{ comment.content }}</div>
+                    </div>
+
+                    <!-- 대댓글 -->
+                    {% if comment.replies %}
+                    <div class="ml-6 mt-3 space-y-3">
+                        {% for reply in comment.replies %}
+                        <div class="flex gap-3" id="comment-{{ reply.comment_id }}">
+                            <div class="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                {{ reply.user.name[0] }}
+                            </div>
+                            <div class="flex-1">
+                                <div class="bg-gray-100 rounded-lg p-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-sm font-medium text-gray-800">{{ reply.user.name }}</div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-gray-500">{{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                            {% if reply.user_id == current_user.user_id %}
+                                            <button onclick="deleteComment('{{ reply.comment_id }}')"
+                                                    class="text-xs text-red-600 hover:text-red-800">
+                                                삭제
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="text-sm text-gray-700">{{ reply.content }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- 대댓글 작성 버튼 -->
+                    <button onclick="toggleReplyForm('{{ comment.comment_id }}')"
+                            class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                        ↩️ 답글
+                    </button>
+
+                    <!-- 대댓글 작성 폼 (숨김) -->
+                    <div id="reply-form-{{ comment.comment_id }}" class="hidden mt-3 ml-6">
+                        <div class="flex gap-2">
+                            <textarea id="reply-content-{{ comment.comment_id }}"
+                                      placeholder="답글을 입력하세요..."
+                                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      rows="2"></textarea>
+                            <button onclick="submitReply('{{ comment.comment_id }}')"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                                작성
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Form -->
+<form id="deleteForm" method="POST" action="{{ url_for('community.delete', post_id=post.post_id) }}" style="display: none;">
+</form>
+
+<script>
+// 좋아요 토글
+function toggleLike() {
+    fetch('/community/api/posts/{{ post.post_id }}/like', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('likeCount').textContent = data.likes_count;
+            const button = document.getElementById('likeButton');
+            if (data.action === 'liked') {
+                button.className = 'flex items-center gap-1 px-3 py-1 rounded transition duration-200 bg-red-100 text-red-600';
+            } else {
+                button.className = 'flex items-center gap-1 px-3 py-1 rounded transition duration-200 bg-gray-100 text-gray-600 hover:bg-gray-200';
+            }
+        }
+    });
+}
+
+// 북마크 토글
+function toggleBookmark() {
+    fetch('/community/api/posts/{{ post.post_id }}/bookmark', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const button = document.getElementById('bookmarkButton');
+            if (data.action === 'bookmarked') {
+                button.className = 'flex items-center gap-1 px-3 py-1 rounded transition duration-200 bg-yellow-100 text-yellow-600';
+            } else {
+                button.className = 'flex items-center gap-1 px-3 py-1 rounded transition duration-200 bg-gray-100 text-gray-600 hover:bg-gray-200';
+            }
+        }
+    });
+}
+
+// 댓글 작성
+function submitComment() {
+    const content = document.getElementById('commentContent').value.trim();
+    if (!content) {
+        alert('댓글 내용을 입력하세요.');
+        return;
+    }
+
+    fetch('/community/api/posts/{{ post.post_id }}/comments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '댓글 작성에 실패했습니다.');
+        }
+    });
+}
+
+// 대댓글 폼 토글
+function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    form.classList.toggle('hidden');
+}
+
+// 대댓글 작성
+function submitReply(parentCommentId) {
+    const content = document.getElementById('reply-content-' + parentCommentId).value.trim();
+    if (!content) {
+        alert('답글 내용을 입력하세요.');
+        return;
+    }
+
+    fetch('/community/api/posts/{{ post.post_id }}/comments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            content: content,
+            parent_comment_id: parentCommentId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '답글 작성에 실패했습니다.');
+        }
+    });
+}
+
+// 댓글 삭제
+function deleteComment(commentId) {
+    if (!confirm('댓글을 삭제하시겠습니까?')) {
+        return;
+    }
+
+    fetch('/community/api/comments/' + commentId, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || '댓글 삭제에 실패했습니다.');
+        }
+    });
+}
+
+// 게시글 삭제
+function confirmDelete() {
+    if (confirm('게시글을 정말 삭제하시겠습니까?')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+{% endblock %}

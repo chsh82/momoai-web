@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% if mode == 'edit' %}{{ url_for('admin.video_detail', video_id=video.video_id) }}{% else %}{{ url_for('admin.videos') }}{% endif %}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 뒤로 가기
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">{% if mode == 'edit' %}동영상 수정{% else %}동영상 등록{% endif %}</h2>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-6">
+                <!-- 기본 정보 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">기본 정보</h3>
+
+                    <div class="space-y-4">
+                        <!-- 제목 -->
+                        <div>
+                            {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else "")) }}
+                            {% if form.title.errors %}
+                                {% for error in form.title.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 대상 설정 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">대상 설정</h3>
+
+                    <!-- 대상 타입 -->
+                    <div class="mb-4">
+                        {{ form.target_type.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        <div class="flex gap-4">
+                            {% for value, label in form.target_type.choices %}
+                            <label class="flex items-center">
+                                <input type="radio" name="target_type" value="{{ value }}"
+                                       {% if form.target_type.data == value %}checked{% endif %}
+                                       class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                <span class="text-sm text-gray-700">{{ label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- 학년 선택 (target_type='grade'일 때) -->
+                    <div id="gradeSelect">
+                        {{ form.target_grades.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+                            {% for value, label in form.target_grades.choices %}
+                            <label class="flex items-center">
+                                <input type="checkbox" name="target_grades" value="{{ value }}"
+                                       {% if form.target_grades.data and value in form.target_grades.data %}checked{% endif %}
+                                       class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">{{ label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">선택하지 않으면 모든 학년에 공개됩니다</p>
+                    </div>
+
+                    <!-- 수업 선택 (target_type='course'일 때) -->
+                    <div id="courseSelect" class="hidden">
+                        {{ form.target_course_ids }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">대상 수업</label>
+                        <button type="button" onclick="openCourseModal()"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                            수업 선택
+                        </button>
+                        <div id="selectedCourses" class="mt-3 space-y-2">
+                            <!-- JavaScript로 동적 생성 -->
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">선택하지 않으면 모든 수업에 공개됩니다</p>
+                    </div>
+                </div>
+
+                <!-- YouTube 동영상 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">YouTube 동영상</h3>
+
+                    <div class="space-y-4">
+                        <!-- YouTube URL -->
+                        <div>
+                            {{ form.youtube_url.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.youtube_url(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.youtube_url.errors else ""),
+                                                 placeholder="https://www.youtube.com/watch?v=VIDEO_ID 또는 https://youtu.be/VIDEO_ID",
+                                                 oninput="validateYoutubeUrl(this.value)") }}
+                            <p class="text-xs text-gray-500 mt-1">YouTube 동영상 URL을 입력하세요</p>
+                            {% if form.youtube_url.errors %}
+                                {% for error in form.youtube_url.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- 동영상 미리보기 -->
+                        <div id="videoPreview" class="hidden">
+                            <p class="text-sm font-medium text-gray-700 mb-2">미리보기</p>
+                            <div class="aspect-video bg-black rounded-lg overflow-hidden">
+                                <iframe id="previewIframe"
+                                        width="100%"
+                                        height="100%"
+                                        frameborder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen>
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 게시 기간 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">게시 기간</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 시작일 -->
+                        <div>
+                            {{ form.publish_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.publish_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                        </div>
+
+                        <!-- 종료일 -->
+                        <div>
+                            {{ form.end_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.end_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                            <p class="text-xs text-gray-500 mt-1">비워두면 무제한</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 공개 설정 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">공개 설정</h3>
+
+                    <label class="flex items-center">
+                        {{ form.is_public(class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
+                        <span class="text-sm font-medium text-gray-700">공개</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-6">체크하면 학생들이 볼 수 있습니다</p>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        {% if mode == 'edit' %}수정 완료{% else %}동영상 등록{% endif %}
+                    </button>
+                    <a href="{% if mode == 'edit' %}{{ url_for('admin.video_detail', video_id=video.video_id) }}{% else %}{{ url_for('admin.videos') }}{% endif %}"
+                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 수업 선택 모달 -->
+<div id="courseModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-lg bg-white">
+        <!-- 모달 헤더 -->
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-2xl font-bold text-gray-800">수업 선택</h3>
+            <button onclick="closeCourseModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+
+        <!-- 검색 -->
+        <div class="mb-4">
+            <input type="text" id="courseSearch" placeholder="수업명 또는 강사명으로 검색..."
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- 수업 목록 -->
+        <div id="courseList" class="max-h-96 overflow-y-auto">
+            <!-- AJAX로 로드 -->
+        </div>
+
+        <!-- 모달 푸터 -->
+        <div class="mt-6 pt-4 border-t flex justify-end gap-3">
+            <button onclick="closeCourseModal()"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg transition duration-200">
+                닫기
+            </button>
+            <button onclick="confirmCourseSelection()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                선택 완료
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// YouTube URL 검증 및 미리보기
+function validateYoutubeUrl(url) {
+    const videoPreview = document.getElementById('videoPreview');
+    const previewIframe = document.getElementById('previewIframe');
+
+    // YouTube URL에서 video ID 추출
+    const videoId = extractYoutubeId(url);
+
+    if (videoId) {
+        // 유효한 URL이면 미리보기 표시
+        videoPreview.classList.remove('hidden');
+        previewIframe.src = `https://www.youtube.com/embed/${videoId}`;
+    } else {
+        // 유효하지 않으면 미리보기 숨기기
+        videoPreview.classList.add('hidden');
+        previewIframe.src = '';
+    }
+}
+
+function extractYoutubeId(url) {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : null;
+}
+
+// 수정 모드일 때 초기 미리보기 로드
+{% if mode == 'edit' and video.youtube_url %}
+window.addEventListener('DOMContentLoaded', function() {
+    validateYoutubeUrl('{{ video.youtube_url }}');
+});
+{% endif %}
+
+// 대상 타입 전환
+document.querySelectorAll('input[name="target_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const gradeSelect = document.getElementById('gradeSelect');
+        const courseSelect = document.getElementById('courseSelect');
+
+        if (this.value === 'grade') {
+            gradeSelect.classList.remove('hidden');
+            courseSelect.classList.add('hidden');
+        } else {
+            gradeSelect.classList.add('hidden');
+            courseSelect.classList.remove('hidden');
+        }
+    });
+});
+
+// 수업 선택 모달
+let selectedCourseIds = [];
+
+function openCourseModal() {
+    document.getElementById('courseModal').classList.remove('hidden');
+    loadCourses();
+}
+
+function closeCourseModal() {
+    document.getElementById('courseModal').classList.add('hidden');
+}
+
+async function loadCourses(searchTerm = '') {
+    const response = await fetch(`/admin/api/courses/search?q=${searchTerm}`);
+    const courses = await response.json();
+
+    const courseList = document.getElementById('courseList');
+    courseList.innerHTML = courses.map(course => `
+        <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-2">
+            <input type="checkbox" value="${course.course_id}"
+                   ${selectedCourseIds.includes(course.course_id) ? 'checked' : ''}
+                   class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            <div class="flex-1">
+                <p class="font-medium text-gray-800">${course.course_name}</p>
+                <p class="text-sm text-gray-500">${course.teacher_name} | ${course.grade || ''}</p>
+            </div>
+        </label>
+    `).join('');
+}
+
+// 검색
+document.getElementById('courseSearch').addEventListener('input', function(e) {
+    loadCourses(e.target.value);
+});
+
+function confirmCourseSelection() {
+    const checkboxes = document.querySelectorAll('#courseList input[type="checkbox"]:checked');
+    selectedCourseIds = Array.from(checkboxes).map(cb => cb.value);
+
+    // 선택된 수업 표시
+    updateSelectedCoursesDisplay();
+    closeCourseModal();
+}
+
+function updateSelectedCoursesDisplay() {
+    const container = document.getElementById('selectedCourses');
+
+    // Update hidden field with comma-separated IDs
+    document.getElementById('target_course_ids').value = selectedCourseIds.join(',');
+
+    if (selectedCourseIds.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">선택된 수업이 없습니다</p>';
+        return;
+    }
+
+    // Display selected courses
+    container.innerHTML = selectedCourseIds.map(id => `
+        <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
+            <span class="text-sm text-gray-700">수업 ID: ${id}</span>
+            <button type="button" onclick="removeCourse('${id}')"
+                    class="text-red-600 hover:text-red-800 text-sm font-medium">
+                제거
+            </button>
+        </div>
+    `).join('');
+}
+
+function removeCourse(courseId) {
+    selectedCourseIds = selectedCourseIds.filter(id => id !== courseId);
+    updateSelectedCoursesDisplay();
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeCourseModal();
+    }
+});
+
+// 초기화 - 기존 선택된 course IDs 로드 (edit 모드)
+document.addEventListener('DOMContentLoaded', function() {
+    const hiddenField = document.getElementById('target_course_ids');
+    if (hiddenField && hiddenField.value) {
+        selectedCourseIds = hiddenField.value.split(',').filter(id => id.trim());
+        updateSelectedCoursesDisplay();
+    }
+
+    // 초기 target_type에 따라 표시/숨김
+    const selectedTargetType = document.querySelector('input[name="target_type"]:checked');
+    if (selectedTargetType) {
+        const gradeSelect = document.getElementById('gradeSelect');
+        const courseSelect = document.getElementById('courseSelect');
+
+        if (selectedTargetType.value === 'grade') {
+            gradeSelect.classList.remove('hidden');
+            courseSelect.classList.add('hidden');
+        } else {
+            gradeSelect.classList.add('hidden');
+            courseSelect.classList.remove('hidden');
+        }
+    }
+
+    // 게시 시작일 변경 시 종료일 자동 설정 (3주 후)
+    const publishDateInput = document.getElementById('publish_date');
+    const endDateInput = document.getElementById('end_date');
+
+    if (publishDateInput && endDateInput) {
+        // 종료일 자동 계산 함수
+        function updateEndDate() {
+            const publishDate = new Date(publishDateInput.value);
+
+            if (publishDate && !isNaN(publishDate.getTime())) {
+                // 3주(21일) 후 날짜 계산
+                const endDate = new Date(publishDate);
+                endDate.setDate(endDate.getDate() + 21);
+
+                // 종료일 필드에 설정 (YYYY-MM-DD 형식)
+                const year = endDate.getFullYear();
+                const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                const day = String(endDate.getDate()).padStart(2, '0');
+                endDateInput.value = `${year}-${month}-${day}`;
+            }
+        }
+
+        // 페이지 로드 시 시작일에 값이 있으면 자동 계산
+        if (publishDateInput.value && !endDateInput.value) {
+            updateEndDate();
+        }
+
+        // 시작일 변경 시에도 자동 계산
+        publishDateInput.addEventListener('change', updateEndDate);
+    }
+
+});
+</script>
+{% endblock %}

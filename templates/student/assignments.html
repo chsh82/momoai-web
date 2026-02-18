@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}내 과제 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">내 과제</h2>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-blue-600 text-2xl mb-1">📋</div>
+                <p class="text-sm text-gray-600">전체 과제</p>
+                <p class="text-2xl font-bold text-blue-600">{{ assignment_data|length }}개</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-yellow-600 text-2xl mb-1">⏰</div>
+                <p class="text-sm text-gray-600">제출 예정</p>
+                <p class="text-2xl font-bold text-yellow-600">
+                    {{ assignment_data|selectattr('status', 'in', ['draft', 'not_started'])|list|length }}개
+                </p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="text-center">
+                <div class="text-green-600 text-2xl mb-1">✅</div>
+                <p class="text-sm text-gray-600">제출 완료</p>
+                <p class="text-2xl font-bold text-green-600">
+                    {{ assignment_data|selectattr('status', 'in', ['submitted', 'graded'])|list|length }}개
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 과제 목록 -->
+    <div class="space-y-4">
+        {% if assignment_data %}
+            {% for data in assignment_data %}
+            {% set assignment = data.assignment %}
+            {% set submission = data.submission %}
+            {% set status = data.status %}
+
+            <div class="bg-white rounded-lg shadow hover:shadow-lg transition duration-200">
+                <div class="p-6">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h3 class="text-lg font-bold text-gray-800">{{ assignment.title }}</h3>
+
+                                <!-- 상태 -->
+                                <span class="px-2 py-0.5 text-xs font-medium rounded
+                                    {% if status == 'not_started' or status == 'draft' %}bg-gray-100 text-gray-800
+                                    {% elif status == 'submitted' %}bg-yellow-100 text-yellow-800
+                                    {% elif status == 'graded' %}bg-green-100 text-green-800
+                                    {% endif %}">
+                                    {% if status == 'not_started' or status == 'draft' %}미제출
+                                    {% elif status == 'submitted' %}채점 대기
+                                    {% elif status == 'graded' %}채점 완료
+                                    {% endif %}
+                                </span>
+
+                                <!-- 마감일 경고 -->
+                                {% if assignment.is_overdue %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
+                                    마감됨
+                                </span>
+                                {% elif assignment.days_until_due <= 1 %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 rounded">
+                                    오늘 마감!
+                                </span>
+                                {% elif assignment.days_until_due <= 3 %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                                    {{ assignment.days_until_due }}일 남음
+                                </span>
+                                {% endif %}
+
+                                <!-- 채점 완료 시 점수 표시 -->
+                                {% if submission and submission.is_graded %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                                    {{ submission.score }}/{{ assignment.max_score }}점
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <p class="text-sm text-gray-600 mb-3">
+                                {% if assignment.course %}{{ assignment.course.course_name }} | {% endif %}
+                                마감: {{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }} |
+                                배점: {{ assignment.max_score }}점
+                            </p>
+
+                            <p class="text-sm text-gray-700 line-clamp-2">{{ assignment.description }}</p>
+                        </div>
+
+                        <a href="{{ url_for('student.assignment_detail', assignment_id=assignment.assignment_id) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                            {% if submission and submission.is_submitted %}보기{% else %}제출하기{% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <p class="text-gray-500 text-lg">등록된 과제가 없습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }}의 ACE 평가{% endblock %}
+
+{% block page_title %}{{ student.name }}의 ACE 평가{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">{{ student.grade }} · 역량 평가 상세</span>
+{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+.chart-wrap { position: relative; width: 100%; height: 280px; }
+.timeline { position: relative; padding-left: 20px; }
+.timeline-item { position: relative; padding-bottom: 18px; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -26px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--purple);
+    border: 2px solid #fff;
+    box-shadow: var(--shadow);
+}
+.timeline-qtr { font-size: 13px; font-weight: 700; color: var(--text); }
+.timeline-year { font-size: 11px; color: var(--text3); margin-left: 6px; }
+.timeline-comment { font-size: 13px; color: var(--text2); margin-top: 4px; line-height: 1.7; }
+.timeline-scores { font-size: 11px; color: var(--text3); margin-top: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+
+    <!-- 뒤로 가기 및 리포트 버튼 -->
+    <div class="mb-4 flex justify-between items-center">
+        <a href="{{ url_for('parent.ace_evaluation') }}" class="btn btn-outline btn-sm">
+            <span>← 자녀 목록으로</span>
+        </a>
+        {% if ace_evals %}
+        <a href="{{ url_for('parent.ace_report', student_id=student.student_id) }}"
+           class="btn btn-primary btn-sm"
+           target="_blank">
+            <span>🖨</span>
+            <span>리포트 출력</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 학생 정보 카드 -->
+    <div class="card-momo mb-4">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <div class="text-2xl font-extrabold">{{ student.name }}</div>
+                <div class="text-sm text-gray-500 mt-1">
+                    {{ student.grade }} · {{ student.school or '학교 미등록' }}
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <div class="bg-purple-50 rounded-xl px-6 py-3 text-center">
+                    <div class="text-xs text-gray-500 mb-1">ACE 평가</div>
+                    <div class="text-2xl font-bold text-purple-600 mono">{{ ace_evals|length }}<span class="text-sm text-gray-500">건</span></div>
+                </div>
+                <div class="bg-blue-50 rounded-xl px-6 py-3 text-center">
+                    <div class="text-xs text-gray-500 mb-1">주차 평가</div>
+                    <div class="text-2xl font-bold text-blue-600 mono">{{ weekly_evals|length }}<span class="text-sm text-gray-500">건</span></div>
+                </div>
+                {% if latest_ace %}
+                <div class="bg-green-50 rounded-xl px-6 py-3 text-center">
+                    <div class="text-xs text-gray-500 mb-1">최근 총점</div>
+                    <div class="text-2xl font-bold text-green-600 mono">{{ latest_ace.get_total_score() }}<span class="text-sm text-gray-500">/75</span></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if not ace_evals and not weekly_evals %}
+    <!-- 평가가 없는 경우 -->
+    <div class="card-momo">
+        <div class="text-center py-12">
+            <div class="text-5xl mb-4">📋</div>
+            <h3 class="text-xl font-bold mb-2">아직 평가 기록이 없습니다</h3>
+            <p class="text-gray-600">선생님이 평가를 입력하면 여기에 표시됩니다.</p>
+        </div>
+    </div>
+
+    {% else %}
+
+    <!-- 차트 영역 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <!-- ACE 역량 분석 -->
+        {% if latest_ace %}
+        <div class="card-momo">
+            <h3 class="text-base font-bold mb-1">🎯 ACE 역량 분석</h3>
+            <p class="text-xs text-gray-500 mb-3">최신 분기 기준 ({{ latest_ace.year }}년 {{ latest_ace.quarter }})</p>
+            <div class="chart-wrap">
+                <canvas id="aceRadar"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 주차별 성장 곡선 -->
+        {% if weekly_evals %}
+        <div class="card-momo">
+            <h3 class="text-base font-bold mb-1">📈 주차별 성장 곡선</h3>
+            <p class="text-xs text-gray-500 mb-3">첨삭 점수 추이</p>
+            <div class="chart-wrap">
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ACE 분기 평가 이력 -->
+    {% if ace_evals %}
+    <div class="card-momo mb-4">
+        <h3 class="text-card-title mb-4">💬 ACE 분기 평가 코멘트</h3>
+
+        <div class="timeline">
+            {% for eval in ace_evals|reverse %}
+            <div class="timeline-item">
+                <div class="timeline-qtr">
+                    {{ eval.quarter }}
+                    <span class="timeline-year">{{ eval.year }}년 · {{ eval.teacher.name if eval.teacher else '강사' }}</span>
+                </div>
+                <div class="timeline-comment">{{ eval.comment or '코멘트 없음' }}</div>
+                <div class="timeline-scores">
+                    총점 {{ eval.get_total_score() }}/75 ·
+                    {% for axis in ace_axes %}
+                    <span style="color: {{ axis.color }}; font-weight: 600;">
+                        {{ axis.name[:2] }} {{ "%.1f"|format(eval.get_axis_average(axis.item_names)) }}
+                    </span>{{ ' · ' if not loop.last else '' }}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 최근 주차 평가 -->
+    {% if weekly_evals %}
+    <div class="card-momo">
+        <h3 class="text-card-title mb-4">📝 최근 주차 평가</h3>
+
+        <table class="table-momo w-full">
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>주차</th>
+                    <th>도서</th>
+                    <th>유형</th>
+                    <th>점수</th>
+                    <th>등급</th>
+                    <th>코멘트</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eval in weekly_evals[:10] %}
+                <tr>
+                    <td>{{ eval.eval_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ eval.week_number }}주차</td>
+                    <td>{{ eval.book_title or '-' }}</td>
+                    <td>{{ eval.class_type or '-' }}</td>
+                    <td class="mono font-bold" style="color: {{ '#10B981' if eval.score >= 80 else '#F59E0B' if eval.score >= 60 else '#EF4444' }}">{{ eval.score }}</td>
+                    <td>
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3B82F6;">{{ eval.grade }}</span>
+                    </td>
+                    <td class="text-sm text-gray-600 max-w-xs truncate">{{ eval.comment or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+</div>
+
+{% if latest_ace or weekly_evals %}
+<script>
+// ACE 역량 레이더 차트
+{% if latest_ace %}
+const aceCtx = document.getElementById('aceRadar');
+if (aceCtx) {
+    new Chart(aceCtx, {
+        type: 'radar',
+        data: {
+            labels: [{% for axis in ace_axes %}'{{ axis.name }}'{{ ',' if not loop.last else '' }}{% endfor %}],
+            datasets: [{
+                label: '{{ latest_ace.year }}년 {{ latest_ace.quarter }}',
+                data: [{% for axis in ace_axes %}{{ "%.1f"|format(latest_ace.get_axis_average(axis.item_names)) }}{{ ',' if not loop.last else '' }}{% endfor %}],
+                backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                borderColor: '#8B5CF6',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#8B5CF6',
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                r: {
+                    min: 0,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1,
+                        font: { size: 10 },
+                        backdropColor: 'transparent'
+                    },
+                    grid: { color: '#E2E8F0' },
+                    pointLabels: {
+                        font: { size: 11, family: 'Noto Sans KR' }
+                    }
+                }
+            }
+        }
+    });
+}
+{% endif %}
+
+// 주차별 성장 곡선 차트
+{% if weekly_evals %}
+const growthCtx = document.getElementById('growthChart');
+if (growthCtx) {
+    new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for eval in weekly_evals|reverse %}'{{ eval.week_number }}주차'{{ ',' if not loop.last else '' }}{% endfor %}],
+            datasets: [{
+                label: '첨삭 점수',
+                data: [{% for eval in weekly_evals|reverse %}{{ eval.score }}{{ ',' if not loop.last else '' }}{% endfor %}],
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#3B82F6',
+                pointBorderWidth: 2.5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw + '점';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    grid: { color: '#F1F5F9' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+{% endif %}
+</script>
+{% endif %}
+
+{% endblock %}

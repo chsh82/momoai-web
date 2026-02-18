@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}문자 발송 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.messages') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 발송 내역으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">📱 문자 발송</h2>
+        <p class="text-gray-600 mt-1">SMS/LMS 문자를 발송합니다.</p>
+    </div>
+
+    <!-- 발송 폼 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6">
+            <form method="POST" id="messageForm">
+                <!-- 메시지 유형 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        메시지 유형 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="message_type" value="SMS" checked
+                                   class="mr-2" onchange="toggleMessageType()">
+                            <span class="px-4 py-2 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg font-medium">
+                                SMS (단문 90바이트)
+                            </span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="message_type" value="LMS"
+                                   class="mr-2" onchange="toggleMessageType()">
+                            <span class="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium">
+                                LMS (장문 2000바이트)
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 제목 (LMS only) -->
+                <div class="mb-6" id="subjectField" style="display: none;">
+                    <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">
+                        제목 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="subject" name="subject"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="LMS 제목을 입력하세요">
+                </div>
+
+                <!-- 내용 -->
+                <div class="mb-6">
+                    <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
+                        내용 <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="content" name="content" rows="10" required
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="메시지 내용을 입력하세요"
+                              oninput="updateCharCount()"></textarea>
+                    <div class="mt-2 flex items-center justify-between text-sm">
+                        <span id="charInfo" class="text-gray-600">0자 (0바이트)</span>
+                        <span id="charLimit" class="text-gray-500">최대: SMS 90바이트 / LMS 2000바이트</span>
+                    </div>
+                </div>
+
+                <!-- 수신자 선택 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        수신자 <span class="text-red-500">*</span>
+                    </label>
+
+                    <!-- 수신자 유형 -->
+                    <div class="mb-4 flex gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="recipient_type" value="individual" checked
+                                   class="mr-2" onchange="toggleRecipientType()">
+                            <span class="font-medium text-gray-700">개별 선택</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="recipient_type" value="all"
+                                   class="mr-2" onchange="toggleRecipientType()">
+                            <span class="font-medium text-gray-700">전체 학생</span>
+                        </label>
+                    </div>
+
+                    <!-- 개별 선택 -->
+                    <div id="recipientSelect">
+                        <div class="mb-2">
+                            <button type="button" onclick="selectAll()" class="text-blue-600 hover:text-blue-800 text-sm font-medium mr-3">
+                                전체 선택
+                            </button>
+                            <button type="button" onclick="deselectAll()" class="text-gray-600 hover:text-gray-800 text-sm font-medium">
+                                전체 해제
+                            </button>
+                        </div>
+                        <div class="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
+                            {% if students %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {% for student in students %}
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" name="recipients[]" value="{{ student.student_id }}"
+                                           class="mr-2 recipient-checkbox" onchange="updateRecipientCount()">
+                                    <span class="text-sm text-gray-800">
+                                        {{ student.name }} ({{ student.grade }})
+                                        {% if student.phone %}
+                                        <span class="text-gray-500">- {{ student.phone }}</span>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-500 text-center py-4">연락처가 등록된 학생이 없습니다.</p>
+                            {% endif %}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-600">
+                            선택된 수신자: <span id="recipientCount" class="font-medium text-blue-600">0</span>명
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 예약 발송 -->
+                <div class="mb-6">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="isScheduled" name="is_scheduled"
+                               class="mr-2" onchange="toggleSchedule()">
+                        <span class="text-sm font-medium text-gray-700">예약 발송</span>
+                    </label>
+                    <div id="scheduleField" style="display: none;" class="mt-3">
+                        <input type="datetime-local" id="scheduled_at" name="scheduled_at"
+                               class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- 메모 -->
+                <div class="mb-6">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                        메모
+                    </label>
+                    <textarea id="notes" name="notes" rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="발송 관련 메모 (선택사항)"></textarea>
+                </div>
+
+                <!-- 안내 -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">💡</span>
+                        <div>
+                            <h4 class="font-medium text-blue-900 mb-1">발송 안내</h4>
+                            <ul class="text-sm text-blue-800 space-y-1">
+                                <li>• SMS: 90바이트(한글 약 45자)까지 발송 가능</li>
+                                <li>• LMS: 2000바이트(한글 약 1000자)까지 발송 가능</li>
+                                <li>• 실제 SMS 발송을 위해서는 SMS API 연동이 필요합니다</li>
+                                <li>• 현재는 발송 내역만 저장됩니다</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="flex gap-3">
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                        발송하기
+                    </button>
+                    <a href="{{ url_for('admin.messages') }}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
+                        취소
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMessageType() {
+    const messageType = document.querySelector('input[name="message_type"]:checked').value;
+    const subjectField = document.getElementById('subjectField');
+
+    if (messageType === 'LMS') {
+        subjectField.style.display = 'block';
+        document.getElementById('subject').required = true;
+    } else {
+        subjectField.style.display = 'none';
+        document.getElementById('subject').required = false;
+    }
+
+    updateCharCount();
+}
+
+function updateCharCount() {
+    const content = document.getElementById('content').value;
+    const charCount = content.length;
+    const byteCount = new Blob([content]).size;
+    const messageType = document.querySelector('input[name="message_type"]:checked').value;
+
+    const charInfo = document.getElementById('charInfo');
+    charInfo.textContent = `${charCount}자 (${byteCount}바이트)`;
+
+    // 초과 경고
+    const maxBytes = messageType === 'SMS' ? 90 : 2000;
+    if (byteCount > maxBytes) {
+        charInfo.classList.add('text-red-600', 'font-bold');
+        charInfo.textContent += ` - 초과!`;
+    } else {
+        charInfo.classList.remove('text-red-600', 'font-bold');
+        charInfo.classList.add('text-gray-600');
+    }
+}
+
+function toggleRecipientType() {
+    const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+    const recipientSelect = document.getElementById('recipientSelect');
+
+    if (recipientType === 'all') {
+        recipientSelect.style.display = 'none';
+    } else {
+        recipientSelect.style.display = 'block';
+    }
+}
+
+function selectAll() {
+    document.querySelectorAll('.recipient-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateRecipientCount();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.recipient-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateRecipientCount();
+}
+
+function updateRecipientCount() {
+    const count = document.querySelectorAll('.recipient-checkbox:checked').length;
+    document.getElementById('recipientCount').textContent = count;
+}
+
+function toggleSchedule() {
+    const isScheduled = document.getElementById('isScheduled').checked;
+    const scheduleField = document.getElementById('scheduleField');
+
+    if (isScheduled) {
+        scheduleField.style.display = 'block';
+        document.getElementById('scheduled_at').required = true;
+    } else {
+        scheduleField.style.display = 'none';
+        document.getElementById('scheduled_at').required = false;
+    }
+}
+
+// 폼 제출 전 검증
+document.getElementById('messageForm').addEventListener('submit', function(e) {
+    const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+
+    if (recipientType === 'individual') {
+        const selectedCount = document.querySelectorAll('.recipient-checkbox:checked').length;
+        if (selectedCount === 0) {
+            e.preventDefault();
+            alert('최소 1명 이상의 수신자를 선택해주세요.');
+            return false;
+        }
+    }
+});
+</script>
+{% endblock %}

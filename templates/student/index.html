@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}학생 대시보드 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🏠 학생 대시보드{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">내 학습 현황</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-2xl">
+                {{ student.name[0] }}
+            </div>
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }}님 환영합니다</h2>
+                <p class="text-gray-600">{{ student.grade }}
+                    {% if student.tier %}
+                    <span class="ml-2 px-2 py-1 text-xs font-medium rounded
+                        {% if student.tier == 'A' %}bg-red-100 text-red-800
+                        {% elif student.tier == 'B' %}bg-blue-100 text-blue-800
+                        {% elif student.tier == 'C' %}bg-green-100 text-green-800
+                        {% elif student.tier == 'VIP' %}bg-purple-100 text-purple-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ student.tier }}등급
+                    </span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 빠른 통계 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">수강 수업</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ enrollments|length }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">📚</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 첨삭</p>
+                    <p class="text-3xl font-bold text-green-600">{{ total_essays }}</p>
+                </div>
+                <div class="text-green-600 text-4xl">✍️</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">완료된 첨삭</p>
+                    <p class="text-3xl font-bold text-purple-600">{{ completed_essays }}</p>
+                </div>
+                <div class="text-purple-600 text-4xl">✅</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">읽지 않은 공지</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ unread_count }}</p>
+                </div>
+                <div class="text-yellow-600 text-4xl">📢</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 빠른 메뉴 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <a href="{{ url_for('student.submit_essay') }}"
+           class="bg-green-600 hover:bg-green-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">✍️</span>
+            <span>과제 제출</span>
+        </a>
+
+        <a href="{{ url_for('student.my_essays') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📝</span>
+            <span>내 첨삭</span>
+        </a>
+
+        <a href="{{ url_for('student.courses') }}"
+           class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📚</span>
+            <span>내 수업</span>
+        </a>
+
+        <a href="{{ url_for('student.announcements') }}"
+           class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📢</span>
+            <span>공지사항</span>
+        </a>
+    </div>
+
+    <!-- 데이터 내보내기 섹션 -->
+    <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="text-3xl">📊</div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">데이터 내보내기</h3>
+                    <p class="text-sm text-gray-600">내 학습 데이터를 Excel로 다운로드하세요</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ url_for('student.export_my_attendance') }}"
+                   class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                    📋 내 출석 내역
+                </a>
+                <a href="{{ url_for('student.export_my_report') }}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                    📈 종합 리포트 (Excel)
+                </a>
+                <a href="{{ url_for('student.export_my_report_pdf') }}"
+                   class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                    📄 성적표 (PDF)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트 섹션 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 월별 첨삭 추이 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">월별 첨삭 추이</h3>
+                <p class="text-sm text-gray-600 mt-1">최근 6개월간 첨삭 활동</p>
+            </div>
+            <div class="p-6">
+                <canvas id="essayTrendChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- 평균 점수 추이 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">평균 점수 추이</h3>
+                <p class="text-sm text-gray-600 mt-1">최근 10개 첨삭 점수</p>
+            </div>
+            <div class="p-6">
+                <canvas id="scoreTrendChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수업별 출석률 차트 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">수업별 출석률</h3>
+            <p class="text-sm text-gray-600 mt-1">내 수업 출석 현황</p>
+        </div>
+        <div class="p-6">
+            <canvas id="attendanceChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 이번 주 수업 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">이번 주 수업</h3>
+            </div>
+            <div class="p-6">
+                {% if this_week_sessions %}
+                <div class="space-y-3">
+                    {% for item in this_week_sessions %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-800">{{ item.course.course_name }}</h4>
+                                <p class="text-sm text-gray-600">{{ item.session.session_date.strftime('%m월 %d일 (%a)') }}</p>
+                            </div>
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if item.attendance.status == 'present' %}bg-green-100 text-green-800
+                                {% elif item.attendance.status == 'late' %}bg-yellow-100 text-yellow-800
+                                {% elif item.attendance.status == 'absent' %}bg-red-100 text-red-800
+                                {% elif item.attendance.status == 'excused' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if item.attendance.status == 'present' %}출석
+                                {% elif item.attendance.status == 'late' %}지각
+                                {% elif item.attendance.status == 'absent' %}결석
+                                {% elif item.attendance.status == 'excused' %}결석 (사유)
+                                {% else %}미체크{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">이번 주 수업이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 최근 첨삭 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">최근 첨삭</h3>
+                <a href="{{ url_for('student.my_essays') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_essays %}
+                <div class="space-y-3">
+                    {% for essay in recent_essays %}
+                    <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <a href="{{ url_for('student.view_essay', essay_id=essay.essay_id) }}"
+                               class="font-medium text-gray-800 hover:text-blue-600 flex-1">
+                                {{ essay.title }}
+                            </a>
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if essay.is_finalized %}bg-green-100 text-green-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {% if essay.is_finalized %}완료{% else %}진행 중{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600">
+                            {{ essay.created_at.strftime('%Y-%m-%d') }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">첨삭 기록이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 수강 중인 수업 -->
+        <div class="bg-white rounded-lg shadow lg:col-span-2">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">수강 중인 수업 ({{ enrollments|length }})</h3>
+                <a href="{{ url_for('student.courses') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="p-6">
+                {% if enrollments %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for enrollment in enrollments %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <a href="{{ url_for('student.course_detail', course_id=enrollment.course.course_id) }}"
+                                       class="font-medium text-gray-800 hover:text-blue-600">
+                                        {{ enrollment.course.course_name }}
+                                    </a>
+                                    {% if enrollment.course.tier %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if enrollment.course.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif enrollment.course.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif enrollment.course.tier == 'C' %}bg-green-100 text-green-800
+                                        {% elif enrollment.course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ enrollment.course.tier }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-600">{{ enrollment.course.teacher.name }} 강사</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <p class="text-gray-600">출석률</p>
+                                <p class="font-medium text-gray-800">{{ "%.1f"|format(enrollment.attendance_rate) }}%</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">출석/지각/결석</p>
+                                <p class="font-medium text-gray-800">
+                                    {{ enrollment.attended_sessions }}/{{ enrollment.late_sessions }}/{{ enrollment.absent_sessions }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">수강 중인 수업이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// 월별 첨삭 추이 차트
+const essayCtx = document.getElementById('essayTrendChart').getContext('2d');
+new Chart(essayCtx, {
+    type: 'line',
+    data: {
+        labels: {{ essay_labels|safe }},
+        datasets: [{
+            label: '첨삭 수',
+            data: {{ essay_data|safe }},
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// 평균 점수 추이 차트
+const scoreCtx = document.getElementById('scoreTrendChart').getContext('2d');
+new Chart(scoreCtx, {
+    type: 'line',
+    data: {
+        labels: {{ score_labels|safe }},
+        datasets: [{
+            label: '평균 점수',
+            data: {{ score_data|safe }},
+            backgroundColor: 'rgba(147, 51, 234, 0.1)',
+            borderColor: 'rgba(147, 51, 234, 1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// 수업별 출석률 차트
+const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+new Chart(attendanceCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ course_names|safe }},
+        datasets: [{
+            label: '출석률 (%)',
+            data: {{ attendance_rates|safe }},
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

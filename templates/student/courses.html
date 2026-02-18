@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}내 수업 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📚 내 수업{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">수강 중인 수업</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">내 수업 ({{ enrollments|length }})</h2>
+        <p class="text-gray-600 mt-1">수강 중인 수업 목록입니다.</p>
+    </div>
+
+    <!-- 수업 목록 -->
+    {% if enrollments %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for enrollment in enrollments %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <a href="{{ url_for('student.course_detail', course_id=enrollment.course.course_id) }}"
+                               class="text-xl font-medium text-gray-800 hover:text-blue-600">
+                                {{ enrollment.course.course_name }}
+                            </a>
+                            {% if enrollment.course.tier %}
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if enrollment.course.tier == 'A' %}bg-red-100 text-red-800
+                                {% elif enrollment.course.tier == 'B' %}bg-blue-100 text-blue-800
+                                {% elif enrollment.course.tier == 'C' %}bg-green-100 text-green-800
+                                {% elif enrollment.course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ enrollment.course.tier }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-600">👨‍🏫 {{ enrollment.course.teacher.name }} 강사</p>
+                    </div>
+                </div>
+
+                <!-- 출석 통계 -->
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="bg-green-50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-600 mb-1">출석률</p>
+                        <p class="text-lg font-bold text-green-600">{{ "%.1f"|format(enrollment.attendance_rate) }}%</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-600 mb-1">출석</p>
+                        <p class="text-lg font-bold text-blue-600">{{ enrollment.attended_sessions }}</p>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-600 mb-1">결석</p>
+                        <p class="text-lg font-bold text-red-600">{{ enrollment.absent_sessions }}</p>
+                    </div>
+                </div>
+
+                <!-- 수업 정보 -->
+                <div class="border-t border-gray-200 pt-4 space-y-2 text-sm">
+                    {% if enrollment.course.schedule_type == 'weekly' and enrollment.course.weekday is not none %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">수업 시간</span>
+                        <span class="font-medium text-gray-800">
+                            매주 {{ ['월', '화', '수', '목', '금', '토', '일'][enrollment.course.weekday] }}요일
+                            {% if enrollment.course.start_time %}{{ enrollment.course.start_time.strftime('%H:%M') }}{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">등록일</span>
+                        <span class="font-medium text-gray-800">{{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+
+                    {% if enrollment.course.total_sessions %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">전체 회차</span>
+                        <span class="font-medium text-gray-800">{{ enrollment.course.total_sessions }}회</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- 바로가기 -->
+                <div class="mt-4 flex gap-2">
+                    {% if enrollment.course.teacher.zoom_token %}
+                    <a href="{{ url_for('zoom.join', token=enrollment.course.teacher.zoom_token) }}"
+                       class="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-center py-2 rounded-lg transition duration-200 text-sm font-medium flex items-center justify-center gap-1"
+                       title="온라인 강의실 입장">
+                        🎥 강의실 입장
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('student.course_detail', course_id=enrollment.course.course_id) }}"
+                       class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg transition duration-200 text-sm font-medium">
+                        상세 보기
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">📚</div>
+        <h3 class="text-xl font-medium text-gray-800 mb-2">수강 중인 수업이 없습니다</h3>
+        <p class="text-gray-600">관리자 또는 강사에게 문의하여 수업을 등록하세요.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

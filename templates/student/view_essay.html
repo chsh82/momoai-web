@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}{{ essay.title or '내 과제' }} - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('student.my_essays') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 첨삭 목록으로
+        </a>
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                    {{ essay.title or '내 과제' }}
+                </h2>
+                <div class="flex items-center gap-3 text-sm text-gray-600">
+                    <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                    <span>👨‍🏫 {{ essay.user.name }} 강사</span>
+                    {% if version %}
+                    <span>📝 버전 v{{ version.version_number }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <span class="px-4 py-2 text-sm font-medium rounded
+                {% if essay.status == 'completed' and essay.is_finalized %}bg-green-100 text-green-800
+                {% elif essay.status == 'reviewing' %}bg-blue-100 text-blue-800
+                {% elif essay.status == 'processing' %}bg-yellow-100 text-yellow-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {% if essay.status == 'completed' and essay.is_finalized %}✅ 첨삭 완료
+                {% elif essay.status == 'reviewing' %}📝 검토 중
+                {% elif essay.status == 'processing' %}⏳ 처리 중
+                {% else %}📄 제출됨{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 본문 -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- 제출한 원문 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">📝 제출한 원문</h3>
+                </div>
+                <div class="p-6">
+                    {% if essay.original_text %}
+                    <div class="prose max-w-none">
+                        <div class="whitespace-pre-wrap text-gray-700 leading-relaxed">{{ essay.original_text }}</div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <p>본문 내용이 없습니다.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- 첨부 파일 -->
+                    {% if essay.attachment_filename %}
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                            <span class="text-xl">📎</span>
+                            첨부 파일
+                            {% if essay.attachment_filename.startswith('[') %}
+                                {% set filenames = essay.attachment_filename|from_json %}
+                                ({{ filenames|length }}개)
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            {% if essay.attachment_filename.startswith('[') %}
+                                {% set filenames = essay.attachment_filename|from_json %}
+                                {% for idx in range(filenames|length) %}
+                                <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="text-sm text-gray-600">{{ filenames[idx] }}</div>
+                                    </div>
+                                    <a href="{{ url_for('student.download_essay_attachment', essay_id=essay.essay_id, file_index=idx) }}"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
+                                        다운로드
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="text-sm text-gray-600">{{ essay.attachment_filename }}</div>
+                                    </div>
+                                    <a href="{{ url_for('student.download_essay_attachment', essay_id=essay.essay_id) }}"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
+                                        다운로드
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 참고 도서 -->
+            {% if reference_books %}
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">📚 참고 도서</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for book in reference_books %}
+                        <a href="{{ url_for('books.detail', book_id=book.book_id) }}" target="_blank"
+                           class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition duration-200">
+                            <div class="flex-shrink-0 w-12 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded flex items-center justify-center">
+                                📖
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-medium text-gray-800 truncate">{{ book.title }}</h4>
+                                {% if book.author %}
+                                <p class="text-sm text-gray-600 truncate">{{ book.author }}</p>
+                                {% endif %}
+                                {% if book.category %}
+                                <span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                    {{ book.category }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 첨삭 결과 -->
+            {% if html_content %}
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-800">✍️ 첨삭 결과</h3>
+                    <div class="flex gap-2">
+                        <a href="{{ url_for('api_download', filename=version.html_path|basename) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                            📄 HTML
+                        </a>
+                        <a href="{{ url_for('essays.print_essay', essay_id=essay.essay_id) }}" target="_blank"
+                           class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                            🖨️ PDF 인쇄
+                        </a>
+                    </div>
+                </div>
+                <div class="p-8">
+                    {{ html_content|safe }}
+                </div>
+            </div>
+            <div class="mt-3 text-center text-sm text-gray-600">
+                💡 "PDF 인쇄" 버튼을 누르면 인쇄 화면이 자동으로 열립니다. 대상을 "PDF로 저장"으로 선택하세요.
+            </div>
+            {% elif essay.status == 'processing' %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl">⏳</span>
+                    <div>
+                        <h4 class="font-medium text-yellow-900 mb-1">첨삭 처리 중</h4>
+                        <p class="text-sm text-yellow-800">
+                            AI가 첨삭을 진행하고 있습니다. 잠시만 기다려주세요.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% elif essay.status in ['reviewing', 'draft'] %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl">👨‍🏫</span>
+                    <div>
+                        <h4 class="font-medium text-blue-900 mb-1">첨삭 대기 중</h4>
+                        <p class="text-sm text-blue-800">
+                            담당 강사({{ essay.user.name }})가 첨삭을 시작하면 알림을 받게 됩니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 사이드바 -->
+        <div class="space-y-6">
+            <!-- 평가 점수 -->
+            {% if essay.result and essay.result.total_score %}
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800">📊 평가 점수</h3>
+                </div>
+                <div class="p-6">
+                    <div class="text-center mb-4">
+                        <p class="text-sm text-gray-600 mb-2">총점</p>
+                        <p class="text-5xl font-bold text-blue-600">{{ essay.result.total_score }}</p>
+                        <p class="text-gray-500 mt-1">/ 100점</p>
+                    </div>
+
+                    {% if essay.result.final_grade %}
+                    <div class="text-center pt-4 border-t border-gray-200">
+                        <p class="text-sm text-gray-600 mb-1">등급</p>
+                        <p class="text-2xl font-bold text-green-600">{{ essay.result.final_grade }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- 세부 점수 -->
+                    {% if essay.scores %}
+                    <div class="space-y-2 pt-4 border-t border-gray-200 mt-4">
+                        <p class="text-sm font-medium text-gray-700 mb-2">세부 항목</p>
+                        {% for score in essay.scores %}
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">{{ score.score_name }}</span>
+                            <span class="text-sm font-bold text-gray-800">{{ score.score_value }}점</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 정보 -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800">ℹ️ 정보</h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">제출 일시</p>
+                        <p class="font-medium text-gray-800">{{ essay.created_at.strftime('%Y년 %m월 %d일') }}</p>
+                        <p class="text-sm text-gray-600">{{ essay.created_at.strftime('%H:%M:%S') }}</p>
+                    </div>
+                    {% if essay.completed_at %}
+                    <div class="pt-3 border-t border-gray-200">
+                        <p class="text-sm text-gray-600">첨삭 완료</p>
+                        <p class="font-medium text-gray-800">{{ essay.completed_at.strftime('%Y년 %m월 %d일') }}</p>
+                        <p class="text-sm text-gray-600">{{ essay.completed_at.strftime('%H:%M:%S') }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="pt-3 border-t border-gray-200">
+                        <p class="text-sm text-gray-600">담당 강사</p>
+                        <p class="font-medium text-gray-800">{{ essay.user.name }}</p>
+                    </div>
+                    <div class="pt-3 border-t border-gray-200">
+                        <p class="text-sm text-gray-600">학년</p>
+                        <p class="font-medium text-gray-800">{{ essay.grade }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

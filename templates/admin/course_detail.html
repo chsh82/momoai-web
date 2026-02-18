@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.course_name }} - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}📚 수업 상세{% endblock %}
+
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.courses') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 수업 목록으로
+        </a>
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <h2 class="text-3xl font-bold text-gray-800">{{ course.course_name }}</h2>
+                    {% if course.tier %}
+                    <span class="px-3 py-1 text-sm font-medium rounded
+                        {% if course.tier == 'A' %}bg-red-100 text-red-800
+                        {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
+                        {% elif course.tier == 'C' %}bg-green-100 text-green-800
+                        {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ course.tier }}
+                    </span>
+                    {% endif %}
+                    <span class="px-3 py-1 text-sm font-medium rounded
+                        {% if course.status == 'active' %}bg-green-100 text-green-800
+                        {% elif course.status == 'completed' %}bg-gray-100 text-gray-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if course.status == 'active' %}진행 중
+                        {% elif course.status == 'completed' %}완료
+                        {% else %}취소{% endif %}
+                    </span>
+                    {% if course.makeup_class_allowed %}
+                    <span class="px-3 py-1 text-sm font-medium rounded bg-blue-100 text-blue-800">
+                        ✓ 보강가능
+                    </span>
+                    {% else %}
+                    <span class="px-3 py-1 text-sm font-medium rounded bg-gray-100 text-gray-800">
+                        ✗ 보강불가
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-600">{{ course.course_code }}</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ url_for('admin.edit_course', course_id=course.course_id) }}"
+                   class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded transition duration-200">
+                    수정
+                </a>
+                {% if current_user.is_master_admin %}
+                <form method="POST" action="{{ url_for('admin.delete_course', course_id=course.course_id) }}"
+                      onsubmit="return confirm('정말 이 수업을 삭제하시겠습니까?');" style="display: inline;">
+                    <button type="submit"
+                            class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded transition duration-200">
+                        삭제
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">수강생</p>
+            <p class="text-2xl font-bold text-blue-600">{{ stats['total_students'] }}/{{ stats['max_students'] }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">완료/전체 세션</p>
+            <p class="text-2xl font-bold text-green-600">{{ stats['completed_sessions'] }}/{{ stats['total_sessions'] }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">출석률</p>
+            <p class="text-2xl font-bold text-purple-600">{{ stats['attendance_rate'] }}%</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-sm text-gray-600 mb-1">수익/미납</p>
+            <p class="text-xl font-bold text-yellow-600">{{ "{:,}".format(stats['total_revenue']) }}원</p>
+            <p class="text-xs text-red-600">미납: {{ "{:,}".format(stats['total_pending']) }}원</p>
+        </div>
+    </div>
+
+    <!-- 빠른 메뉴 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <a href="{{ url_for('admin.manage_students', course_id=course.course_id) }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">👥</span>
+            <span>수강생 관리</span>
+        </a>
+
+        <a href="{{ url_for('admin.course_sessions', course_id=course.course_id) }}"
+           class="bg-green-600 hover:bg-green-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📅</span>
+            <span>세션 관리</span>
+        </a>
+
+        <a href="{{ url_for('admin.course_payments', course_id=course.course_id) }}"
+           class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">💰</span>
+            <span>결제 관리</span>
+        </a>
+
+        <a href="{{ url_for('admin.create_payment') }}?course_id={{ course.course_id }}"
+           class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">➕</span>
+            <span>결제 등록</span>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 수업 정보 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">수업 정보</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">담당 강사</p>
+                    <p class="text-gray-800 font-medium">{{ course.teacher.name if course.teacher else '미배정' }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">수업 설명</p>
+                    <p class="text-gray-800">{{ course.description or '설명 없음' }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">수업 일정</p>
+                    <p class="text-gray-800">
+                        {% if course.schedule_type == 'weekly' and course.weekday is not none %}
+                            매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일
+                            {% if course.start_time %} {{ course.start_time.strftime('%H:%M') }}{% endif %}
+                            {% if course.end_time %} - {{ course.end_time.strftime('%H:%M') }}{% endif %}
+                        {% else %}
+                            커스텀 스케줄
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">수업 기간</p>
+                    <p class="text-gray-800">
+                        {{ course.start_date.strftime('%Y년 %m월 %d일') }} ~ {{ course.end_date.strftime('%Y년 %m월 %d일') }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">회당 수업료</p>
+                    <p class="text-gray-800 font-medium text-lg">{{ "{:,}".format(course.price_per_session) }}원</p>
+                </div>
+
+                <div class="border-t border-gray-200 pt-4">
+                    <p class="text-sm text-gray-600 mb-2">보강신청 가능여부</p>
+                    <form method="POST" action="{{ url_for('admin.toggle_makeup_allowed', course_id=course.course_id) }}" class="flex items-center gap-3">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" name="makeup_class_allowed" value="1"
+                                   {% if course.makeup_class_allowed %}checked{% endif %}
+                                   onchange="this.form.submit()"
+                                   class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <span class="text-sm font-medium text-gray-700">보강신청 가능</span>
+                        </label>
+                        <span class="text-xs {% if course.makeup_class_allowed %}text-blue-600{% else %}text-gray-500{% endif %}">
+                            {% if course.makeup_class_allowed %}
+                            ✓ 현재 보강 신청 가능 상태입니다
+                            {% else %}
+                            ✗ 현재 보강 신청 불가 상태입니다
+                            {% endif %}
+                        </span>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최근 세션 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">최근 세션</h3>
+                <a href="{{ url_for('admin.course_sessions', course_id=course.course_id) }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 보기 →
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_sessions %}
+                <div class="space-y-3">
+                    {% for session in recent_sessions %}
+                    <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-medium text-gray-800">
+                                세션 {{ session.session_number }}
+                            </span>
+                            <span class="px-2 py-1 text-xs font-medium rounded
+                                {% if session.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif session.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if session.status == 'completed' %}완료
+                                {% elif session.status == 'cancelled' %}취소
+                                {% else %}예정{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600">
+                            {{ session.session_date.strftime('%Y-%m-%d') }}
+                            {% if session.start_time %} {{ session.start_time.strftime('%H:%M') }}{% endif %}
+                        </p>
+                        {% if session.topic %}
+                        <p class="text-sm text-gray-700 mt-1">{{ session.topic }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">세션이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 수강생 목록 -->
+        <div class="bg-white rounded-lg shadow lg:col-span-2">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">수강생 목록</h3>
+                <a href="{{ url_for('admin.manage_students', course_id=course.course_id) }}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                    수강생 추가
+                </a>
+            </div>
+            <div class="p-6">
+                {% if enrollments %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">학생명</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">등급</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">출석률</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">상태</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">등록일</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for enrollment in enrollments %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-800">
+                                    {{ enrollment.student.name }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-700">
+                                    {% if enrollment.student.tier %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if enrollment.student.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif enrollment.student.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif enrollment.student.tier == 'C' %}bg-green-100 text-green-800
+                                        {% elif enrollment.student.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ enrollment.student.tier }}
+                                    </span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-700">
+                                    {{ "%.1f"|format(enrollment.attendance_rate) }}%
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 text-xs font-medium rounded
+                                        {% if enrollment.status == 'active' %}bg-green-100 text-green-800
+                                        {% elif enrollment.status == 'completed' %}bg-gray-100 text-gray-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {% if enrollment.status == 'active' %}수강 중
+                                        {% elif enrollment.status == 'completed' %}완료
+                                        {% else %}중도 포기{% endif %}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">수강생이 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
