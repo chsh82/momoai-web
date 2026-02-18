@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+body {
+    font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif;
+}
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.sidebar-link {
+    transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: #60A5FA;
+}
+
+.sidebar-link.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-left-color: #60A5FA;
+    font-weight: 700;
+    color: #1A2744;
+    text-shadow: none;
+}
+
+.sidebar-link-sub {
+    transition: all 0.2s;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.sidebar-link-sub:hover {
+    transform: translateX(4px);
+    color: white;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 서브메뉴 액티브 상태 - 모든 역할 통일 (최우선) */
+a.sidebar-link-sub.text-blue-600,
+a.sidebar-link-sub.text-green-600,
+a.sidebar-link-sub.text-purple-600,
+a.sidebar-link-sub.text-pink-600,
+a.sidebar-link-sub.text-yellow-600,
+a.sidebar-link-sub.bg-blue-50,
+a.sidebar-link-sub.bg-green-50,
+a.sidebar-link-sub.bg-purple-50,
+a.sidebar-link-sub.bg-pink-50,
+a.sidebar-link-sub.bg-yellow-50 {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+/* Tailwind bg-*-50 클래스 완전 무력화 */
+a.sidebar-link-sub[class*="bg-"][class*="-50"] {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Tailwind text-*-600 클래스 완전 무력화 */
+a.sidebar-link-sub[class*="text-"][class*="-600"] {
+    color: white !important;
+}
+
+/* 모바일 사이드바 스타일 */
+@media (max-width: 1024px) {
+    aside {
+        max-width: 80vw;
+    }
+}
