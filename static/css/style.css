@@ -135,7 +135,7 @@ body {
 /* Sidebar Menu Active States */
 .sidebar-link.active {
   background-color: rgba(255, 255, 255, 0.2) !important;
-  color: var(--navy) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
   border-left-color: #60A5FA !important;
 }
@@ -143,7 +143,7 @@ body {
 .sidebar-link-sub.active,
 .sidebar-link-sub[class*="text-"][class*="-600"] {
   background-color: rgba(255, 255, 255, 0.15);
-  color: var(--navy) !important;
+  color: #ffffff !important;
   font-weight: 600;
   padding-left: 1rem;
   padding-right: 1rem;
