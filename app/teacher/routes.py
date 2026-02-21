@@ -985,22 +985,54 @@ def get_consultation_subcategories(major_category):
 @login_required
 @requires_role('teacher', 'admin')
 def assignments():
-    """과제 목록"""
-    # 내가 만든 과제
+    """과제 목록 — 내가 등록한 과제 + 학생 글쓰기(첨삭) 과제"""
+    from app.models.essay import Essay
+
+    # ── 섹션 1: 내가 등록한 정식 과제 ──────────────────────────────
     my_assignments = Assignment.query.filter_by(teacher_id=current_user.user_id)\
         .order_by(Assignment.due_date.desc()).all()
 
-    # 채점 대기 중인 제출물 수
     pending_count = 0
-    for assignment in my_assignments:
+    for a in my_assignments:
         pending_count += AssignmentSubmission.query.filter_by(
-            assignment_id=assignment.assignment_id,
-            status='submitted'
+            assignment_id=a.assignment_id, status='submitted'
         ).count()
 
+    # ── 섹션 2: 내 담당 학생들의 글쓰기(첨삭) 과제 ─────────────────
+    # 내 수업 수강생 student_id 목록
+    my_course_ids = [c.course_id for c in
+                     Course.query.filter_by(teacher_id=current_user.user_id, status='active').all()]
+    enrolled_student_ids = []
+    if my_course_ids:
+        enrolled_student_ids = [
+            e.student_id for e in
+            CourseEnrollment.query.filter(
+                CourseEnrollment.course_id.in_(my_course_ids),
+                CourseEnrollment.status == 'active'
+            ).all()
+        ]
+
+    # student.teacher_id 직접 배정된 학생 + 내 수업 수강생
+    direct_student_ids = [
+        s.student_id for s in Student.query.filter_by(teacher_id=current_user.user_id).all()
+    ]
+    all_student_ids = list(set(enrolled_student_ids + direct_student_ids))
+
+    writing_essays = []
+    if all_student_ids:
+        writing_essays = Essay.query.filter(
+            Essay.student_id.in_(all_student_ids)
+        ).order_by(Essay.created_at.desc()).limit(100).all()
+
+    # 첨삭 대기(미완료) / 완료 분리
+    essays_pending   = [e for e in writing_essays if e.status not in ('completed', 'failed')]
+    essays_completed = [e for e in writing_essays if e.status == 'completed']
+
     return render_template('teacher/assignments.html',
-                         assignments=my_assignments,
-                         pending_count=pending_count)
+                           assignments=my_assignments,
+                           pending_count=pending_count,
+                           essays_pending=essays_pending,
+                           essays_completed=essays_completed)
 
 
 @teacher_bp.route('/assignments/new', methods=['GET', 'POST'])
@@ -1010,16 +1042,20 @@ def create_assignment():
     """과제 생성"""
     if request.method == 'POST':
         # 내가 담당하는 수업만 선택 가능
-        course_id = request.form.get('course_id')
+        course_id = request.form.get('course_id') or None
+        target_student_id = request.form.get('target_student_id') or None
+
+        course = None
         if course_id:
             course = Course.query.get(course_id)
-            if course.teacher_id != current_user.user_id:
+            if course and course.teacher_id != current_user.user_id:
                 flash('권한이 없습니다.', 'error')
                 return redirect(url_for('teacher.assignments'))
 
         assignment = Assignment(
             teacher_id=current_user.user_id,
-            course_id=course_id if course_id else None,
+            course_id=course_id,
+            target_student_id=target_student_id,
             title=request.form['title'],
             description=request.form['description'],
             assignment_type=request.form.get('assignment_type', 'essay'),
@@ -1036,20 +1072,35 @@ def create_assignment():
         db.session.add(assignment)
         db.session.flush()
 
-        # 해당 수업 학생들에게 알림 발송
-        if course_id:
-            enrollments = CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
-            for enrollment in enrollments:
-                notification = Notification(
-                    user_id=enrollment.student.user_id if enrollment.student.user_id else None,
-                    notification_type='assignment',
-                    title=f'새 과제: {assignment.title}',
-                    message=f'{course.course_name} 수업의 새 과제가 등록되었습니다. 마감: {assignment.due_date.strftime("%m/%d %H:%M")}',
-                    link_url=f'/student/assignments/{assignment.assignment_id}',
-                    related_entity_type='assignment',
-                    related_entity_id=assignment.assignment_id
-                )
-                db.session.add(notification)
+        # 알림 발송
+        if course_id and course:
+            if target_student_id:
+                # 개별 학생에게만
+                target_student = Student.query.get(target_student_id)
+                if target_student and target_student.user_id:
+                    db.session.add(Notification(
+                        user_id=target_student.user_id,
+                        notification_type='assignment',
+                        title=f'새 과제: {assignment.title}',
+                        message=f'{course.course_name} 수업의 새 과제가 등록되었습니다. 마감: {assignment.due_date.strftime("%m/%d %H:%M")}',
+                        link_url=f'/student/assignments/{assignment.assignment_id}',
+                        related_entity_type='assignment',
+                        related_entity_id=assignment.assignment_id
+                    ))
+            else:
+                # 수업 전체 학생에게
+                enrollments = CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
+                for enrollment in enrollments:
+                    if enrollment.student.user_id:
+                        db.session.add(Notification(
+                            user_id=enrollment.student.user_id,
+                            notification_type='assignment',
+                            title=f'새 과제: {assignment.title}',
+                            message=f'{course.course_name} 수업의 새 과제가 등록되었습니다. 마감: {assignment.due_date.strftime("%m/%d %H:%M")}',
+                            link_url=f'/student/assignments/{assignment.assignment_id}',
+                            related_entity_type='assignment',
+                            related_entity_id=assignment.assignment_id
+                        ))
 
         db.session.commit()
 
@@ -1059,8 +1110,21 @@ def create_assignment():
     # GET - 폼 표시
     my_courses = Course.query.filter_by(teacher_id=current_user.user_id, status='active').all()
 
+    # 수업별 학생 목록 (JSON)
+    import json
+    course_students = {}
+    for course in my_courses:
+        enrollments = CourseEnrollment.query.filter_by(
+            course_id=course.course_id, status='active'
+        ).all()
+        course_students[course.course_id] = [
+            {'student_id': e.student.student_id, 'name': e.student.name, 'grade': e.student.grade}
+            for e in enrollments if e.student
+        ]
+
     return render_template('teacher/assignment_form.html',
                          courses=my_courses,
+                         course_students_json=json.dumps(course_students, ensure_ascii=False),
                          is_edit=False)
 
 
@@ -1131,9 +1195,20 @@ def grade_submission(assignment_id, submission_id):
         flash('채점이 완료되었습니다.', 'success')
         return redirect(url_for('teacher.assignment_detail', assignment_id=assignment_id))
 
+    # 해당 학생의 다른 채점 완료 이력 (현재 과제 제외, 최신 10개)
+    feedback_history = AssignmentSubmission.query.join(
+        Assignment, AssignmentSubmission.assignment_id == Assignment.assignment_id
+    ).filter(
+        AssignmentSubmission.student_id == submission.student_id,
+        Assignment.teacher_id == current_user.user_id,
+        AssignmentSubmission.status == 'graded',
+        AssignmentSubmission.submission_id != submission.submission_id
+    ).order_by(AssignmentSubmission.graded_at.desc()).limit(10).all()
+
     return render_template('teacher/grade_submission.html',
                          submission=submission,
-                         assignment=assignment)
+                         assignment=assignment,
+                         feedback_history=feedback_history)
 
 
 @teacher_bp.route('/assignments/<assignment_id>/delete', methods=['POST'])
@@ -1243,8 +1318,14 @@ def upload_material():
         # 파일 저장
         import uuid
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
-        file_path = os.path.join(current_app.config['MATERIALS_FOLDER'], unique_filename)
-        file.save(file_path)
+        materials_folder = current_app.config['MATERIALS_FOLDER']
+        os.makedirs(materials_folder, exist_ok=True)
+        file_path = os.path.join(materials_folder, unique_filename)
+        try:
+            file.save(file_path)
+        except Exception as e:
+            flash(f'파일 저장 중 오류가 발생했습니다: {str(e)}', 'error')
+            return redirect(request.url)
 
         # 파일 크기
         file_size = os.path.getsize(file_path)
@@ -1522,6 +1603,74 @@ def send_student_message():
     else:
         flash(f'{message_type_korean}가 {student.name} 학생에게 발송되었습니다.', 'success')
     return redirect(url_for('teacher.class_messages'))
+
+
+@teacher_bp.route('/class-messages/<notification_id>')
+@login_required
+@requires_role('teacher', 'admin')
+def class_message_detail(notification_id):
+    """과제/공지 메시지 상세 — 답글 스레드 보기"""
+    from app.models.notification_reply import NotificationReply
+
+    notification = Notification.query.get_or_404(notification_id)
+
+    # 본인이 발송한 메시지만 조회 가능
+    if notification.related_user_id != current_user.user_id and not current_user.is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.class_messages'))
+
+    replies = NotificationReply.query.filter_by(
+        notification_id=notification_id
+    ).order_by(NotificationReply.created_at.asc()).all()
+
+    return render_template('teacher/class_message_detail.html',
+                           notification=notification,
+                           replies=replies)
+
+
+@teacher_bp.route('/class-messages/<notification_id>/reply', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def reply_to_class_message(notification_id):
+    """과제/공지 메시지에 강사 답글 달기"""
+    from app.models.notification_reply import NotificationReply
+
+    notification = Notification.query.get_or_404(notification_id)
+
+    # 본인이 발송한 메시지만
+    if notification.related_user_id != current_user.user_id and not current_user.is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.class_messages'))
+
+    content = request.form.get('content', '').strip()
+    if not content:
+        flash('답글 내용을 입력해주세요.', 'error')
+        return redirect(url_for('teacher.class_message_detail', notification_id=notification_id))
+
+    # 답글 저장
+    reply = NotificationReply(
+        notification_id=notification_id,
+        author_id=current_user.user_id,
+        content=content
+    )
+    db.session.add(reply)
+
+    # 학생에게 알림 발송
+    student_notification = Notification(
+        user_id=notification.user_id,
+        notification_type='homework_reply',
+        title=f'[답글] {notification.title}',
+        message=f'강사님이 답글을 달았습니다: {content[:50]}{"..." if len(content) > 50 else ""}',
+        related_user_id=current_user.user_id,
+        related_entity_type='notification',
+        related_entity_id=notification_id,
+        link_url='/student/homework'
+    )
+    db.session.add(student_notification)
+    db.session.commit()
+
+    flash('답글이 등록되었습니다.', 'success')
+    return redirect(url_for('teacher.class_message_detail', notification_id=notification_id))
 
 
 # ==================== 강사 게시판 ====================

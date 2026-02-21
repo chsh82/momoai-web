@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ staff.name }} 정보 수정 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('admin.staff_list') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 강사 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">직원 정보 수정</h2>
+        <p class="text-gray-600 mt-1">{{ staff.email }}</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">기본 정보</h3>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="">
+                {{ form.hidden_tag() }}
+
+                <!-- 이름 -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        이름 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.name(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.name.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.name.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 이메일 -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        이메일 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.email(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.email.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.email.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 전화번호 -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">전화번호</label>
+                    {{ form.phone(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="010-0000-0000") }}
+                    {% if form.phone.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.phone.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 역할 -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        역할 <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.role(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {% if form.role.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.role.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 줌 링크 -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">줌 링크</label>
+                    {{ form.zoom_link(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="https://zoom.us/j/1234567890") }}
+                    <p class="text-xs text-gray-500 mt-1">비워두면 기존 줌 링크가 유지됩니다.</p>
+                    {% if form.zoom_link.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.zoom_link.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- 활성 상태 -->
+                <div class="mb-6">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        {{ form.is_active(class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
+                        <span class="text-sm font-medium text-gray-700">계정 활성화</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-7">비활성화 시 해당 계정으로 로그인할 수 없습니다.</p>
+                </div>
+
+                <!-- 제출 -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <a href="{{ url_for('admin.staff_list') }}"
+                       class="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        취소
+                    </a>
+                    {{ form.submit(class="px-6 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition font-medium") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

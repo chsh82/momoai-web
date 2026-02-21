@@ -35,7 +35,7 @@ class ClassBoardPost(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    course = db.relationship('Course', backref='board_posts')
+    course = db.relationship('Course', backref=db.backref('board_posts', passive_deletes=True))
     author = db.relationship('User', backref='class_board_posts')
     comments = db.relationship('ClassBoardComment', back_populates='post',
                               cascade='all, delete-orphan', order_by='ClassBoardComment.created_at')

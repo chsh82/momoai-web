@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-    <!-- Header -->
     <div class="mb-6">
         <a href="{% if mode == 'edit' %}{{ url_for('admin.teaching_material_detail', material_id=material.material_id) }}{% else %}{{ url_for('admin.teaching_materials') }}{% endif %}"
            class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
@@ -13,7 +12,6 @@
         <h2 class="text-3xl font-bold text-gray-800">{% if mode == 'edit' %}교재 수정{% else %}교재 등록{% endif %}</h2>
     </div>
 
-    <!-- Form -->
     <div class="bg-white rounded-lg shadow-lg p-8">
         <form method="POST" action="" enctype="multipart/form-data">
             {{ form.hidden_tag() }}
@@ -22,26 +20,18 @@
                 <!-- 기본 정보 -->
                 <div class="border-b border-gray-200 pb-4">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">기본 정보</h3>
-
-                    <div class="space-y-4">
-                        <!-- 제목 -->
-                        <div>
-                            {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                            {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else "")) }}
-                            {% if form.title.errors %}
-                                {% for error in form.title.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
+                    <div>
+                        {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else "")) }}
+                        {% for error in form.title.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                        {% endfor %}
                     </div>
                 </div>
 
                 <!-- 대상 설정 -->
                 <div class="border-b border-gray-200 pb-4">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">대상 설정</h3>
-
-                    <!-- 대상 타입 -->
                     <div class="mb-4">
                         {{ form.target_type.label(class="block text-sm font-medium text-gray-700 mb-2") }}
                         <div class="flex gap-4">
@@ -56,7 +46,6 @@
                         </div>
                     </div>
 
-                    <!-- 학년 선택 (target_type='grade'일 때) -->
                     <div id="gradeSelect">
                         {{ form.target_grades.label(class="block text-sm font-medium text-gray-700 mb-2") }}
                         <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
@@ -72,7 +61,6 @@
                         <p class="text-xs text-gray-500 mt-2">선택하지 않으면 모든 학년에 공개됩니다</p>
                     </div>
 
-                    <!-- 수업 선택 (target_type='course'일 때) -->
                     <div id="courseSelect" class="hidden">
                         {{ form.target_course_ids }}
                         <label class="block text-sm font-medium text-gray-700 mb-2">대상 수업</label>
@@ -80,9 +68,7 @@
                                 class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
                             수업 선택
                         </button>
-                        <div id="selectedCourses" class="mt-3 space-y-2">
-                            <!-- JavaScript로 동적 생성 -->
-                        </div>
+                        <div id="selectedCourses" class="mt-3 space-y-2"></div>
                         <p class="text-xs text-gray-500 mt-2">선택하지 않으면 모든 수업에 공개됩니다</p>
                     </div>
                 </div>
@@ -91,43 +77,78 @@
                 <div class="border-b border-gray-200 pb-4">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">파일 업로드</h3>
 
-                    <div class="space-y-4">
-                        {% if mode == 'create' %}
-                        <div>
-                            {{ form.file_upload.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                            {{ form.file_upload(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.file_upload.errors else "")) }}
-                            <p class="text-xs text-gray-500 mt-1">허용 파일: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, HWP, ZIP</p>
-                            {% if form.file_upload.errors %}
-                                {% for error in form.file_upload.errors %}
-                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
-                                {% endfor %}
-                            {% endif %}
+                    {% if mode == 'edit' and material.files %}
+                    <!-- 기존 파일 목록 -->
+                    <div class="mb-4">
+                        <p class="text-sm font-medium text-gray-700 mb-2">
+                            현재 파일 ({{ material.files|length }}개 / 최대 5개)
+                        </p>
+                        <div class="space-y-2">
+                            {% for tmf in material.files %}
+                            <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                                <div class="flex items-center gap-3 flex-1 min-w-0">
+                                    <span class="text-lg">📄</span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-gray-800 truncate">{{ tmf.original_filename }}</p>
+                                        <p class="text-xs text-gray-500">{{ tmf.file_type.upper() }} · {{ (tmf.file_size / 1024)|round(1) }} KB</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 ml-3">
+                                    <a href="{{ url_for('admin.download_teaching_material_file', material_id=material.material_id, file_id=tmf.file_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">다운로드</a>
+                                    <form method="POST"
+                                          action="{{ url_for('admin.delete_teaching_material_file', material_id=material.material_id, file_id=tmf.file_id) }}"
+                                          onsubmit="return confirm('이 파일을 삭제하시겠습니까?');"
+                                          style="display:inline;">
+                                        {{ form.hidden_tag() }}
+                                        <button type="submit"
+                                                class="text-red-600 hover:text-red-800 text-sm font-medium">삭제</button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% else %}
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">현재 파일</p>
-                            <p class="font-medium text-gray-800">{{ material.original_filename }}</p>
-                            <p class="text-xs text-gray-500">{{ (material.file_size / 1024 / 1024)|round(2) }} MB</p>
-                        </div>
-                        {% endif %}
                     </div>
+                    {% elif mode == 'edit' %}
+                    <!-- 구형 단일 파일 (TeachingMaterialFile 없는 경우) -->
+                    <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p class="text-sm font-medium text-gray-700">현재 파일</p>
+                        <p class="text-gray-800">{{ material.original_filename }}</p>
+                        <p class="text-xs text-gray-500">{{ material.file_type.upper() }} · {{ (material.file_size / 1024)|round(1) }} KB</p>
+                        <p class="text-xs text-yellow-700 mt-2">⚠ 새 파일을 업로드하면 기존 파일이 교체됩니다.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- 새 파일 업로드 영역 -->
+                    {% if mode == 'create' or (mode == 'edit' and (material.files|length) < 5) %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {% if mode == 'edit' %}파일 추가 (최대 {{ 5 - (material.files|length) }}개 더 추가 가능){% else %}파일 선택 (최대 5개) <span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        <input type="file" name="file_uploads" multiple
+                               {% if mode == 'create' %}required{% endif %}
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.zip"
+                               onchange="updateFileCount(this)">
+                        <p class="text-xs text-gray-500 mt-1">허용 파일: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, HWP, ZIP · 최대 32MB/파일</p>
+                        <p id="fileCountMsg" class="text-xs text-blue-600 mt-1 hidden"></p>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-orange-600 font-medium">파일이 최대(5개)에 달했습니다. 기존 파일을 삭제한 후 추가하세요.</p>
+                    {% endif %}
                 </div>
 
                 <!-- 게시 기간 -->
                 <div class="border-b border-gray-200 pb-4">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">게시 기간</h3>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- 시작일 -->
                         <div>
                             {{ form.publish_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                            {{ form.publish_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                            {{ form.publish_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="publish_date") }}
                         </div>
-
-                        <!-- 종료일 -->
                         <div>
                             {{ form.end_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                            {{ form.end_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                            {{ form.end_date(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="end_date") }}
                             <p class="text-xs text-gray-500 mt-1">비워두면 무제한</p>
                         </div>
                     </div>
@@ -136,7 +157,6 @@
                 <!-- 공개 설정 -->
                 <div class="border-b border-gray-200 pb-4">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">공개 설정</h3>
-
                     <label class="flex items-center">
                         {{ form.is_public(class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
                         <span class="text-sm font-medium text-gray-700">공개</span>
@@ -163,46 +183,48 @@
 <!-- 수업 선택 모달 -->
 <div id="courseModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-lg bg-white">
-        <!-- 모달 헤더 -->
         <div class="flex items-center justify-between mb-4 pb-3 border-b">
             <h3 class="text-2xl font-bold text-gray-800">수업 선택</h3>
-            <button onclick="closeCourseModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
-                &times;
-            </button>
+            <button onclick="closeCourseModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">&times;</button>
         </div>
-
-        <!-- 검색 -->
         <div class="mb-4">
             <input type="text" id="courseSearch" placeholder="수업명 또는 강사명으로 검색..."
                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
-
-        <!-- 수업 목록 -->
-        <div id="courseList" class="max-h-96 overflow-y-auto">
-            <!-- AJAX로 로드 -->
-        </div>
-
-        <!-- 모달 푸터 -->
+        <div id="courseList" class="max-h-96 overflow-y-auto"></div>
         <div class="mt-6 pt-4 border-t flex justify-end gap-3">
             <button onclick="closeCourseModal()"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg transition duration-200">
-                닫기
-            </button>
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg transition duration-200">닫기</button>
             <button onclick="confirmCourseSelection()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                선택 완료
-            </button>
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">선택 완료</button>
         </div>
     </div>
 </div>
 
 <script>
+// 선택된 파일 수 표시
+function updateFileCount(input) {
+    const msg = document.getElementById('fileCountMsg');
+    const count = input.files.length;
+    if (count > 0) {
+        if (count > 5) {
+            msg.textContent = `⚠ 파일을 ${count}개 선택했습니다. 최대 5개까지만 업로드됩니다.`;
+            msg.className = 'text-xs text-red-600 mt-1';
+        } else {
+            msg.textContent = `✓ ${count}개 파일 선택됨`;
+            msg.className = 'text-xs text-blue-600 mt-1';
+        }
+        msg.classList.remove('hidden');
+    } else {
+        msg.classList.add('hidden');
+    }
+}
+
 // 대상 타입 전환
 document.querySelectorAll('input[name="target_type"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const gradeSelect = document.getElementById('gradeSelect');
         const courseSelect = document.getElementById('courseSelect');
-
         if (this.value === 'grade') {
             gradeSelect.classList.remove('hidden');
             courseSelect.classList.add('hidden');
@@ -220,15 +242,12 @@ function openCourseModal() {
     document.getElementById('courseModal').classList.remove('hidden');
     loadCourses();
 }
-
 function closeCourseModal() {
     document.getElementById('courseModal').classList.add('hidden');
 }
-
 async function loadCourses(searchTerm = '') {
     const response = await fetch(`/admin/api/courses/search?q=${searchTerm}`);
     const courses = await response.json();
-
     const courseList = document.getElementById('courseList');
     courseList.innerHTML = courses.map(course => `
         <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-2">
@@ -242,70 +261,51 @@ async function loadCourses(searchTerm = '') {
         </label>
     `).join('');
 }
-
-// 검색
 document.getElementById('courseSearch').addEventListener('input', function(e) {
     loadCourses(e.target.value);
 });
-
 function confirmCourseSelection() {
     const checkboxes = document.querySelectorAll('#courseList input[type="checkbox"]:checked');
     selectedCourseIds = Array.from(checkboxes).map(cb => cb.value);
-
-    // 선택된 수업 표시
     updateSelectedCoursesDisplay();
     closeCourseModal();
 }
-
 function updateSelectedCoursesDisplay() {
     const container = document.getElementById('selectedCourses');
-
-    // Update hidden field with comma-separated IDs
     document.getElementById('target_course_ids').value = selectedCourseIds.join(',');
-
     if (selectedCourseIds.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm">선택된 수업이 없습니다</p>';
         return;
     }
-
-    // Display selected courses
     container.innerHTML = selectedCourseIds.map(id => `
         <div class="flex items-center justify-between bg-gray-50 p-2 rounded">
             <span class="text-sm text-gray-700">수업 ID: ${id}</span>
             <button type="button" onclick="removeCourse('${id}')"
-                    class="text-red-600 hover:text-red-800 text-sm font-medium">
-                제거
-            </button>
+                    class="text-red-600 hover:text-red-800 text-sm font-medium">제거</button>
         </div>
     `).join('');
 }
-
 function removeCourse(courseId) {
     selectedCourseIds = selectedCourseIds.filter(id => id !== courseId);
     updateSelectedCoursesDisplay();
 }
-
-// ESC 키로 모달 닫기
 document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeCourseModal();
-    }
+    if (event.key === 'Escape') closeCourseModal();
 });
 
-// 초기화 - 기존 선택된 course IDs 로드 (edit 모드)
 document.addEventListener('DOMContentLoaded', function() {
+    // 기존 course IDs 로드 (edit 모드)
     const hiddenField = document.getElementById('target_course_ids');
     if (hiddenField && hiddenField.value) {
         selectedCourseIds = hiddenField.value.split(',').filter(id => id.trim());
         updateSelectedCoursesDisplay();
     }
 
-    // 초기 target_type에 따라 표시/숨김
+    // 초기 target_type 표시
     const selectedTargetType = document.querySelector('input[name="target_type"]:checked');
     if (selectedTargetType) {
         const gradeSelect = document.getElementById('gradeSelect');
         const courseSelect = document.getElementById('courseSelect');
-
         if (selectedTargetType.value === 'grade') {
             gradeSelect.classList.remove('hidden');
             courseSelect.classList.add('hidden');
@@ -318,34 +318,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // 게시 시작일 변경 시 종료일 자동 설정 (3주 후)
     const publishDateInput = document.getElementById('publish_date');
     const endDateInput = document.getElementById('end_date');
-
     if (publishDateInput && endDateInput) {
-        // 종료일 자동 계산 함수
         function updateEndDate() {
             const publishDate = new Date(publishDateInput.value);
-
-            if (publishDate && !isNaN(publishDate.getTime())) {
-                // 3주(21일) 후 날짜 계산
+            if (publishDate && !isNaN(publishDate.getTime()) && !endDateInput.value) {
                 const endDate = new Date(publishDate);
                 endDate.setDate(endDate.getDate() + 21);
-
-                // 종료일 필드에 설정 (YYYY-MM-DD 형식)
-                const year = endDate.getFullYear();
-                const month = String(endDate.getMonth() + 1).padStart(2, '0');
-                const day = String(endDate.getDate()).padStart(2, '0');
-                endDateInput.value = `${year}-${month}-${day}`;
+                const y = endDate.getFullYear();
+                const m = String(endDate.getMonth() + 1).padStart(2, '0');
+                const d = String(endDate.getDate()).padStart(2, '0');
+                endDateInput.value = `${y}-${m}-${d}`;
             }
         }
-
-        // 페이지 로드 시 시작일에 값이 있으면 자동 계산
-        if (publishDateInput.value && !endDateInput.value) {
-            updateEndDate();
-        }
-
-        // 시작일 변경 시에도 자동 계산
+        if (publishDateInput.value && !endDateInput.value) updateEndDate();
         publishDateInput.addEventListener('change', updateEndDate);
     }
-
 });
 </script>
 {% endblock %}

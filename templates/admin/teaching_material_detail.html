@@ -80,8 +80,22 @@
                 </div>
 
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">파일명</p>
+                    <p class="text-sm text-gray-600 mb-1">첨부 파일</p>
+                    {% if material.files %}
+                    <div class="space-y-2">
+                        {% for tmf in material.files %}
+                        <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                            <span class="text-sm text-gray-800 truncate flex-1">📄 {{ tmf.original_filename }}
+                                <span class="text-xs text-gray-500 ml-1">{{ tmf.file_type.upper() }} · {{ (tmf.file_size/1024)|round(1) }}KB</span>
+                            </span>
+                            <a href="{{ url_for('admin.download_teaching_material_file', material_id=material.material_id, file_id=tmf.file_id) }}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium ml-3">다운로드</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
                     <p class="text-gray-800 font-medium">{{ material.original_filename }}</p>
+                    {% endif %}
                 </div>
 
                 <div>

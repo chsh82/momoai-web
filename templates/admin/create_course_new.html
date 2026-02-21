@@ -237,43 +237,30 @@ function autoSetEndTime() {
     const courseTypeSelect = document.querySelector('select[name="course_type"]');
     const gradeSelect = document.querySelector('select[name="grade"]');
 
-    if (startTimeInput && startTimeInput.value) {
-        const [hours, minutes] = startTimeInput.value.split(':');
-        const startDate = new Date();
-        startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    if (!startTimeInput || !startTimeInput.value) return;
 
-        // 수업 타입과 학년에 따른 시간 계산
-        let minutesToAdd = 60;  // 기본값
+    const parts = startTimeInput.value.split(':');
+    if (parts.length < 2) return;
+    const startTotalMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
 
-        const courseType = courseTypeSelect ? courseTypeSelect.value : '';
-        const grade = gradeSelect ? gradeSelect.value : '';
+    const courseType = courseTypeSelect ? courseTypeSelect.value : '';
+    const grade = gradeSelect ? gradeSelect.value : '';
 
-        if (courseType === '베이직') {
-            minutesToAdd = 30;
-        } else if (courseType === '프리미엄') {
-            minutesToAdd = 60;
-        } else if (courseType === '정규반') {
-            // 초등: 120분, 중등/고등: 150분
-            if (grade.startsWith('초')) {
-                minutesToAdd = 120;
-            } else {
-                minutesToAdd = 150;
-            }
-        } else if (courseType === '하크니스') {
-            minutesToAdd = 150;
-        } else {
-            // 체험단, 보강수업, 기타: 60분
-            minutesToAdd = 60;
-        }
-
-        // 시간 추가
-        startDate.setMinutes(startDate.getMinutes() + minutesToAdd);
-
-        const endHours = String(startDate.getHours()).padStart(2, '0');
-        const endMinutes = String(startDate.getMinutes()).padStart(2, '0');
-
-        endTimeInput.value = `${endHours}:${endMinutes}`;
+    let minutesToAdd = 60;  // 기본값
+    if (courseType === '베이직') {
+        minutesToAdd = 30;
+    } else if (courseType === '프리미엄') {
+        minutesToAdd = 60;
+    } else if (courseType === '정규반') {
+        minutesToAdd = grade.startsWith('초') ? 120 : 150;
+    } else if (courseType === '하크니스') {
+        minutesToAdd = 150;
     }
+
+    const endTotal = startTotalMinutes + minutesToAdd;
+    const endHours = Math.floor(endTotal / 60) % 24;
+    const endMins = endTotal % 60;
+    endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
 }
 
 // 수업명 자동 생성

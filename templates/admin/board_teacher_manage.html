@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}강사 게시판 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">강사 게시판 관리</h2>
+        <p class="text-gray-600 mt-1">강사 전용 게시판의 게시글을 관리합니다.</p>
+    </div>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 게시글</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total_posts }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">📝</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">공지글</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ posts | selectattr('is_notice') | list | length }}</p>
+                </div>
+                <div class="text-yellow-600 text-4xl">📌</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="p-4">
+            <form method="GET" class="flex gap-3">
+                <input type="text" name="search" value="{{ search }}"
+                       placeholder="게시글 제목 또는 내용 검색..."
+                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    검색
+                </button>
+                {% if search %}
+                <a href="{{ url_for('admin.board_teacher_manage') }}"
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition duration-200">
+                    초기화
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 게시글 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">
+                게시글 목록
+                {% if search %}<span class="text-sm font-normal text-gray-500 ml-2">"{{ search }}" 검색 결과</span>{% endif %}
+            </h3>
+        </div>
+        {% if posts %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성자</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">공지</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">조회수</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">첨부파일</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성일</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for post in posts %}
+                    <tr class="hover:bg-gray-50 {% if post.is_notice %}bg-yellow-50{% endif %}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                {% if post.is_notice %}
+                                <span class="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 rounded">공지</span>
+                                {% endif %}
+                                <span class="text-sm font-medium text-gray-800 truncate max-w-xs">{{ post.title }}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ post.author.name if post.author else '(삭제됨)' }}
+                            {% if post.author and post.author.role == 'admin' %}
+                            <span class="text-xs text-purple-600 ml-1">(관리자)</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded {% if post.is_notice %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {{ '공지' if post.is_notice else '일반' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ post.view_count }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ post.attachment_count }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            {{ post.created_at.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <form method="POST" action="{{ url_for('admin.board_teacher_toggle_notice', post_id=post.board_id) }}">
+                                    <button type="submit" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">
+                                        {{ '공지해제' if post.is_notice else '공지설정' }}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin.board_teacher_delete_post', post_id=post.board_id) }}"
+                                      onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
+                                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
+                                        삭제
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        {% if pagination.pages > 1 %}
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-center gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin.board_teacher_manage', page=pagination.prev_num, search=search) }}"
+               class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition">이전</a>
+            {% endif %}
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                <a href="{{ url_for('admin.board_teacher_manage', page=p, search=search) }}"
+                   class="px-3 py-1 text-sm rounded transition {% if p == pagination.page %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">{{ p }}</a>
+                {% else %}
+                <span class="px-3 py-1 text-sm text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin.board_teacher_manage', page=pagination.next_num, search=search) }}"
+               class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition">다음</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="px-6 py-12 text-center text-gray-500">
+            {% if search %}
+            "{{ search }}"에 해당하는 게시글이 없습니다.
+            {% else %}
+            등록된 게시글이 없습니다.
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

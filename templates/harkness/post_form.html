@@ -26,64 +26,157 @@
         {% endif %}
     {% endwith %}
 
-    <form method="POST" class="bg-white rounded-lg shadow p-8">
+    {% if board.post_format != 'general' %}
+    <!-- 하크니스 양식 안내 배너 -->
+    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start gap-3">
+            <span class="text-2xl">💡</span>
+            <div class="text-sm text-purple-800">
+                <p class="font-semibold mb-1">하크니스 질문 작성 안내</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li>수업 토론을 위한 <strong>3개의 질문</strong>을 작성해주세요.</li>
+                    <li>각 질문 아래에 <strong>예상 답변 및 질문의 의도</strong>를 함께 작성하면 좋습니다.</li>
+                    <li>좋은 질문은 단순한 사실 확인보다 <strong>생각을 유도하는 열린 질문</strong>입니다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST" class="space-y-6">
         <!-- 제목 -->
-        <div class="mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">
                 제목 <span class="text-red-500">*</span>
             </label>
             <input type="text"
                    name="title"
                    value="{% if post %}{{ post.title }}{% endif %}"
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="제목을 입력하세요"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                   placeholder="게시글 제목을 입력하세요"
                    required>
+
+            <!-- 공지사항 여부 -->
+            {% if can_write_notice %}
+            <div class="mt-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox"
+                           name="is_notice"
+                           {% if post and post.is_notice %}checked{% endif %}
+                           class="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500">
+                    <span class="text-sm font-medium text-gray-700">공지사항으로 등록</span>
+                </label>
+            </div>
+            {% endif %}
         </div>
 
-        <!-- 공지사항 여부 -->
-        {% if can_write_notice %}
-        <div class="mb-6">
-            <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox"
-                       name="is_notice"
-                       {% if post and post.is_notice %}checked{% endif %}
-                       class="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
-                <span class="text-sm font-medium text-gray-700">공지사항으로 등록</span>
-            </label>
-        </div>
-        {% endif %}
-
-        <!-- 내용 -->
-        <div class="mb-6">
+        {% if board.post_format == 'general' %}
+        <!-- 일반 양식: 내용만 -->
+        <div class="bg-white rounded-lg shadow p-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">
                 내용 <span class="text-red-500">*</span>
             </label>
             <textarea name="content"
-                      rows="15"
-                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                      placeholder="내용을 입력하세요"
-                      required>{% if post %}{{ post.content }}{% endif %}</textarea>
+                      rows="10"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="내용을 자유롭게 작성하세요..."
+                      required>{% if post and post.content %}{{ post.content }}{% endif %}</textarea>
         </div>
 
-        <!-- 안내 -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div class="flex items-start">
-                <div class="text-blue-600 text-xl mr-3">ℹ️</div>
-                <div class="text-sm text-blue-800">
-                    <p class="font-medium mb-1">작성 안내</p>
-                    <ul class="list-disc list-inside space-y-1">
-                        <li>수업 전 토론 질문이나 준비 사항을 공유하세요</li>
-                        <li>다른 학생들의 의견을 존중하며 댓글을 달아주세요</li>
-                        <li>게시글은 같은 게시판의 모든 사용자가 볼 수 있습니다</li>
-                    </ul>
-                </div>
+        {% else %}
+        <!-- 하크니스 양식: 3개 질문 -->
+
+        <!-- 질문 1 -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full">질문 1</span>
+                <span class="text-sm text-red-500 font-medium">* 필수</span>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">질문 내용</label>
+                <textarea name="question1"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="첫 번째 질문을 입력하세요..."
+                          required>{% if post and post.question1 %}{{ post.question1 }}{% endif %}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    예상 답변 및 질문의 의도 <span class="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <textarea name="question1_intent"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
+                          placeholder="이 질문을 통해 무엇을 논의하고 싶은지, 예상되는 답변 방향 등을 작성하세요...">{% if post and post.question1_intent %}{{ post.question1_intent }}{% endif %}</textarea>
             </div>
         </div>
+
+        <!-- 질문 2 -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full">질문 2</span>
+                <span class="text-sm text-red-500 font-medium">* 필수</span>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">질문 내용</label>
+                <textarea name="question2"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="두 번째 질문을 입력하세요..."
+                          required>{% if post and post.question2 %}{{ post.question2 }}{% endif %}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    예상 답변 및 질문의 의도 <span class="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <textarea name="question2_intent"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-green-50"
+                          placeholder="이 질문을 통해 무엇을 논의하고 싶은지, 예상되는 답변 방향 등을 작성하세요...">{% if post and post.question2_intent %}{{ post.question2_intent }}{% endif %}</textarea>
+            </div>
+        </div>
+
+        <!-- 질문 3 -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full">질문 3</span>
+                <span class="text-sm text-red-500 font-medium">* 필수</span>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">질문 내용</label>
+                <textarea name="question3"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="세 번째 질문을 입력하세요..."
+                          required>{% if post and post.question3 %}{{ post.question3 }}{% endif %}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    예상 답변 및 질문의 의도 <span class="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <textarea name="question3_intent"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50"
+                          placeholder="이 질문을 통해 무엇을 논의하고 싶은지, 예상되는 답변 방향 등을 작성하세요...">{% if post and post.question3_intent %}{{ post.question3_intent }}{% endif %}</textarea>
+            </div>
+        </div>
+
+        <!-- 추가 내용 (선택) -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                추가 내용 <span class="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <textarea name="content"
+                      rows="5"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="위 질문 외에 공유하고 싶은 내용이 있으면 자유롭게 작성하세요...">{% if post and post.content %}{{ post.content }}{% endif %}</textarea>
+        </div>
+        {% endif %}
 
         <!-- 버튼 -->
         <div class="flex gap-3">
             <button type="submit"
-                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 rounded-lg transition duration-200">
                 {% if post %}수정하기{% else %}등록하기{% endif %}
             </button>
             <a href="{% if post %}{{ url_for('harkness.post_detail', board_id=board.board_id, post_id=post.post_id) }}{% else %}{{ url_for('harkness.board_detail', board_id=board.board_id) }}{% endif %}"

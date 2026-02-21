@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}메시지 상세 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}💬 메시지 상세{% endblock %}
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">답글 스레드</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+    <!-- 뒤로가기 -->
+    <div class="mb-4">
+        <a href="{{ url_for('teacher.class_messages') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+            ← 발송 내역으로
+        </a>
+    </div>
+
+    <!-- 원본 메시지 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-800">원본 메시지</h3>
+            <div class="flex items-center gap-2">
+                {% if notification.notification_type == 'class_announcement' %}
+                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">공지</span>
+                {% else %}
+                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">과제</span>
+                {% endif %}
+                {% if notification.related_entity_type == 'student' %}
+                <span class="px-2 py-1 text-xs font-medium rounded bg-orange-100 text-orange-800">개별</span>
+                {% else %}
+                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">전체</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-lg">👨‍🏫</div>
+                <div>
+                    <p class="font-semibold text-gray-800">{{ notification.user.name }}</p>
+                    <p class="text-xs text-gray-400">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+            <p class="font-bold text-gray-900 text-lg mb-2">{{ notification.title }}</p>
+            <p class="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{{ notification.message }}</p>
+        </div>
+    </div>
+
+    <!-- 답글 스레드 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">
+                💬 답글 ({{ replies|length }})
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if replies %}
+            <div class="space-y-4 mb-6">
+                {% for reply in replies %}
+                <div class="flex gap-3 {% if reply.author_id == current_user.user_id %}justify-end{% endif %}">
+                    {% if reply.author_id != current_user.user_id %}
+                    <!-- 학생 답글 (왼쪽) -->
+                    <div class="flex-shrink-0 w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-lg">🧑</div>
+                    <div class="max-w-md">
+                        <div class="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
+                            <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ reply.content }}</p>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">{{ reply.author.name }} · {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    {% else %}
+                    <!-- 강사 답글 (오른쪽) -->
+                    <div class="max-w-md">
+                        <div class="bg-green-50 border border-green-100 rounded-lg px-4 py-3">
+                            <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ reply.content }}</p>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1 text-right">나 (강사) · {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    <div class="flex-shrink-0 w-9 h-9 bg-green-100 rounded-full flex items-center justify-center text-lg">👨‍🏫</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-400 mb-6">
+                <p class="text-sm">아직 답글이 없습니다.</p>
+            </div>
+            {% endif %}
+
+            <!-- 강사 답글 작성 -->
+            <div class="border-t border-gray-100 pt-4">
+                <p class="text-sm font-medium text-gray-700 mb-2">답글 작성</p>
+                <form method="POST"
+                      action="{{ url_for('teacher.reply_to_class_message', notification_id=notification.notification_id) }}">
+                    <textarea name="content"
+                              rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                              placeholder="학생에게 답글을 남겨보세요..." required></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button type="submit"
+                                class="px-5 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-md transition">
+                            답글 등록
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

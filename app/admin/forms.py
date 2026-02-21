@@ -240,7 +240,7 @@ class TeachingMaterialForm(FlaskForm):
                            ('고2', '고등 2학년'),
                            ('고3', '고등 3학년'),
                        ],
-                       validators=[DataRequired(message='학년을 선택하세요.')])
+                       validators=[Optional()])
 
     file_upload = FileField('파일 업로드',
                            validators=[
@@ -253,7 +253,7 @@ class TeachingMaterialForm(FlaskForm):
                             default=date.today)
 
     end_date = DateField('게시 종료일',
-                        validators=[DataRequired(message='게시 종료일을 선택하세요.')])
+                        validators=[Optional()])
 
     is_public = BooleanField('공개', default=True)
 
@@ -320,7 +320,7 @@ class VideoForm(FlaskForm):
                             default=date.today)
 
     end_date = DateField('게시 종료일',
-                        validators=[DataRequired(message='게시 종료일을 선택하세요.')])
+                        validators=[Optional()])
 
     is_public = BooleanField('공개', default=True)
 
@@ -470,6 +470,43 @@ class CreateStaffForm(FlaskForm):
         from app.models import User
         if User.query.filter_by(email=field.data).first():
             raise ValidationError('이미 사용 중인 이메일입니다.')
+
+
+class EditStaffForm(FlaskForm):
+    """직원 계정 수정 폼"""
+    name = StringField('이름', validators=[
+        DataRequired(message='이름을 입력해주세요.'),
+        Length(min=2, max=100, message='이름은 2-100자 사이여야 합니다.')
+    ])
+    email = StringField('이메일', validators=[
+        DataRequired(message='이메일을 입력해주세요.'),
+        Email(message='올바른 이메일 형식이 아닙니다.')
+    ])
+    phone = StringField('전화번호', validators=[
+        Optional(),
+        Length(max=50, message='전화번호는 최대 50자까지 입력 가능합니다.')
+    ])
+    role = SelectField('역할',
+        choices=[('teacher', '강사'), ('admin', '관리자')],
+        validators=[DataRequired(message='역할을 선택해주세요.')]
+    )
+    is_active = BooleanField('활성 상태')
+    zoom_link = StringField('줌 링크 (선택)', validators=[
+        Optional(),
+        Length(max=500, message='URL은 최대 500자까지 입력 가능합니다.')
+    ])
+    submit = SubmitField('저장')
+
+    def __init__(self, original_email=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_email = original_email
+
+    def validate_email(self, field):
+        """이메일 중복 체크 (자신 제외)"""
+        from app.models import User
+        if field.data != self.original_email:
+            if User.query.filter_by(email=field.data).first():
+                raise ValidationError('이미 사용 중인 이메일입니다.')
 
 
 class ZoomLinkForm(FlaskForm):

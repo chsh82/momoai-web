@@ -1,9 +1,23 @@
 # -*- coding: utf-8 -*-
 """인증 폼"""
+import re
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, RadioField, SelectField, DateField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional
 from app.models import User
+
+
+def validate_password_strength(form, field):
+    """비밀번호 복잡도 검증 (대문자, 소문자, 숫자, 특수문자 필수)"""
+    password = field.data
+    if not re.search(r'[A-Z]', password):
+        raise ValidationError('비밀번호에 영문 대문자를 포함해야 합니다.')
+    if not re.search(r'[a-z]', password):
+        raise ValidationError('비밀번호에 영문 소문자를 포함해야 합니다.')
+    if not re.search(r'\d', password):
+        raise ValidationError('비밀번호에 숫자를 포함해야 합니다.')
+    if not re.search(r'[!@#$%^&*()\-_=+\[\]{};:\'",.<>?/\\|`~]', password):
+        raise ValidationError('비밀번호에 특수문자(!@#$%^&* 등)를 포함해야 합니다.')
 
 
 class LoginForm(FlaskForm):
@@ -31,7 +45,8 @@ class SignupForm(FlaskForm):
     ])
     password = PasswordField('비밀번호', validators=[
         DataRequired(message='비밀번호를 입력해주세요.'),
-        Length(min=8, message='비밀번호는 최소 8자 이상이어야 합니다.')
+        Length(min=8, message='비밀번호는 최소 8자 이상이어야 합니다.'),
+        validate_password_strength
     ])
     password_confirm = PasswordField('비밀번호 확인', validators=[
         DataRequired(message='비밀번호 확인을 입력해주세요.'),
@@ -86,7 +101,8 @@ class ChangePasswordForm(FlaskForm):
     ])
     new_password = PasswordField('새 비밀번호', validators=[
         DataRequired(message='새 비밀번호를 입력해주세요.'),
-        Length(min=8, message='비밀번호는 최소 8자 이상이어야 합니다.')
+        Length(min=8, message='비밀번호는 최소 8자 이상이어야 합니다.'),
+        validate_password_strength
     ])
     new_password_confirm = PasswordField('새 비밀번호 확인', validators=[
         DataRequired(message='새 비밀번호 확인을 입력해주세요.'),

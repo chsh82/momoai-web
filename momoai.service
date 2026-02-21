@@ -1,0 +1,52 @@
+# MOMOAI v4.1.0 - Systemd 서비스
+# 위치: /etc/systemd/system/momoai.service
+# 설치:
+#   sudo cp momoai.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable momoai
+#   sudo systemctl start momoai
+# 상태 확인: sudo systemctl status momoai
+# 로그 확인: sudo journalctl -u momoai -f
+
+[Unit]
+Description=MOMOAI v4.1.0 - AI Essay Correction System
+After=network.target
+
+[Service]
+Type=notify
+User=momoai
+Group=momoai
+WorkingDirectory=/home/momoai/momoai_web
+
+# 환경변수 파일
+EnvironmentFile=/home/momoai/momoai_web/.env.production
+
+# Gunicorn 실행
+ExecStart=/home/momoai/momoai_web/venv/bin/gunicorn \
+    -c /home/momoai/momoai_web/gunicorn_config.py \
+    "app:create_app('production')"
+
+# 재시작 정책
+Restart=always
+RestartSec=5s
+
+# 프로세스 관리
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+
+# 리소스 제한
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+
+# 로그
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=momoai
+
+[Install]
+WantedBy=multi-user.target

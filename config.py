@@ -70,6 +70,20 @@ class Config:
     KAKAO_USER_ID = KAKAO_USER_ID
     KAKAO_SENDER_KEY = KAKAO_SENDER_KEY
 
+    # 푸시 알림 (PWA)
+    VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
+    VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
+    VAPID_CLAIMS_SUB = os.environ.get('VAPID_CLAIMS_SUB') or 'mailto:contact@momoai.com'
+
+    # 이메일 설정 (Gmail SMTP 예시)
+    # .env에 아래 항목 추가 시 이메일 인증 활성화됨
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', '')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', '')
+
 
 class DevelopmentConfig(Config):
     """개발 환경 설정"""

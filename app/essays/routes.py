@@ -16,17 +16,53 @@ from app.models import db, Student, Essay, EssayVersion, Notification, OCRHistor
 from config import Config
 
 
+def _can_access_essay(essay):
+    """
+    현재 로그인 유저가 해당 essay에 접근 가능한지 확인.
+    - admin: 항상 허용
+    - essay.user_id 일치: 허용 (직접 생성한 강사)
+    - 담당 강사 (student.teacher_id): 허용
+    - 수강 담당 강사 (CourseEnrollment): 허용
+    """
+    if current_user.role == 'admin':
+        return True
+    if essay.user_id == current_user.user_id:
+        return True
+    if current_user.role == 'teacher' and essay.student:
+        if essay.student.teacher_id == current_user.user_id:
+            return True
+        from app.models import CourseEnrollment, Course
+        teacher_course_ids = [
+            c.course_id for c in
+            Course.query.filter_by(teacher_id=current_user.user_id).all()
+        ]
+        if teacher_course_ids:
+            enrolled = CourseEnrollment.query.filter(
+                CourseEnrollment.student_id == essay.student.student_id,
+                CourseEnrollment.course_id.in_(teacher_course_ids),
+                CourseEnrollment.status == 'active'
+            ).first()
+            if enrolled:
+                return True
+    return False
+
+
 @essays_bp.route('/')
 @login_required
 def index():
     """첨삭 목록 (필터링, 검색, 정렬 지원)"""
     from app.models import EssayResult
 
-    # 기본 쿼리 - 관리자는 모든 첨삭 조회, 강사는 본인 첨삭만
+    # 기본 쿼리 - 관리자는 모든 첨삭 조회, 강사는 본인이 생성하거나 담당 학생의 첨삭 조회
     if current_user.role == 'admin':
         query = Essay.query
     else:
-        query = Essay.query.filter_by(user_id=current_user.user_id)
+        query = Essay.query.join(Student).filter(
+            db.or_(
+                Essay.user_id == current_user.user_id,
+                Student.teacher_id == current_user.user_id
+            )
+        )
 
     # Phase 2: 필터링
     # 1. 학생별 필터
@@ -222,7 +258,7 @@ def result(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -383,7 +419,7 @@ def start_correction(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -482,7 +518,7 @@ def download_attachment(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -674,8 +710,8 @@ def view_submission(essay_id):
 
     essay = Essay.query.get_or_404(essay_id)
 
-    # 권한 확인 - 관리자 또는 해당 강사만 접근 가능
-    if current_user.role != 'admin' and essay.user_id != current_user.user_id:
+    # 권한 확인
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -811,7 +847,7 @@ def ocr_from_essay(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if current_user.role != 'admin' and essay.user_id != current_user.user_id:
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -829,15 +865,15 @@ def ocr_from_essay(essay_id):
     else:
         attachments = [(None, essay.attachment_filename, essay.attachment_path)]
 
-    # 이미지 파일만 필터링
+    # 이미지 + PDF 파일 필터링 (Gemini는 PDF도 처리 가능)
     ocr_service = OCRService()
     image_attachments = [
         (idx, name, path) for idx, name, path in attachments
-        if ocr_service.is_supported_image(name)
+        if ocr_service.is_supported_image(name) or name.lower().endswith('.pdf')
     ]
 
     if not image_attachments:
-        flash('이미지 파일이 없습니다. OCR 인식은 이미지 파일만 가능합니다.', 'error')
+        flash('OCR 가능한 파일이 없습니다. 이미지 또는 PDF 파일이 필요합니다.', 'error')
         return redirect(url_for('essays.view_submission', essay_id=essay_id))
 
     if request.method == 'POST':

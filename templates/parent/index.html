@@ -130,32 +130,47 @@
                 </a>
             </div>
             <div class="p-6">
-                {% if children %}
+                {% if children_data %}
                 <div class="space-y-4">
-                    {% for child in children %}
+                    {% for data in children_data %}
                     <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                                {{ child.name[0] }}
+                                {{ data.student.name[0] }}
                             </div>
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
-                                    <h4 class="font-medium text-gray-800">{{ child.name }}</h4>
-                                    {% if child.tier %}
+                                    <h4 class="font-medium text-gray-800">{{ data.student.name }}</h4>
+                                    {% if data.student.tier %}
                                     <span class="px-2 py-1 text-xs font-medium rounded
-                                        {% if child.tier == 'A' %}bg-red-100 text-red-800
-                                        {% elif child.tier == 'B' %}bg-blue-100 text-blue-800
-                                        {% elif child.tier == 'C' %}bg-green-100 text-green-800
-                                        {% elif child.tier == 'VIP' %}bg-purple-100 text-purple-800
+                                        {% if data.student.tier == 'A' %}bg-red-100 text-red-800
+                                        {% elif data.student.tier == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif data.student.tier == 'C' %}bg-green-100 text-green-800
+                                        {% elif data.student.tier == 'VIP' %}bg-purple-100 text-purple-800
                                         {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ child.tier }}
+                                        {{ data.student.tier }}
                                     </span>
                                     {% endif %}
                                 </div>
-                                <p class="text-sm text-gray-600">{{ child.grade }}</p>
+                                <p class="text-sm text-gray-600">{{ data.student.grade }}</p>
                             </div>
                         </div>
-                        <a href="{{ url_for('parent.child_detail', student_id=child.student_id) }}"
+                        <!-- 수강 중인 수업 -->
+                        {% if data.enrollments %}
+                        <div class="mb-3">
+                            <p class="text-xs text-gray-500 mb-1">📚 수강 중인 수업 ({{ data.enrollments|length }}개)</p>
+                            <div class="flex flex-wrap gap-1">
+                                {% for enrollment in data.enrollments %}
+                                <span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                                    {{ enrollment.course.course_name }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-xs text-gray-400 mb-3">수강 중인 수업이 없습니다.</p>
+                        {% endif %}
+                        <a href="{{ url_for('parent.child_detail', student_id=data.student.student_id) }}"
                            class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center text-sm font-medium py-2 rounded transition duration-200">
                             상세 정보 보기
                         </a>

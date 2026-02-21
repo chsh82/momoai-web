@@ -66,40 +66,6 @@
         </a>
     </div>
 
-    <!-- 데이터 내보내기 섹션 -->
-    <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="text-3xl">📊</div>
-                <div>
-                    <h3 class="text-lg font-bold text-gray-800">데이터 내보내기</h3>
-                    <p class="text-sm text-gray-600">{{ student.name }} 학생의 데이터를 Excel로 다운로드하세요</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <a href="{{ url_for('parent.export_child_attendance', student_id=student.student_id) }}"
-                   class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📋 출석 내역
-                </a>
-                <a href="{{ url_for('parent.export_child_payments', student_id=student.student_id) }}"
-                   class="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    💰 결제 내역
-                </a>
-                <a href="{{ url_for('parent.export_child_report', student_id=student.student_id) }}"
-                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📈 종합 리포트 (Excel)
-                </a>
-                <a href="{{ url_for('parent.export_child_report_pdf', student_id=student.student_id) }}"
-                   class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📄 성적표 (PDF)
-                </a>
-                <a href="{{ url_for('parent.export_child_attendance_certificate', student_id=student.student_id) }}"
-                   class="bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📜 출석확인서 (PDF)
-                </a>
-            </div>
-        </div>
-    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- 수강 중인 수업 -->

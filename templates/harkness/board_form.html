@@ -68,6 +68,31 @@
                       placeholder="게시판에 대한 간단한 설명"></textarea>
         </div>
 
+        <!-- 게시글 양식 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-3">
+                게시글 양식 <span class="text-red-500">*</span>
+            </label>
+            <div class="space-y-3">
+                <label class="flex items-start gap-3 p-4 border border-purple-200 rounded-lg cursor-pointer hover:bg-purple-50 transition has-[:checked]:bg-purple-50 has-[:checked]:border-purple-500">
+                    <input type="radio" name="post_format" value="harkness" checked
+                           class="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500">
+                    <div>
+                        <div class="font-medium text-gray-800">🎯 하크니스 양식</div>
+                        <div class="text-sm text-gray-500 mt-0.5">3개의 질문과 의도를 작성하는 토론 형식</div>
+                    </div>
+                </label>
+                <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition has-[:checked]:bg-gray-50 has-[:checked]:border-gray-500">
+                    <input type="radio" name="post_format" value="general"
+                           class="mt-1 w-4 h-4 text-gray-600 focus:ring-gray-500">
+                    <div>
+                        <div class="font-medium text-gray-800">📝 일반 양식</div>
+                        <div class="text-sm text-gray-500 mt-0.5">제목과 내용만 입력하는 자유 형식</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
         <!-- 버튼 -->
         <div class="flex gap-3">
             <button type="submit"

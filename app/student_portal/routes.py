@@ -18,6 +18,7 @@ from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.material import Material, MaterialDownload
 from app.models.makeup_request import MakeupClassRequest
 from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload
+from app.models.class_board import ClassBoardPost
 from app.models.video import Video, VideoView
 from app.models.class_board import ClassBoardPost, ClassBoardComment
 from app.utils.progress_tracker import ProgressTracker
@@ -224,11 +225,20 @@ def course_detail(course_id):
         enrollment_id=enrollment.enrollment_id
     ).join(CourseSession).order_by(desc(CourseSession.session_date)).all()
 
+    # 클래스 게시판 글 조회 (고정글 우선, 최신순)
+    board_posts = ClassBoardPost.query.filter_by(
+        course_id=course_id
+    ).order_by(
+        ClassBoardPost.is_pinned.desc(),
+        ClassBoardPost.created_at.desc()
+    ).limit(10).all()
+
     return render_template('student/course_detail.html',
                          student=student,
                          course=course,
                          enrollment=enrollment,
-                         attendances=attendances)
+                         attendances=attendances,
+                         board_posts=board_posts)
 
 
 @student_bp.route('/essays/new', methods=['GET', 'POST'])
@@ -324,7 +334,14 @@ def submit_essay():
         flash('첨삭이 성공적으로 제출되었습니다. 담당 강사에게 알림이 전송되었습니다.', 'success')
         return redirect(url_for('student.my_essays'))
 
-    return render_template('student/submit_essay.html', student=student)
+    # 이전 제출 이력
+    recent_essays = Essay.query.filter_by(
+        student_id=student.student_id
+    ).order_by(desc(Essay.created_at)).limit(10).all()
+
+    return render_template('student/submit_essay.html',
+                           student=student,
+                           recent_essays=recent_essays)
 
 
 @student_bp.route('/essays')
@@ -660,11 +677,15 @@ def assignments():
     ).all()
     my_course_ids = [e.course_id for e in my_enrollments]
 
-    # 수업별 과제 + 전체 학생 과제
+    # 수업별 과제: 전체 대상(target_student_id==None) 또는 나에게 지정된 과제
     assignments = Assignment.query.filter(
         db.or_(
             Assignment.course_id.in_(my_course_ids),
             Assignment.course_id == None
+        ),
+        db.or_(
+            Assignment.target_student_id == None,
+            Assignment.target_student_id == student.student_id
         ),
         Assignment.is_published == True
     ).order_by(Assignment.due_date.asc()).all()
@@ -1349,6 +1370,65 @@ def teaching_video_player(video_id):
                          youtube_video_id=youtube_video_id)
 
 
+# ==================== 과제 보기 ====================
+
+@student_bp.route('/homework')
+@login_required
+@requires_role('student', 'admin')
+def my_assignments():
+    """과제 보기 — 정식 Assignment + 수업 공지/과제 알림 통합"""
+    student = Student.query.filter_by(user_id=current_user.user_id).first()
+    if not student:
+        flash('학생 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('student.index'))
+
+    # ── 정식 과제 (Assignment 모델) ────────────────────────────
+    my_course_ids = [
+        e.course_id for e in
+        CourseEnrollment.query.filter_by(student_id=student.student_id, status='active').all()
+    ]
+    formal_assignments = Assignment.query.filter(
+        db.or_(
+            Assignment.course_id.in_(my_course_ids) if my_course_ids else db.false(),
+            Assignment.target_student_id == student.student_id
+        ),
+        db.or_(
+            Assignment.target_student_id == None,
+            Assignment.target_student_id == student.student_id
+        ),
+        Assignment.is_published == True
+    ).order_by(Assignment.due_date.asc()).all()
+
+    # 각 과제의 제출 상태
+    assignment_data = []
+    for a in formal_assignments:
+        sub = a.get_submission_by_student(student.student_id)
+        assignment_data.append({
+            'assignment': a,
+            'submission': sub,
+            'status': sub.status if sub else 'not_started'
+        })
+
+    # ── 수업 공지/과제 알림 ─────────────────────────────────────
+    notifications = Notification.query.filter(
+        Notification.user_id == current_user.user_id,
+        Notification.notification_type.in_(['homework_assignment', 'class_announcement'])
+    ).order_by(Notification.created_at.desc()).all()
+
+    # 읽음 처리
+    unread = [n for n in notifications if not n.is_read]
+    for n in unread:
+        n.is_read = True
+        n.read_at = datetime.utcnow()
+    if unread:
+        db.session.commit()
+
+    return render_template('student/my_assignments.html',
+                           notifications=notifications,
+                           assignment_data=assignment_data,
+                           student=student)
+
+
 # ==================== 클래스 게시판 ====================
 
 @student_bp.route('/class-board')
@@ -1848,8 +1928,10 @@ def reading_mbti():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    # 활성화된 테스트 가져오기
-    test = ReadingMBTITest.query.filter_by(is_active=True).first()
+    # 학년에 따라 적합한 테스트 선택 (초등: elementary, 그 외: standard)
+    grade = student.grade or ''
+    version = 'elementary' if grade.startswith('초') else 'standard'
+    test = ReadingMBTITest.query.filter_by(is_active=True, version=version).first()
 
     if not test:
         flash('현재 진행 중인 테스트가 없습니다.', 'warning')
@@ -2497,3 +2579,67 @@ def weekly_evaluation():
                          max_score=max_score,
                          min_score=min_score,
                          period=period)
+
+
+# ==================== 과제/공지 답글 ====================
+
+@student_bp.route('/homework/<notification_id>/reply', methods=['POST'])
+@login_required
+@requires_role('student', 'admin')
+def reply_to_homework(notification_id):
+    """과제/공지에 답글 달기"""
+    from app.models.notification import Notification
+    from app.models.notification_reply import NotificationReply
+
+    notification = Notification.query.get_or_404(notification_id)
+
+    # 본인 알림인지 확인
+    if notification.user_id != current_user.user_id and current_user.role != 'admin':
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('student.my_assignments'))
+
+    content = request.form.get('content', '').strip()
+    if not content:
+        flash('답글 내용을 입력해주세요.', 'error')
+        return redirect(url_for('student.my_assignments'))
+
+    # 답글 저장
+    reply = NotificationReply(
+        notification_id=notification_id,
+        author_id=current_user.user_id,
+        content=content
+    )
+    db.session.add(reply)
+
+    # 강사에게 알림 발송
+    teacher_user_id = notification.related_user_id
+    if teacher_user_id:
+        teacher_notification = Notification(
+            user_id=teacher_user_id,
+            notification_type='homework_reply',
+            title=f'[답글] {notification.title}',
+            message=f'{current_user.name} 학생이 과제에 답글을 달았습니다: {content[:50]}{"..." if len(content) > 50 else ""}',
+            related_user_id=current_user.user_id,
+            related_entity_type='notification',
+            related_entity_id=notification_id,
+            link_url=url_for('teacher.class_message_detail', notification_id=notification_id, _external=False)
+        )
+        db.session.add(teacher_notification)
+
+    db.session.commit()
+    flash('답글이 등록되었습니다.', 'success')
+    return redirect(url_for('student.my_assignments'))
+
+
+# ==================== 내가 만든 질문 (하크니스) ====================
+
+@student_bp.route('/my-questions')
+@login_required
+@requires_role('student', 'admin')
+def my_harkness_questions():
+    """내가 작성한 하크니스 게시글 목록"""
+    from app.models.harkness_board import HarknessPost
+    posts = HarknessPost.query\
+        .filter_by(author_id=current_user.user_id)\
+        .order_by(HarknessPost.created_at.desc()).all()
+    return render_template('student/my_harkness_questions.html', posts=posts)

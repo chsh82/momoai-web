@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} - MBTI 검사{% endblock %}
+
+{% block page_title %}📝 MBTI 검사{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">{{ student.name }} 학생 검사 진행</span>
+{% endblock %}
+
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header with Progress -->
+    <div class="sticky top-0 bg-white z-10 py-4 mb-6 border-b border-gray-200">
+        <div class="flex items-center justify-between mb-2">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">📚 독서 논술 MBTI 자가평가</h2>
+                <p class="text-sm text-purple-600 font-medium mt-0.5">
+                    👤 {{ student.name }} ({{ student.grade }}) 학생을 대신하여 검사를 진행합니다
+                </p>
+            </div>
+            <button onclick="confirmExit()" class="text-gray-600 hover:text-gray-800 text-sm font-medium">
+                취소
+            </button>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex-1">
+                <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-300"
+                         style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="text-sm font-medium text-gray-600">
+                <span id="progressText">0</span> / 50
+            </div>
+        </div>
+    </div>
+
+    <form id="mbtiForm" method="POST"
+          action="{{ url_for('parent.parent_submit_reading_mbti', student_id=student.student_id, test_id=test.test_id) }}">
+
+        <!-- Part 1: 절대평가 질문 (45문항) -->
+        <div class="mb-12">
+            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg p-6 mb-6">
+                <h3 class="text-xl font-bold mb-2">Part 1: 자가평가 (45문항)</h3>
+                {% if test.version == 'elementary' %}
+                <p class="text-purple-100">
+                    각 문항을 읽고 자녀에게 해당하는 점수를 골라주세요!
+                </p>
+                <div class="grid grid-cols-5 gap-2 mt-4 text-sm">
+                    <div class="text-center">1점<br>전혀 아니야</div>
+                    <div class="text-center">2점<br>아니야</div>
+                    <div class="text-center">3점<br>보통이야</div>
+                    <div class="text-center">4점<br>그래</div>
+                    <div class="text-center">5점<br>완전 그래!</div>
+                </div>
+                {% else %}
+                <p class="text-purple-100">
+                    각 문항을 읽고 자녀에게 해당하는 정도를 1~5점으로 선택하세요.
+                </p>
+                <div class="grid grid-cols-5 gap-2 mt-4 text-sm">
+                    <div class="text-center">1점<br>전혀 아니다</div>
+                    <div class="text-center">2점<br>아니다</div>
+                    <div class="text-center">3점<br>보통이다</div>
+                    <div class="text-center">4점<br>그렇다</div>
+                    <div class="text-center">5점<br>매우 그렇다</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 독해 영역 (15문항) -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span class="text-2xl">📖</span>
+                    독해 영역 (1-15번)
+                </h4>
+                <div class="space-y-4">
+                    {% for question in absolute_questions[:15] %}
+                    <div class="border-b border-gray-200 pb-4 last:border-0">
+                        <div class="font-medium text-gray-800 mb-3">
+                            {{ question.order }}. {{ question.text }}
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            {% for value in range(1, 6) %}
+                            <label class="flex-1 relative">
+                                <input type="radio" name="q{{ question.order }}" value="{{ value }}"
+                                       class="peer absolute opacity-0 pointer-events-none" required onchange="updateProgress()">
+                                <div class="peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600
+                                            bg-white border-2 border-gray-300 text-gray-700
+                                            rounded-lg p-3 text-center cursor-pointer hover:border-purple-400 transition">
+                                    <div class="text-xl font-bold">{{ value }}</div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 발표/토론 영역 (15문항) -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span class="text-2xl">💬</span>
+                    발표/토론 영역 (16-30번)
+                </h4>
+                <div class="space-y-4">
+                    {% for question in absolute_questions[15:30] %}
+                    <div class="border-b border-gray-200 pb-4 last:border-0">
+                        <div class="font-medium text-gray-800 mb-3">
+                            {{ question.order }}. {{ question.text }}
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            {% for value in range(1, 6) %}
+                            <label class="flex-1 relative">
+                                <input type="radio" name="q{{ question.order }}" value="{{ value }}"
+                                       class="peer absolute opacity-0 pointer-events-none" required onchange="updateProgress()">
+                                <div class="peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600
+                                            bg-white border-2 border-gray-300 text-gray-700
+                                            rounded-lg p-3 text-center cursor-pointer hover:border-purple-400 transition">
+                                    <div class="text-xl font-bold">{{ value }}</div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 쓰기 영역 (15문항) -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span class="text-2xl">✍️</span>
+                    쓰기 영역 (31-45번)
+                </h4>
+                <div class="space-y-4">
+                    {% for question in absolute_questions[30:45] %}
+                    <div class="border-b border-gray-200 pb-4 last:border-0">
+                        <div class="font-medium text-gray-800 mb-3">
+                            {{ question.order }}. {{ question.text }}
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            {% for value in range(1, 6) %}
+                            <label class="flex-1 relative">
+                                <input type="radio" name="q{{ question.order }}" value="{{ value }}"
+                                       class="peer absolute opacity-0 pointer-events-none" required onchange="updateProgress()">
+                                <div class="peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600
+                                            bg-white border-2 border-gray-300 text-gray-700
+                                            rounded-lg p-3 text-center cursor-pointer hover:border-purple-400 transition">
+                                    <div class="text-xl font-bold">{{ value }}</div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Part 2: 비교 선택 질문 (5문항) -->
+        <div class="mb-32">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg p-6 mb-6">
+                <h3 class="text-xl font-bold mb-2">Part 2: 우선순위 선택 (5문항)</h3>
+                <p class="text-indigo-100">
+                    각 질문에서 자녀에게 가장 잘 맞는 하나를 선택하세요.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="space-y-6">
+                    {% for question in comparison_questions %}
+                    {% set question_num = loop.index %}
+                    <div class="border-b border-gray-200 pb-6 last:border-0">
+                        <div class="font-bold text-gray-800 mb-4 text-lg">
+                            {{ question.order }}. {{ question.text }}
+                        </div>
+                        <div class="space-y-2">
+                            {% for option in question.options %}
+                            <label class="block relative">
+                                <input type="radio" name="comp{{ question_num }}" value="{{ option.v }}"
+                                       class="peer absolute opacity-0 pointer-events-none" required onchange="updateProgress()">
+                                <div class="peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600
+                                            bg-white border-2 border-gray-300 text-gray-700
+                                            rounded-lg p-4 cursor-pointer hover:border-indigo-400 transition">
+                                    {{ option.t }}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button (Fixed) -->
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 shadow-lg z-50">
+            <div class="max-w-5xl mx-auto px-4 flex gap-4">
+                <button type="button" onclick="confirmExit()"
+                        class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-4 rounded-lg transition">
+                    취소
+                </button>
+                <button type="submit" id="submitBtn" disabled
+                        class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
+                               text-white font-bold py-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="submitText">답변 진행 중... (0/50)</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateProgress() {
+    const totalQuestions = 50;
+    let answeredCount = 0;
+
+    for (let i = 1; i <= 45; i++) {
+        const radios = document.getElementsByName(`q${i}`);
+        for (let radio of radios) {
+            if (radio.checked) { answeredCount++; break; }
+        }
+    }
+    for (let i = 1; i <= 5; i++) {
+        const radios = document.getElementsByName(`comp${i}`);
+        for (let radio of radios) {
+            if (radio.checked) { answeredCount++; break; }
+        }
+    }
+
+    const percentage = (answeredCount / totalQuestions) * 100;
+    document.getElementById('progressBar').style.width = percentage + '%';
+    document.getElementById('progressText').textContent = answeredCount;
+
+    const submitBtn = document.getElementById('submitBtn');
+    if (answeredCount === totalQuestions) {
+        submitBtn.disabled = false;
+        document.getElementById('submitText').textContent = '✅ 결과 확인하기 (완료!)';
+    } else {
+        submitBtn.disabled = true;
+        document.getElementById('submitText').textContent = `답변 진행 중... (${answeredCount}/50)`;
+    }
+}
+
+function confirmExit() {
+    if (confirm('정말 나가시겠습니까? 지금까지 입력한 답변은 저장되지 않습니다.')) {
+        window.location.href = '{{ url_for("parent.child_mbti", student_id=student.student_id) }}';
+    }
+}
+
+document.getElementById('mbtiForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn.disabled) {
+        e.preventDefault();
+        alert('모든 질문에 답변해주세요.');
+        return;
+    }
+    submitBtn.disabled = true;
+    document.getElementById('submitText').textContent = '결과 계산 중...';
+});
+
+window.addEventListener('beforeunload', function(e) {
+    const answeredCount = parseInt(document.getElementById('progressText').textContent);
+    if (answeredCount > 0 && answeredCount < 50) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', updateProgress);
+</script>
+{% endblock %}

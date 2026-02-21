@@ -36,44 +36,59 @@ class GeminiOCRService:
 
     def extract_and_analyze(self, image_path):
         """
-        이미지에서 텍스트 추출 + 내용 분석 + 맞춤법 교정
+        이미지 또는 PDF에서 텍스트 추출 + 내용 분석 + 맞춤법 교정
 
         Args:
-            image_path: 이미지 파일 경로
+            image_path: 이미지 또는 PDF 파일 경로
 
         Returns:
             tuple: (추출된 텍스트, 요약/분석, 교정된 텍스트, 처리 시간)
         """
+        import os
         start_time = time.time()
         self._init_model()
 
-        image = PIL.Image.open(image_path)
+        ext = os.path.splitext(image_path)[1].lower()
+        is_pdf = (ext == '.pdf')
 
-        # 9유형 및 초사고력 철학을 반영한 프롬프트 강화
+        # 9유형 및 초사고력 철학을 반영한 프롬프트
         prompt = """
-        이미지 속 학생의 글을 읽고 다음 세 가지 항목을 JSON 형식으로 작성해줘.
-        1. original_text: 오타를 포함하여 이미지에 써진 그대로의 원문 텍스트.
+        학생의 글을 읽고 다음 세 가지 항목을 JSON 형식으로 작성해줘.
+        1. original_text: 오타를 포함하여 써진 그대로의 원문 텍스트.
         2. summary: 글의 핵심 논리와 학생의 사고 수준에 대한 분석 (초사고력 관점).
         3. corrected_text: 가독성과 맞춤법을 고려하여 자연스럽게 다듬은 교정본.
         """
 
         try:
-            # [핵심] 출력 형식을 JSON으로 강제하여 정확도를 높입니다.
-            response = self.model.generate_content(
-                [image, prompt],
-                generation_config={"response_mime_type": "application/json"}
-            )
+            if is_pdf:
+                # PDF는 Gemini File API로 업로드 후 처리
+                uploaded_file = genai.upload_file(path=image_path, mime_type='application/pdf')
+                try:
+                    response = self.model.generate_content(
+                        [uploaded_file, prompt],
+                        generation_config={"response_mime_type": "application/json"}
+                    )
+                finally:
+                    try:
+                        genai.delete_file(uploaded_file.name)
+                    except Exception:
+                        pass
+            else:
+                # 이미지는 PIL로 로드 후 처리
+                image = PIL.Image.open(image_path)
+                response = self.model.generate_content(
+                    [image, prompt],
+                    generation_config={"response_mime_type": "application/json"}
+                )
 
-            # JSON 파싱 (마크다운 제거 불필요 - 순수 JSON 반환됨)
             result = json.loads(response.text)
-
             original_text = result.get('original_text', '텍스트 추출 실패')
             summary = result.get('summary', '분석 불가')
             corrected_text = result.get('corrected_text', '교정 불가')
 
         except Exception as e:
             print(f"[Gemini Error] {str(e)}")
-            raise e  # 상위 route에서 catch하여 에러 표시
+            raise e
 
         processing_time = time.time() - start_time
         return original_text, summary, corrected_text, processing_time

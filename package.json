@@ -1,0 +1,32 @@
+{
+  "name": "momoai_web",
+  "version": "1.0.0",
+  "description": "AI 기반 논술 자동 첨삭 시스템의 웹 애플리케이션 버전입니다.",
+  "main": "index.js",
+  "scripts": {
+    "build:tailwind": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.min.css --minify",
+    "build:style": "postcss static/css/style.css -o static/css/style.min.css --no-map",
+    "build:css": "npm run build:tailwind && npm run build:style",
+    "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.min.css --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chsh82/momoai-web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/chsh82/momoai-web/issues"
+  },
+  "homepage": "https://github.com/chsh82/momoai-web#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.24",
+    "cssnano": "^7.1.2",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^3.4.1"
+  }
+}

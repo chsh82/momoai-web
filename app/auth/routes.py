@@ -1,14 +1,33 @@
 # -*- coding: utf-8 -*-
-"""인증 라우트"""
-from flask import render_template, redirect, url_for, flash, request
+"""인증 라우트 (보안 강화 버전)"""
+from flask import render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from app.auth import auth_bp
 from app.auth.forms import LoginForm, SignupForm, ChangePasswordForm
 from app.models import db, User
+from app.extensions import limiter
+
+
+def _log_login_attempt(email, success, failure_reason=None):
+    """로그인 시도 DB 로깅 (실패 포함)"""
+    try:
+        from app.models.login_log import LoginAttemptLog
+        log = LoginAttemptLog(
+            email=email,
+            ip_address=request.remote_addr or 'unknown',
+            user_agent=request.headers.get('User-Agent', '')[:500],
+            success=success,
+            failure_reason=failure_reason
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute; 50 per hour", methods=["POST"])
 def login():
     """로그인"""
     if current_user.is_authenticated:
@@ -18,18 +37,57 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
 
-        if user is None or not user.check_password(form.password.data):
+        # 사용자 없음 (이메일 존재 여부 노출 방지를 위해 동일 메시지)
+        if user is None:
+            _log_login_attempt(form.email.data, False, 'user_not_found')
             flash('이메일 또는 비밀번호가 올바르지 않습니다.', 'error')
-            return redirect(url_for('auth.login'))
+            return render_template('auth/login.html', form=form)
 
+        # 잠금 해제 시간이 지났으면 자동 초기화
+        if user.locked_until and user.locked_until <= datetime.utcnow():
+            user.reset_failed_attempts()
+            db.session.commit()
+
+        # 계정 잠금 확인
+        if user.is_locked:
+            remaining = user.lock_remaining_minutes
+            _log_login_attempt(form.email.data, False, 'account_locked')
+            flash(f'로그인 시도 횟수 초과로 계정이 잠겼습니다. {remaining}분 후 다시 시도해주세요.', 'error')
+            return render_template('auth/login.html', form=form)
+
+        # 비밀번호 확인
+        if not user.check_password(form.password.data):
+            user.increment_failed_attempts()
+            db.session.commit()
+            _log_login_attempt(form.email.data, False, 'wrong_password')
+
+            if user.is_locked:
+                flash('비밀번호 5회 오류로 계정이 15분간 잠겼습니다.', 'error')
+            else:
+                remaining_attempts = max(0, 5 - (user.failed_login_attempts or 0))
+                flash(f'이메일 또는 비밀번호가 올바르지 않습니다. (남은 시도: {remaining_attempts}회)', 'error')
+            return render_template('auth/login.html', form=form)
+
+        # 계정 비활성화 확인
         if not user.is_active:
+            _log_login_attempt(form.email.data, False, 'inactive_account')
             flash('비활성화된 계정입니다. 관리자에게 문의하세요.', 'error')
-            return redirect(url_for('auth.login'))
+            return render_template('auth/login.html', form=form)
 
-        # 로그인 처리
+        # 이메일 인증 확인 (메일 서버가 설정된 경우만)
+        if current_app.config.get('MAIL_SERVER') and not user.email_verified:
+            _log_login_attempt(form.email.data, False, 'email_not_verified')
+            flash('이메일 인증이 필요합니다. 받으신 인증 메일을 확인해주세요.', 'warning')
+            return render_template('auth/login.html', form=form,
+                                   show_resend=True, resend_email=user.email)
+
+        # 로그인 성공
+        user.reset_failed_attempts()
         login_user(user, remember=form.remember_me.data)
         user.last_login = datetime.utcnow()
         db.session.commit()
+
+        _log_login_attempt(form.email.data, True)
 
         # 첫 로그인 시 비밀번호 변경 필수
         if user.must_change_password:
@@ -48,6 +106,7 @@ def login():
 
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
+@limiter.limit("5 per hour", methods=["POST"])
 def signup():
     """회원가입 (학부모/학생만)"""
     if current_user.is_authenticated:
@@ -69,25 +128,26 @@ def signup():
                 flash('학생은 생년월일을 입력해야 합니다.', 'error')
                 return render_template('auth/signup.html', form=form)
 
-        # 학부모와 학생은 즉시 활성화
+        mail_configured = bool(current_app.config.get('MAIL_SERVER'))
+
+        # 메일 서버 미설정 시 자동 이메일 인증
         user = User(
             email=form.email.data,
             name=form.name.data,
             phone=form.phone.data if form.phone.data else None,
             role=role,
             is_active=True,
-            role_level=5 if role == 'student' else 4  # student=5, parent=4
+            email_verified=not mail_configured,
+            role_level=5 if role == 'student' else 4
         )
         user.set_password(form.password.data)
 
         db.session.add(user)
-        db.session.flush()  # user_id 생성
+        db.session.flush()
 
-        # 학생인 경우 Student 테이블에도 추가 (부모-자녀 연결을 위해)
+        # 학생인 경우 Student 테이블에도 추가
         if role == 'student':
             from app.models import Student
-
-            # 기본 담당 강사 찾기 (시스템 관리자 또는 첫 번째 강사)
             default_teacher = User.query.filter(
                 User.role.in_(['teacher', 'admin'])
             ).first()
@@ -97,9 +157,9 @@ def signup():
                     teacher_id=default_teacher.user_id,
                     user_id=user.user_id,
                     name=user.name,
-                    grade=form.grade.data,  # 폼에서 입력받은 정확한 학년
-                    school=form.school.data,  # 학교명
-                    birth_date=form.birth_date.data,  # 생년월일
+                    grade=form.grade.data,
+                    school=form.school.data,
+                    birth_date=form.birth_date.data,
                     email=user.email,
                     phone=user.phone
                 )
@@ -107,10 +167,69 @@ def signup():
 
         db.session.commit()
 
-        flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
-        return redirect(url_for('auth.login'))
+        # 이메일 인증 메일 발송
+        if mail_configured:
+            from app.auth.email_utils import send_verification_email
+            send_verification_email(user)
+            db.session.commit()
+            flash('회원가입이 완료되었습니다. 이메일 인증 메일을 확인해주세요.', 'success')
+            return redirect(url_for('auth.verify_email_sent', email=user.email))
+        else:
+            flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
+            return redirect(url_for('auth.login'))
 
     return render_template('auth/signup.html', form=form)
+
+
+@auth_bp.route('/verify-email-sent')
+def verify_email_sent():
+    """이메일 인증 발송 안내 페이지"""
+    email = request.args.get('email', '')
+    return render_template('auth/verify_email_sent.html', email=email)
+
+
+@auth_bp.route('/verify-email/<token>')
+def verify_email(token):
+    """이메일 인증 처리"""
+    from app.auth.email_utils import verify_email_token
+    email = verify_email_token(token)
+
+    if not email:
+        flash('인증 링크가 만료되었거나 유효하지 않습니다.', 'error')
+        return redirect(url_for('auth.login'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('사용자를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('auth.login'))
+
+    if user.email_verified:
+        flash('이미 인증된 이메일입니다.', 'info')
+        return redirect(url_for('auth.login'))
+
+    user.email_verified = True
+    user.email_verification_token = None
+    db.session.commit()
+
+    flash('이메일 인증이 완료되었습니다! 로그인해주세요.', 'success')
+    return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+@limiter.limit("3 per hour", methods=["POST"])
+def resend_verification():
+    """인증 이메일 재발송"""
+    email = request.form.get('email', '').strip()
+    user = User.query.filter_by(email=email).first()
+
+    if user and not user.email_verified:
+        from app.auth.email_utils import send_verification_email
+        send_verification_email(user)
+        db.session.commit()
+
+    # 보안상 사용자 존재 여부 노출 방지
+    flash('인증 이메일을 재발송했습니다. 메일함을 확인해주세요.', 'info')
+    return redirect(url_for('auth.verify_email_sent', email=email))
 
 
 @auth_bp.route('/logout')
@@ -133,7 +252,7 @@ def change_password():
             return redirect(url_for('auth.change_password'))
 
         current_user.set_password(form.new_password.data)
-        current_user.must_change_password = False  # 비밀번호 변경 완료
+        current_user.must_change_password = False
         db.session.commit()
 
         flash('비밀번호가 변경되었습니다.', 'success')

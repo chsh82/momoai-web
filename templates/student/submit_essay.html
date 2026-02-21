@@ -150,5 +150,48 @@
             </form>
         </div>
     </div>
+
+    <!-- 제출 이력 -->
+    {% if recent_essays %}
+    <div class="mt-8 bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-800">📋 이전 제출 이력 (최근 10건)</h3>
+            <a href="{{ url_for('student.my_essays') }}"
+               class="text-sm text-blue-600 hover:text-blue-800 font-medium">전체 보기 →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% for essay in recent_essays %}
+            <a href="{{ url_for('student.view_essay', essay_id=essay.essay_id) }}"
+               class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+                <div class="flex items-center gap-3 min-w-0">
+                    <!-- 상태 아이콘 -->
+                    <div class="flex-shrink-0">
+                        {% if essay.status == 'completed' %}
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 rounded-full text-green-700 text-sm">✓</span>
+                        {% elif essay.status == 'in_progress' %}
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full text-yellow-700 text-sm">⏳</span>
+                        {% else %}
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full text-gray-500 text-sm">○</span>
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="font-medium text-gray-800 truncate">{{ essay.title }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ essay.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+                <div class="flex-shrink-0 ml-4">
+                    {% if essay.status == 'completed' %}
+                    <span class="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">첨삭 완료</span>
+                    {% elif essay.status == 'in_progress' %}
+                    <span class="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">검토 중</span>
+                    {% else %}
+                    <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">대기 중</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -28,6 +28,12 @@ class User(UserMixin, db.Model):
     zoom_link = db.Column(db.Text, nullable=True)  # 암호화된 줌 링크
     zoom_token = db.Column(db.String(100), unique=True, nullable=True, index=True)  # 강사별 고정 토큰
 
+    # 보안 필드
+    failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    email_verified = db.Column(db.Boolean, default=True, nullable=False)  # 기존 사용자는 True
+    email_verification_token = db.Column(db.String(200), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
@@ -52,6 +58,33 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         """비밀번호 확인"""
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_locked(self):
+        """계정 잠금 여부"""
+        if self.locked_until and self.locked_until > datetime.utcnow():
+            return True
+        return False
+
+    @property
+    def lock_remaining_minutes(self):
+        """잠금 해제까지 남은 분"""
+        if self.locked_until and self.locked_until > datetime.utcnow():
+            delta = self.locked_until - datetime.utcnow()
+            return max(1, int(delta.total_seconds() / 60))
+        return 0
+
+    def increment_failed_attempts(self, max_attempts=5, lockout_minutes=15):
+        """로그인 실패 횟수 증가, 초과 시 계정 잠금"""
+        from datetime import timedelta
+        self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+        if self.failed_login_attempts >= max_attempts:
+            self.locked_until = datetime.utcnow() + timedelta(minutes=lockout_minutes)
+
+    def reset_failed_attempts(self):
+        """로그인 성공 시 실패 횟수 초기화"""
+        self.failed_login_attempts = 0
+        self.locked_until = None
 
     @property
     def is_teacher(self):

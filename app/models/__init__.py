@@ -22,7 +22,7 @@ from app.models.parent_student import ParentStudent
 from app.models.teacher_feedback import TeacherFeedback
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.message import Message, MessageRecipient
-from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload
+from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload, TeachingMaterialFile
 from app.models.video import Video, VideoView
 from app.models.makeup_request import MakeupClassRequest
 from app.models.parent_link_request import ParentLinkRequest
@@ -41,7 +41,9 @@ from app.models.zoom_access import ZoomAccessLog
 from app.models.ocr_history import OCRHistory
 from app.models.consultation import ConsultationRecord
 from app.models.student_profile import StudentProfile
+from app.models.login_log import LoginAttemptLog
 from app.models.ace_evaluation import WeeklyEvaluation, AceEvaluation, ACE_AXES, ACE_ALL_ITEMS
+from app.models.notification_reply import NotificationReply
 
 __all__ = [
     'db',
@@ -75,6 +77,7 @@ __all__ = [
     'MessageRecipient',
     'TeachingMaterial',
     'TeachingMaterialDownload',
+    'TeachingMaterialFile',
     'Video',
     'VideoView',
     'MakeupClassRequest',
@@ -98,8 +101,10 @@ __all__ = [
     'OCRHistory',
     'ConsultationRecord',
     'StudentProfile',
+    'LoginAttemptLog',
     'WeeklyEvaluation',
     'AceEvaluation',
     'ACE_AXES',
     'ACE_ALL_ITEMS',
+    'NotificationReply',
 ]

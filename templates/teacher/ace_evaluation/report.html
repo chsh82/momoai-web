@@ -8,23 +8,96 @@
 <span class="text-sm text-white text-opacity-70 ml-3">{{ student.name }} 학생 역량 평가 리포트</span>
 {% endblock %}
 
-{% block extra_css %}
+{% block chart_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block extra_head %}
 <style>
 .chart-wrap { position: relative; width: 100%; height: 280px; }
 .chart-wrap.short { height: 220px; }
 .print-btn-container { position: fixed; top: 90px; right: 20px; z-index: 50; }
 
 @media print {
-    .no-print, .print-btn-container, .header-navy, .sidebar-navy {
+    /* 페이지 여백 */
+    @page { margin: 12mm 10mm; size: A4 portrait; }
+
+    /* 높이 제약 완전 해제 (h-screen, overflow-y-auto 무력화) */
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+        margin: 0 !important;
+    }
+    .h-screen { height: auto !important; }
+    .overflow-y-auto, .overflow-hidden { overflow: visible !important; }
+
+    /* 화면 UI 숨기기 */
+    aside,
+    header,
+    button,
+    .print-btn-container,
+    .no-print,
+    #pwa-install-banner {
         display: none !important;
     }
-    .main { padding: 0; }
-    body { background: white; }
-    .card-momo { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
-    .chart-wrap { height: 240px !important; }
-}
 
+    /* flex 레이아웃 해제 → 콘텐츠 전체 폭 */
+    .flex.h-screen {
+        display: block !important;
+        height: auto !important;
+    }
+    main {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    /* 컨테이너 */
+    .container { max-width: 100% !important; padding: 0 4px !important; }
+
+    /* 카드 */
+    .card-momo {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+        margin-bottom: 8px !important;
+        padding: 10px !important;
+    }
+
+    /* 차트 높이 — 고정값 해제 후 img 크기에 맞춤 */
+    .chart-wrap,
+    .chart-wrap.short,
+    [style*="height: 400px"],
+    [style*="height: 320px"],
+    [style*="height: 380px"],
+    [style*="height: 280px"] {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+    .print-chart-img {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 220px;
+        object-fit: contain;
+        display: block;
+    }
+    canvas { display: none !important; }
+
+    /* 텍스트 */
+    body { font-size: 11px !important; color: #000 !important; }
+    h3 { font-size: 12px !important; margin-bottom: 4px !important; }
+
+    /* 여백 최소화 */
+    .py-6 { padding-top: 6px !important; padding-bottom: 6px !important; }
+    .mb-4 { margin-bottom: 8px !important; }
+    .mb-6 { margin-bottom: 8px !important; }
+    .gap-4 { gap: 8px !important; }
+    .p-6 { padding: 8px !important; }
+    .p-4 { padding: 6px !important; }
+}
 </style>
 {% endblock %}
 
@@ -33,75 +106,31 @@
 
     <!-- 인쇄 버튼 (화면에만 표시) -->
     <div class="print-btn-container no-print">
-        <button onclick="window.print()" class="btn btn-primary shadow-lg">
+        <button onclick="printReport()" class="btn btn-primary shadow-lg">
             <span>🖨</span>
             <span>프린트</span>
         </button>
     </div>
 
-    <!-- 리포트 헤더 -->
+    <!-- 리포트 헤더 + 학생 기본 정보 (통합 컴팩트) -->
     <div class="card-momo mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-        <div class="text-center py-6">
-            <div class="text-sm opacity-90 mb-2">모모의 책장</div>
-            <div class="text-3xl font-extrabold mb-1">학생 학습 역량 리포트</div>
-            <div class="text-sm opacity-80">ACE Evaluation Report</div>
-        </div>
-    </div>
-
-    <!-- 학생 기본 정보 -->
-    <div class="card-momo mb-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- 학생 정보 카드 -->
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-100">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                        {{ student.name[0] }}
-                    </div>
-                    <div>
-                        <div class="text-xs text-blue-600 font-semibold mb-1">STUDENT</div>
-                        <div class="text-xl font-extrabold text-gray-800">{{ student.name }}</div>
-                    </div>
+        <div class="flex items-center justify-between px-2 py-3">
+            <!-- 왼쪽: 브랜드 + 리포트 제목 -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-lg">
+                    📄
                 </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center py-2 border-b border-blue-200">
-                        <span class="text-sm text-gray-600 font-medium">학년</span>
-                        <span class="text-sm font-bold text-gray-800">{{ student.grade }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2">
-                        <span class="text-sm text-gray-600 font-medium">학교</span>
-                        <span class="text-sm font-bold text-gray-800">{{ student.school or '미등록' }}</span>
-                    </div>
+                <div>
+                    <div class="text-xs opacity-75">모모의 책장 · ACE Evaluation Report</div>
+                    <div class="text-lg font-extrabold leading-tight">{{ student.name }} 학생 학습 역량 리포트</div>
                 </div>
             </div>
-
-            <!-- 평가 정보 카드 -->
-            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-100">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="text-2xl">📊</span>
-                    <div>
-                        <div class="text-xs text-purple-600 font-semibold mb-1">EVALUATION</div>
-                        <div class="text-lg font-extrabold text-gray-800">평가 정보</div>
-                    </div>
-                </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center py-2 border-b border-purple-200">
-                        <span class="text-sm text-gray-600 font-medium">담당 강사</span>
-                        <span class="text-sm font-bold text-gray-800">{{ student.teacher.name if student.teacher else '미배정' }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2 border-b border-purple-200">
-                        <span class="text-sm text-gray-600 font-medium">발행일</span>
-                        <span class="text-sm font-bold text-gray-800">{{ report_date.strftime('%Y년 %m월 %d일') }}</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2">
-                        <span class="text-sm text-gray-600 font-medium">평가 기간</span>
-                        <span class="text-sm font-bold text-gray-800">
-                            {% if ace_evals %}
-                            {{ ace_evals[0].year }} {{ ace_evals[0].quarter[:3] }} ~ {{ ace_evals[-1].year }} {{ ace_evals[-1].quarter[:3] }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </span>
-                    </div>
+            <!-- 오른쪽: 기본 정보 요약 -->
+            <div class="text-right text-xs opacity-90 space-y-0.5">
+                <div><span class="opacity-70">학년</span> <strong>{{ student.grade }}</strong> &nbsp;|&nbsp; <span class="opacity-70">학교</span> <strong>{{ student.school or '미등록' }}</strong></div>
+                <div><span class="opacity-70">담당 강사</span> <strong>{{ student.teacher.name if student.teacher else '미배정' }}</strong></div>
+                <div><span class="opacity-70">발행일</span> <strong>{{ report_date.strftime('%Y.%m.%d') }}</strong>
+                    {% if ace_evals %}&nbsp;|&nbsp; <span class="opacity-70">평가 기간</span> <strong>{{ ace_evals[0].year }} {{ ace_evals[0].quarter[:3] }}~{{ ace_evals[-1].quarter[:3] }}</strong>{% endif %}
                 </div>
             </div>
         </div>
@@ -114,7 +143,7 @@
             <label for="quarterSelect" class="text-sm font-bold text-gray-700 whitespace-nowrap">📅 분기 선택</label>
             <select id="quarterSelect"
                     class="select-momo flex-1"
-                    onchange="window.location.href='{{ url_for('teacher.ace_report', student_id=student.student_id) }}?quarter_idx=' + this.value"
+                    onchange="window.location.href = window.location.pathname + '?quarter_idx=' + this.value"
                     style="max-width: 300px;">
                 {% for eval in ace_evals %}
                 <option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == selected_quarter_idx else '' }}>
@@ -173,38 +202,37 @@
         <h3 class="text-base font-bold mb-1">🏆 ACE 분기 평가 — {{ selected_ace.year }} {{ selected_ace.quarter }}</h3>
         <p class="text-xs text-gray-500 mb-3">5개 축 15개 항목 평가 결과</p>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             <!-- 레이더 차트 -->
-            <div>
-                <div class="chart-wrap">
-                    <canvas id="aceRadar"></canvas>
-                </div>
+            <div style="position: relative; width: 100%; height: 400px;">
+                <canvas id="aceRadar"></canvas>
             </div>
 
             <!-- 항목별 점수 테이블 -->
             <div>
-                <table class="table-momo w-full">
+                <table class="w-full text-sm border-collapse">
                     <thead>
-                        <tr>
-                            <th>평가 축</th>
-                            <th>항목</th>
-                            <th>등급</th>
+                        <tr class="bg-gray-50">
+                            <th class="px-2 py-1 text-left text-xs font-bold text-gray-600 border border-gray-200">평가 축</th>
+                            <th class="px-2 py-1 text-left text-xs font-bold text-gray-600 border border-gray-200">항목</th>
+                            <th class="px-2 py-1 text-center text-xs font-bold text-gray-600 border border-gray-200">등급</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for axis in ace_axes %}
                         {% for item in axis['items'] %}
-                        <tr>
+                        <tr class="hover:bg-gray-50">
                             {% if loop.index0 == 0 %}
-                            <td rowspan="{{ axis['items']|length }}" class="font-bold" style="color: {{ axis.color }}; vertical-align: middle;">
+                            <td rowspan="{{ axis['items']|length }}" class="px-2 py-1 text-xs font-bold border border-gray-200" style="color: {{ axis.color }}; vertical-align: middle;">
                                 {{ axis.name }}
                             </td>
                             {% endif %}
-                            <td>{{ item.name }}</td>
-                            <td>
+                            <td class="px-2 py-1 text-xs text-gray-700 border border-gray-200">{{ item.name }}</td>
+                            <td class="px-2 py-1 text-center border border-gray-200">
                                 {% set grade = selected_ace.scores.get(item.name, '중') %}
-                                <span class="badge" style="background: {{ '#ECFDF5' if grade == '특' else '#EFF6FF' if grade == '상' else '#FFFBEB' if grade == '중' else '#FFF7ED' if grade == '하' else '#FEF2F2' }};
-                                                       color: {{ '#059669' if grade == '특' else '#2563EB' if grade == '상' else '#D97706' if grade == '중' else '#EA580C' if grade == '하' else '#DC2626' }};">
+                                <span class="inline-block px-2 py-0.5 rounded text-xs font-bold"
+                                      style="background: {{ '#ECFDF5' if grade == '특' else '#EFF6FF' if grade == '상' else '#FFFBEB' if grade == '중' else '#FFF7ED' if grade == '하' else '#FEF2F2' }};
+                                             color: {{ '#059669' if grade == '특' else '#2563EB' if grade == '상' else '#D97706' if grade == '중' else '#EA580C' if grade == '하' else '#DC2626' }};">
                                     {{ grade }}
                                 </span>
                             </td>
@@ -250,15 +278,6 @@
 
     <!-- ACE 분기별 비교 (2개 이상일 때) -->
     {% if ace_evals|length >= 2 %}
-    <div class="card-momo mb-4">
-        <h3 class="text-base font-bold mb-1">📊 분기별 성장 비교 (레이더)</h3>
-        <p class="text-xs text-gray-500 mb-3">ACE 평가 분기 간 비교</p>
-
-        <div class="chart-wrap short">
-            <canvas id="aceOverlay"></canvas>
-        </div>
-    </div>
-
     <!-- 영역별 분기 성장 추이 (막대그래프) -->
     <div class="card-momo mb-4">
         <h3 class="text-base font-bold mb-1">📊 영역별 분기 성장 추이</h3>
@@ -367,11 +386,11 @@ if (aceCtx) {
                     max: 5,
                     ticks: {
                         stepSize: 1,
-                        font: { size: 10 },
+                        font: { size: 12 },
                         backdropColor: 'transparent'
                     },
                     grid: { color: '#E2E8F0' },
-                    pointLabels: { font: { size: 11 } }
+                    pointLabels: { font: { size: 14, weight: '600' } }
                 }
             }
         }
@@ -534,18 +553,20 @@ if (quarterlyWritingCtx) {
     weeklyByQuarter[quarter{{ loop.index0 }}] = [];
 
     {% for weekly in weekly_evals %}
-    const evalDate{{ loop.index0 }}_{{ loop.parent.loop.index0 }} = new Date('{{ weekly.eval_date.strftime("%Y-%m-%d") }}');
-    const evalMonth = evalDate{{ loop.index0 }}_{{ loop.parent.loop.index0 }}.getMonth() + 1;
-    const evalYear = evalDate{{ loop.index0 }}_{{ loop.parent.loop.index0 }}.getFullYear();
+    {
+        const evalDate = new Date('{{ weekly.eval_date.strftime("%Y-%m-%d") }}');
+        const evalMonth = evalDate.getMonth() + 1;
+        const evalYear = evalDate.getFullYear();
 
-    if (evalYear === year{{ loop.parent.loop.index0 }}) {
-        if ((qInfo{{ loop.parent.loop.index0 }}.start <= qInfo{{ loop.parent.loop.index0 }}.end && evalMonth >= qInfo{{ loop.parent.loop.index0 }}.start && evalMonth <= qInfo{{ loop.parent.loop.index0 }}.end) ||
-            (qInfo{{ loop.parent.loop.index0 }}.start > qInfo{{ loop.parent.loop.index0 }}.end && (evalMonth >= qInfo{{ loop.parent.loop.index0 }}.start || evalMonth <= qInfo{{ loop.parent.loop.index0 }}.end))) {
-            weeklyByQuarter[quarter{{ loop.parent.loop.index0 }}].push({
-                week: {{ weekly.week_number }},
-                score: {{ weekly.score }},
-                date: '{{ weekly.eval_date.strftime("%m/%d") }}'
-            });
+        if (evalYear === year{{ loop.parent.index0 }}) {
+            if ((qInfo{{ loop.parent.index0 }}.start <= qInfo{{ loop.parent.index0 }}.end && evalMonth >= qInfo{{ loop.parent.index0 }}.start && evalMonth <= qInfo{{ loop.parent.index0 }}.end) ||
+                (qInfo{{ loop.parent.index0 }}.start > qInfo{{ loop.parent.index0 }}.end && (evalMonth >= qInfo{{ loop.parent.index0 }}.start || evalMonth <= qInfo{{ loop.parent.index0 }}.end))) {
+                weeklyByQuarter[quarter{{ loop.parent.index0 }}].push({
+                    week: {{ weekly.week_number }},
+                    score: {{ weekly.score }},
+                    date: '{{ weekly.eval_date.strftime("%m/%d") }}'
+                });
+            }
         }
     }
     {% endfor %}
@@ -637,6 +658,32 @@ if (quarterlyWritingCtx) {
 }
 {% endif %}
 {% endif %}
+
+// 프린트 함수: canvas를 img로 변환 후 출력, 완료 후 복원
+function printReport() {
+    const canvases = document.querySelectorAll('canvas');
+    const imgs = [];
+
+    canvases.forEach(function(canvas) {
+        try {
+            const imgDataUrl = canvas.toDataURL('image/png');
+            const img = document.createElement('img');
+            img.src = imgDataUrl;
+            img.className = 'print-chart-img';
+            canvas.parentNode.insertBefore(img, canvas);
+            imgs.push(img);
+        } catch(e) {}
+    });
+
+    setTimeout(function() {
+        window.print();
+        setTimeout(function() {
+            imgs.forEach(function(img) {
+                if (img.parentNode) img.parentNode.removeChild(img);
+            });
+        }, 500);
+    }, 300);
+}
 </script>
 
 {% endblock %}

@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
+
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-3xl font-bold text-gray-800">과제 관리</h2>
@@ -13,112 +14,290 @@
         </a>
     </div>
 
-    <!-- 통계 -->
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="text-center">
-                <div class="text-blue-600 text-2xl mb-1">📋</div>
-                <p class="text-sm text-gray-600">전체 과제</p>
-                <p class="text-2xl font-bold text-blue-600">{{ assignments|length }}개</p>
-            </div>
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-lg shadow p-4 text-center border-l-4 border-blue-500">
+            <p class="text-sm text-gray-500 mb-1">등록 과제</p>
+            <p class="text-2xl font-bold text-blue-600">{{ assignments|length }}개</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="text-center">
-                <div class="text-yellow-600 text-2xl mb-1">⏳</div>
-                <p class="text-sm text-gray-600">채점 대기</p>
-                <p class="text-2xl font-bold text-yellow-600">{{ pending_count }}개</p>
-            </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center border-l-4 border-yellow-400">
+            <p class="text-sm text-gray-500 mb-1">채점 대기</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ pending_count }}개</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="text-center">
-                <div class="text-green-600 text-2xl mb-1">✅</div>
-                <p class="text-sm text-gray-600">활성 과제</p>
-                <p class="text-2xl font-bold text-green-600">{{ assignments|selectattr('status', 'equalto', 'active')|list|length }}개</p>
-            </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center border-l-4 border-orange-400">
+            <p class="text-sm text-gray-500 mb-1">첨삭 대기</p>
+            <p class="text-2xl font-bold text-orange-600">{{ essays_pending|length }}개</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center border-l-4 border-green-500">
+            <p class="text-sm text-gray-500 mb-1">첨삭 완료</p>
+            <p class="text-2xl font-bold text-green-600">{{ essays_completed|length }}개</p>
         </div>
     </div>
 
-    <!-- 과제 목록 -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800">내가 등록한 과제</h3>
-        </div>
-        <div class="p-6">
-            {% if assignments %}
-            <div class="space-y-3">
-                {% for assignment in assignments %}
-                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-400 transition duration-200">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2">
-                                <h4 class="text-lg font-medium text-gray-800">{{ assignment.title }}</h4>
+    <!-- ══════════════════════════════════════════════════
+         섹션 1: 내가 등록한 과제 (Assignment 모델)
+    ══════════════════════════════════════════════════════ -->
+    <div class="mb-16">
+        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            📋 내가 등록한 과제
+            <span class="text-sm font-normal text-gray-500">직접 출제한 정식 과제</span>
+        </h3>
 
-                                <!-- 과제 유형 -->
-                                <span class="px-2 py-0.5 text-xs font-medium rounded
-                                    {% if assignment.assignment_type == 'essay' %}bg-blue-100 text-blue-800
-                                    {% elif assignment.assignment_type == 'reading' %}bg-green-100 text-green-800
-                                    {% elif assignment.assignment_type == 'quiz' %}bg-purple-100 text-purple-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {% if assignment.assignment_type == 'essay' %}논술
-                                    {% elif assignment.assignment_type == 'reading' %}독서
-                                    {% elif assignment.assignment_type == 'quiz' %}퀴즈
-                                    {% else %}프로젝트{% endif %}
-                                </span>
+        {% if assignments %}
+        <div class="space-y-4">
+            {% for assignment in assignments %}
+            <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-200">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                        <!-- 제목 + 배지 (Section 2와 동일 구조) -->
+                        <div class="flex items-center gap-2 mb-3 flex-wrap">
+                            <h4 class="text-lg font-bold text-gray-800">{{ assignment.title }}</h4>
 
-                                <!-- 난이도 -->
-                                <span class="px-2 py-0.5 text-xs font-medium rounded
-                                    {% if assignment.difficulty == 'easy' %}bg-green-100 text-green-800
-                                    {% elif assignment.difficulty == 'hard' %}bg-red-100 text-red-800
-                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                    {% if assignment.difficulty == 'easy' %}쉬움
-                                    {% elif assignment.difficulty == 'hard' %}어려움
-                                    {% else %}보통{% endif %}
-                                </span>
+                            <!-- 유형 배지 -->
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full
+                                {% if assignment.assignment_type == 'essay' %}bg-blue-100 text-blue-800
+                                {% elif assignment.assignment_type == 'reading' %}bg-green-100 text-green-800
+                                {% elif assignment.assignment_type == 'quiz' %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {% if assignment.assignment_type == 'essay' %}📝 논술
+                                {% elif assignment.assignment_type == 'reading' %}📖 독서
+                                {% elif assignment.assignment_type == 'quiz' %}❓ 퀴즈
+                                {% else %}🔧 프로젝트{% endif %}
+                            </span>
 
-                                <!-- 마감일 -->
-                                {% if assignment.is_overdue %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
-                                    마감됨
-                                </span>
-                                {% elif assignment.days_until_due <= 1 %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 rounded">
-                                    오늘 마감
-                                </span>
-                                {% elif assignment.days_until_due <= 3 %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
-                                    {{ assignment.days_until_due }}일 남음
-                                </span>
-                                {% endif %}
-                            </div>
+                            <!-- 마감 상태 배지 -->
+                            {% if assignment.is_overdue %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded-full">마감됨</span>
+                            {% elif assignment.days_until_due <= 1 %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full">🔥 오늘 마감</span>
+                            {% elif assignment.days_until_due <= 3 %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-700 rounded-full">⏰ {{ assignment.days_until_due }}일 남음</span>
+                            {% else %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">진행 중</span>
+                            {% endif %}
 
-                            <p class="text-sm text-gray-600 mb-2">
-                                {% if assignment.course %}
-                                    수업: {{ assignment.course.course_name }} |
-                                {% endif %}
-                                마감: {{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }} |
-                                배점: {{ assignment.max_score }}점 |
-                                제출률: {{ assignment.submission_rate }}%
-                            </p>
-
-                            <div class="flex items-center gap-3 text-xs text-gray-500">
-                                <span>제출: {{ assignment.total_submissions }}개</span>
-                                <span>채점 완료: {{ assignment.graded_submissions }}개</span>
-                                <span>등록: {{ assignment.created_at.strftime('%m/%d') }}</span>
-                            </div>
+                            <!-- 채점 대기 배지 -->
+                            {% set pending = assignment.total_submissions - assignment.graded_submissions %}
+                            {% if pending > 0 %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full">⏳ 채점 대기 {{ pending }}건</span>
+                            {% endif %}
+                            {% if assignment.target_student %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full">👤 개별 과제</span>
+                            {% endif %}
                         </div>
 
+                        <!-- 메타 (Section 2와 동일 구조) -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
+                            {% if assignment.course %}
+                            <div><span class="font-medium">📚 강좌:</span> {{ assignment.course.course_name }}</div>
+                            {% endif %}
+                            <div><span class="font-medium">📅 마감:</span> {{ assignment.due_date.strftime('%m/%d %H:%M') }}</div>
+                            <div><span class="font-medium">💯 배점:</span> {{ assignment.max_score }}점</div>
+                            <div><span class="font-medium">📊 제출:</span> {{ assignment.total_submissions }}개 · 채점 {{ assignment.graded_submissions }}개</div>
+                        </div>
+                    </div>
+
+                    <!-- 버튼 그룹 (Section 2와 동일 구조·크기) -->
+                    <div class="flex-shrink-0 flex flex-col gap-2 min-w-[100px]">
                         <a href="{{ url_for('teacher.assignment_detail', assignment_id=assignment.assignment_id) }}"
-                           class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                            상세보기
+                           class="block bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                            📋 상세보기
                         </a>
+                        {% set pending = assignment.total_submissions - assignment.graded_submissions %}
+                        {% if pending > 0 %}
+                        <a href="{{ url_for('teacher.assignment_detail', assignment_id=assignment.assignment_id) }}"
+                           class="block bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                            ⏳ 채점 {{ pending }}건
+                        </a>
+                        {% elif assignment.total_submissions > 0 %}
+                        <span class="block bg-green-100 text-green-700 font-medium px-4 py-2 rounded-lg text-center text-sm whitespace-nowrap">
+                            ✓ 채점 완료
+                        </span>
+                        {% else %}
+                        <span class="block bg-gray-100 text-gray-500 font-medium px-4 py-2 rounded-lg text-center text-sm whitespace-nowrap">
+                            미제출
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <p class="text-gray-500 text-center py-12">등록된 과제가 없습니다.</p>
-            {% endif %}
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400">
+            <div class="text-5xl mb-3">📭</div>
+            <p class="text-base font-medium">등록된 과제가 없습니다.</p>
+        </div>
+        {% endif %}
     </div>
+
+
+    <!-- ══════════════════════════════════════════════════
+         섹션 2: 글쓰기 과제 (Essay 첨삭)
+    ══════════════════════════════════════════════════════ -->
+    <div>
+        <!-- 구분선 -->
+        <div class="border-t-2 border-gray-200 mb-8"></div>
+
+        <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            ✏️ 학생 글쓰기 과제
+            <span class="text-sm font-normal text-gray-500">첨삭 · OCR 관리</span>
+            <a href="{{ url_for('essays.index') }}"
+               class="ml-auto text-sm text-blue-600 hover:text-blue-800 font-medium">전체 목록 →</a>
+        </h3>
+
+        {% set all_essays = essays_pending + essays_completed %}
+        {% if all_essays %}
+        <div class="space-y-4">
+            {% for essay in all_essays %}
+            <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-200">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                        <!-- 제목 + 배지 -->
+                        <div class="flex items-center gap-2 mb-3 flex-wrap">
+                            <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+                               class="text-lg font-bold text-gray-800 hover:text-blue-600 transition duration-200">
+                                {{ essay.title or essay.student.name + '의 논술' }}
+                            </a>
+
+                            <!-- 상태 배지 -->
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full
+                                {% if essay.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif essay.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% elif essay.status == 'reviewing' %}bg-yellow-100 text-yellow-800
+                                {% elif essay.status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if essay.status == 'completed' %}✓ 완료
+                                {% elif essay.status == 'processing' %}⏳ 처리 중
+                                {% elif essay.status == 'reviewing' %}👀 검토 중
+                                {% elif essay.status == 'failed' %}✗ 실패
+                                {% elif essay.status == 'draft' %}📝 초안
+                                {% else %}{{ essay.status }}{% endif %}
+                            </span>
+
+                            {% if essay.is_finalized %}
+                            <span class="px-3 py-1 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full">⭐ 최종 완료</span>
+                            {% endif %}
+
+                            {% if essay.result and essay.result.final_grade %}
+                            <span class="px-3 py-1 text-xs font-bold rounded-full
+                                {% if essay.result.final_grade == 'A+' %}bg-purple-100 text-purple-800
+                                {% elif essay.result.final_grade == 'A' %}bg-blue-100 text-blue-800
+                                {% elif essay.result.final_grade == 'B+' %}bg-green-100 text-green-800
+                                {% elif essay.result.final_grade == 'B' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                🏆 {{ essay.result.final_grade }}
+                            </span>
+                            {% endif %}
+
+                            {% if essay.result and essay.result.total_score %}
+                            <span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700">
+                                📊 {{ essay.result.total_score }}점
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- 메타 정보 -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 mb-3">
+                            <div><span class="font-medium">👤 학생:</span> {{ essay.student.name }}</div>
+                            <div><span class="font-medium">🎓 학년:</span> {{ essay.student.grade }}</div>
+                            <div><span class="font-medium">📅 작성일:</span> {{ essay.created_at.strftime('%m/%d %H:%M') }}</div>
+                            <div><span class="font-medium">📄 버전:</span> v{{ essay.current_version }}</div>
+                        </div>
+
+                        <!-- 점수 바 -->
+                        {% if essay.result and essay.result.total_score %}
+                        <div class="mb-3">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs text-gray-500">점수</span>
+                                <span class="text-xs font-medium
+                                    {% if essay.result.total_score >= 90 %}text-purple-600
+                                    {% elif essay.result.total_score >= 80 %}text-blue-600
+                                    {% elif essay.result.total_score >= 70 %}text-green-600
+                                    {% else %}text-yellow-600{% endif %}">
+                                    {{ essay.result.total_score }}점 / 100점
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full transition-all duration-300
+                                    {% if essay.result.total_score >= 90 %}bg-purple-600
+                                    {% elif essay.result.total_score >= 80 %}bg-blue-600
+                                    {% elif essay.result.total_score >= 70 %}bg-green-600
+                                    {% else %}bg-yellow-600{% endif %}"
+                                    style="width: {{ essay.result.total_score }}%">
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- 원문 미리보기 -->
+                        {% if essay.original_text %}
+                        <div class="text-sm text-gray-600">
+                            <span class="font-medium">원문 미리보기:</span>
+                            <span class="text-gray-500">
+                                {{ essay.original_text[:150] }}{% if essay.original_text|length > 150 %}...{% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 오른쪽 버튼 그룹 -->
+                    <div class="flex-shrink-0 flex flex-col gap-2 min-w-[100px]">
+                        <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+                           class="block bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                            과제 보기
+                        </a>
+
+                        {% if essay.attachment_path %}
+                        <a href="{{ url_for('essays.ocr_from_essay', essay_id=essay.essay_id) }}"
+                           class="block bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                            📷 OCR 인식
+                        </a>
+                        {% endif %}
+
+                        {% if essay.status == 'draft' %}
+                        <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                              onsubmit="return confirm('이 학생의 글을 첨삭하시겠습니까?');">
+                            <button type="submit"
+                                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                                ✏️ 첨삭 시작
+                            </button>
+                        </form>
+                        {% elif essay.status == 'processing' %}
+                        <a href="{{ url_for('essays.processing', essay_id=essay.essay_id) }}"
+                           class="block bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                            ⏳ 진행 확인
+                        </a>
+                        {% elif essay.status in ['reviewing', 'completed'] %}
+                        <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
+                           class="block bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
+                            📋 결과 보기
+                        </a>
+                        {% elif essay.status == 'failed' %}
+                        <span class="block bg-red-100 text-red-600 font-medium px-4 py-2 rounded-lg text-center text-sm">
+                            ✗ 실패
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if (essays_pending + essays_completed)|length > 10 %}
+        <p class="text-center text-sm text-gray-400 mt-4">
+            <a href="{{ url_for('essays.index') }}" class="text-blue-600 hover:text-blue-800 font-medium">전체 첨삭 목록에서 더 보기 →</a>
+        </p>
+        {% endif %}
+
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400">
+            <div class="text-5xl mb-3">📭</div>
+            <p class="text-base font-medium">담당 학생의 글쓰기 제출이 없습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+
 </div>
+
 {% endblock %}

@@ -57,6 +57,23 @@
             {{ form.submit(class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200") }}
         </form>
 
+        <!-- 이메일 미인증 시 재발송 버튼 -->
+        {% if show_resend %}
+        <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p class="text-amber-800 text-sm mb-3">
+                📧 <strong>{{ resend_email }}</strong> 으로 인증 메일을 보내드렸습니다.
+            </p>
+            <form method="POST" action="{{ url_for('auth.resend_verification') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="email" value="{{ resend_email }}">
+                <button type="submit"
+                        class="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium py-2 rounded-lg transition">
+                    인증 메일 재발송
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
         <!-- Links -->
         <div class="mt-6 text-center">
             <p class="text-gray-600">

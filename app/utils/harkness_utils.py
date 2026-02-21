@@ -23,18 +23,9 @@ def can_access_harkness_board(user, board):
         if board.board_type == 'harkness_all':
             return True
 
-        # 특정 수업 게시판: 본인 수업이거나 하크니스 수업을 담당하는 강사
+        # 특정 수업 게시판: 본인 수업인 경우만 접근 가능
         if board.course_id:
-            if board.course.teacher_id == user.user_id:
-                return True
-
-            # 하크니스 수업을 하나라도 담당하고 있으면 접근 가능
-            harkness_courses = Course.query.filter_by(
-                teacher_id=user.user_id,
-                course_type='harkness',
-                status='active'
-            ).count()
-            return harkness_courses > 0
+            return board.course.teacher_id == user.user_id
 
     # 학생 권한 체크
     if user.role == 'student':
@@ -47,7 +38,7 @@ def can_access_harkness_board(user, board):
             harkness_enrollments = CourseEnrollment.query.join(Course).filter(
                 CourseEnrollment.student_id == student.student_id,
                 CourseEnrollment.status == 'active',
-                Course.course_type == 'harkness'
+                Course.course_type == '하크니스'
             ).count()
             return harkness_enrollments > 0
 
@@ -81,14 +72,24 @@ def get_accessible_harkness_boards(user):
             HarknessBoard.created_at.desc()
         ).all()
 
-    # 강사는 자신의 게시판 + 하크니스 전체
+    # 강사는 자신의 게시판 + 하크니스 전체 + 담당 수업 게시판
     if user.role == 'teacher':
+        # 담당 하크니스 수업 ID 목록
+        teacher_course_ids = [
+            c.course_id for c in Course.query.filter_by(
+                teacher_id=user.user_id, course_type='하크니스'
+            ).all()
+        ]
+        conditions = [
+            HarknessBoard.board_type == 'harkness_all',
+            HarknessBoard.created_by == user.user_id
+        ]
+        if teacher_course_ids:
+            conditions.append(HarknessBoard.course_id.in_(teacher_course_ids))
+
         boards = HarknessBoard.query.filter(
             HarknessBoard.is_active == True,
-            db.or_(
-                HarknessBoard.board_type == 'harkness_all',
-                HarknessBoard.created_by == user.user_id
-            )
+            db.or_(*conditions)
         ).order_by(
             HarknessBoard.board_type.asc(),
             HarknessBoard.created_at.desc()
@@ -105,7 +106,7 @@ def get_accessible_harkness_boards(user):
         harkness_enrollments = CourseEnrollment.query.join(Course).filter(
             CourseEnrollment.student_id == student.student_id,
             CourseEnrollment.status == 'active',
-            Course.course_type == 'harkness'
+            Course.course_type == '하크니스'
         ).all()
 
         course_ids = [e.course_id for e in harkness_enrollments]

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}내가 만든 질문 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}💬 내가 만든 질문{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">하크니스 게시판에 작성한 게시글</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">💬 내가 만든 질문</h2>
+            <p class="text-gray-600 mt-2">하크니스 게시판에 작성한 게시글 목록입니다.</p>
+        </div>
+        <a href="{{ url_for('harkness.index') }}"
+           class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors duration-200">
+            하크니스 게시판 →
+        </a>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-sm text-gray-600 mb-1">전체 작성</div>
+            <div class="text-3xl font-bold text-gray-800">{{ posts|length }}</div>
+        </div>
+        <div class="bg-purple-50 rounded-lg shadow p-6">
+            <div class="text-sm text-purple-600 mb-1">하크니스 양식</div>
+            <div class="text-3xl font-bold text-purple-700">
+                {{ posts|selectattr('question1')|list|length }}
+            </div>
+        </div>
+        <div class="bg-blue-50 rounded-lg shadow p-6">
+            <div class="text-sm text-blue-600 mb-1">일반 양식</div>
+            <div class="text-3xl font-bold text-blue-700">
+                {{ posts|rejectattr('question1')|list|length }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 게시글 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">작성한 게시글 ({{ posts|length }}건)</h3>
+        </div>
+        <div class="p-6">
+            {% if posts %}
+            <div class="space-y-4">
+                {% for post in posts %}
+                <a href="{{ url_for('harkness.post_detail', board_id=post.board_id, post_id=post.post_id) }}"
+                   class="block border border-gray-200 rounded-lg p-5 hover:border-purple-400 hover:bg-purple-50 transition-colors duration-200">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex-1 min-w-0">
+                            <!-- 게시판명 + 공지 배지 -->
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-medium text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                                    {{ post.board.title }}
+                                </span>
+                                {% if post.is_notice %}
+                                <span class="text-xs font-medium text-red-600 bg-red-100 px-2 py-0.5 rounded-full">공지</span>
+                                {% endif %}
+                                {% if post.question1 %}
+                                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">🎯 하크니스</span>
+                                {% else %}
+                                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">📝 일반</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- 제목 -->
+                            <h4 class="text-base font-semibold text-gray-800 truncate">{{ post.title }}</h4>
+
+                            <!-- 질문 미리보기 또는 내용 미리보기 -->
+                            {% if post.question1 %}
+                            <p class="text-sm text-gray-500 mt-1 line-clamp-1">
+                                Q1: {{ post.question1[:80] }}{% if post.question1|length > 80 %}...{% endif %}
+                            </p>
+                            {% elif post.content %}
+                            <p class="text-sm text-gray-500 mt-1 line-clamp-1">
+                                {{ post.content[:80] }}{% if post.content|length > 80 %}...{% endif %}
+                            </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- 오른쪽: 날짜/통계 -->
+                        <div class="flex-shrink-0 text-right">
+                            <div class="text-xs text-gray-400">
+                                {{ post.created_at.strftime('%Y-%m-%d') }}
+                            </div>
+                            <div class="flex items-center justify-end gap-3 mt-1 text-xs text-gray-500">
+                                <span>💬 {{ post.comment_count }}</span>
+                                <span>👁 {{ post.view_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-4">💬</div>
+                <p class="text-lg font-medium">아직 작성한 질문이 없습니다.</p>
+                <p class="text-sm mt-2">하크니스 게시판에서 첫 번째 질문을 작성해보세요!</p>
+                <a href="{{ url_for('harkness.index') }}"
+                   class="inline-block mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    하크니스 게시판으로 이동
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

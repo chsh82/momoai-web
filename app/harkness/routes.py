@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 
 from app.harkness import harkness_bp
 from app.models import db, Course
-from app.models.harkness_board import HarknessBoard, HarknessPost, HarknessComment, HarknessPostLike
+from app.models.harkness_board import HarknessBoard, HarknessPost, HarknessComment, HarknessPostLike, HarknessQuestionLike
 from app.utils.harkness_utils import (
     can_access_harkness_board,
     get_accessible_harkness_boards,
@@ -22,11 +22,6 @@ def index():
     """하크니스 게시판 목록"""
     # 접근 가능한 게시판 목록
     boards = get_accessible_harkness_boards(current_user)
-
-    # 학생인데 접근 가능한 게시판이 없는 경우
-    if current_user.role == 'student' and not boards:
-        flash('하크니스 게시판의 접근 권한이 없습니다. 하크니스 수업을 수강 중인 학생만 이용할 수 있습니다.', 'error')
-        return redirect(url_for('student.index'))
 
     # 생성 권한 확인
     can_create = can_create_harkness_board(current_user)
@@ -66,12 +61,17 @@ def create_board():
             flash('수업을 선택해주세요.', 'error')
             return redirect(url_for('harkness.create_board'))
 
+        post_format = request.form.get('post_format', 'harkness')
+        if post_format not in ('harkness', 'general'):
+            post_format = 'harkness'
+
         # 게시판 생성
         board = HarknessBoard(
             board_type=board_type,
             course_id=course_id if board_type == 'course' else None,
             title=title,
             description=description,
+            post_format=post_format,
             created_by=current_user.user_id
         )
         db.session.add(board)
@@ -85,7 +85,7 @@ def create_board():
     if current_user.role == 'teacher':
         harkness_courses = Course.query.filter_by(
             teacher_id=current_user.user_id,
-            course_type='harkness',
+            course_type='하크니스',
             status='active'
         ).order_by(Course.course_name).all()
 
@@ -161,9 +161,26 @@ def create_post(board_id):
         content = request.form.get('content', '').strip()
         is_notice = request.form.get('is_notice') == 'on'
 
-        if not title or not content:
-            flash('제목과 내용을 입력해주세요.', 'error')
+        # 3개 질문 템플릿 필드
+        question1 = request.form.get('question1', '').strip()
+        question1_intent = request.form.get('question1_intent', '').strip()
+        question2 = request.form.get('question2', '').strip()
+        question2_intent = request.form.get('question2_intent', '').strip()
+        question3 = request.form.get('question3', '').strip()
+        question3_intent = request.form.get('question3_intent', '').strip()
+
+        if not title:
+            flash('제목을 입력해주세요.', 'error')
             return redirect(url_for('harkness.create_post', board_id=board_id))
+
+        if board.post_format != 'general':
+            if not question1 or not question2 or not question3:
+                flash('질문 1, 2, 3을 모두 입력해주세요.', 'error')
+                return redirect(url_for('harkness.create_post', board_id=board_id))
+        else:
+            if not content:
+                flash('내용을 입력해주세요.', 'error')
+                return redirect(url_for('harkness.create_post', board_id=board_id))
 
         # 공지사항 권한 체크
         if is_notice and not can_write_notice(current_user, board):
@@ -174,7 +191,13 @@ def create_post(board_id):
             board_id=board_id,
             author_id=current_user.user_id,
             title=title,
-            content=content,
+            content=content or None,
+            question1=question1 if board.post_format != 'general' else None,
+            question1_intent=question1_intent or None if board.post_format != 'general' else None,
+            question2=question2 if board.post_format != 'general' else None,
+            question2_intent=question2_intent or None if board.post_format != 'general' else None,
+            question3=question3 if board.post_format != 'general' else None,
+            question3_intent=question3_intent or None if board.post_format != 'general' else None,
             is_notice=is_notice
         )
         db.session.add(post)
@@ -208,13 +231,45 @@ def post_detail(board_id, post_id):
         post.view_count += 1
         db.session.commit()
 
-    # 최상위 댓글 목록 (답글이 아닌 댓글만)
-    comments = post.comments.filter_by(parent_comment_id=None).all()
+    # 전체 댓글 (question_number=None, 게시글 전체 댓글, 최상위만)
+    comments = post.comments.filter_by(parent_comment_id=None, question_number=None).all()
+
+    # 질문별 댓글
+    q1_comments = post.comments.filter_by(question_number=1).order_by(
+        HarknessComment.created_at.asc()
+    ).all()
+    q2_comments = post.comments.filter_by(question_number=2).order_by(
+        HarknessComment.created_at.asc()
+    ).all()
+    q3_comments = post.comments.filter_by(question_number=3).order_by(
+        HarknessComment.created_at.asc()
+    ).all()
+
+    # 질문별 좋아요 수 및 현재 유저 좋아요 여부
+    def get_question_like_info(q_num):
+        count = HarknessQuestionLike.query.filter_by(
+            post_id=post.post_id, question_number=q_num
+        ).count()
+        liked = HarknessQuestionLike.query.filter_by(
+            post_id=post.post_id, question_number=q_num,
+            user_id=current_user.user_id
+        ).first() is not None
+        return count, liked
+
+    q1_likes, q1_liked = get_question_like_info(1)
+    q2_likes, q2_liked = get_question_like_info(2)
+    q3_likes, q3_liked = get_question_like_info(3)
 
     return render_template('harkness/post.html',
                          board=board,
                          post=post,
-                         comments=comments)
+                         comments=comments,
+                         q1_comments=q1_comments,
+                         q2_comments=q2_comments,
+                         q3_comments=q3_comments,
+                         q1_likes=q1_likes, q1_liked=q1_liked,
+                         q2_likes=q2_likes, q2_liked=q2_liked,
+                         q3_likes=q3_likes, q3_liked=q3_liked)
 
 
 # ==================== 게시글 수정 ====================
@@ -238,12 +293,35 @@ def edit_post(board_id, post_id):
 
     if request.method == 'POST':
         post.title = request.form.get('title', '').strip()
-        post.content = request.form.get('content', '').strip()
+        post.content = request.form.get('content', '').strip() or None
         is_notice = request.form.get('is_notice') == 'on'
 
-        if not post.title or not post.content:
-            flash('제목과 내용을 입력해주세요.', 'error')
+        post.question1 = request.form.get('question1', '').strip()
+        post.question1_intent = request.form.get('question1_intent', '').strip() or None
+        post.question2 = request.form.get('question2', '').strip()
+        post.question2_intent = request.form.get('question2_intent', '').strip() or None
+        post.question3 = request.form.get('question3', '').strip()
+        post.question3_intent = request.form.get('question3_intent', '').strip() or None
+
+        if not post.title:
+            flash('제목을 입력해주세요.', 'error')
             return render_template('harkness/post_form.html', board=board, post=post, can_write_notice=can_write_notice(current_user, board))
+
+        if board.post_format != 'general':
+            if not post.question1 or not post.question2 or not post.question3:
+                flash('질문 1, 2, 3을 모두 입력해주세요.', 'error')
+                return render_template('harkness/post_form.html', board=board, post=post, can_write_notice=can_write_notice(current_user, board))
+        else:
+            if not post.content:
+                flash('내용을 입력해주세요.', 'error')
+                return render_template('harkness/post_form.html', board=board, post=post, can_write_notice=can_write_notice(current_user, board))
+            # 일반 양식은 질문 필드 초기화
+            post.question1 = None
+            post.question1_intent = None
+            post.question2 = None
+            post.question2_intent = None
+            post.question3 = None
+            post.question3_intent = None
 
         # 공지사항 권한 체크
         if can_write_notice(current_user, board):
@@ -296,6 +374,8 @@ def create_comment(board_id, post_id):
 
     content = request.form.get('content', '').strip()
     parent_comment_id = request.form.get('parent_comment_id', '').strip() or None
+    question_number_raw = request.form.get('question_number', '').strip()
+    question_number = int(question_number_raw) if question_number_raw in ('1', '2', '3') else None
 
     if not content:
         return jsonify({'success': False, 'message': '내용을 입력해주세요.'}), 400
@@ -311,6 +391,7 @@ def create_comment(board_id, post_id):
         post_id=post_id,
         author_id=current_user.user_id,
         parent_comment_id=parent_comment_id,
+        question_number=question_number,
         content=content
     )
     db.session.add(comment)
@@ -321,6 +402,7 @@ def create_comment(board_id, post_id):
         'comment': {
             'comment_id': comment.comment_id,
             'parent_comment_id': parent_comment_id,
+            'question_number': question_number,
             'author_name': current_user.name,
             'content': comment.content,
             'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
@@ -390,3 +472,46 @@ def toggle_like(post_id):
             'like_count': post.like_count,
             'message': '좋아요를 눌렀습니다.'
         })
+
+
+# ==================== 질문별 좋아요 ====================
+
+@harkness_bp.route('/posts/<post_id>/questions/<int:question_number>/like', methods=['POST'])
+@login_required
+def toggle_question_like(post_id, question_number):
+    """질문별 좋아요 토글"""
+    if question_number not in (1, 2, 3):
+        return jsonify({'success': False, 'message': '유효하지 않은 질문 번호입니다.'}), 400
+
+    post = HarknessPost.query.get_or_404(post_id)
+    board = HarknessBoard.query.get_or_404(post.board_id)
+
+    from app.utils.harkness_utils import can_access_harkness_board
+    if not can_access_harkness_board(current_user, board):
+        return jsonify({'success': False, 'message': '접근 권한이 없습니다.'}), 403
+
+    existing_like = HarknessQuestionLike.query.filter_by(
+        post_id=post_id,
+        question_number=question_number,
+        user_id=current_user.user_id
+    ).first()
+
+    if existing_like:
+        db.session.delete(existing_like)
+        db.session.commit()
+        like_count = HarknessQuestionLike.query.filter_by(
+            post_id=post_id, question_number=question_number
+        ).count()
+        return jsonify({'success': True, 'liked': False, 'like_count': like_count})
+    else:
+        like = HarknessQuestionLike(
+            post_id=post_id,
+            question_number=question_number,
+            user_id=current_user.user_id
+        )
+        db.session.add(like)
+        db.session.commit()
+        like_count = HarknessQuestionLike.query.filter_by(
+            post_id=post_id, question_number=question_number
+        ).count()
+        return jsonify({'success': True, 'liked': True, 'like_count': like_count})

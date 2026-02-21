@@ -28,9 +28,32 @@ class TeachingMaterial(db.Model):
     # Relationships
     creator = db.relationship('User', backref='created_teaching_materials')
     downloads = db.relationship('TeachingMaterialDownload', backref='teaching_material', cascade='all, delete-orphan')
+    files = db.relationship('TeachingMaterialFile', back_populates='material',
+                            cascade='all, delete-orphan', order_by='TeachingMaterialFile.sort_order')
 
     def __repr__(self):
         return f'<TeachingMaterial {self.title}>'
+
+
+class TeachingMaterialFile(db.Model):
+    """Individual files attached to a teaching material (supports multiple files)."""
+    __tablename__ = 'teaching_material_files'
+
+    file_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    material_id = db.Column(db.String(36),
+                            db.ForeignKey('teaching_materials.material_id', ondelete='CASCADE'),
+                            nullable=False, index=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    storage_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    file_type = db.Column(db.String(50), nullable=False)
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    material = db.relationship('TeachingMaterial', back_populates='files')
+
+    def __repr__(self):
+        return f'<TeachingMaterialFile {self.original_filename}>'
 
 
 class TeachingMaterialDownload(db.Model):

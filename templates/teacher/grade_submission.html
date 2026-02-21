@@ -142,5 +142,43 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- 해당 학생 피드백 이력 -->
+    {% if feedback_history %}
+    <div class="bg-white rounded-lg shadow mt-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">
+                📚 {{ submission.student.name }} 학생 피드백 이력
+                <span class="text-sm text-gray-500 font-normal ml-2">(최근 {{ feedback_history|length }}건)</span>
+            </h3>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% for hist in feedback_history %}
+            <div class="px-6 py-4">
+                <div class="flex items-start justify-between gap-4 mb-2">
+                    <div>
+                        <a href="{{ url_for('teacher.grade_submission', assignment_id=hist.assignment_id, submission_id=hist.submission_id) }}"
+                           class="font-medium text-blue-700 hover:underline text-sm">
+                            {{ hist.assignment.title }}
+                        </a>
+                        <p class="text-xs text-gray-400 mt-0.5">
+                            채점일: {{ hist.graded_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% if hist.is_late %}<span class="text-red-500 ml-1">(지각)</span>{% endif %}
+                        </p>
+                    </div>
+                    <span class="flex-shrink-0 text-lg font-bold text-blue-700">
+                        {{ hist.score }}<span class="text-sm text-gray-500 font-normal">/{{ hist.assignment.max_score }}</span>
+                    </span>
+                </div>
+                {% if hist.feedback %}
+                <div class="bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700 line-clamp-2">
+                    {{ hist.feedback[:150] }}{% if hist.feedback|length > 150 %}...{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

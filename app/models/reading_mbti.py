@@ -12,6 +12,7 @@ class ReadingMBTITest(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
+    version = db.Column(db.String(20), default='standard')  # 'standard' or 'elementary'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

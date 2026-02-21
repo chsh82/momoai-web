@@ -208,3 +208,47 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+function autoSetEndTime() {
+    const startTimeInput = document.querySelector('input[name="start_time"]');
+    const endTimeInput = document.querySelector('input[name="end_time"]');
+    const courseTypeSelect = document.querySelector('select[name="course_type"]');
+    const gradeSelect = document.querySelector('select[name="grade"]');
+
+    if (!startTimeInput || !startTimeInput.value) return;
+
+    const parts = startTimeInput.value.split(':');
+    if (parts.length < 2) return;
+    const startTotalMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+
+    const courseType = courseTypeSelect ? courseTypeSelect.value : '';
+    const grade = gradeSelect ? gradeSelect.value : '';
+
+    let minutesToAdd = 60;
+    if (courseType === '베이직') {
+        minutesToAdd = 30;
+    } else if (courseType === '프리미엄') {
+        minutesToAdd = 60;
+    } else if (courseType === '정규반') {
+        minutesToAdd = grade.startsWith('초') ? 120 : 150;
+    } else if (courseType === '하크니스') {
+        minutesToAdd = 150;
+    }
+
+    const endTotal = startTotalMinutes + minutesToAdd;
+    const endHours = Math.floor(endTotal / 60) % 24;
+    const endMins = endTotal % 60;
+    endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fields = ['start_time', 'course_type', 'grade'];
+    fields.forEach(function(name) {
+        const el = document.querySelector(`[name="${name}"]`);
+        if (el) el.addEventListener('change', autoSetEndTime);
+    });
+});
+</script>
+{% endblock %}

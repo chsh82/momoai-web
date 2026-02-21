@@ -70,3 +70,6 @@ Thumbs.db
 # Process IDs
 *.pid
 server.pid
+
+# Node.js
+node_modules/

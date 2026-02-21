@@ -39,6 +39,18 @@
         <div class="mb-12">
             <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg p-6 mb-6">
                 <h3 class="text-xl font-bold mb-2">Part 1: 자가평가 (45문항)</h3>
+                {% if test.version == 'elementary' %}
+                <p class="text-purple-100">
+                    각 문항을 읽고 해당하는 점수를 골라봐요!
+                </p>
+                <div class="grid grid-cols-5 gap-2 mt-4 text-sm">
+                    <div class="text-center">1점<br>전혀 아니야</div>
+                    <div class="text-center">2점<br>아니야</div>
+                    <div class="text-center">3점<br>보통이야</div>
+                    <div class="text-center">4점<br>그래</div>
+                    <div class="text-center">5점<br>완전 그래!</div>
+                </div>
+                {% else %}
                 <p class="text-purple-100">
                     각 문항을 읽고 자신에게 해당하는 정도를 1~5점으로 선택하세요.
                 </p>
@@ -49,6 +61,7 @@
                     <div class="text-center">4점<br>그렇다</div>
                     <div class="text-center">5점<br>매우 그렇다</div>
                 </div>
+                {% endif %}
             </div>
 
             <!-- 독해 영역 (15문항) -->

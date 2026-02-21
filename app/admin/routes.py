@@ -14,7 +14,7 @@ from app.admin.forms import CourseForm, EnrollmentForm, PaymentForm, Announcemen
 from app.models import db, User, Student, Course, CourseEnrollment, CourseSession, Attendance, Payment, ParentStudent
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.notification import Notification
-from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload
+from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload, TeachingMaterialFile
 from app.models.video import Video, VideoView
 from app.models.parent_link_request import ParentLinkRequest
 from app.utils.decorators import requires_permission_level
@@ -280,6 +280,19 @@ def create_course():
 
         db.session.commit()
 
+        # 담당 강사에게 수업 배정 알림
+        if teacher:
+            from app.models.notification import Notification
+            Notification.create_notification(
+                user_id=teacher.user_id,
+                notification_type='course_created',
+                title='새 수업이 배정되었습니다',
+                message=f'"{course.course_name}" 수업이 개설되어 배정되었습니다.',
+                link_url=url_for('teacher.index'),
+                related_entity_type='course',
+                related_entity_id=str(course.course_id)
+            )
+
         flash(f'수업 "{course.course_name}"이(가) 생성되었습니다. (총 {len(sessions)}개 세션)', 'success')
         return redirect(url_for('admin.course_detail', course_id=course.course_id))
 
@@ -474,6 +487,23 @@ def add_student(course_id):
 
     if enrollment:
         db.session.commit()
+
+        # 담당 강사에게 학생 등록 알림
+        from app.models import Student as StudentModel
+        from app.models.notification import Notification
+        student = StudentModel.query.get(student_id)
+        teacher = User.query.get(course.teacher_id)
+        if teacher and student:
+            Notification.create_notification(
+                user_id=teacher.user_id,
+                notification_type='student_enrolled',
+                title='학생이 수업에 등록되었습니다',
+                message=f'{student.name} 학생이 "{course.course_name}" 수업에 등록되었습니다.',
+                link_url=url_for('admin.manage_students', course_id=course.course_id),
+                related_entity_type='course',
+                related_entity_id=str(course.course_id)
+            )
+
         flash('학생이 수업에 등록되었습니다.', 'success')
     else:
         flash('수강 신청에 실패했습니다.', 'error')
@@ -634,38 +664,41 @@ def search_students():
     query = request.args.get('q', '').strip()
     grade = request.args.get('grade', '').strip()
 
-    # 기본 쿼리
     students_query = Student.query
 
-    # 학년 필터
     if grade:
         students_query = students_query.filter_by(grade=grade)
 
-    # 이름 검색
     if query:
-        students_query = students_query.filter(Student.name.contains(query))
+        students_query = students_query.filter(Student.name.ilike(f'%{query}%'))
 
-    # 결과 조회 (최대 20개)
     students = students_query.order_by(Student.name).limit(20).all()
 
-    # JSON 응답
     results = []
     for student in students:
-        # 수강 중인 수업 개수
-        enrollments = CourseEnrollment.query.filter_by(
+        active_courses = CourseEnrollment.query.filter_by(
             student_id=student.student_id,
             status='active'
+        ).count()
+
+        parent_count = ParentStudent.query.filter_by(
+            student_id=student.student_id,
+            is_active=True
         ).count()
 
         results.append({
             'student_id': student.student_id,
             'name': student.name,
-            'grade': student.grade if student.grade else '',
-            'school': student.school if student.school else '',
-            'course_count': enrollments
+            'grade': student.grade or '',
+            'school': student.school or '',
+            'student_code': student.student_id[:8],
+            'is_active': True,
+            'active_course_count': active_courses,
+            'course_count': active_courses,
+            'parent_count': parent_count
         })
 
-    return jsonify(results)
+    return jsonify({'students': results})
 
 
 @admin_bp.route('/api/students/<student_id>/courses')
@@ -1850,69 +1883,91 @@ def teaching_materials():
 @login_required
 @requires_permission_level(2)
 def create_teaching_material():
-    """교재 등록"""
+    """교재 등록 (복수 파일 지원)"""
     form = TeachingMaterialForm()
 
     if form.validate_on_submit():
-        file = form.file_upload.data
+        # 업로드된 파일 목록 (최대 5개)
+        uploaded_files = request.files.getlist('file_uploads')
+        uploaded_files = [f for f in uploaded_files if f and f.filename]
 
-        if not file or not file.filename:
-            flash('파일을 선택하세요.', 'danger')
+        if not uploaded_files:
+            flash('파일을 하나 이상 선택하세요.', 'danger')
             return render_template('admin/teaching_material_form.html', form=form, mode='create')
 
-        # 파일 저장
+        if len(uploaded_files) > 5:
+            flash('파일은 최대 5개까지 업로드할 수 있습니다.', 'danger')
+            return render_template('admin/teaching_material_form.html', form=form, mode='create')
+
+        # 허용 확장자
+        allowed_exts = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'zip'}
+        for f in uploaded_files:
+            ext = os.path.splitext(secure_filename(f.filename))[1].lstrip('.').lower()
+            if ext not in allowed_exts:
+                flash(f'허용되지 않는 파일 형식: {f.filename}. 허용: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, HWP, ZIP', 'danger')
+                return render_template('admin/teaching_material_form.html', form=form, mode='create')
+
         upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'materials')
         os.makedirs(upload_folder, exist_ok=True)
-
-        original_filename = secure_filename(file.filename)
-        file_ext = os.path.splitext(original_filename)[1]
-        stored_filename = f"{uuid.uuid4().hex}{file_ext}"
-        file_path = os.path.join(upload_folder, stored_filename)
-
-        file.save(file_path)
-
-        # 파일 메타데이터
-        file_size = os.path.getsize(file_path)
-        file_type = file_ext.lstrip('.')
 
         # 대상 선택 JSON 생성 및 grade 자동 설정
         if form.target_type.data == 'grade':
             target_grades = form.target_grades.data or []
-            target_audience = json.dumps({
-                'type': 'grade',
-                'grades': target_grades
-            }, ensure_ascii=False)
-            # 첫 번째 대상 학년을 grade로 설정 (없으면 '전체')
+            target_audience = json.dumps({'type': 'grade', 'grades': target_grades}, ensure_ascii=False)
             auto_grade = target_grades[0] if target_grades else '전체'
         else:
             course_ids = form.target_course_ids.data.split(',') if form.target_course_ids.data else []
             course_ids = [cid.strip() for cid in course_ids if cid.strip()]
-            target_audience = json.dumps({
-                'type': 'course',
-                'course_ids': course_ids
-            }, ensure_ascii=False)
-            # 수업별 대상인 경우 '수업별'로 설정
+            target_audience = json.dumps({'type': 'course', 'course_ids': course_ids}, ensure_ascii=False)
             auto_grade = '수업별'
 
-        # 교재 생성
+        # 첫 번째 파일 정보로 TeachingMaterial 레코드 생성 (backward compat)
+        first_file = uploaded_files[0]
+        first_name = secure_filename(first_file.filename)
+        first_ext = os.path.splitext(first_name)[1]
+        first_stored = f"{uuid.uuid4().hex}{first_ext}"
+
         material = TeachingMaterial(
             title=form.title.data,
             grade=auto_grade,
-            original_filename=original_filename,
-            storage_path=os.path.join('materials', stored_filename),
-            file_size=file_size,
-            file_type=file_type,
+            original_filename=first_name,
+            storage_path=os.path.join('materials', first_stored),
+            file_size=0,
+            file_type=first_ext.lstrip('.').lower(),
             publish_date=form.publish_date.data,
             end_date=form.end_date.data,
             is_public=form.is_public.data,
             target_audience=target_audience,
             created_by=current_user.user_id
         )
-
         db.session.add(material)
+        db.session.flush()  # material_id 확보
+
+        # 각 파일 저장 및 TeachingMaterialFile 생성
+        total_size = 0
+        for idx, file in enumerate(uploaded_files):
+            orig_name = secure_filename(file.filename)
+            file_ext = os.path.splitext(orig_name)[1]
+            stored_name = f"{uuid.uuid4().hex}{file_ext}" if idx > 0 else first_stored
+            file_path = os.path.join(upload_folder, stored_name)
+            file.save(file_path)
+            size = os.path.getsize(file_path)
+            total_size += size
+
+            tmf = TeachingMaterialFile(
+                material_id=material.material_id,
+                original_filename=orig_name,
+                storage_path=os.path.join('materials', stored_name),
+                file_size=size,
+                file_type=file_ext.lstrip('.').lower(),
+                sort_order=idx
+            )
+            db.session.add(tmf)
+
+        material.file_size = total_size
         db.session.commit()
 
-        flash('교재가 등록되었습니다.', 'success')
+        flash(f'교재가 등록되었습니다. ({len(uploaded_files)}개 파일)', 'success')
         return redirect(url_for('admin.teaching_material_detail', material_id=material.material_id))
 
     return render_template('admin/teaching_material_form.html', form=form, mode='create')
@@ -1975,20 +2030,12 @@ def edit_teaching_material(material_id):
         # 대상 선택 업데이트 및 grade 자동 설정
         if form.target_type.data == 'grade':
             target_grades = form.target_grades.data or []
-            target_audience = json.dumps({
-                'type': 'grade',
-                'grades': target_grades
-            }, ensure_ascii=False)
-            # 첫 번째 대상 학년을 grade로 설정 (없으면 '전체')
+            target_audience = json.dumps({'type': 'grade', 'grades': target_grades}, ensure_ascii=False)
             auto_grade = target_grades[0] if target_grades else '전체'
         else:
             course_ids = form.target_course_ids.data.split(',') if form.target_course_ids.data else []
             course_ids = [cid.strip() for cid in course_ids if cid.strip()]
-            target_audience = json.dumps({
-                'type': 'course',
-                'course_ids': course_ids
-            }, ensure_ascii=False)
-            # 수업별 대상인 경우 '수업별'로 설정
+            target_audience = json.dumps({'type': 'course', 'course_ids': course_ids}, ensure_ascii=False)
             auto_grade = '수업별'
 
         # 기본 정보 업데이트
@@ -1999,29 +2046,49 @@ def edit_teaching_material(material_id):
         material.is_public = form.is_public.data
         material.target_audience = target_audience
 
-        # 파일 교체 (새 파일이 있는 경우)
-        file = form.file_upload.data
-        if file and file.filename:
-            # 기존 파일 삭제
-            old_file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], material.storage_path)
-            if os.path.exists(old_file_path):
-                os.remove(old_file_path)
+        # 새 파일 추가 (기존 파일 유지, 추가만)
+        new_files = request.files.getlist('file_uploads')
+        new_files = [f for f in new_files if f and f.filename]
 
-            # 새 파일 저장
+        if new_files:
+            allowed_exts = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'zip'}
+            current_count = len(material.files)
+            if current_count + len(new_files) > 5:
+                flash(f'파일은 최대 5개까지 등록 가능합니다. (현재 {current_count}개)', 'danger')
+                return render_template('admin/teaching_material_form.html',
+                                     form=form, mode='edit', material=material,
+                                     target_audience=target_audience)
+
             upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'materials')
             os.makedirs(upload_folder, exist_ok=True)
+            next_order = current_count
 
-            original_filename = secure_filename(file.filename)
-            file_ext = os.path.splitext(original_filename)[1]
-            stored_filename = f"{uuid.uuid4().hex}{file_ext}"
-            file_path = os.path.join(upload_folder, stored_filename)
+            for file in new_files:
+                ext = os.path.splitext(secure_filename(file.filename))[1].lstrip('.').lower()
+                if ext not in allowed_exts:
+                    flash(f'허용되지 않는 파일 형식: {file.filename}', 'danger')
+                    continue
+                orig_name = secure_filename(file.filename)
+                file_ext = os.path.splitext(orig_name)[1]
+                stored_name = f"{uuid.uuid4().hex}{file_ext}"
+                file_path = os.path.join(upload_folder, stored_name)
+                file.save(file_path)
+                size = os.path.getsize(file_path)
 
-            file.save(file_path)
+                tmf = TeachingMaterialFile(
+                    material_id=material.material_id,
+                    original_filename=orig_name,
+                    storage_path=os.path.join('materials', stored_name),
+                    file_size=size,
+                    file_type=file_ext.lstrip('.').lower(),
+                    sort_order=next_order
+                )
+                db.session.add(tmf)
+                next_order += 1
 
-            material.original_filename = original_filename
-            material.storage_path = os.path.join('materials', stored_filename)
-            material.file_size = os.path.getsize(file_path)
-            material.file_type = file_ext.lstrip('.')
+            # 총 파일 크기 업데이트
+            db.session.flush()
+            material.file_size = sum(f.file_size for f in material.files)
 
         db.session.commit()
         flash('교재가 수정되었습니다.', 'success')
@@ -2038,19 +2105,82 @@ def edit_teaching_material(material_id):
 @login_required
 @requires_permission_level(2)
 def delete_teaching_material(material_id):
-    """교재 삭제"""
+    """교재 삭제 (모든 첨부 파일 포함)"""
     material = TeachingMaterial.query.get_or_404(material_id)
 
-    # 파일 삭제
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], material.storage_path)
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    # 신규 방식: TeachingMaterialFile 파일들 삭제
+    for tmf in material.files:
+        fp = os.path.join(current_app.config['UPLOAD_FOLDER'], tmf.storage_path)
+        if os.path.exists(fp):
+            os.remove(fp)
+
+    # 구형 단일 파일 삭제 (backward compat)
+    if not material.files:
+        old_fp = os.path.join(current_app.config['UPLOAD_FOLDER'], material.storage_path)
+        if os.path.exists(old_fp):
+            os.remove(old_fp)
 
     db.session.delete(material)
     db.session.commit()
 
     flash('교재가 삭제되었습니다.', 'info')
     return redirect(url_for('admin.teaching_materials'))
+
+
+@admin_bp.route('/teaching-materials/<material_id>/files/<file_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def delete_teaching_material_file(material_id, file_id):
+    """교재 개별 파일 삭제"""
+    material = TeachingMaterial.query.get_or_404(material_id)
+    tmf = TeachingMaterialFile.query.filter_by(file_id=file_id, material_id=material_id).first_or_404()
+
+    # 파일 삭제
+    fp = os.path.join(current_app.config['UPLOAD_FOLDER'], tmf.storage_path)
+    if os.path.exists(fp):
+        os.remove(fp)
+
+    db.session.delete(tmf)
+    db.session.flush()
+
+    # 남은 파일이 없으면 교재 자체 삭제 여부 경고
+    remaining = len(material.files)
+    if remaining == 0:
+        flash('마지막 파일을 삭제했습니다. 새 파일을 업로드하세요.', 'warning')
+    else:
+        # 총 파일 크기 갱신 및 대표 파일 정보 갱신
+        material.file_size = sum(f.file_size for f in material.files)
+        first = material.files[0]
+        material.original_filename = first.original_filename
+        material.storage_path = first.storage_path
+        material.file_type = first.file_type
+        flash('파일이 삭제되었습니다.', 'success')
+
+    db.session.commit()
+    return redirect(url_for('admin.edit_teaching_material', material_id=material_id))
+
+
+@admin_bp.route('/teaching-materials/<material_id>/files/<file_id>/download')
+@login_required
+@requires_permission_level(2)
+def download_teaching_material_file(material_id, file_id):
+    """교재 개별 파일 다운로드"""
+    tmf = TeachingMaterialFile.query.filter_by(file_id=file_id, material_id=material_id).first_or_404()
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tmf.storage_path)
+
+    if not os.path.exists(file_path):
+        flash('파일을 찾을 수 없습니다.', 'danger')
+        return redirect(url_for('admin.teaching_material_detail', material_id=material_id))
+
+    # 다운로드 기록
+    material = TeachingMaterial.query.get(material_id)
+    if material:
+        download = TeachingMaterialDownload(material_id=material_id, user_id=current_user.user_id)
+        db.session.add(download)
+        material.download_count += 1
+        db.session.commit()
+
+    return send_file(file_path, as_attachment=True, download_name=tmf.original_filename)
 
 
 @admin_bp.route('/teaching-materials/<material_id>/toggle-active', methods=['POST'])
@@ -2538,11 +2668,11 @@ def reject_parent_link_request(request_id):
     return redirect(url_for('admin.parent_link_requests'))
 
 
-@admin_bp.route('/api/students/search')
+@admin_bp.route('/api/students/search-v2')
 @login_required
 @requires_permission_level(2)
 def api_search_students():
-    """학생 검색 API (연결 요청용)"""
+    """학생 검색 API (연결 요청용) - search_students로 통합됨"""
     query_text = request.args.get('q', '').strip()
 
     if not query_text:
@@ -2768,6 +2898,163 @@ def staff_list():
                          admin_count=admin_count)
 
 
+@admin_bp.route('/parent-list')
+@login_required
+@requires_permission_level(2)
+def parent_list():
+    """학부모 계정 목록"""
+    from app.models.parent_student import ParentStudent
+
+    search = request.args.get('search', '').strip()
+    query = User.query.filter(User.role == 'parent')
+
+    if search:
+        query = query.filter(
+            db.or_(
+                User.name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%'),
+                User.phone.ilike(f'%{search}%')
+            )
+        )
+
+    parents = query.order_by(User.created_at.desc()).all()
+
+    # 각 학부모의 연결된 자녀 정보
+    parent_data = []
+    for parent in parents:
+        relations = ParentStudent.query.filter_by(
+            parent_id=parent.user_id, is_active=True
+        ).all()
+        parent_data.append({
+            'user': parent,
+            'children': [r.student for r in relations]
+        })
+
+    total = User.query.filter(User.role == 'parent').count()
+    active = User.query.filter(User.role == 'parent', User.is_active == True).count()
+
+    return render_template('admin/parent_list.html',
+                           parent_data=parent_data,
+                           total=total,
+                           active=active,
+                           search=search)
+
+
+@admin_bp.route('/parents/<string:parent_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_permission_level(2)
+def edit_parent(parent_id):
+    """학부모 정보 수정"""
+    parent = User.query.get_or_404(parent_id)
+    if parent.role != 'parent':
+        flash('학부모 계정이 아닙니다.', 'danger')
+        return redirect(url_for('admin.parent_list'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        is_active = 'is_active' in request.form
+
+        if not name or not email:
+            flash('이름과 이메일은 필수 항목입니다.', 'danger')
+            return redirect(request.url)
+
+        # 이메일 중복 체크 (자신 제외)
+        existing = User.query.filter(
+            User.email == email, User.user_id != parent_id
+        ).first()
+        if existing:
+            flash('이미 사용 중인 이메일입니다.', 'danger')
+            return redirect(request.url)
+
+        parent.name = name
+        parent.email = email
+        parent.phone = phone if phone else None
+        parent.is_active = is_active
+        db.session.commit()
+
+        flash(f'{parent.name}님의 정보가 수정되었습니다.', 'success')
+        return redirect(url_for('admin.parent_list'))
+
+    return render_template('admin/edit_parent.html', parent=parent)
+
+
+@admin_bp.route('/users/<string:user_id>/reset-password', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def reset_password(user_id):
+    """비밀번호 초기화 (강사/학부모 공용)"""
+    import secrets
+    import string
+
+    user = User.query.get_or_404(user_id)
+
+    # 8자리 초기 비밀번호 생성
+    alphabet = string.ascii_letters + string.digits + '!@#$%'
+    new_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+
+    user.set_password(new_password)
+    user.must_change_password = True
+    db.session.commit()
+
+    return render_template('admin/password_reset_result.html',
+                           user=user,
+                           new_password=new_password)
+
+
+@admin_bp.route('/staff/<string:staff_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_permission_level(2)
+def edit_staff(staff_id):
+    """직원 정보 수정"""
+    from app.admin.forms import EditStaffForm
+    from app.utils.zoom_utils import encrypt_zoom_link, decrypt_zoom_link, generate_zoom_token
+
+    staff = User.query.get_or_404(staff_id)
+
+    form = EditStaffForm(original_email=staff.email)
+
+    if form.validate_on_submit():
+        staff.name = form.name.data
+        staff.email = form.email.data
+        staff.phone = form.phone.data if form.phone.data else None
+        staff.is_active = form.is_active.data
+
+        # role 변경 시 role_level도 업데이트
+        new_role = form.role.data
+        if new_role != staff.role:
+            staff.role = new_role
+            staff.role_level = 2 if new_role == 'admin' else 3
+
+        # 줌 링크 처리
+        zoom_link_input = form.zoom_link.data.strip() if form.zoom_link.data else ''
+        if zoom_link_input:
+            encrypted_link = encrypt_zoom_link(zoom_link_input)
+            staff.zoom_link = encrypted_link
+            if not staff.zoom_token:
+                staff.zoom_token = generate_zoom_token(staff.name)
+        elif not zoom_link_input and staff.zoom_link:
+            # 입력이 비어 있고 기존 링크가 있으면 그대로 유지
+            pass
+
+        db.session.commit()
+        flash(f'{staff.name}님의 정보가 수정되었습니다.', 'success')
+        return redirect(url_for('admin.staff_list'))
+
+    # GET: 현재 값으로 폼 채우기
+    if request.method == 'GET':
+        form.name.data = staff.name
+        form.email.data = staff.email
+        form.phone.data = staff.phone
+        form.role.data = staff.role
+        form.is_active.data = staff.is_active
+        if staff.zoom_link:
+            form.zoom_link.data = decrypt_zoom_link(staff.zoom_link)
+
+    return render_template('admin/edit_staff.html', form=form, staff=staff)
+
+
 @admin_bp.route('/staff/<int:staff_id>/zoom-link', methods=['POST'])
 @login_required
 @requires_permission_level(2)
@@ -2822,6 +3109,191 @@ def update_staff_zoom_link(staff_id):
             'success': False,
             'message': f'저장 중 오류가 발생했습니다: {str(e)}'
         }), 500
+
+
+
+# ==================== 게시판 관리 ====================
+
+@admin_bp.route('/boards/class')
+@login_required
+@requires_permission_level(2)
+def board_class_manage():
+    """클래스 게시판 관리"""
+    from app.models.class_board import ClassBoardPost, ClassBoardComment
+
+    search = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+
+    query = ClassBoardPost.query
+    if search:
+        query = query.filter(
+            db.or_(
+                ClassBoardPost.title.ilike(f'%{search}%'),
+                ClassBoardPost.content.ilike(f'%{search}%')
+            )
+        )
+    query = query.order_by(ClassBoardPost.created_at.desc())
+    pagination = query.paginate(page=page, per_page=30, error_out=False)
+    posts = pagination.items
+
+    total_posts = ClassBoardPost.query.count()
+    total_comments = ClassBoardComment.query.count()
+
+    return render_template('admin/board_class_manage.html',
+                           posts=posts,
+                           pagination=pagination,
+                           search=search,
+                           total_posts=total_posts,
+                           total_comments=total_comments)
+
+
+@admin_bp.route('/boards/class/posts/<post_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_class_delete_post(post_id):
+    """클래스 게시판 게시글 삭제 (관리자)"""
+    from app.models.class_board import ClassBoardPost
+
+    post = ClassBoardPost.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+
+    flash('게시글이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.board_class_manage'))
+
+
+@admin_bp.route('/boards/teacher')
+@login_required
+@requires_permission_level(2)
+def board_teacher_manage():
+    """강사 게시판 관리"""
+    from app.models.teacher_board import TeacherBoard
+
+    search = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+
+    query = TeacherBoard.query
+    if search:
+        query = query.filter(
+            db.or_(
+                TeacherBoard.title.ilike(f'%{search}%'),
+                TeacherBoard.content.ilike(f'%{search}%')
+            )
+        )
+    query = query.order_by(TeacherBoard.is_notice.desc(), TeacherBoard.created_at.desc())
+    pagination = query.paginate(page=page, per_page=30, error_out=False)
+    posts = pagination.items
+
+    total_posts = TeacherBoard.query.count()
+
+    return render_template('admin/board_teacher_manage.html',
+                           posts=posts,
+                           pagination=pagination,
+                           search=search,
+                           total_posts=total_posts)
+
+
+@admin_bp.route('/boards/teacher/posts/<post_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_teacher_delete_post(post_id):
+    """강사 게시판 게시글 삭제 (관리자)"""
+    from app.models.teacher_board import TeacherBoard
+
+    post = TeacherBoard.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+
+    flash('게시글이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.board_teacher_manage'))
+
+
+@admin_bp.route('/boards/teacher/posts/<post_id>/toggle-notice', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_teacher_toggle_notice(post_id):
+    """강사 게시판 공지 토글"""
+    from app.models.teacher_board import TeacherBoard
+
+    post = TeacherBoard.query.get_or_404(post_id)
+    post.is_notice = not post.is_notice
+    db.session.commit()
+
+    status = '공지' if post.is_notice else '일반 글'
+    flash(f'"{post.title}" 게시글이 {status}로 변경되었습니다.', 'success')
+    return redirect(url_for('admin.board_teacher_manage'))
+
+
+@admin_bp.route('/boards/harkness')
+@login_required
+@requires_permission_level(2)
+def board_harkness_manage():
+    """하크니스 게시판 관리"""
+    from app.models.harkness_board import HarknessBoard, HarknessPost
+
+    search = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+
+    # 게시판 목록
+    boards = HarknessBoard.query.order_by(
+        HarknessBoard.board_type.asc(),
+        HarknessBoard.created_at.desc()
+    ).all()
+
+    # 게시글 목록 (검색 포함)
+    query = HarknessPost.query
+    if search:
+        query = query.filter(
+            db.or_(
+                HarknessPost.title.ilike(f'%{search}%'),
+                HarknessPost.content.ilike(f'%{search}%')
+            )
+        )
+    query = query.order_by(HarknessPost.created_at.desc())
+    pagination = query.paginate(page=page, per_page=30, error_out=False)
+    posts = pagination.items
+
+    total_boards = HarknessBoard.query.count()
+    total_posts = HarknessPost.query.count()
+
+    return render_template('admin/board_harkness_manage.html',
+                           boards=boards,
+                           posts=posts,
+                           pagination=pagination,
+                           search=search,
+                           total_boards=total_boards,
+                           total_posts=total_posts)
+
+
+@admin_bp.route('/boards/harkness/boards/<board_id>/toggle-active', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_harkness_toggle_active(board_id):
+    """하크니스 게시판 활성화 토글"""
+    from app.models.harkness_board import HarknessBoard
+
+    board = HarknessBoard.query.get_or_404(board_id)
+    board.is_active = not board.is_active
+    db.session.commit()
+
+    status = '활성화' if board.is_active else '비활성화'
+    flash(f'"{board.title}" 게시판이 {status}되었습니다.', 'success')
+    return redirect(url_for('admin.board_harkness_manage'))
+
+
+@admin_bp.route('/boards/harkness/posts/<post_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_harkness_delete_post(post_id):
+    """하크니스 게시글 삭제 (관리자)"""
+    from app.models.harkness_board import HarknessPost
+
+    post = HarknessPost.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+
+    flash('게시글이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.board_harkness_manage'))
 
 
 # ==================== 데이터 내보내기 ====================
@@ -4096,3 +4568,112 @@ def mbti_result_detail(result_id):
                          result=result,
                          mbti_type=mbti_type,
                          recommendations=recommendations)
+
+
+@admin_bp.route('/class-messages')
+@login_required
+@requires_permission_level(2)
+def messages_manage():
+    """수업 공지 및 메세지 전체 관리"""
+    from app.models.notification_reply import NotificationReply
+
+    type_filter   = request.args.get('type', '')
+    teacher_filter = request.args.get('teacher_id', '')
+    search        = request.args.get('search', '').strip()
+    page          = request.args.get('page', 1, type=int)
+    per_page      = 25
+
+    # 수신자가 학생인 메시지만 조회 (학부모 중복 제거)
+    query = Notification.query.join(
+        User, Notification.user_id == User.user_id
+    ).filter(
+        Notification.notification_type.in_(['class_announcement', 'homework_assignment']),
+        User.role == 'student'
+    )
+
+    if type_filter:
+        query = query.filter(Notification.notification_type == type_filter)
+    if teacher_filter:
+        query = query.filter(Notification.related_user_id == teacher_filter)
+    if search:
+        query = query.filter(db.or_(
+            Notification.title.ilike(f'%{search}%'),
+            Notification.message.ilike(f'%{search}%')
+        ))
+
+    all_notifications = query.order_by(Notification.created_at.desc()).all()
+
+    # Python에서 그룹화 — (title, 발송자, 대상 entity, 유형)이 같으면 동일 메시지 묶음
+    seen    = {}
+    grouped = []
+    for n in all_notifications:
+        key = (n.title, n.related_user_id, n.related_entity_id, n.notification_type)
+        if key not in seen:
+            entry = {
+                'notification': n,
+                'total_sent':   0,
+                'read_count':   0,
+                '_reply_ids':   set(),
+            }
+            seen[key] = entry
+            grouped.append(entry)
+        g = seen[key]
+        g['total_sent'] += 1
+        if n.is_read:
+            g['read_count'] += 1
+        for reply in n.replies:
+            g['_reply_ids'].add(reply.reply_id)
+
+    for g in grouped:
+        g['reply_count'] = len(g['_reply_ids'])
+        del g['_reply_ids']
+
+    # 통계
+    total_count        = len(grouped)
+    ann_count          = sum(1 for g in grouped if g['notification'].notification_type == 'class_announcement')
+    hw_count           = total_count - ann_count
+    today_count        = sum(
+        1 for g in grouped
+        if g['notification'].created_at.date() == datetime.utcnow().date()
+    )
+
+    # 페이지네이션 (Python slice)
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    page        = max(1, min(page, total_pages))
+    items       = grouped[(page - 1) * per_page : page * per_page]
+
+    # 강사 목록 (필터 셀렉트용)
+    teacher_ids = list({g['notification'].related_user_id for g in grouped if g['notification'].related_user_id})
+    teachers    = User.query.filter(User.user_id.in_(teacher_ids)).order_by(User.name).all()
+
+    # 대상 이름 조회용 캐시
+    course_cache  = {}
+    student_cache = {}
+    for g in items:
+        n = g['notification']
+        if n.related_entity_type == 'course' and n.related_entity_id:
+            if n.related_entity_id not in course_cache:
+                c = Course.query.get(n.related_entity_id)
+                course_cache[n.related_entity_id] = c.course_name if c else '-'
+        elif n.related_entity_type == 'student' and n.related_entity_id:
+            if n.related_entity_id not in student_cache:
+                s = Student.query.get(n.related_entity_id)
+                student_cache[n.related_entity_id] = s.name if s else '-'
+
+    return render_template(
+        'admin/messages_manage.html',
+        items=items,
+        total_count=total_count,
+        ann_count=ann_count,
+        hw_count=hw_count,
+        today_count=today_count,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        teachers=teachers,
+        type_filter=type_filter,
+        teacher_filter=teacher_filter,
+        search=search,
+        course_cache=course_cache,
+        student_cache=student_cache,
+    )

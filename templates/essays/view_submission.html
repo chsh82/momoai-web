@@ -38,23 +38,35 @@
         <div class="p-6">
             <div class="space-y-3">
                 {% for file_index, filename in attachments %}
-                <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4 hover:bg-blue-100 transition duration-200">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">📄</span>
-                        <div>
-                            <p class="font-medium text-gray-800">{{ filename }}</p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">{{ '📕' if filename.lower().endswith('.pdf') else '📄' }}</span>
+                            <div>
+                                <p class="font-medium text-gray-800">{{ filename }}</p>
+                            </div>
                         </div>
+                        {% if file_index is not none %}
+                        <a href="{{ url_for('essays.download_attachment', essay_id=essay.essay_id) }}?file_index={{ file_index }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                            다운로드
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('essays.download_attachment', essay_id=essay.essay_id) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                            다운로드
+                        </a>
+                        {% endif %}
                     </div>
-                    {% if file_index is not none %}
-                    <a href="{{ url_for('essays.download_attachment', essay_id=essay.essay_id) }}?file_index={{ file_index }}"
-                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
-                        다운로드
-                    </a>
-                    {% else %}
-                    <a href="{{ url_for('essays.download_attachment', essay_id=essay.essay_id) }}"
-                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
-                        다운로드
-                    </a>
+                    {% set file_url = url_for('essays.download_attachment', essay_id=essay.essay_id) + ('?file_index=' + file_index|string if file_index is not none else '') %}
+                    {% if filename.lower().endswith('.pdf') %}
+                    <embed src="{{ file_url }}"
+                           type="application/pdf" width="100%" height="600px"
+                           class="rounded border border-blue-200 mt-2">
+                    {% elif filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif')) %}
+                    <img src="{{ file_url }}"
+                         alt="{{ filename }}"
+                         class="w-full rounded-lg mt-2 border border-blue-200 max-h-[700px] object-contain bg-gray-50">
                     {% endif %}
                 </div>
                 {% endfor %}

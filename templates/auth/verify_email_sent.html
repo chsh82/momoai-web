@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}이메일 인증 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10">
+    <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="text-4xl">✉️</span>
+        </div>
+
+        <h2 class="text-2xl font-bold text-gray-800 mb-3">이메일을 확인해주세요</h2>
+        <p class="text-gray-600 mb-2">
+            <strong class="text-blue-600">{{ email }}</strong> 으로
+        </p>
+        <p class="text-gray-600 mb-6">
+            인증 메일을 발송했습니다.<br>
+            메일함에서 인증 링크를 클릭해주세요. (24시간 유효)
+        </p>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-left">
+            <p class="text-amber-800 text-sm font-medium mb-1">📌 메일이 오지 않나요?</p>
+            <ul class="text-amber-700 text-sm space-y-1">
+                <li>• 스팸 메일함을 확인해주세요</li>
+                <li>• 이메일 주소가 올바른지 확인해주세요</li>
+                <li>• 잠시 후 아래 버튼으로 재발송할 수 있습니다</li>
+            </ul>
+        </div>
+
+        <!-- 인증 메일 재발송 -->
+        <form method="POST" action="{{ url_for('auth.resend_verification') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="email" value="{{ email }}">
+            <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 mb-3">
+                인증 메일 재발송
+            </button>
+        </form>
+
+        <a href="{{ url_for('auth.login') }}"
+           class="block text-gray-500 hover:text-gray-700 text-sm">
+            로그인 페이지로 돌아가기
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -26,6 +26,9 @@ class HarknessBoard(db.Model):
     created_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
                           nullable=False, index=True)
 
+    # 게시글 양식 ('harkness': 3질문 양식, 'general': 일반 양식)
+    post_format = db.Column(db.String(20), default='harkness')
+
     # 활성화 여부
     is_active = db.Column(db.Boolean, default=True, index=True)
 
@@ -75,7 +78,15 @@ class HarknessPost(db.Model):
 
     # 게시글 정보
     title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=True)  # 자유 형식 내용 (선택)
+
+    # 하크니스 질문 템플릿 (3개 질문)
+    question1 = db.Column(db.Text, nullable=True)
+    question1_intent = db.Column(db.Text, nullable=True)
+    question2 = db.Column(db.Text, nullable=True)
+    question2_intent = db.Column(db.Text, nullable=True)
+    question3 = db.Column(db.Text, nullable=True)
+    question3_intent = db.Column(db.Text, nullable=True)
 
     # 조회수
     view_count = db.Column(db.Integer, default=0)
@@ -142,6 +153,9 @@ class HarknessComment(db.Model):
     # 댓글 내용
     content = db.Column(db.Text, nullable=False)
 
+    # 특정 질문에 달린 댓글인 경우 (1, 2, 3 / null=게시글 전체 댓글)
+    question_number = db.Column(db.Integer, nullable=True, index=True)
+
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -195,5 +209,34 @@ class HarknessPostLike(db.Model):
 
     def __init__(self, **kwargs):
         super(HarknessPostLike, self).__init__(**kwargs)
+        if not self.like_id:
+            self.like_id = str(uuid.uuid4())
+
+
+class HarknessQuestionLike(db.Model):
+    """하크니스 질문별 좋아요"""
+    __tablename__ = 'harkness_question_likes'
+
+    like_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    post_id = db.Column(db.String(36), db.ForeignKey('harkness_posts.post_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    question_number = db.Column(db.Integer, nullable=False)  # 1, 2, 3
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    # Relationships
+    post = db.relationship('HarknessPost', backref='question_likes')
+    user = db.relationship('User', backref='harkness_question_likes')
+
+    __table_args__ = (
+        db.UniqueConstraint('post_id', 'question_number', 'user_id', name='unique_question_user_like'),
+    )
+
+    def __repr__(self):
+        return f'<HarknessQuestionLike post={self.post_id} q={self.question_number}>'
+
+    def __init__(self, **kwargs):
+        super(HarknessQuestionLike, self).__init__(**kwargs)
         if not self.like_id:
             self.like_id = str(uuid.uuid4())

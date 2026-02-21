@@ -13,6 +13,11 @@
         <h2 class="text-3xl font-bold text-gray-800">새 과제 등록</h2>
     </div>
 
+    <!-- 수업별 학생 데이터 (JS용) -->
+    <script>
+    const courseStudents = {{ course_students_json | safe }};
+    </script>
+
     <!-- Form -->
     <div class="bg-white rounded-lg shadow p-8">
         <form method="POST" action="">
@@ -37,16 +42,30 @@
             </div>
 
             <!-- 수업 선택 -->
-            <div class="mb-6">
+            <div class="mb-4">
                 <label class="block text-gray-700 font-medium mb-2">수업 (선택)</label>
-                <select name="course_id"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select name="course_id" id="courseSelect"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onchange="updateStudentList(this.value)">
                     <option value="">-- 수업 선택 (전체 학생) --</option>
                     {% for course in courses %}
                     <option value="{{ course.course_id }}">{{ course.course_name }}</option>
                     {% endfor %}
                 </select>
                 <p class="text-gray-500 text-xs mt-1">수업을 선택하면 해당 수업 학생들에게만 과제가 할당됩니다.</p>
+            </div>
+
+            <!-- 개별 학생 선택 (수업 선택 시 표시) -->
+            <div class="mb-6" id="studentSelectWrap" style="display:none;">
+                <label class="block text-gray-700 font-medium mb-2">
+                    개별 학생 지정
+                    <span class="text-sm text-gray-400 font-normal ml-1">(선택 안 하면 수업 전체 학생에게 출제)</span>
+                </label>
+                <select name="target_student_id" id="studentSelect"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- 전체 학생 (개별 지정 안 함) --</option>
+                </select>
+                <p class="text-gray-500 text-xs mt-1">특정 학생에게만 과제를 출제하려면 선택하세요.</p>
             </div>
 
             <!-- 과제 유형 & 난이도 -->
@@ -128,4 +147,29 @@
         </form>
     </div>
 </div>
+
+<script>
+function updateStudentList(courseId) {
+    const wrap = document.getElementById('studentSelectWrap');
+    const select = document.getElementById('studentSelect');
+
+    if (!courseId) {
+        wrap.style.display = 'none';
+        return;
+    }
+
+    const students = courseStudents[courseId] || [];
+    // 기존 옵션 초기화 (첫 번째 "전체" 옵션 유지)
+    select.innerHTML = '<option value="">-- 전체 학생 (개별 지정 안 함) --</option>';
+
+    students.forEach(function(s) {
+        const opt = document.createElement('option');
+        opt.value = s.student_id;
+        opt.textContent = s.name + ' (' + s.grade + ')';
+        select.appendChild(opt);
+    });
+
+    wrap.style.display = students.length > 0 ? 'block' : 'none';
+}
+</script>
 {% endblock %}

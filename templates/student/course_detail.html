@@ -126,6 +126,52 @@
         </div>
     </div>
 
+    <!-- 클래스 게시판 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-800">클래스 게시판</h3>
+            <div class="flex gap-2">
+                <a href="{{ url_for('student.create_class_board_post', course_id=course.course_id) }}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                    글쓰기
+                </a>
+                <a href="{{ url_for('student.class_board_posts', course_id=course.course_id) }}"
+                   class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                    전체보기
+                </a>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% if board_posts %}
+                {% for post in board_posts %}
+                <a href="{{ url_for('student.class_board_post_detail', course_id=course.course_id, post_id=post.post_id) }}"
+                   class="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition">
+                    <div class="flex-shrink-0 flex gap-1">
+                        {% if post.is_pinned %}
+                        <span class="px-2 py-0.5 text-xs font-bold rounded bg-red-100 text-red-700">고정</span>
+                        {% endif %}
+                        {% if post.is_notice %}
+                        <span class="px-2 py-0.5 text-xs font-bold rounded bg-yellow-100 text-yellow-700">공지</span>
+                        {% endif %}
+                    </div>
+                    <p class="flex-1 text-sm font-medium text-gray-800 truncate">{{ post.title }}</p>
+                    <div class="flex items-center gap-3 text-xs text-gray-400 flex-shrink-0">
+                        <span>💬 {{ post.comment_count }}</span>
+                        <span>👁 {{ post.view_count }}</span>
+                        <span>{{ post.created_at.strftime('%m/%d') }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            {% else %}
+            <div class="px-6 py-8 text-center text-gray-500 text-sm">
+                아직 게시글이 없습니다.
+                <a href="{{ url_for('student.create_class_board_post', course_id=course.course_id) }}"
+                   class="text-blue-600 hover:text-blue-800 ml-1">첫 글을 작성해보세요.</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- 출석 기록 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200">

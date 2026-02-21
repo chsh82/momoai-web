@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}하크니스 게시판 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">하크니스 게시판 관리</h2>
+        <p class="text-gray-600 mt-1">하크니스 게시판 목록과 게시글을 관리합니다.</p>
+    </div>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 게시판</p>
+                    <p class="text-3xl font-bold text-purple-600">{{ total_boards }}</p>
+                </div>
+                <div class="text-purple-600 text-4xl">📋</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 게시글</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total_posts }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">📝</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 게시판 목록 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-800">게시판 목록</h3>
+            <a href="{{ url_for('harkness.create_board') }}"
+               class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                새 게시판 만들기
+            </a>
+        </div>
+        {% if boards %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">게시판 이름</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">유형</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">연결 수업</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">생성자</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">게시글 수</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">생성일</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for board in boards %}
+                    <tr class="hover:bg-gray-50 {% if not board.is_active %}opacity-60{% endif %}">
+                        <td class="px-4 py-3">
+                            <a href="{{ url_for('harkness.board_detail', board_id=board.board_id) }}"
+                               class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                                {{ board.title }}
+                            </a>
+                            {% if board.description %}
+                            <p class="text-xs text-gray-500 mt-0.5">{{ board.description[:50] }}{% if board.description|length > 50 %}...{% endif %}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded
+                                {% if board.board_type == 'harkness_all' %}bg-purple-100 text-purple-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ '전체 게시판' if board.board_type == 'harkness_all' else '수업 게시판' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ board.course.course_name if board.course else '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ board.creator.name if board.creator else '(삭제됨)' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ board.post_count }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded
+                                {% if board.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ '활성' if board.is_active else '비활성' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            {{ board.created_at.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <form method="POST" action="{{ url_for('admin.board_harkness_toggle_active', board_id=board.board_id) }}">
+                                <button type="submit" class="text-sm font-medium transition
+                                    {% if board.is_active %}text-red-600 hover:text-red-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                                    {{ '비활성화' if board.is_active else '활성화' }}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-8 text-center text-gray-500">
+            등록된 게시판이 없습니다.
+            <a href="{{ url_for('harkness.create_board') }}" class="text-blue-600 hover:text-blue-800 ml-1">
+                첫 게시판을 만들어보세요.
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 게시글 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">게시글 관리</h3>
+        </div>
+
+        <!-- 검색 -->
+        <div class="p-4 border-b border-gray-100">
+            <form method="GET" class="flex gap-3">
+                <input type="text" name="search" value="{{ search }}"
+                       placeholder="게시글 제목 또는 내용 검색..."
+                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <button type="submit"
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    검색
+                </button>
+                {% if search %}
+                <a href="{{ url_for('admin.board_harkness_manage') }}"
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition duration-200">
+                    초기화
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if posts %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">게시판</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성자</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">조회/댓글/좋아요</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성일</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for post in posts %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                {% if post.is_notice %}
+                                <span class="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 rounded">공지</span>
+                                {% endif %}
+                                <a href="{{ url_for('harkness.post_detail', board_id=post.board_id, post_id=post.post_id) }}"
+                                   class="text-sm font-medium text-blue-600 hover:text-blue-800 truncate max-w-xs">
+                                    {{ post.title }}
+                                </a>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ post.board.title if post.board else '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ post.author.name if post.author else '(삭제됨)' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            👁 {{ post.view_count }} / 💬 {{ post.comment_count }} / ❤️ {{ post.like_count }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            {{ post.created_at.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <form method="POST" action="{{ url_for('admin.board_harkness_delete_post', post_id=post.post_id) }}"
+                                  onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
+                                <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
+                                    삭제
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        {% if pagination.pages > 1 %}
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-center gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin.board_harkness_manage', page=pagination.prev_num, search=search) }}"
+               class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition">이전</a>
+            {% endif %}
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                <a href="{{ url_for('admin.board_harkness_manage', page=p, search=search) }}"
+                   class="px-3 py-1 text-sm rounded transition {% if p == pagination.page %}bg-purple-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">{{ p }}</a>
+                {% else %}
+                <span class="px-3 py-1 text-sm text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin.board_harkness_manage', page=pagination.next_num, search=search) }}"
+               class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition">다음</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="px-6 py-12 text-center text-gray-500">
+            {% if search %}
+            "{{ search }}"에 해당하는 게시글이 없습니다.
+            {% else %}
+            등록된 게시글이 없습니다.
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

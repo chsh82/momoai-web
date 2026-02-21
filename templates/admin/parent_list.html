@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}학부모 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">학부모 관리</h2>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 학부모</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">👪</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">활성 계정</p>
+                    <p class="text-3xl font-bold text-green-600">{{ active }}</p>
+                </div>
+                <div class="text-green-600 text-4xl">✅</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">비활성 계정</p>
+                    <p class="text-3xl font-bold text-gray-500">{{ total - active }}</p>
+                </div>
+                <div class="text-gray-400 text-4xl">🔒</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="" class="flex items-center gap-3">
+            <div class="flex-1">
+                <input type="text" name="search" value="{{ search }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="이름, 이메일, 전화번호로 검색...">
+            </div>
+            <button type="submit"
+                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                검색
+            </button>
+            {% if search %}
+            <a href="{{ url_for('admin.parent_list') }}"
+               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+                초기화
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- 학부모 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-xl font-bold text-gray-800">
+                학부모 목록
+                {% if search %}
+                <span class="text-sm font-normal text-gray-500 ml-2">"{{ search }}" 검색 결과: {{ parent_data|length }}명</span>
+                {% endif %}
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if parent_data %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">전화번호</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">연결된 자녀</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">마지막 로그인</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in parent_data %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-gray-800">{{ item.user.name }}</p>
+                                <p class="text-xs text-gray-400">{{ item.user.created_at.strftime('%Y-%m-%d') }} 가입</p>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ item.user.email }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ item.user.phone if item.user.phone else '-' }}</td>
+                            <td class="px-4 py-3">
+                                {% if item.children %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for child in item.children %}
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                                        {{ child.name }} ({{ child.grade }})
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="text-gray-400 text-sm">연결된 자녀 없음</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if item.user.is_active %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">활성</span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">비활성</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                {% if item.user.last_login %}
+                                {{ item.user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                <span class="text-gray-400">미로그인</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ url_for('admin.edit_parent', parent_id=item.user.user_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">수정</a>
+                                    <span class="text-gray-300">|</span>
+                                    <form method="POST"
+                                          action="{{ url_for('admin.reset_password', user_id=item.user.user_id) }}"
+                                          onsubmit="return confirm('{{ item.user.name }}님의 비밀번호를 초기화하시겠습니까?');">
+                                        <button type="submit"
+                                                class="text-sm font-medium"
+                                                style="color: #f97316;"
+                                                onmouseover="this.style.color='#c2410c'"
+                                                onmouseout="this.style.color='#f97316'">
+                                            비밀번호 초기화
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-gray-500 text-lg">
+                    {% if search %}
+                    "{{ search }}"에 해당하는 학부모가 없습니다.
+                    {% else %}
+                    등록된 학부모가 없습니다.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

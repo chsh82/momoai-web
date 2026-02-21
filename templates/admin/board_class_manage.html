@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}클래스 게시판 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">클래스 게시판 관리</h2>
+        <p class="text-gray-600 mt-1">수업별 클래스 게시판 게시글을 관리합니다.</p>
+    </div>
+
+    <!-- 통계 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 게시글</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ total_posts }}</p>
+                </div>
+                <div class="text-blue-600 text-4xl">📝</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">총 댓글</p>
+                    <p class="text-3xl font-bold text-green-600">{{ total_comments }}</p>
+                </div>
+                <div class="text-green-600 text-4xl">💬</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="p-4">
+            <form method="GET" class="flex gap-3">
+                <input type="text" name="search" value="{{ search }}"
+                       placeholder="게시글 제목 또는 내용 검색..."
+                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    검색
+                </button>
+                {% if search %}
+                <a href="{{ url_for('admin.board_class_manage') }}"
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition duration-200">
+                    초기화
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 게시글 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">
+                게시글 목록
+                {% if search %}<span class="text-sm font-normal text-gray-500 ml-2">"{{ search }}" 검색 결과</span>{% endif %}
+            </h3>
+        </div>
+        {% if posts %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">수업</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성자</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">유형</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">조회/댓글</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성일</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for post in posts %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                {% if post.is_pinned %}
+                                <span class="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded">고정</span>
+                                {% endif %}
+                                {% if post.is_notice %}
+                                <span class="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 rounded">공지</span>
+                                {% endif %}
+                                <span class="text-sm font-medium text-gray-800 truncate max-w-xs">{{ post.title }}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ post.course.course_name if post.course else '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ post.author.name if post.author else '(삭제됨)' }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded
+                                {% if post.post_type == 'notice' %}bg-yellow-100 text-yellow-800
+                                {% elif post.post_type == 'question' %}bg-blue-100 text-blue-800
+                                {% elif post.post_type == 'material' %}bg-green-100 text-green-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if post.post_type == 'notice' %}공지
+                                {% elif post.post_type == 'question' %}질문
+                                {% elif post.post_type == 'material' %}자료
+                                {% elif post.post_type == 'discussion' %}토론
+                                {% else %}{{ post.post_type }}{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            👁 {{ post.view_count }} / 💬 {{ post.comment_count }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            {{ post.created_at.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <form method="POST" action="{{ url_for('admin.board_class_delete_post', post_id=post.post_id) }}"
+                                  onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
+                                <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
+                                    삭제
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        {% if pagination.pages > 1 %}
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-center gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin.board_class_manage', page=pagination.prev_num, search=search) }}"
+               class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition">이전</a>
+            {% endif %}
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                <a href="{{ url_for('admin.board_class_manage', page=p, search=search) }}"
+                   class="px-3 py-1 text-sm rounded transition {% if p == pagination.page %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">{{ p }}</a>
+                {% else %}
+                <span class="px-3 py-1 text-sm text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin.board_class_manage', page=pagination.next_num, search=search) }}"
+               class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition">다음</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="px-6 py-12 text-center text-gray-500">
+            {% if search %}
+            "{{ search }}"에 해당하는 게시글이 없습니다.
+            {% else %}
+            등록된 게시글이 없습니다.
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

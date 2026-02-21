@@ -105,32 +105,6 @@
         </a>
     </div>
 
-    <!-- 데이터 내보내기 섹션 -->
-    <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="text-3xl">📊</div>
-                <div>
-                    <h3 class="text-lg font-bold text-gray-800">데이터 내보내기</h3>
-                    <p class="text-sm text-gray-600">내 학습 데이터를 Excel로 다운로드하세요</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <a href="{{ url_for('student.export_my_attendance') }}"
-                   class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📋 내 출석 내역
-                </a>
-                <a href="{{ url_for('student.export_my_report') }}"
-                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📈 종합 리포트 (Excel)
-                </a>
-                <a href="{{ url_for('student.export_my_report_pdf') }}"
-                   class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                    📄 성적표 (PDF)
-                </a>
-            </div>
-        </div>
-    </div>
 
     <!-- 차트 섹션 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

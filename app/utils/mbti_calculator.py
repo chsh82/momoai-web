@@ -86,27 +86,10 @@ def calculate_mbti_scores(responses):
     return scores
 
 
-def determine_mbti_level(area_score):
-    """
-    영역별 누적 점수로 수준 판정
-
-    Args:
-        area_score (int): 영역 누적 점수 (3개 세부능력 합계)
-
-    Returns:
-        str: 'beginner', 'intermediate', 'advanced'
-    """
-    if area_score <= 5:
-        return 'beginner'
-    elif area_score <= 10:
-        return 'intermediate'
-    else:
-        return 'advanced'
-
-
 def determine_mbti_type(scores):
     """
-    9개 세부 능력 점수로 MBTI 유형 결정
+    9개 세부 능력 점수로 MBTI 유형 결정.
+    각 영역에서 가장 높은 점수를 받은 레벨을 해당 영역의 유형으로 결정.
 
     Args:
         scores (dict): 9개 세부 능력 점수
@@ -119,15 +102,20 @@ def determine_mbti_type(scores):
             - type_key: 'beginner-beginner-beginner' 형식
     """
 
-    # 각 영역의 누적 점수 계산
-    read_total = sum(scores['read'].values())
-    speech_total = sum(scores['speech'].values())
-    write_total = sum(scores['write'].values())
+    # 각 영역에서 가장 높은 점수의 레벨을 유형으로 결정
+    # 동점일 경우 advanced > intermediate > beginner 우선
+    level_priority = ['advanced', 'intermediate', 'beginner']
 
-    # 수준 판정
-    read_level = determine_mbti_level(read_total)
-    speech_level = determine_mbti_level(speech_total)
-    write_level = determine_mbti_level(write_total)
+    def dominant_level(area_scores):
+        max_score = max(area_scores.values())
+        for level in level_priority:
+            if area_scores[level] == max_score:
+                return level
+        return 'beginner'
+
+    read_level = dominant_level(scores['read'])
+    speech_level = dominant_level(scores['speech'])
+    write_level = dominant_level(scores['write'])
 
     # type_key 생성
     type_key = f"{read_level}-{speech_level}-{write_level}"
@@ -203,13 +191,22 @@ def get_score_summary(scores):
     write_total = sum(scores['write'].values())
     total_score = read_total + speech_total + write_total
 
+    level_priority = ['advanced', 'intermediate', 'beginner']
+
+    def dominant_level(area_scores):
+        max_score = max(area_scores.values())
+        for level in level_priority:
+            if area_scores[level] == max_score:
+                return level
+        return 'beginner'
+
     return {
         'read_total': read_total,
         'speech_total': speech_total,
         'write_total': write_total,
         'total_score': total_score,
         'max_score': 135,  # 45문항 × 5점 + 비교문항 보너스 가능
-        'read_level': get_level_name(determine_mbti_level(read_total)),
-        'speech_level': get_level_name(determine_mbti_level(speech_total)),
-        'write_level': get_level_name(determine_mbti_level(write_total))
+        'read_level': get_level_name(dominant_level(scores['read'])),
+        'speech_level': get_level_name(dominant_level(scores['speech'])),
+        'write_level': get_level_name(dominant_level(scores['write']))
     }

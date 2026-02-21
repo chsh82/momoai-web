@@ -3,15 +3,18 @@
 from flask import Flask, send_file, redirect, url_for
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_required, current_user
+from flask_compress import Compress
 from pathlib import Path
 from datetime import datetime
 
 from app.models import db
+from app.extensions import limiter, mail
 from config import config
 
 
 migrate = Migrate()
 login_manager = LoginManager()
+compress = Compress()
 
 
 def create_app(config_name='default'):
@@ -26,10 +29,29 @@ def create_app(config_name='default'):
                 static_folder=static_dir)
     app.config.from_object(config[config_name])
 
+    # Flask-Compress 설정 (Gzip 압축)
+    app.config['COMPRESS_MIMETYPES'] = [
+        'text/html', 'text/css', 'text/xml',
+        'application/json', 'application/javascript',
+        'text/javascript', 'application/xml'
+    ]
+    app.config['COMPRESS_LEVEL'] = 6  # 압축 레벨 (1-9, 6이 균형)
+    app.config['COMPRESS_MIN_SIZE'] = 500  # 500바이트 이상만 압축
+
     # Extensions 초기화
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    compress.init_app(app)
+    limiter.init_app(app)
+    mail.init_app(app)
+
+    # Rate limit 초과 시 에러 핸들러
+    from flask import flash, redirect, url_for
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        flash('너무 많은 요청이 감지되었습니다. 잠시 후 다시 시도해주세요.', 'error')
+        return redirect(url_for('auth.login'))
 
     # Flask-Login 설정
     login_manager.login_view = 'auth.login'
@@ -49,7 +71,36 @@ def create_app(config_name='default'):
         return Path(path).name
 
     # Jinja2 global functions
-    app.jinja_env.globals.update(now=datetime.now)
+    from flask_wtf.csrf import generate_csrf
+    app.jinja_env.globals.update(now=datetime.now, csrf_token=generate_csrf)
+
+    # Lazy Loading 이미지 태그 헬퍼
+    @app.template_global('lazy_img')
+    def lazy_img_tag(src, alt='', css_class='', width=None, height=None):
+        """Lazy loading이 적용된 img 태그 생성"""
+        attrs = [f'src="{src}"', f'alt="{alt}"', 'loading="lazy"']
+        if css_class:
+            attrs.append(f'class="{css_class}"')
+        if width:
+            attrs.append(f'width="{width}"')
+        if height:
+            attrs.append(f'height="{height}"')
+        return f'<img {" ".join(attrs)}>'
+
+    # 정적 파일 캐싱 설정
+    @app.after_request
+    def add_header(response):
+        """정적 파일에 캐시 헤더 추가"""
+        if 'static' in response.headers.get('Content-Type', ''):
+            # 정적 파일은 1년 캐싱 (CSS, JS, 이미지 등)
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+        elif response.mimetype and response.mimetype.startswith(('text/css', 'application/javascript', 'image/')):
+            # CSS, JS, 이미지 파일 1년 캐싱
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+        elif response.mimetype and response.mimetype.startswith('text/html'):
+            # HTML은 짧은 캐싱 (5분)
+            response.headers['Cache-Control'] = 'public, max-age=300'
+        return response
 
     # Jinja2 custom filters
     import json
@@ -113,6 +164,64 @@ def create_app(config_name='default'):
 
     from app.zoom import zoom_bp
     app.register_blueprint(zoom_bp, url_prefix='/zoom')
+
+    # Context processor: 미읽은 알림 카운트 주입
+    @app.context_processor
+    def inject_unread_counts():
+        default = {'homework': 0, 'announcement': 0, 'essay': 0,
+                   'feedback': 0, 'total': 0, 'assignments': 0}
+        try:
+            from flask_login import current_user
+            from app.models.notification import Notification
+
+            if not current_user.is_authenticated:
+                return {'unread_counts': default}
+
+            def _count(ntype):
+                if isinstance(ntype, list):
+                    return Notification.query.filter(
+                        Notification.user_id == current_user.user_id,
+                        Notification.is_read == False,
+                        Notification.notification_type.in_(ntype)
+                    ).count()
+                return Notification.query.filter_by(
+                    user_id=current_user.user_id,
+                    is_read=False,
+                    notification_type=ntype
+                ).count()
+
+            hw = _count('homework_assignment')
+            ann = _count('class_announcement')
+            counts = {
+                'homework': hw,
+                'announcement': ann,
+                'assignments': hw + ann,
+                'essay': _count('essay_complete'),
+                'feedback': _count(['teacher_feedback', 'consultation']),
+                'total': Notification.query.filter_by(
+                    user_id=current_user.user_id, is_read=False
+                ).count(),
+            }
+        except Exception:
+            counts = default
+
+        return {'unread_counts': counts}
+
+    # Context processor: 학부모 설문 완료 여부 주입
+    @app.context_processor
+    def inject_parent_survey_status():
+        try:
+            from flask_login import current_user
+            if not current_user.is_authenticated or current_user.role != 'parent':
+                return {'parent_survey_completed': False}
+            from app.models import ParentStudent
+            has_children = ParentStudent.query.filter_by(
+                parent_id=current_user.user_id,
+                is_active=True
+            ).first() is not None
+            return {'parent_survey_completed': has_children}
+        except Exception:
+            return {'parent_survey_completed': False}
 
     # 기본 라우트 - 역할별 포털로 리다이렉트
     @app.route('/')

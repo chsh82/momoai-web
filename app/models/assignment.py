@@ -20,6 +20,9 @@ class Assignment(db.Model):
                          nullable=True, index=True)
     teacher_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
                           nullable=False, index=True)
+    # 개별 학생 지정 (NULL이면 수업 전체 학생, 값이 있으면 해당 학생만)
+    target_student_id = db.Column(db.String(36), db.ForeignKey('students.student_id', ondelete='SET NULL'),
+                                  nullable=True, index=True)
 
     # 과제 설정
     assignment_type = db.Column(db.String(20), default='essay')  # essay, reading, quiz, project
@@ -49,6 +52,7 @@ class Assignment(db.Model):
     # Relationships
     course = db.relationship('Course', backref='assignments')
     teacher = db.relationship('User', backref='created_assignments')
+    target_student = db.relationship('Student', backref='targeted_assignments', foreign_keys=[target_student_id])
     submissions = db.relationship('AssignmentSubmission', back_populates='assignment',
                                  cascade='all, delete-orphan')
 

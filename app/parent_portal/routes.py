@@ -33,21 +33,21 @@ def index():
         is_active=True
     ).all()
 
-    children = [pr.student for pr in parent_relations]
-
-    # 전체 통계
-    total_children = len(children)
+    children_data = []
+    total_children = len(parent_relations)
     total_enrollments = 0
     unread_feedbacks = 0
     total_unpaid = 0
 
-    for child in children:
+    for pr in parent_relations:
+        child = pr.student
+
         # 수강 중인 수업
-        enrollments = CourseEnrollment.query.filter_by(
+        active_enrollments = CourseEnrollment.query.filter_by(
             student_id=child.student_id,
             status='active'
-        ).count()
-        total_enrollments += enrollments
+        ).all()
+        total_enrollments += len(active_enrollments)
 
         # 읽지 않은 피드백
         unread = TeacherFeedback.query.filter_by(
@@ -58,14 +58,16 @@ def index():
         unread_feedbacks += unread
 
         # 미납 금액
-        active_enrollments = CourseEnrollment.query.filter_by(
-            student_id=child.student_id,
-            status='active'
-        ).all()
-
         for enrollment in active_enrollments:
             calc = calculate_tuition_amount(enrollment)
             total_unpaid += calc['remaining_amount']
+
+        children_data.append({
+            'student': child,
+            'enrollments': active_enrollments,
+        })
+
+    children = [d['student'] for d in children_data]
 
     # 최근 피드백
     recent_feedbacks = TeacherFeedback.query.filter_by(
@@ -126,6 +128,7 @@ def index():
 
     return render_template('parent/index.html',
                          children=children,
+                         children_data=children_data,
                          total_children=total_children,
                          total_enrollments=total_enrollments,
                          unread_feedbacks=unread_feedbacks,
@@ -1150,15 +1153,35 @@ def link_requests():
         parent_id=current_user.user_id
     ).order_by(ParentLinkRequest.created_at.desc()).all()
 
-    # 이미 연결된 자녀 목록
-    linked_children = db.session.query(Student).join(ParentStudent).filter(
-        ParentStudent.parent_id == current_user.user_id,
-        ParentStudent.is_active == True
+    # 이미 연결된 자녀 목록 + 수강 정보
+    linked_relations = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        is_active=True
     ).all()
+
+    linked_children_data = []
+    for pr in linked_relations:
+        child = pr.student
+        enrollments = CourseEnrollment.query.filter_by(
+            student_id=child.student_id,
+            status='active'
+        ).all()
+        linked_children_data.append({
+            'student': child,
+            'enrollments': enrollments,
+        })
+
+    # 통계
+    pending_count = sum(1 for r in requests if r.status == 'pending')
+    approved_count = sum(1 for r in requests if r.status == 'approved')
+    rejected_count = sum(1 for r in requests if r.status == 'rejected')
 
     return render_template('parent/link_requests.html',
                          requests=requests,
-                         linked_children=linked_children)
+                         linked_children_data=linked_children_data,
+                         pending_count=pending_count,
+                         approved_count=approved_count,
+                         rejected_count=rejected_count)
 
 
 @parent_bp.route('/link-requests/<request_id>/cancel', methods=['POST'])
@@ -1482,7 +1505,7 @@ def export_child_attendance_certificate(student_id):
 @requires_role('parent', 'admin')
 def reading_mbti():
     """독서 논술 MBTI - 자녀 선택"""
-    from app.models.reading_mbti import ReadingMBTIResult
+    from app.models.reading_mbti import ReadingMBTITest, ReadingMBTIResult
 
     # 내 자녀 목록
     parent_relations = ParentStudent.query.filter_by(
@@ -1492,7 +1515,7 @@ def reading_mbti():
 
     children = [pr.student for pr in parent_relations]
 
-    # 각 자녀의 검사 이력 통계
+    # 각 자녀의 검사 이력 통계 (학년별 맞춤 테스트 포함)
     children_stats = []
     for child in children:
         results = ReadingMBTIResult.query.filter_by(
@@ -1501,15 +1524,140 @@ def reading_mbti():
 
         latest_result = results[0] if results else None
 
+        # 자녀 학년에 맞는 테스트 선택
+        grade = child.grade or ''
+        version = 'elementary' if grade.startswith('초') else 'standard'
+        child_test = ReadingMBTITest.query.filter_by(is_active=True, version=version).first()
+
         children_stats.append({
             'student': child,
             'total_tests': len(results),
             'latest_result': latest_result,
-            'has_test': latest_result is not None
+            'has_test': latest_result is not None,
+            'test': child_test
         })
 
     return render_template('parent/reading_mbti/index.html',
                            children_stats=children_stats)
+
+
+@parent_bp.route('/reading-mbti/take/<student_id>/<int:test_id>')
+@login_required
+@requires_role('parent', 'admin')
+def parent_take_reading_mbti(student_id, test_id):
+    """학부모가 자녀 대신 MBTI 테스트 진행"""
+    from app.models.reading_mbti import ReadingMBTITest, ReadingMBTIQuestion
+
+    student = Student.query.get_or_404(student_id)
+
+    # 부모-자녀 관계 확인
+    relation = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        student_id=student_id,
+        is_active=True
+    ).first()
+    if not relation:
+        flash('해당 학생의 정보에 접근할 권한이 없습니다.', 'error')
+        return redirect(url_for('parent.reading_mbti'))
+
+    test = ReadingMBTITest.query.get_or_404(test_id)
+    if not test.is_active:
+        flash('현재 진행 중인 테스트가 없습니다.', 'warning')
+        return redirect(url_for('parent.child_mbti', student_id=student_id))
+
+    questions = ReadingMBTIQuestion.query.filter_by(
+        test_id=test_id
+    ).order_by(ReadingMBTIQuestion.order).all()
+
+    absolute_questions = [q for q in questions if q.question_type == 'absolute']
+    comparison_questions = [q for q in questions if q.question_type == 'comparison']
+
+    return render_template('parent/reading_mbti/take_test.html',
+                           test=test,
+                           student=student,
+                           absolute_questions=absolute_questions,
+                           comparison_questions=comparison_questions)
+
+
+@parent_bp.route('/reading-mbti/submit/<student_id>/<int:test_id>', methods=['POST'])
+@login_required
+@requires_role('parent', 'admin')
+def parent_submit_reading_mbti(student_id, test_id):
+    """학부모가 자녀 대신 MBTI 테스트 제출"""
+    from app.models.reading_mbti import (
+        ReadingMBTITest, ReadingMBTIResponse,
+        ReadingMBTIResult, ReadingMBTIType
+    )
+    from app.utils.mbti_calculator import (
+        calculate_mbti_scores, determine_mbti_type, validate_responses
+    )
+
+    student = Student.query.get_or_404(student_id)
+
+    # 부모-자녀 관계 확인
+    relation = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        student_id=student_id,
+        is_active=True
+    ).first()
+    if not relation:
+        flash('해당 학생의 정보에 접근할 권한이 없습니다.', 'error')
+        return redirect(url_for('parent.reading_mbti'))
+
+    test = ReadingMBTITest.query.get_or_404(test_id)
+
+    # 응답 수집
+    responses = {}
+    for i in range(1, 46):
+        responses[f'q{i}'] = request.form.get(f'q{i}')
+    for i in range(1, 6):
+        responses[f'comp{i}'] = request.form.get(f'comp{i}')
+
+    is_valid, error_message = validate_responses(responses)
+    if not is_valid:
+        flash(error_message, 'error')
+        return redirect(url_for('parent.parent_take_reading_mbti',
+                                student_id=student_id, test_id=test_id))
+
+    try:
+        scores = calculate_mbti_scores(responses)
+        read_type, speech_type, write_type, type_key = determine_mbti_type(scores)
+
+        mbti_type = ReadingMBTIType.query.filter_by(type_key=type_key).first()
+        if not mbti_type:
+            flash(f'유형 정보를 찾을 수 없습니다: {type_key}', 'error')
+            return redirect(url_for('parent.child_mbti', student_id=student_id))
+
+        response_record = ReadingMBTIResponse(
+            student_id=student.student_id,
+            test_id=test_id,
+            responses=responses
+        )
+        db.session.add(response_record)
+        db.session.flush()
+
+        result = ReadingMBTIResult(
+            response_id=response_record.response_id,
+            student_id=student.student_id,
+            test_id=test_id,
+            type_id=mbti_type.type_id,
+            scores=scores,
+            read_type=read_type,
+            speech_type=speech_type,
+            write_type=write_type
+        )
+        db.session.add(result)
+        db.session.commit()
+
+        flash(f'{student.name} 학생의 검사가 완료되었습니다!', 'success')
+        return redirect(url_for('parent.child_mbti', student_id=student_id))
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"MBTI 테스트 제출 오류: {e}")
+        flash('테스트 제출 중 오류가 발생했습니다. 다시 시도해주세요.', 'error')
+        return redirect(url_for('parent.parent_take_reading_mbti',
+                                student_id=student_id, test_id=test_id))
 
 
 @parent_bp.route('/reading-mbti/child/<student_id>')
@@ -1517,7 +1665,7 @@ def reading_mbti():
 @requires_role('parent', 'admin')
 def child_mbti(student_id):
     """자녀의 독서 논술 MBTI 결과"""
-    from app.models.reading_mbti import ReadingMBTIResult
+    from app.models.reading_mbti import ReadingMBTITest, ReadingMBTIResult
 
     student = Student.query.get_or_404(student_id)
 
@@ -1532,6 +1680,11 @@ def child_mbti(student_id):
         flash('해당 학생의 정보를 조회할 권한이 없습니다.', 'error')
         return redirect(url_for('parent.reading_mbti'))
 
+    # 학년에 맞는 활성 테스트 선택
+    grade = student.grade or ''
+    version = 'elementary' if grade.startswith('초') else 'standard'
+    test = ReadingMBTITest.query.filter_by(is_active=True, version=version).first()
+
     # 검사 결과 조회
     results = ReadingMBTIResult.query.filter_by(
         student_id=student_id
@@ -1542,7 +1695,8 @@ def child_mbti(student_id):
     return render_template('parent/reading_mbti/child_detail.html',
                            student=student,
                            results=results,
-                           latest_result=latest_result)
+                           latest_result=latest_result,
+                           test=test)
 
 
 # ============================================================
