@@ -251,6 +251,16 @@
             </h3>
 
             <div class="mt-2">
+                <div class="flex gap-4 mb-2" id="modalVersionSelector">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="modalVersion" value="extracted" checked onchange="switchModalText(this.value)">
+                        <span class="text-sm text-gray-700">추출된 텍스트</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer" id="modalCorrectedLabel">
+                        <input type="radio" name="modalVersion" value="corrected" onchange="switchModalText(this.value)">
+                        <span class="text-sm text-gray-700">맞춤법 교정</span>
+                    </label>
+                </div>
                 <textarea id="modalTextContent"
                           class="w-full h-64 px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
                           readonly></textarea>
@@ -289,16 +299,32 @@ function confirmAndStartCorrection(event, message) {
 
 let currentOCRId = null;
 
-// OCR 데이터를 안전하게 저장
+// OCR 데이터를 안전하게 저장 (추출된 텍스트 기본)
 const ocrData = {
     {% for ocr in ocr_records %}
-    {{ ocr.ocr_id }}: {{ (ocr.corrected_text or ocr.extracted_text)|tojson|safe }}{% if not loop.last %},{% endif %}
+    {{ ocr.ocr_id }}: {
+        extracted: {{ ocr.extracted_text|tojson|safe }},
+        corrected: {{ (ocr.corrected_text or '')|tojson|safe }},
+        summary: {{ (ocr.summary or '')|tojson|safe }}
+    }{% if not loop.last %},{% endif %}
     {% endfor %}
 };
 
+function switchModalText(version) {
+    if (!currentOCRId) return;
+    document.getElementById('modalTextContent').value = (ocrData[currentOCRId] && ocrData[currentOCRId][version]) || '';
+}
+
 function showOCRDetailModal(ocrId) {
     currentOCRId = ocrId;
-    document.getElementById('modalTextContent').value = ocrData[ocrId] || '';
+    // 기본: 추출된 텍스트
+    const data = ocrData[ocrId] || {};
+    document.getElementById('modalTextContent').value = data.extracted || '';
+    // 맞춤법 교정 라디오 표시/숨김
+    const corrLabel = document.getElementById('modalCorrectedLabel');
+    if (corrLabel) corrLabel.style.display = data.corrected ? '' : 'none';
+    // 라디오 초기화
+    document.querySelector('input[name="modalVersion"][value="extracted"]').checked = true;
     document.getElementById('ocrDetailModal').classList.remove('hidden');
 }
 

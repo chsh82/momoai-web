@@ -54,8 +54,9 @@ def index():
     """첨삭 목록 (필터링, 검색, 정렬 지원)"""
     from app.models import EssayResult
 
-    # 기본 쿼리 - 관리자는 모든 첨삭 조회, 강사는 본인이 생성하거나 담당 학생의 첨삭 조회
-    if current_user.role == 'admin':
+    # 기본 쿼리 - 관리자/매니저는 모든 첨삭 조회, 강사는 본인이 생성하거나 담당 학생의 첨삭 조회
+    if current_user.role in ('admin', 'manager') or (
+            current_user.role_level and current_user.role_level <= 2):
         query = Essay.query
     else:
         from app.models.course import Course, CourseEnrollment
@@ -64,7 +65,7 @@ def index():
             Course, CourseEnrollment.course_id == Course.course_id
         ).filter(Course.teacher_id == current_user.user_id).subquery()
 
-        query = Essay.query.join(Student).filter(
+        query = Essay.query.outerjoin(Student).filter(
             db.or_(
                 Essay.user_id == current_user.user_id,
                 Student.teacher_id == current_user.user_id,
@@ -116,8 +117,9 @@ def index():
 
     essays = query.all()
 
-    # 필터 옵션용 데이터 - 관리자는 모든 학생, 강사는 본인 학생만
-    if current_user.role == 'admin':
+    # 필터 옵션용 데이터 - 관리자/매니저는 모든 학생, 강사는 본인 학생만
+    if current_user.role in ('admin', 'manager') or (
+            current_user.role_level and current_user.role_level <= 2):
         students = Student.query.filter_by(is_temp=False).order_by(Student.name).all()
     else:
         students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\

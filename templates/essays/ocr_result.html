@@ -174,12 +174,28 @@
             </h3>
 
             <div class="mt-2">
-                <p class="text-sm text-gray-500 mb-2">
-                    아래 텍스트를 수정한 후 과제에 추가할 수 있습니다:
-                </p>
+                <p class="text-sm text-gray-500 mb-2">추가할 텍스트 버전을 선택하세요:</p>
+                <div class="flex gap-4 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="textVersion" value="extracted" checked onchange="switchOCRText(this.value)">
+                        <span class="text-sm font-medium text-gray-700">추출된 텍스트</span>
+                    </label>
+                    {% if ocr_record.corrected_text %}
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="textVersion" value="corrected" onchange="switchOCRText(this.value)">
+                        <span class="text-sm font-medium text-gray-700">맞춤법 교정</span>
+                    </label>
+                    {% endif %}
+                    {% if ocr_record.summary %}
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="textVersion" value="summary" onchange="switchOCRText(this.value)">
+                        <span class="text-sm font-medium text-gray-700">AI 분석</span>
+                    </label>
+                    {% endif %}
+                </div>
                 <textarea id="textToAdd"
                           class="w-full h-64 px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
-                          placeholder="추가할 텍스트...">{{ ocr_record.corrected_text or ocr_record.extracted_text }}</textarea>
+                          placeholder="추가할 텍스트...">{{ ocr_record.extracted_text }}</textarea>
             </div>
 
             <div class="flex items-center justify-end gap-3 mt-4">
@@ -198,6 +214,16 @@
 {% endif %}
 
 <script>
+const ocrTexts = {
+    extracted: {{ ocr_record.extracted_text|tojson|safe }},
+    corrected: {{ (ocr_record.corrected_text or '')|tojson|safe }},
+    summary: {{ (ocr_record.summary or '')|tojson|safe }}
+};
+
+function switchOCRText(version) {
+    document.getElementById('textToAdd').value = ocrTexts[version] || '';
+}
+
 function copyText(elementId) {
     const text = document.getElementById(elementId).innerText;
     navigator.clipboard.writeText(text).then(function() {

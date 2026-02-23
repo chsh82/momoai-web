@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}과제 제출 - MOMOAI v4.0{% endblock %}
+{% block title %}글쓰기 제출 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
@@ -10,14 +10,36 @@
            class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
             ← 대시보드로
         </a>
-        <h2 class="text-3xl font-bold text-gray-800">새 과제 제출</h2>
-        <p class="text-gray-600 mt-2">제출하면 담당 강사({{ student.teacher.name }})에게 자동으로 알림이 전송됩니다.</p>
+        <h2 class="text-3xl font-bold text-gray-800">글쓰기 제출</h2>
+        <p class="text-gray-600 mt-2">제출하면 담당 강사에게 자동으로 알림이 전송됩니다.</p>
     </div>
 
-    <!-- 과제 제출 폼 -->
+    <!-- 글쓰기 제출 폼 -->
     <div class="bg-white rounded-lg shadow">
         <div class="p-6">
             <form method="POST" action="{{ url_for('student.submit_essay') }}" enctype="multipart/form-data" onsubmit="return validateForm()">
+                {% if enrolled_teachers|length > 1 %}
+                <div class="mb-6">
+                    <label for="teacher_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        담당 강사 선택
+                    </label>
+                    <select id="teacher_id" name="teacher_id"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for teacher in enrolled_teachers %}
+                        <option value="{{ teacher.user_id }}"
+                            {% if teacher.user_id == default_teacher_id %}selected{% endif %}>
+                            {{ teacher.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">기본값: 가장 오래 수강한 강사</p>
+                </div>
+                {% elif enrolled_teachers|length == 1 %}
+                <input type="hidden" name="teacher_id" value="{{ enrolled_teachers[0].user_id }}">
+                {% elif default_teacher_id %}
+                <input type="hidden" name="teacher_id" value="{{ default_teacher_id }}">
+                {% endif %}
+
                 <div class="mb-6">
                     <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
                         제목 <span class="text-red-500">*</span>
@@ -119,7 +141,7 @@
                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                               placeholder="첨삭받을 내용을 입력하세요"></textarea>
                     <p class="mt-2 text-sm text-gray-500">
-                        💡 팁: 본문 내용이 없어도 첨부파일만으로 과제 제출이 가능합니다.
+                        💡 팁: 본문 내용이 없어도 첨부파일만으로 글쓰기 제출이 가능합니다.
                     </p>
                 </div>
 
@@ -127,7 +149,7 @@
                     <div class="flex items-start gap-3">
                         <span class="text-2xl">💡</span>
                         <div>
-                            <h4 class="font-medium text-blue-900 mb-1">과제 제출 안내</h4>
+                            <h4 class="font-medium text-blue-900 mb-1">글쓰기 제출 안내</h4>
                             <ul class="text-sm text-blue-800 space-y-1">
                                 <li>• 제출하면 담당 강사에게 자동으로 알림이 전송됩니다</li>
                                 <li>• 강사가 첨삭을 완료하면 알림을 받을 수 있습니다</li>

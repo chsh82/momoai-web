@@ -198,6 +198,7 @@ def create_app(config_name='default'):
                 'assignments': hw + ann,
                 'essay': _count('essay_complete'),
                 'feedback': _count(['teacher_feedback', 'consultation']),
+                'new_submission': _count('essay_submitted'),  # 강사용: 새 제출 건수
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),

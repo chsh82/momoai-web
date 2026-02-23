@@ -722,6 +722,16 @@ def create_feedback():
         db.session.add(feedback)
         db.session.commit()
 
+        # 학부모에게 알림 전송
+        if feedback.parent_id:
+            Notification.create_notification(
+                user_id=feedback.parent_id,
+                notification_type='teacher_feedback',
+                title='선생님 피드백이 도착했습니다',
+                message=f'[{feedback.feedback_type}] {feedback.title}',
+                link_url=url_for('parent.all_feedback')
+            )
+
         flash('피드백이 전송되었습니다.', 'success')
         return redirect(url_for('teacher.student_detail', student_id=form.student_id.data))
 

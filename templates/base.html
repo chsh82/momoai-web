@@ -545,8 +545,11 @@
                                 과제 출제/첨삭
                             </a>
                             <a href="{{ url_for('essays.index') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays.index' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                {% if current_user.role == 'parent' %}첨삭 보기{% else %}첨삭 관리{% endif %}
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays.index' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                <span>{% if current_user.role == 'parent' %}첨삭 보기{% else %}첨삭 관리{% endif %}</span>
+                                {% if unread_counts.new_submission > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.new_submission }}</span>
+                                {% endif %}
                             </a>
                             <a href="{{ url_for('essays.ocr_index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays.ocr' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
@@ -779,8 +782,11 @@
                                 공지사항
                             </a>
                             <a href="{{ url_for('parent.all_feedback') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'parent.all_feedback' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
-                                선생님 피드백
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'parent.all_feedback' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                <span>선생님 피드백</span>
+                                {% if unread_counts.feedback > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.feedback }}</span>
+                                {% endif %}
                             </a>
                         </div>
                     </div>
@@ -861,7 +867,7 @@
                         <div x-show="learning" x-collapse class="ml-8 mt-1 space-y-1">
                             <a href="{{ url_for('student.submit_essay') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.submit_essay' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                과제 제출
+                                글쓰기 제출
                             </a>
                             <a href="{{ url_for('student.my_essays') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.my_essays' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">

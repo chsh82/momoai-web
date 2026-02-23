@@ -255,9 +255,34 @@ def submit_essay():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
+    # 수강 중인 강사 목록 조회
+    from app.models.course import Course, CourseEnrollment
+    from app.models import User as UserModel
+    enrolled_teachers = db.session.query(UserModel).join(
+        Course, Course.teacher_id == UserModel.user_id
+    ).join(
+        CourseEnrollment, CourseEnrollment.course_id == Course.course_id
+    ).filter(
+        CourseEnrollment.student_id == student.student_id,
+        CourseEnrollment.status == 'active'
+    ).order_by(CourseEnrollment.enrolled_at.asc()).distinct().all()
+
+    # 기본 강사: student.teacher_id 또는 가장 오래된 수강 강사
+    default_teacher_id = student.teacher_id
+    if not default_teacher_id and enrolled_teachers:
+        oldest = db.session.query(CourseEnrollment).join(
+            Course, Course.course_id == CourseEnrollment.course_id
+        ).filter(
+            CourseEnrollment.student_id == student.student_id,
+            CourseEnrollment.status == 'active'
+        ).order_by(CourseEnrollment.enrolled_at.asc()).first()
+        if oldest:
+            default_teacher_id = oldest.course.teacher_id
+
     if request.method == 'POST':
         title = request.form.get('title')
         content = request.form.get('content', '').strip()
+        selected_teacher_id = request.form.get('teacher_id') or default_teacher_id
 
         # 제목은 필수
         if not title:
@@ -275,10 +300,10 @@ def submit_essay():
         # 첨삭 생성
         essay = Essay(
             student_id=student.student_id,
-            user_id=student.teacher_id,  # teacher_id -> user_id
+            user_id=selected_teacher_id,
             title=title,
-            original_text=content,  # essay_content -> original_text
-            grade=student.grade  # grade 필드 추가 (필수)
+            original_text=content,
+            grade=student.grade
         )
         db.session.add(essay)
         db.session.flush()  # essay_id 생성을 위해 flush
@@ -319,15 +344,16 @@ def submit_essay():
                 essay.attachment_filename = json.dumps(uploaded_filenames, ensure_ascii=False)
                 essay.attachment_path = json.dumps(uploaded_paths)
 
-        # 담당 강사에게 알림 생성
-        notification = Notification(
-            user_id=student.teacher_id,
-            notification_type='essay_submitted',
-            title='새 과제 제출',
-            message=f'{student.name} 학생이 "{title}" 과제를 제출했습니다.',
-            link_url=url_for('essays.index')  # related_url -> link_url
-        )
-        db.session.add(notification)
+        # 선택된 강사에게 알림 생성
+        if selected_teacher_id:
+            notification = Notification(
+                user_id=selected_teacher_id,
+                notification_type='essay_submitted',
+                title='새 글쓰기 제출',
+                message=f'{student.name} 학생이 "{title}" 글쓰기를 제출했습니다.',
+                link_url=url_for('essays.index')
+            )
+            db.session.add(notification)
 
         db.session.commit()
 
@@ -341,7 +367,9 @@ def submit_essay():
 
     return render_template('student/submit_essay.html',
                            student=student,
-                           recent_essays=recent_essays)
+                           recent_essays=recent_essays,
+                           enrolled_teachers=enrolled_teachers,
+                           default_teacher_id=default_teacher_id)
 
 
 @student_bp.route('/essays')

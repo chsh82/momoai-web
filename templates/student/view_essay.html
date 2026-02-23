@@ -70,27 +70,45 @@
                             {% if essay.attachment_filename.startswith('[') %}
                                 {% set filenames = essay.attachment_filename|from_json %}
                                 {% for idx in range(filenames|length) %}
+                                {% set fname = filenames[idx] %}
+                                {% set is_image = fname.lower().endswith(('.jpg','.jpeg','.png','.gif','.webp','.bmp','.heic','.heif')) %}
                                 <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
                                     <div class="flex items-center gap-3">
-                                        <span class="text-xl">📄</span>
-                                        <div class="text-sm text-gray-600">{{ filenames[idx] }}</div>
+                                        <span class="text-xl">{% if is_image %}🖼️{% else %}📄{% endif %}</span>
+                                        <div class="text-sm text-gray-600">{{ fname }}</div>
                                     </div>
+                                    {% if is_image %}
+                                    <button onclick="openImageModal('{{ url_for('student.download_essay_attachment', essay_id=essay.essay_id, file_index=idx) }}', '{{ fname }}')"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
+                                        보기
+                                    </button>
+                                    {% else %}
                                     <a href="{{ url_for('student.download_essay_attachment', essay_id=essay.essay_id, file_index=idx) }}"
                                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
                                         다운로드
                                     </a>
+                                    {% endif %}
                                 </div>
                                 {% endfor %}
                             {% else %}
+                                {% set fname = essay.attachment_filename %}
+                                {% set is_image = fname.lower().endswith(('.jpg','.jpeg','.png','.gif','.webp','.bmp','.heic','.heif')) %}
                                 <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
                                     <div class="flex items-center gap-3">
-                                        <span class="text-xl">📄</span>
-                                        <div class="text-sm text-gray-600">{{ essay.attachment_filename }}</div>
+                                        <span class="text-xl">{% if is_image %}🖼️{% else %}📄{% endif %}</span>
+                                        <div class="text-sm text-gray-600">{{ fname }}</div>
                                     </div>
+                                    {% if is_image %}
+                                    <button onclick="openImageModal('{{ url_for('student.download_essay_attachment', essay_id=essay.essay_id) }}', '{{ fname }}')"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
+                                        보기
+                                    </button>
+                                    {% else %}
                                     <a href="{{ url_for('student.download_essay_attachment', essay_id=essay.essay_id) }}"
                                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
                                         다운로드
                                     </a>
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         </div>
@@ -250,4 +268,35 @@
         </div>
     </div>
 </div>
+
+<!-- 이미지 뷰어 모달 -->
+<div id="imageViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+    <div class="flex items-center justify-between px-4 py-3 bg-black bg-opacity-50">
+        <span id="imageModalTitle" class="text-white text-sm truncate flex-1 mr-4"></span>
+        <button onclick="closeImageModal()"
+                class="flex-shrink-0 bg-white bg-opacity-20 hover:bg-opacity-40 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold transition">
+            ✕
+        </button>
+    </div>
+    <div class="flex-1 flex items-center justify-center overflow-auto p-4">
+        <img id="imageModalImg" src="" alt="" class="max-w-full max-h-full object-contain rounded">
+    </div>
+</div>
+
+<script>
+function openImageModal(url, filename) {
+    document.getElementById('imageModalImg').src = url;
+    document.getElementById('imageModalTitle').textContent = filename;
+    document.getElementById('imageViewerModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeImageModal() {
+    document.getElementById('imageViewerModal').classList.add('hidden');
+    document.getElementById('imageModalImg').src = '';
+    document.body.style.overflow = '';
+}
+document.getElementById('imageViewerModal').addEventListener('click', function(e) {
+    if (e.target === this || e.target.closest('.flex-1.flex')) closeImageModal();
+});
+</script>
 {% endblock %}
