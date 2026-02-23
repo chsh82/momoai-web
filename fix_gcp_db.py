@@ -72,6 +72,8 @@ COLUMNS = [
     # weekly_evaluations 테이블
     "ALTER TABLE weekly_evaluations ADD COLUMN participation_score INTEGER DEFAULT 0",
     "ALTER TABLE weekly_evaluations ADD COLUMN understanding_score INTEGER DEFAULT 0",
+    # reading_mbti_tests 테이블
+    "ALTER TABLE reading_mbti_tests ADD COLUMN version VARCHAR(20) DEFAULT 'standard'",
 ]
 
 conn = sqlite3.connect(DB_PATH)
