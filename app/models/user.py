@@ -87,6 +87,13 @@ class User(UserMixin, db.Model):
         self.locked_until = None
 
     @property
+    def is_authenticated(self):
+        """Flask-Login: UserMixin 기본값은 is_active를 리턴하므로
+        비활성 사용자가 인증되지 않은 것으로 처리됨.
+        DB에 존재하는 사용자는 항상 인증된 것으로 간주."""
+        return True
+
+    @property
     def is_teacher(self):
         """강사 여부"""
         return self.role == 'teacher'
