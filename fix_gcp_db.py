@@ -21,6 +21,7 @@ COLUMNS = [
     "ALTER TABLE students ADD COLUMN school VARCHAR(200)",
     "ALTER TABLE students ADD COLUMN birth_date DATE",
     "ALTER TABLE students ADD COLUMN is_temp BOOLEAN DEFAULT 0",
+    "ALTER TABLE assignments ADD COLUMN target_student_id VARCHAR(36)",
 ]
 
 conn = sqlite3.connect(DB_PATH)
