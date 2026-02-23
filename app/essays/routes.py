@@ -462,6 +462,24 @@ def regenerate(essay_id):
     return redirect(url_for('essays.result', essay_id=essay.essay_id))
 
 
+@essays_bp.route('/api/cancel/<essay_id>', methods=['POST'])
+@login_required
+def api_cancel(essay_id):
+    """첨삭 취소 API (진행 중인 첨삭을 강제로 중단)"""
+    essay = Essay.query.get_or_404(essay_id)
+
+    if not _can_access_essay(essay):
+        return jsonify({'error': '접근 권한이 없습니다.'}), 403
+
+    if essay.status != 'processing':
+        return jsonify({'error': '진행 중인 첨삭이 아닙니다.'}), 400
+
+    essay.status = 'failed'
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+
 @essays_bp.route('/api/regenerate/<essay_id>', methods=['POST'])
 @login_required
 def api_regenerate(essay_id):

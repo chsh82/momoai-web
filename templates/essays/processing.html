@@ -70,9 +70,15 @@
         </div>
 
         <!-- Wait Message -->
-        <p class="text-gray-500 text-sm">
-            이 페이지를 닫지 마세요. 완료되면 자동으로 결과 페이지로 이동합니다.
+        <p class="text-gray-500 text-sm mb-6">
+            완료되면 자동으로 결과 페이지로 이동합니다.
         </p>
+
+        <!-- Cancel Button -->
+        <button id="cancelBtn" onclick="cancelCorrection()"
+            class="bg-red-100 hover:bg-red-200 text-red-700 font-medium px-6 py-2 rounded-lg transition-colors text-sm">
+            첨삭 취소
+        </button>
     </div>
 
     <!-- Back Link -->
@@ -165,6 +171,32 @@ function startRegeneration() {
         document.getElementById('statusText').textContent = '재생성 중 오류가 발생했습니다.';
         document.getElementById('statusText').classList.add('text-red-600');
     });
+}
+
+function cancelCorrection() {
+    if (!confirm('첨삭을 취소하시겠습니까? 진행 중인 작업이 중단됩니다.')) return;
+
+    const btn = document.getElementById('cancelBtn');
+    btn.disabled = true;
+    btn.textContent = '취소 중...';
+
+    fetch(`/essays/api/cancel/${essayId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('statusText').textContent = '첨삭이 취소되었습니다.';
+                setTimeout(() => { window.location.href = '/essays'; }, 1500);
+            } else {
+                alert(data.error || '취소 중 오류가 발생했습니다.');
+                btn.disabled = false;
+                btn.textContent = '첨삭 취소';
+            }
+        })
+        .catch(() => {
+            alert('취소 중 오류가 발생했습니다.');
+            btn.disabled = false;
+            btn.textContent = '첨삭 취소';
+        });
 }
 
 // 페이지 로드 시 재생성이 필요한지 확인
