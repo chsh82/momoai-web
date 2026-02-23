@@ -1,13 +1,14 @@
-"""GCP DB 누락 컬럼 추가 스크립트"""
-import sys
-sys.path.insert(0, '/home/chsh82/momoai_web')
+"""GCP DB 누락 컬럼 추가 스크립트 - instance/momoai.db 직접 수정"""
+import sqlite3
 import os
-os.chdir('/home/chsh82/momoai_web')
 
-from app import create_app
-from app.models import db
+DB_PATH = '/home/chsh82/momoai_web/instance/momoai.db'
 
-app = create_app()
+if not os.path.exists(DB_PATH):
+    print(f"ERROR: DB 파일 없음: {DB_PATH}")
+    exit(1)
+
+print(f"DB: {DB_PATH}")
 
 COLUMNS = [
     "ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0",
@@ -19,14 +20,16 @@ COLUMNS = [
     "ALTER TABLE users ADD COLUMN zoom_token TEXT",
     "ALTER TABLE students ADD COLUMN school VARCHAR(200)",
     "ALTER TABLE students ADD COLUMN birth_date DATE",
+    "ALTER TABLE students ADD COLUMN is_temp BOOLEAN DEFAULT 0",
 ]
 
-with app.app_context():
-    for sql in COLUMNS:
-        try:
-            db.session.execute(db.text(sql))
-            print("OK:", sql[:70])
-        except Exception as e:
-            print("SKIP:", str(e)[:70])
-    db.session.commit()
-    print("\n=== 완료 ===")
+conn = sqlite3.connect(DB_PATH)
+for sql in COLUMNS:
+    try:
+        conn.execute(sql)
+        print("OK:", sql[:70])
+    except Exception as e:
+        print("SKIP:", str(e)[:70])
+conn.commit()
+conn.close()
+print("\n=== 완료 ===")
