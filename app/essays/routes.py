@@ -58,10 +58,17 @@ def index():
     if current_user.role == 'admin':
         query = Essay.query
     else:
+        from app.models.course import Course, CourseEnrollment
+        # 강사 수업에 등록된 학생 ID 서브쿼리
+        course_student_ids = db.session.query(CourseEnrollment.student_id).join(
+            Course, CourseEnrollment.course_id == Course.course_id
+        ).filter(Course.teacher_id == current_user.user_id).subquery()
+
         query = Essay.query.join(Student).filter(
             db.or_(
                 Essay.user_id == current_user.user_id,
-                Student.teacher_id == current_user.user_id
+                Student.teacher_id == current_user.user_id,
+                Student.student_id.in_(course_student_ids)
             )
         )
 
