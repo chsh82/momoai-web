@@ -71,8 +71,9 @@ def login():
         # 계정 비활성화 확인 (승인 대기 포함)
         if not user.is_active:
             # 로그인은 허용하되 승인 대기 페이지로 리다이렉트
+            # force=True: Flask-Login은 is_active=False 사용자를 기본 login_user()로 로그인시키지 않음
             user.reset_failed_attempts()
-            login_user(user, remember=form.remember_me.data)
+            login_user(user, remember=form.remember_me.data, force=True)
             user.last_login = datetime.utcnow()
             db.session.commit()
             _log_login_attempt(form.email.data, True, 'pending_approval')
