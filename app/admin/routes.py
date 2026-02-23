@@ -2821,24 +2821,44 @@ def reject_teacher(user_id):
 @login_required
 @requires_permission_level(2)
 def pending_users():
-    """승인 대기 중인 전체 회원 목록 (강사/학부모/학생)"""
+    """승인 대기 중인 전체 회원 목록 (강사/학부모/학생, 거절된 사용자 제외)"""
     role_filter = request.args.get('role', '').strip()
 
-    query = User.query.filter_by(is_active=False).filter(
+    # 거절된 사용자 ID 목록 (account_rejected 알림 수신자)
+    rejected_ids = [
+        n.user_id for n in Notification.query.filter_by(
+            notification_type='account_rejected'
+        ).with_entities(Notification.user_id).all()
+    ]
+
+    base_query = User.query.filter_by(is_active=False).filter(
         User.role.in_(['teacher', 'parent', 'student'])
     )
+    if rejected_ids:
+        base_query = base_query.filter(~User.user_id.in_(rejected_ids))
+
+    query = base_query
     if role_filter and role_filter in ('teacher', 'parent', 'student'):
         query = query.filter_by(role=role_filter)
 
     pending = query.order_by(User.created_at.desc()).all()
 
-    # 역할별 카운트
+    # 역할별 카운트 (거절 제외)
+    def _count_role(role=None):
+        q = User.query.filter_by(is_active=False)
+        if role:
+            q = q.filter_by(role=role)
+        else:
+            q = q.filter(User.role.in_(['teacher', 'parent', 'student']))
+        if rejected_ids:
+            q = q.filter(~User.user_id.in_(rejected_ids))
+        return q.count()
+
     counts = {
-        'all': User.query.filter_by(is_active=False).filter(
-            User.role.in_(['teacher', 'parent', 'student'])).count(),
-        'teacher': User.query.filter_by(is_active=False, role='teacher').count(),
-        'parent': User.query.filter_by(is_active=False, role='parent').count(),
-        'student': User.query.filter_by(is_active=False, role='student').count(),
+        'all': _count_role(),
+        'teacher': _count_role('teacher'),
+        'parent': _count_role('parent'),
+        'student': _count_role('student'),
     }
 
     return render_template('admin/pending_users.html',
@@ -2882,15 +2902,28 @@ def approve_user(user_id):
 @login_required
 @requires_permission_level(2)
 def reject_user(user_id):
-    """회원 계정 거절 (비활성 상태 유지)"""
+    """회원 계정 거절 (비활성 상태 유지, 대기 목록에서 제외)"""
     user = User.query.get_or_404(user_id)
 
-    # is_active=False 유지 (삭제하지 않음)
-    # 거절 메모는 현재 별도 필드가 없으므로 관리자 메모로 처리
-    db.session.commit()
+    # 중복 거절 방지
+    already_rejected = Notification.query.filter_by(
+        user_id=user.user_id,
+        notification_type='account_rejected'
+    ).first()
+
+    if not already_rejected:
+        # 사용자에게 거절 알림 전송 (승인 대기 페이지에서 상태 확인용)
+        Notification.create_notification(
+            user_id=user.user_id,
+            notification_type='account_rejected',
+            title='계정 신청이 거절되었습니다',
+            message='관리자가 회원가입 신청을 거절했습니다. 자세한 사항은 학원에 문의해주세요.',
+            link_url=url_for('auth.pending_approval')
+        )
+        db.session.commit()
 
     role_label = {'teacher': '강사', 'parent': '학부모', 'student': '학생'}.get(user.role, user.role)
-    flash(f'{user.name} ({role_label}) 계정 승인이 거절되었습니다. 비활성 상태로 유지됩니다.', 'info')
+    flash(f'{user.name} ({role_label}) 계정 승인이 거절되었습니다.', 'info')
     return redirect(url_for('admin.pending_users'))
 
 

@@ -257,7 +257,17 @@ def pending_approval():
     # 이미 승인된 활성 유저는 대시보드로
     if current_user.is_authenticated and current_user.is_active:
         return redirect(url_for('index'))
-    return render_template('auth/pending_approval.html')
+
+    # 거절 여부 확인 (account_rejected 알림 존재 여부)
+    is_rejected = False
+    if current_user.is_authenticated:
+        from app.models.notification import Notification
+        is_rejected = Notification.query.filter_by(
+            user_id=current_user.user_id,
+            notification_type='account_rejected'
+        ).first() is not None
+
+    return render_template('auth/pending_approval.html', is_rejected=is_rejected)
 
 
 @auth_bp.route('/logout')

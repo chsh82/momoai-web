@@ -188,7 +188,7 @@ def create_app(config_name='default'):
     @app.context_processor
     def inject_unread_counts():
         default = {'homework': 0, 'announcement': 0, 'essay': 0,
-                   'feedback': 0, 'total': 0, 'assignments': 0}
+                   'feedback': 0, 'total': 0, 'assignments': 0, 'pending_users': 0}
         try:
             from flask_login import current_user
             from app.models.notification import Notification
@@ -212,13 +212,21 @@ def create_app(config_name='default'):
             hw = _count('homework_assignment')
             ann = _count('class_announcement')
 
-            # 관리자용: 승인 대기 회원 수
+            # 관리자용: 승인 대기 회원 수 (거절된 사용자 제외)
             pending_users = 0
             if current_user.is_active and current_user.has_permission_level(2):
                 from app.models import User as _UserModel
-                pending_users = _UserModel.query.filter_by(is_active=False).filter(
+                rejected_ids = [
+                    n.user_id for n in Notification.query.filter_by(
+                        notification_type='account_rejected'
+                    ).with_entities(Notification.user_id).all()
+                ]
+                q = _UserModel.query.filter_by(is_active=False).filter(
                     _UserModel.role.in_(['teacher', 'parent', 'student'])
-                ).count()
+                )
+                if rejected_ids:
+                    q = q.filter(~_UserModel.user_id.in_(rejected_ids))
+                pending_users = q.count()
 
             counts = {
                 'homework': hw,
