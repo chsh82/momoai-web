@@ -12,7 +12,7 @@ HTML_FOLDER = OUTPUT_FOLDER / 'html'
 PDF_FOLDER = OUTPUT_FOLDER / 'pdf'
 POST_FILES_FOLDER = UPLOAD_FOLDER / 'post_files'
 MATERIALS_FOLDER = UPLOAD_FOLDER / 'materials'
-MOMOAI_DOC_PATH = Path(r"C:\Users\aproa\Downloads\MOMOAI_v3_3_0_final (20260112).md")
+MOMOAI_DOC_PATH = Path(os.environ.get('MOMOAI_DOC_PATH') or str(BASE_DIR / 'docs' / 'MOMOAI_v3_3_0_final.md'))
 
 # API 키 - 환경 변수에서만 로드 (보안)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
