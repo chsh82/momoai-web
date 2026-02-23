@@ -267,7 +267,10 @@ def pending_approval():
             notification_type='account_rejected'
         ).first() is not None
 
-    return render_template('auth/pending_approval.html', is_rejected=is_rejected)
+    from flask import make_response
+    response = make_response(render_template('auth/pending_approval.html', is_rejected=is_rejected))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @auth_bp.route('/logout')
