@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}임시 첨삭 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('essays.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 첨삭 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">임시 첨삭</h2>
+        <p class="text-gray-600 mt-1">학생 등록 없이 이름과 학년만 입력하여 바로 첨삭합니다.</p>
+    </div>
+
+    <!-- 안내 -->
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+        <span class="text-2xl">⚡</span>
+        <div class="text-sm text-amber-800">
+            <p class="font-medium mb-1">임시 첨삭 안내</p>
+            <ul class="space-y-0.5">
+                <li>• 학생 등록 없이 즉시 첨삭이 가능합니다.</li>
+                <li>• 결과는 첨삭 목록에 저장되며 학생 이름으로 구분됩니다.</li>
+                <li>• 나중에 정식 학생으로 연결하려면 학생을 등록 후 첨삭을 새로 진행하세요.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form method="POST" action="{{ url_for('essays.quick') }}" enctype="multipart/form-data"
+              onsubmit="return handleSubmit()">
+
+            <!-- 학생 기본 정보 -->
+            <div class="border-b border-gray-100 pb-6 mb-6">
+                <h3 class="text-base font-semibold text-gray-700 mb-4">학생 정보</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- 이름 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            학생 이름 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="student_name" required
+                               placeholder="예: 홍길동"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <!-- 학년 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            학년 <span class="text-red-500">*</span>
+                        </label>
+                        <select name="grade" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="">-- 학년 선택 --</option>
+                            <optgroup label="초등">
+                                {% for g in grades[:6] %}
+                                <option value="{{ g }}">{{ g }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="중등">
+                                {% for g in grades[6:9] %}
+                                <option value="{{ g }}">{{ g }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="고등">
+                                {% for g in grades[9:] %}
+                                <option value="{{ g }}">{{ g }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 과제 내용 -->
+            <div class="border-b border-gray-100 pb-6 mb-6">
+                <h3 class="text-base font-semibold text-gray-700 mb-4">과제 내용</h3>
+
+                <!-- 제목 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">과제 제목 <span class="text-gray-400 font-normal">(선택)</span></label>
+                    <input type="text" name="title"
+                           placeholder="예: 환경 보호에 대하여"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+
+                <!-- 글쓰기 내용 탭 -->
+                <div class="mb-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        글쓰기 내용
+                        <span class="text-gray-400 font-normal">(직접 입력 또는 파일 첨부 중 하나 이상 필요)</span>
+                    </label>
+                </div>
+
+                <!-- 탭 전환 -->
+                <div class="flex border-b border-gray-200 mb-3">
+                    <button type="button" id="tabText"
+                            onclick="switchTab('text')"
+                            class="px-4 py-2 text-sm font-medium border-b-2 border-purple-600 text-purple-600">
+                        ✏️ 직접 입력
+                    </button>
+                    <button type="button" id="tabFile"
+                            onclick="switchTab('file')"
+                            class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        📎 파일 첨부
+                    </button>
+                </div>
+
+                <!-- 텍스트 입력 -->
+                <div id="panelText">
+                    <textarea name="essay_text" rows="10"
+                              placeholder="학생의 글쓰기 내용을 여기에 입력하세요..."
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y font-['Noto_Sans_KR'] leading-relaxed"></textarea>
+                    <p class="text-xs text-gray-400 mt-1" id="charCount">0자</p>
+                </div>
+
+                <!-- 파일 첨부 -->
+                <div id="panelFile" class="hidden">
+                    <div id="fileDropZone"
+                         class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors"
+                         onclick="document.getElementById('attachment').click()">
+                        <div class="text-4xl mb-2">📁</div>
+                        <p class="text-gray-600 font-medium">클릭하거나 파일을 드래그하세요</p>
+                        <p class="text-sm text-gray-400 mt-1">JPG, PNG, PDF · 최대 16MB</p>
+                    </div>
+                    <input type="file" id="attachment" name="attachment"
+                           accept="image/*,.pdf" class="hidden"
+                           onchange="showFileName(this)">
+                    <div id="selectedFile" class="hidden mt-3 bg-purple-50 border border-purple-200 rounded-lg px-4 py-2 text-sm text-purple-800 flex items-center justify-between">
+                        <span id="fileNameText"></span>
+                        <button type="button" onclick="clearFile()" class="text-red-500 hover:text-red-700 ml-2">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 주의사항 (선택) -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    첨삭 주의사항 <span class="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <textarea name="notes" rows="2"
+                          placeholder="특별히 강조하거나 주의할 사항이 있으면 입력하세요..."
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-sm"></textarea>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex gap-3">
+                <button type="submit" id="submitBtn"
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition duration-200">
+                    ⚡ 임시 첨삭 시작
+                </button>
+                <a href="{{ url_for('essays.index') }}"
+                   class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg transition duration-200 text-center">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 처리 중 오버레이 (processing.html 스타일) -->
+<div id="processingOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 overflow-y-auto">
+    <div class="max-w-2xl mx-auto px-4 py-12">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">첨삭 진행 중</h2>
+            <p class="text-gray-300">AI가 글을 분석하고 있습니다...</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <div class="flex justify-center mb-6">
+                <div class="quick-spinner"></div>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">AI가 논술문을 분석 중입니다...</h3>
+            <p class="text-gray-600 text-sm mb-6">예상 소요 시간: 2~5분</p>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 text-left mb-6">
+                <div class="text-sm text-purple-800 space-y-2">
+                    <div class="flex items-center gap-2"><span class="text-purple-600">✓</span> 논술문 분석 및 구조 파악</div>
+                    <div class="flex items-center gap-2"><span class="text-purple-600">✓</span> 윤문 완성본 작성</div>
+                    <div class="flex items-center gap-2"><span class="text-purple-600">✓</span> 18개 지표 점수 산출</div>
+                    <div class="flex items-center gap-2"><span class="text-purple-600">✓</span> 내용 첨삭 및 피드백 생성</div>
+                    <div class="flex items-center gap-2"><span class="text-purple-600">✓</span> 종합 제언 작성</div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-6">
+                <div class="bg-gray-50 p-3 rounded">
+                    <div class="font-medium text-gray-700">학생</div>
+                    <div id="overlayName">-</div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded">
+                    <div class="font-medium text-gray-700">학년</div>
+                    <div id="overlayGrade">-</div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded col-span-2">
+                    <div class="font-medium text-gray-700">경과 시간</div>
+                    <div id="elapsedTime">0초</div>
+                </div>
+            </div>
+            <p class="text-gray-500 text-sm">이 페이지를 닫지 마세요. 완료되면 자동으로 결과 페이지로 이동합니다.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.quick-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #9333ea;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+</style>
+
+<script>
+// 탭 전환
+function switchTab(tab) {
+    const isText = (tab === 'text');
+    document.getElementById('panelText').classList.toggle('hidden', !isText);
+    document.getElementById('panelFile').classList.toggle('hidden', isText);
+    document.getElementById('tabText').className = isText
+        ? 'px-4 py-2 text-sm font-medium border-b-2 border-purple-600 text-purple-600'
+        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+    document.getElementById('tabFile').className = !isText
+        ? 'px-4 py-2 text-sm font-medium border-b-2 border-purple-600 text-purple-600'
+        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+}
+
+// 글자 수
+document.querySelector('[name="essay_text"]').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length + '자';
+});
+
+// 파일 선택 표시
+function showFileName(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('fileNameText').textContent = '📎 ' + input.files[0].name;
+        document.getElementById('selectedFile').classList.remove('hidden');
+        document.getElementById('fileDropZone').querySelector('p').textContent = '파일이 선택되었습니다';
+    }
+}
+
+function clearFile() {
+    document.getElementById('attachment').value = '';
+    document.getElementById('selectedFile').classList.add('hidden');
+    document.getElementById('fileDropZone').querySelector('p').textContent = '클릭하거나 파일을 드래그하세요';
+}
+
+// 제출 처리
+function handleSubmit() {
+    const name = document.querySelector('[name="student_name"]').value.trim();
+    const grade = document.querySelector('[name="grade"]').value;
+    if (!name || !grade) return true; // HTML 기본 validation에 맡김
+
+    document.getElementById('overlayName').textContent = name;
+    document.getElementById('overlayGrade').textContent = grade;
+    document.getElementById('processingOverlay').classList.remove('hidden');
+
+    let seconds = 0;
+    setInterval(() => {
+        seconds++;
+        const m = Math.floor(seconds / 60), s = seconds % 60;
+        document.getElementById('elapsedTime').textContent = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+    }, 1000);
+    return true;
+}
+</script>
+{% endblock %}

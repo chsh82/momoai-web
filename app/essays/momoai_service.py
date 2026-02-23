@@ -127,9 +127,9 @@ v3.3.0 필수 포함 사항:
 
             # Prompt Caching 적용: system prompt를 5분간 캐싱
             response = self.client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=16000,
-                timeout=300.0,
+                model="claude-sonnet-4-6",
+                max_tokens=32000,
+                timeout=600.0,
                 system=[
                     {
                         "type": "text",
@@ -148,10 +148,16 @@ v3.3.0 필수 포함 사항:
             usage = response.usage
             cache_creation = getattr(usage, 'cache_creation_input_tokens', 0)
             cache_read = getattr(usage, 'cache_read_input_tokens', 0)
+            output_tokens = getattr(usage, 'output_tokens', 0)
+            stop_reason = response.stop_reason
 
             print(f"\n{'='*60}")
             print(f"[첨삭 완료] API 호출 시간: {elapsed_time:.2f}초")
             print(f"응답 길이: {len(response.content[0].text):,} chars")
+            print(f"출력 토큰: {output_tokens:,} / 32000")
+            print(f"Stop reason: {stop_reason}")
+            if stop_reason == 'max_tokens':
+                print(f"⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
             if cache_creation > 0:
                 print(f"캐시 생성: {cache_creation:,} 토큰 (첫 요청)")
             if cache_read > 0:

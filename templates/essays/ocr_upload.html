@@ -11,7 +11,7 @@
             ← OCR 메인으로
         </a>
         <h2 class="text-3xl font-bold text-gray-800 mb-2">이미지 업로드</h2>
-        <p class="text-gray-600">이미지 파일을 업로드하여 텍스트를 추출합니다</p>
+        <p class="text-gray-600">이미지 파일을 업로드하여 텍스트를 추출합니다 (최대 10장)</p>
     </div>
 
     <!-- 안내 카드 -->
@@ -21,10 +21,10 @@
             <div>
                 <h4 class="font-medium text-blue-900 mb-2">OCR 사용 안내</h4>
                 <ul class="text-sm text-blue-800 space-y-1">
-                    <li>• 지원 형식: JPG, PNG, BMP, TIFF, GIF, WEBP</li>
-                    <li>• 한글과 영어 텍스트를 자동으로 인식합니다</li>
+                    <li>• 지원 형식: JPG, PNG, BMP, TIFF, GIF, WEBP, PDF</li>
+                    <li>• 한 번에 최대 <strong>10장</strong>까지 업로드 가능합니다</li>
                     <li>• 이미지가 선명할수록 인식률이 높아집니다</li>
-                    <li>• 처리 시간은 이미지 크기에 따라 10~60초 정도 소요됩니다</li>
+                    <li>• 장당 약 5~15초 소요 (10장 시 최대 2분)</li>
                 </ul>
             </div>
         </div>
@@ -36,36 +36,60 @@
             <h3 class="text-xl font-bold text-gray-800">이미지 선택</h3>
         </div>
         <div class="p-6">
-            <form method="POST" action="{{ url_for('essays.ocr_upload') }}" enctype="multipart/form-data" onsubmit="return showProcessing()">
+            <form method="POST" action="{{ url_for('essays.ocr_upload') }}" enctype="multipart/form-data"
+                  id="uploadForm" onsubmit="return handleSubmit()">
+                <!-- 파일 선택 영역 -->
                 <div class="mb-6">
-                    <label for="image" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
                         이미지 파일 <span class="text-red-500">*</span>
+                        <span class="text-gray-400 font-normal">(최대 10장, 장당 최대 16MB)</span>
                     </label>
+                    <!-- 드래그앤드롭 영역 -->
+                    <div id="dropZone"
+                         class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors duration-200"
+                         onclick="document.getElementById('images').click()"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)">
+                        <div id="dropText">
+                            <div class="text-4xl mb-3">📁</div>
+                            <p class="text-gray-600 font-medium">클릭하거나 파일을 여기에 드래그하세요</p>
+                            <p class="text-sm text-gray-400 mt-1">JPG, PNG, PDF 등 · 최대 10장</p>
+                        </div>
+                    </div>
                     <input type="file"
-                           id="image"
-                           name="image"
-                           required
-                           accept="image/*"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                           onchange="previewImage(this)">
-                    <p class="mt-2 text-sm text-gray-500">
-                        이미지 파일을 선택하세요 (최대 크기: 16MB)
-                    </p>
+                           id="images"
+                           name="images"
+                           multiple
+                           accept="image/*,.pdf"
+                           class="hidden"
+                           onchange="handleFileSelect(this.files)">
                 </div>
 
-                <!-- 이미지 미리보기 -->
-                <div id="preview-container" class="mb-6 hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">미리보기</label>
-                    <div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                        <img id="preview-image" src="" alt="미리보기" class="max-w-full h-auto max-h-96 mx-auto">
+                <!-- 선택된 파일 목록 -->
+                <div id="fileList" class="hidden mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-medium text-gray-700">
+                            선택된 파일 <span id="fileCount" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+                        </h4>
+                        <button type="button" onclick="clearFiles()"
+                                class="text-xs text-red-500 hover:text-red-700">전체 취소</button>
+                    </div>
+                    <!-- 썸네일 그리드 -->
+                    <div id="previewGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"></div>
+                    <!-- 10장 초과 경고 -->
+                    <div id="limitWarning" class="hidden mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">
+                        ⚠️ 최대 10장까지만 업로드할 수 있습니다. 처음 10장만 처리됩니다.
                     </div>
                 </div>
 
+                <!-- 버튼 -->
                 <div class="flex gap-3">
                     <button type="submit"
-                            id="submit-button"
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
-                        OCR 인식 시작
+                            id="submitBtn"
+                            disabled
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition duration-200">
+                        📸 OCR 인식 시작
                     </button>
                     <a href="{{ url_for('essays.ocr_index') }}"
                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
@@ -73,45 +97,227 @@
                     </a>
                 </div>
             </form>
-
-            <!-- 처리 중 메시지 -->
-            <div id="processing-message" class="hidden mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div class="flex items-center gap-3">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-700"></div>
-                    <div>
-                        <h4 class="font-medium text-yellow-900">OCR 처리 중...</h4>
-                        <p class="text-sm text-yellow-800">이미지에서 텍스트를 추출하고 있습니다. 잠시만 기다려주세요.</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
+<!-- 처리 중 오버레이 (processing.html 스타일) -->
+<div id="processingOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 overflow-y-auto">
+    <div class="max-w-2xl mx-auto px-4 py-12">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">OCR 인식 진행 중</h2>
+            <p class="text-gray-300" id="progressText">이미지에서 텍스트를 추출하고 있습니다...</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <!-- Spinner -->
+            <div class="flex justify-center mb-6">
+                <div class="ocr-spinner"></div>
+            </div>
+
+            <!-- Status -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-2" id="statusText">Gemini AI가 이미지를 분석 중입니다...</h3>
+                <p class="text-gray-600 text-sm">예상 소요 시간: 장당 5~15초</p>
+            </div>
+
+            <!-- Progress Info -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-left mb-6">
+                <div class="text-sm text-blue-800 space-y-2">
+                    <div class="flex items-center">
+                        <span class="text-blue-600 mr-2">✓</span>
+                        <span>이미지 업로드 및 전처리</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-blue-600 mr-2">✓</span>
+                        <span>Gemini AI 문자 인식 (OCR)</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-blue-600 mr-2">✓</span>
+                        <span>원문 텍스트 추출</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-blue-600 mr-2">✓</span>
+                        <span>맞춤법 교정 및 윤문</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-blue-600 mr-2">✓</span>
+                        <span>사고력 분석 및 요약</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Info Grid -->
+            <div class="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-6">
+                <div class="bg-gray-50 p-3 rounded">
+                    <div class="font-medium text-gray-700">총 파일 수</div>
+                    <div id="totalCount">-</div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded">
+                    <div class="font-medium text-gray-700">처리 방식</div>
+                    <div>✨ Gemini AI</div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded col-span-2">
+                    <div class="font-medium text-gray-700">경과 시간</div>
+                    <div id="elapsedTime">0초</div>
+                </div>
+            </div>
+
+            <!-- Wait Message -->
+            <p class="text-gray-500 text-sm">
+                이 페이지를 닫지 마세요. 완료되면 자동으로 결과 페이지로 이동합니다.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.ocr-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
 <script>
-function previewImage(input) {
-    const container = document.getElementById('preview-container');
-    const image = document.getElementById('preview-image');
+let selectedFiles = [];
 
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-            image.src = e.target.result;
-            container.classList.remove('hidden');
-        };
-
-        reader.readAsDataURL(input.files[0]);
-    }
+function handleFileSelect(files) {
+    const newFiles = Array.from(files);
+    // 중복 제거 (같은 이름)
+    newFiles.forEach(f => {
+        if (!selectedFiles.find(sf => sf.name === f.name && sf.size === f.size)) {
+            selectedFiles.push(f);
+        }
+    });
+    renderPreviews();
 }
 
-function showProcessing() {
-    const button = document.getElementById('submit-button');
-    const message = document.getElementById('processing-message');
+function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.add('border-blue-400', 'bg-blue-50');
+}
 
-    button.disabled = true;
-    button.classList.add('opacity-50', 'cursor-not-allowed');
-    message.classList.remove('hidden');
+function handleDragLeave(e) {
+    document.getElementById('dropZone').classList.remove('border-blue-400', 'bg-blue-50');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    handleDragLeave(e);
+    handleFileSelect(e.dataTransfer.files);
+}
+
+function renderPreviews() {
+    const grid = document.getElementById('previewGrid');
+    const fileListDiv = document.getElementById('fileList');
+    const countBadge = document.getElementById('fileCount');
+    const submitBtn = document.getElementById('submitBtn');
+    const limitWarning = document.getElementById('limitWarning');
+
+    grid.innerHTML = '';
+
+    if (selectedFiles.length === 0) {
+        fileListDiv.classList.add('hidden');
+        submitBtn.disabled = true;
+        return;
+    }
+
+    fileListDiv.classList.remove('hidden');
+    countBadge.textContent = selectedFiles.length;
+    submitBtn.disabled = false;
+    limitWarning.classList.toggle('hidden', selectedFiles.length <= 10);
+
+    const displayFiles = selectedFiles.slice(0, 10);
+    displayFiles.forEach((file, idx) => {
+        const div = document.createElement('div');
+        div.className = 'relative group';
+
+        const isPdf = file.name.toLowerCase().endsWith('.pdf');
+        if (isPdf) {
+            div.innerHTML = `
+                <div class="w-full aspect-square bg-red-50 border border-red-200 rounded-lg flex flex-col items-center justify-center p-2">
+                    <span class="text-3xl mb-1">📕</span>
+                    <p class="text-xs text-gray-600 text-center truncate w-full px-1">${file.name}</p>
+                </div>
+                <button type="button" onclick="removeFile(${idx})"
+                        class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold hidden group-hover:flex items-center justify-center">×</button>
+                <span class="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">${idx+1}</span>
+            `;
+        } else {
+            const url = URL.createObjectURL(file);
+            div.innerHTML = `
+                <div class="w-full aspect-square bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                    <img src="${url}" alt="${file.name}" class="w-full h-full object-cover">
+                </div>
+                <button type="button" onclick="removeFile(${idx})"
+                        class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 text-xs font-bold hidden group-hover:flex items-center justify-center">×</button>
+                <span class="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">${idx+1}</span>
+            `;
+        }
+        grid.appendChild(div);
+    });
+
+    // 드롭존 업데이트
+    document.getElementById('dropText').innerHTML = `
+        <div class="text-2xl mb-1">✅</div>
+        <p class="text-blue-700 font-medium">${selectedFiles.length}장 선택됨</p>
+        <p class="text-sm text-gray-400 mt-1">클릭하여 파일 추가</p>
+    `;
+
+    // 파일 input 동기화
+    syncFilesToInput();
+}
+
+function removeFile(idx) {
+    selectedFiles.splice(idx, 1);
+    renderPreviews();
+}
+
+function clearFiles() {
+    selectedFiles = [];
+    document.getElementById('images').value = '';
+    renderPreviews();
+    document.getElementById('dropText').innerHTML = `
+        <div class="text-4xl mb-3">📁</div>
+        <p class="text-gray-600 font-medium">클릭하거나 파일을 여기에 드래그하세요</p>
+        <p class="text-sm text-gray-400 mt-1">JPG, PNG, PDF 등 · 최대 10장</p>
+    `;
+}
+
+function syncFilesToInput() {
+    // DataTransfer를 이용해 file input과 selectedFiles 동기화
+    const dt = new DataTransfer();
+    selectedFiles.slice(0, 10).forEach(f => dt.items.add(f));
+    document.getElementById('images').files = dt.files;
+}
+
+function handleSubmit() {
+    if (selectedFiles.length === 0) return false;
+
+    const count = Math.min(selectedFiles.length, 10);
+    document.getElementById('progressText').textContent =
+        `${count}장 이미지에서 텍스트를 추출하고 있습니다...`;
+    document.getElementById('totalCount').textContent = count + '장';
+    document.getElementById('processingOverlay').classList.remove('hidden');
+
+    let seconds = 0;
+    setInterval(() => {
+        seconds++;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        document.getElementById('elapsedTime').textContent =
+            m > 0 ? `${m}분 ${s}초` : `${s}초`;
+    }, 1000);
 
     return true;
 }

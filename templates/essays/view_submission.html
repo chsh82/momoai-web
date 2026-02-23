@@ -182,17 +182,30 @@
             {% if essay.status == 'draft' %}
             <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
                   class="{% if not attachments %}col-span-2{% endif %}"
-                  onsubmit="return confirm('이 학생의 글을 첨삭하시겠습니까? (약 10~30초 소요)');">
+                  onsubmit="return confirmAndStartCorrection(event, '이 학생의 글을 첨삭하시겠습니까? (약 10~30초 소요)')">
                 <button type="submit"
                         class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
                     첨삭 시작
                 </button>
             </form>
             {% elif essay.status == 'processing' %}
-            <a href="{{ url_for('essays.processing', essay_id=essay.essay_id) }}"
-               class="{% if not attachments %}col-span-2{% endif %} bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 text-center">
-                진행 상황 보기
-            </a>
+            <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                  class="{% if not attachments %}col-span-2{% endif %}"
+                  onsubmit="return confirmAndStartCorrection(event, '첨삭이 중단된 것 같습니다. 다시 시작하시겠습니까?')">
+                <button type="submit"
+                        class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                    ⚠️ 첨삭 다시 시작
+                </button>
+            </form>
+            {% elif essay.status == 'failed' %}
+            <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                  class="{% if not attachments %}col-span-2{% endif %}"
+                  onsubmit="return confirmAndStartCorrection(event, '첨삭에 실패했습니다. 다시 시도하시겠습니까?')">
+                <button type="submit"
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                    🔄 첨삭 재시도
+                </button>
+            </form>
             {% elif essay.status in ['reviewing', 'completed'] %}
             <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
                class="{% if not attachments %}col-span-2{% endif %} bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 text-center">
@@ -208,6 +221,24 @@
                 목록으로
             </a>
         </div>
+    </div>
+</div>
+
+<!-- 첨삭 진행 중 오버레이 -->
+<div id="correctionOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-10 max-w-sm w-full mx-4 text-center shadow-2xl">
+        <div class="flex justify-center mb-6">
+            <div class="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">첨삭 진행 중...</h3>
+        <p class="text-gray-600 mb-1">AI가 학생의 글을 분석하고 있습니다.</p>
+        <p class="text-sm text-red-500 font-medium mb-4">페이지를 닫거나 이동하지 마세요!</p>
+        <div class="flex justify-center gap-2 mb-4">
+            <div class="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style="animation-delay:0ms"></div>
+            <div class="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style="animation-delay:150ms"></div>
+            <div class="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style="animation-delay:300ms"></div>
+        </div>
+        <p class="text-xs text-gray-400" id="correctionElapsed">경과 시간: 0초</p>
     </div>
 </div>
 
@@ -240,6 +271,22 @@
 </div>
 
 <script>
+// 첨삭 시작 - 확인 후 로딩 오버레이 표시
+function confirmAndStartCorrection(event, message) {
+    if (!confirm(message)) {
+        event.preventDefault();
+        return false;
+    }
+    const overlay = document.getElementById('correctionOverlay');
+    overlay.classList.remove('hidden');
+    let seconds = 0;
+    setInterval(() => {
+        seconds++;
+        document.getElementById('correctionElapsed').textContent = '경과 시간: ' + seconds + '초';
+    }, 1000);
+    return true;
+}
+
 let currentOCRId = null;
 
 // OCR 데이터를 안전하게 저장

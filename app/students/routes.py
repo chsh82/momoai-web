@@ -18,11 +18,11 @@ def index():
 
     # 기본 쿼리 (관리자는 모든 학생, 강사는 자신의 학생만)
     if current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2):
-        # 관리자/매니저는 모든 학생 조회
-        query = Student.query
+        # 관리자/매니저는 모든 학생 조회 (임시 학생 제외)
+        query = Student.query.filter_by(is_temp=False)
     else:
-        # 강사는 자신의 학생만 조회
-        query = Student.query.filter_by(teacher_id=current_user.user_id)
+        # 강사는 자신의 학생만 조회 (임시 학생 제외)
+        query = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)
 
     # 검색어 필터
     search = request.args.get('search', '').strip()

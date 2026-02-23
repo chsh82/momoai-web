@@ -22,6 +22,7 @@ class Student(db.Model):
     email = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    is_temp = db.Column(db.Boolean, default=False, nullable=False)  # 임시 학생 여부
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

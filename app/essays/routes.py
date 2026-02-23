@@ -6,6 +6,7 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import threading
 
 from app.essays import essays_bp
 from app.essays.forms import NewEssayForm, RevisionRequestForm
@@ -110,9 +111,9 @@ def index():
 
     # 필터 옵션용 데이터 - 관리자는 모든 학생, 강사는 본인 학생만
     if current_user.role == 'admin':
-        students = Student.query.order_by(Student.name).all()
+        students = Student.query.filter_by(is_temp=False).order_by(Student.name).all()
     else:
-        students = Student.query.filter_by(teacher_id=current_user.user_id)\
+        students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
             .order_by(Student.name).all()
 
     return render_template('essays/index.html',
@@ -133,8 +134,8 @@ def new():
 
     form = NewEssayForm()
 
-    # 학생 목록 로드
-    students = Student.query.filter_by(teacher_id=current_user.user_id)\
+    # 학생 목록 로드 (임시 학생 제외)
+    students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
         .order_by(Student.name).all()
 
     if not students:
@@ -231,6 +232,113 @@ def new():
     return render_template('essays/new.html', form=form)
 
 
+@essays_bp.route('/quick', methods=['GET', 'POST'])
+@login_required
+def quick():
+    """학생 등록 없이 이름/학년만 입력하는 임시 첨삭"""
+    GRADES = ['초1', '초2', '초3', '초4', '초5', '초6',
+              '중1', '중2', '중3', '고1', '고2', '고3']
+
+    if request.method == 'POST':
+        student_name = request.form.get('student_name', '').strip()
+        grade        = request.form.get('grade', '').strip()
+        title        = request.form.get('title', '').strip() or None
+        essay_text   = request.form.get('essay_text', '').strip()
+        notes        = request.form.get('notes', '').strip() or None
+
+        # 유효성 검사
+        if not student_name:
+            flash('학생 이름을 입력해주세요.', 'error')
+            return redirect(url_for('essays.quick'))
+        if grade not in GRADES:
+            flash('학년을 선택해주세요.', 'error')
+            return redirect(url_for('essays.quick'))
+
+        # 파일 첨부 처리
+        attachment_filename = None
+        attachment_path = None
+        file = request.files.get('attachment')
+        if file and file.filename:
+            upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
+            os.makedirs(upload_folder, exist_ok=True)
+            original_filename = secure_filename(file.filename)
+            stored_filename = f"{uuid.uuid4().hex}{os.path.splitext(original_filename)[1]}"
+            file.save(os.path.join(upload_folder, stored_filename))
+            attachment_filename = original_filename
+            attachment_path = os.path.join('essays', stored_filename)
+
+        if not essay_text and not attachment_path:
+            flash('글쓰기 내용을 입력하거나 파일을 첨부해주세요.', 'error')
+            return redirect(url_for('essays.quick'))
+
+        # 임시 학생 자동 생성
+        temp_student = Student(
+            teacher_id=current_user.user_id,
+            name=student_name,
+            grade=grade,
+            is_temp=True
+        )
+        db.session.add(temp_student)
+        db.session.flush()  # student_id 확보
+
+        # Essay 생성
+        from app.models import EssayNote
+        import uuid as _uuid
+        essay = Essay(
+            student_id=temp_student.student_id,
+            user_id=current_user.user_id,
+            title=title,
+            original_text=essay_text or '',
+            grade=grade,
+            status='processing'
+        )
+        db.session.add(essay)
+
+        if notes:
+            db.session.flush()
+            db.session.add(EssayNote(
+                essay_id=essay.essay_id,
+                note_type='주의사항',
+                content=notes
+            ))
+
+        if attachment_filename:
+            essay.attachment_filename = attachment_filename
+            essay.attachment_path = attachment_path
+
+        db.session.commit()
+
+        # 백그라운드 스레드로 첨삭 처리
+        essay_id_val = essay.essay_id
+        api_key = Config.ANTHROPIC_API_KEY
+        app = current_app._get_current_object()
+
+        def do_quick_correction():
+            with app.app_context():
+                from app.models import db as _db, Essay as _Essay
+                from app.essays.momoai_service import MOMOAIService as _Service
+                essay_obj = _Essay.query.get(essay_id_val)
+                if not essay_obj:
+                    return
+                try:
+                    service = _Service(api_key)
+                    service.process_essay(essay_obj, student_name, current_user.name)
+                except Exception as e:
+                    print(f'[임시 첨삭 오류] {e}')
+                    essay_obj.status = 'failed'
+                    _db.session.commit()
+
+        t = threading.Thread(target=do_quick_correction, daemon=True)
+        t.start()
+
+        return redirect(url_for('essays.processing', essay_id=essay.essay_id))
+
+    return render_template('essays/quick.html', grades=[
+        '초1', '초2', '초3', '초4', '초5', '초6',
+        '중1', '중2', '중3', '고1', '고2', '고3'
+    ])
+
+
 @essays_bp.route('/processing/<essay_id>')
 @login_required
 def processing(essay_id):
@@ -238,7 +346,7 @@ def processing(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -315,7 +423,7 @@ def regenerate(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -347,7 +455,7 @@ def api_regenerate(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         return jsonify({'error': '접근 권한이 없습니다.'}), 403
 
     # 세션에서 revision_note 가져오기
@@ -355,31 +463,34 @@ def api_regenerate(essay_id):
     if not revision_note:
         return jsonify({'error': '수정 요청 내용을 찾을 수 없습니다.'}), 400
 
-    # MOMOAI 서비스 초기화
-    service = MOMOAIService(Config.ANTHROPIC_API_KEY)
+    # 세션에서 미리 값 추출 (스레드는 요청 컨텍스트 없음)
+    session.pop(f'revision_note_{essay_id}', None)
 
-    try:
-        # 재생성 처리 (동기)
-        version, html_path = service.regenerate_essay(
-            essay,
-            essay.student.name,
-            revision_note,
-            current_user.name
-        )
+    student_name = essay.student.name
+    teacher_name = current_user.name
+    essay_id_val = essay.essay_id
+    api_key = Config.ANTHROPIC_API_KEY
+    app = current_app._get_current_object()
 
-        # 세션에서 revision_note 삭제
-        session.pop(f'revision_note_{essay_id}', None)
+    def do_regenerate():
+        with app.app_context():
+            from app.models import db as _db, Essay as _Essay
+            from app.essays.momoai_service import MOMOAIService as _Service
+            essay_obj = _Essay.query.get(essay_id_val)
+            if not essay_obj:
+                return
+            try:
+                service = _Service(api_key)
+                service.regenerate_essay(essay_obj, student_name, revision_note, teacher_name)
+            except Exception as e:
+                print(f'[재생성 오류] {e}')
+                essay_obj.status = 'failed'
+                _db.session.commit()
 
-        return jsonify({
-            'success': True,
-            'essay_id': essay.essay_id,
-            'version_number': version.version_number
-        })
+    t = threading.Thread(target=do_regenerate, daemon=True)
+    t.start()
 
-    except Exception as e:
-        essay.status = 'failed'
-        db.session.commit()
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'success': True, 'message': '재생성을 시작했습니다.'})
 
 
 @essays_bp.route('/<essay_id>/finalize', methods=['POST'])
@@ -389,7 +500,7 @@ def finalize(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -423,30 +534,40 @@ def start_correction(essay_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
-    # 상태 확인
-    if essay.status != 'draft':
-        flash('이미 처리 중이거나 완료된 첨삭입니다.', 'warning')
-        return redirect(url_for('essays.index'))
-
-    # MOMOAI 서비스 초기화
-    service = MOMOAIService(Config.ANTHROPIC_API_KEY)
-
-    try:
-        flash(f'{essay.student.name} 학생의 첨삭을 처리 중입니다... (약 10~30초 소요)', 'info')
-
-        # 즉시 처리 (동기)
-        version, html_path = service.process_essay(essay, essay.student.name, current_user.name)
-
-        # 성공 메시지
-        flash(f'{essay.student.name} 학생의 첨삭이 완료되었습니다!', 'success')
+    # 상태 확인 - 완료/검토 중은 재생성 기능 사용
+    if essay.status in ('reviewing', 'completed'):
+        flash('이미 완료된 첨삭입니다. 결과 페이지에서 재생성 기능을 이용하세요.', 'warning')
         return redirect(url_for('essays.result', essay_id=essay.essay_id))
 
-    except Exception as e:
-        # 에러 처리
-        essay.status = 'failed'
-        db.session.commit()
-        flash(f'첨삭 처리 중 오류가 발생했습니다: {str(e)}', 'error')
-        return redirect(url_for('essays.index'))
+    # 백그라운드 스레드로 처리 시작
+    essay.status = 'processing'
+    db.session.commit()
+
+    student_name = essay.student.name
+    teacher_name = current_user.name
+    essay_id_val = essay.essay_id
+    api_key = Config.ANTHROPIC_API_KEY
+    app = current_app._get_current_object()
+
+    def do_correction():
+        with app.app_context():
+            from app.models import db as _db, Essay as _Essay
+            from app.essays.momoai_service import MOMOAIService as _Service
+            essay_obj = _Essay.query.get(essay_id_val)
+            if not essay_obj:
+                return
+            try:
+                service = _Service(api_key)
+                service.process_essay(essay_obj, student_name, teacher_name)
+            except Exception as e:
+                print(f'[첨삭 오류] {e}')
+                essay_obj.status = 'failed'
+                _db.session.commit()
+
+    t = threading.Thread(target=do_correction, daemon=True)
+    t.start()
+
+    return redirect(url_for('essays.processing', essay_id=essay.essay_id))
 
 
 @essays_bp.route('/<essay_id>/version/<int:version_number>')
@@ -456,7 +577,7 @@ def view_version(essay_id, version_number):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
@@ -498,7 +619,7 @@ def api_status(essay_id):
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
-    if essay.user_id != current_user.user_id and current_user.role != 'admin':
+    if not _can_access_essay(essay):
         return jsonify({'error': '접근 권한이 없습니다.'}), 403
 
     return jsonify({
@@ -757,83 +878,79 @@ def ocr_index():
 @essays_bp.route('/ocr/upload', methods=['GET', 'POST'])
 @login_required
 def ocr_upload():
-    """직접 이미지 업로드하여 OCR 인식"""
+    """직접 이미지 업로드하여 OCR 인식 (최대 10장)"""
     if request.method == 'POST':
-        # 파일 업로드 확인
-        if 'image' not in request.files:
+        files = request.files.getlist('images')
+        files = [f for f in files if f and f.filename]
+
+        if not files:
             flash('이미지 파일을 선택해주세요.', 'error')
             return redirect(url_for('essays.ocr_upload'))
 
-        file = request.files['image']
-
-        if not file or not file.filename:
-            flash('이미지 파일을 선택해주세요.', 'error')
+        if len(files) > 10:
+            flash('최대 10장까지만 업로드할 수 있습니다.', 'error')
             return redirect(url_for('essays.ocr_upload'))
 
-        # OCR 서비스 초기화
         ocr_service = OCRService()
+        upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ocr')
+        os.makedirs(upload_folder, exist_ok=True)
 
-        # 파일 형식 확인
-        if not ocr_service.is_supported_image(file.filename):
-            flash('지원되지 않는 이미지 형식입니다. (JPG, PNG, BMP, TIFF 등만 가능)', 'error')
-            return redirect(url_for('essays.ocr_upload'))
+        ocr_records = []
+        error_files = []
+        total_time = 0
 
-        try:
-            # 업로드 폴더 생성
-            upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ocr')
-            os.makedirs(upload_folder, exist_ok=True)
-
-            # 안전한 파일명 생성
-            original_filename = secure_filename(file.filename)
-            file_ext = os.path.splitext(original_filename)[1]
-            stored_filename = f"{uuid.uuid4().hex}{file_ext}"
-            file_path = os.path.join(upload_folder, stored_filename)
-
-            # 파일 저장
-            file.save(file_path)
-
-            # Gemini AI OCR 시도 (안전한 fallback 적용)
-            ocr_method = 'easyocr'
-            summary = None
-            corrected_text = None
-
-            # Gemini OCR 사용 (에러 발생 시 사용자에게 표시)
-            ocr_method = 'gemini'
-            summary = None
-            corrected_text = None
+        for file in files:
+            # 파일 형식 확인 (이미지 + PDF)
+            if not ocr_service.is_supported_image(file.filename) and \
+               not file.filename.lower().endswith('.pdf'):
+                error_files.append(f'{file.filename}: 지원되지 않는 형식')
+                continue
 
             try:
-                gemini_service = GeminiOCRService()
-                extracted_text, summary, corrected_text, processing_time = gemini_service.extract_and_analyze(file_path)
-            except Exception as e:
-                # 에러를 사용자에게 명확히 표시
-                flash(f'Gemini OCR 오류: {str(e)}', 'error')
-                return redirect(url_for('essays.ocr_upload'))
+                original_filename = secure_filename(file.filename)
+                file_ext = os.path.splitext(original_filename)[1]
+                stored_filename = f"{uuid.uuid4().hex}{file_ext}"
+                file_path = os.path.join(upload_folder, stored_filename)
+                file.save(file_path)
 
-            # 히스토리 저장
-            ocr_record = OCRHistory(
-                user_id=current_user.user_id,
-                original_filename=original_filename,
-                image_path=os.path.join('ocr', stored_filename),
-                extracted_text=extracted_text,
-                summary=summary,
-                corrected_text=corrected_text,
-                ocr_method=ocr_method,
-                processing_time=processing_time,
-                character_count=len(extracted_text)
-            )
-            db.session.add(ocr_record)
+                gemini_service = GeminiOCRService()
+                extracted_text, summary, corrected_text, processing_time = \
+                    gemini_service.extract_and_analyze(file_path)
+                total_time += processing_time
+
+                ocr_record = OCRHistory(
+                    user_id=current_user.user_id,
+                    original_filename=original_filename,
+                    image_path=os.path.join('ocr', stored_filename),
+                    extracted_text=extracted_text,
+                    summary=summary,
+                    corrected_text=corrected_text,
+                    ocr_method='gemini',
+                    processing_time=processing_time,
+                    character_count=len(extracted_text)
+                )
+                db.session.add(ocr_record)
+                ocr_records.append(ocr_record)
+
+            except Exception as e:
+                error_files.append(f'{file.filename}: {str(e)}')
+
+        if ocr_records:
             db.session.commit()
 
-            if ocr_method == 'gemini':
-                flash(f'✨ Gemini AI OCR 인식이 완료되었습니다! (처리 시간: {processing_time:.2f}초)', 'success')
-            else:
-                flash(f'OCR 인식이 완료되었습니다 (EasyOCR 사용, 처리 시간: {processing_time:.2f}초)', 'info')
-            return redirect(url_for('essays.ocr_result', ocr_id=ocr_record.ocr_id))
+        if error_files:
+            flash(f'⚠️ 실패한 파일: {", ".join(error_files)}', 'warning')
 
-        except Exception as e:
-            flash(f'OCR 처리 중 오류가 발생했습니다: {str(e)}', 'error')
+        if not ocr_records:
+            flash('모든 파일 처리에 실패했습니다.', 'error')
             return redirect(url_for('essays.ocr_upload'))
+
+        if len(ocr_records) == 1:
+            flash(f'✨ OCR 완료! (처리 시간: {total_time:.2f}초)', 'success')
+            return redirect(url_for('essays.ocr_result', ocr_id=ocr_records[0].ocr_id))
+        else:
+            flash(f'✨ {len(ocr_records)}장 OCR 완료! (총 처리 시간: {total_time:.2f}초)', 'success')
+            return redirect(url_for('essays.ocr_history'))
 
     return render_template('essays/ocr_upload.html')
 
@@ -1045,62 +1162,3 @@ def add_ocr_to_essay(ocr_id):
     })
 
 
-@essays_bp.route('/direct-correction', methods=['GET', 'POST'])
-@login_required
-def direct_correction():
-    """모모아이 첨삭 - 텍스트 직접 입력하여 첨삭"""
-    if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        text = request.form.get('text', '').strip()
-
-        if not title:
-            flash('제목을 입력해주세요.', 'error')
-            return redirect(url_for('essays.direct_correction'))
-
-        if not text:
-            flash('첨삭할 텍스트를 입력해주세요.', 'error')
-            return redirect(url_for('essays.direct_correction'))
-
-        # MOMOAI 서비스 초기화
-        service = MOMOAIService(Config.ANTHROPIC_API_KEY)
-
-        # 현재 사용자와 연결된 student 찾기
-        student = Student.query.filter_by(user_id=current_user.user_id).first()
-
-        if not student:
-            flash('학생 프로필이 필요합니다. 관리자에게 문의하세요.', 'danger')
-            return redirect(url_for('essays.index'))
-
-        # Essay 생성
-        essay = Essay(
-            student_id=student.student_id,
-            user_id=current_user.user_id,
-            title=title,
-            original_text=text,
-            status='processing'
-        )
-        db.session.add(essay)
-        db.session.commit()
-
-        try:
-            flash(f'텍스트 첨삭을 처리 중입니다... (약 10~30초 소요)', 'info')
-
-            # 즉시 처리 (동기) - student_name은 "직접 입력"으로 설정
-            version, html_path = service.process_essay(
-                essay,
-                student_name="직접 입력",
-                teacher_name=current_user.name
-            )
-
-            # 성공 메시지
-            flash(f'텍스트 첨삭이 완료되었습니다!', 'success')
-            return redirect(url_for('essays.result', essay_id=essay.essay_id))
-
-        except Exception as e:
-            # 에러 처리
-            essay.status = 'failed'
-            db.session.commit()
-            flash(f'첨삭 처리 중 오류가 발생했습니다: {str(e)}', 'error')
-            return redirect(url_for('essays.direct_correction'))
-
-    return render_template('essays/direct_correction.html')

@@ -10,9 +10,14 @@
             {% if current_user.role == 'parent' %}첨삭 보기{% else %}첨삭 관리{% endif %}
         </h2>
         {% if current_user.role in ['admin', 'teacher'] %}
-        <a href="{{ url_for('essays.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-            + 새 첨삭 시작
-        </a>
+        <div class="flex gap-2">
+            <a href="{{ url_for('essays.quick') }}" class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-3 rounded-lg transition duration-200">
+                ⚡ 임시 첨삭
+            </a>
+            <a href="{{ url_for('essays.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                + 새 첨삭 시작
+            </a>
+        </div>
         {% endif %}
     </div>
 
