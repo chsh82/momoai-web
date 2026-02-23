@@ -559,6 +559,129 @@ def finalize(essay_id):
     return redirect(url_for('essays.result', essay_id=essay.essay_id))
 
 
+@essays_bp.route('/<essay_id>/manual-correction', methods=['GET', 'POST'])
+@login_required
+def manual_correction(essay_id):
+    """수동 첨삭 - 강사가 직접 첨삭 내용을 작성"""
+    from app.models import EssayResult
+    from datetime import datetime as _dt
+
+    essay = Essay.query.get_or_404(essay_id)
+
+    if not _can_access_essay(essay):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('essays.index'))
+
+    if request.method == 'POST':
+        correction_content = request.form.get('correction_content', '').strip()
+        total_score_str = request.form.get('total_score', '').strip()
+        final_grade = request.form.get('final_grade', '').strip()
+        action = request.form.get('action', 'save')  # 'save' or 'finalize'
+
+        if not correction_content:
+            flash('첨삭 내용을 입력해주세요.', 'error')
+            return redirect(url_for('essays.manual_correction', essay_id=essay_id))
+
+        # 입력이 HTML이면 그대로, 아니면 whitespace-pre-wrap div로 래핑
+        if correction_content.strip().startswith('<'):
+            html_content = correction_content
+        else:
+            safe_content = correction_content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            html_content = (
+                '<div style="white-space: pre-wrap; font-family: \'Noto Sans KR\', sans-serif; '
+                'line-height: 1.9; font-size: 15px; color: #222;">'
+                + safe_content + '</div>'
+            )
+
+        # HTML 파일 저장
+        html_folder = Path(current_app.config['HTML_FOLDER'])
+        html_folder.mkdir(parents=True, exist_ok=True)
+
+        if essay.versions:
+            essay.current_version += 1
+        new_version_num = essay.current_version
+
+        filename = f"manual_{essay.essay_id}_v{new_version_num}.html"
+        html_path = str(html_folder / filename)
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        # EssayVersion 생성
+        version = EssayVersion(
+            essay_id=essay.essay_id,
+            version_number=new_version_num,
+            html_content=html_content,
+            html_path=html_path,
+            revision_note='수동 첨삭'
+        )
+        db.session.add(version)
+        db.session.flush()
+
+        # 점수 파싱
+        total_score = None
+        if total_score_str:
+            try:
+                total_score = float(total_score_str)
+            except ValueError:
+                pass
+
+        # EssayResult 생성 또는 업데이트
+        if essay.result:
+            essay.result.version_id = version.version_id
+            essay.result.html_path = html_path
+            if total_score is not None:
+                essay.result.total_score = total_score
+            if final_grade:
+                essay.result.final_grade = final_grade
+        else:
+            result = EssayResult(
+                essay_id=essay.essay_id,
+                version_id=version.version_id,
+                html_path=html_path,
+                total_score=total_score,
+                final_grade=final_grade or None
+            )
+            db.session.add(result)
+
+        essay.status = 'reviewing'
+
+        if action == 'finalize':
+            essay.status = 'completed'
+            essay.is_finalized = True
+            essay.finalized_at = _dt.utcnow()
+            essay.completed_at = _dt.utcnow()
+
+        db.session.commit()
+
+        if action == 'finalize':
+            flash(f'{essay.student.name} 학생의 수동 첨삭이 완료되었습니다.', 'success')
+        else:
+            flash('수동 첨삭이 저장되었습니다. 결과 페이지에서 최종 완료할 수 있습니다.', 'success')
+        return redirect(url_for('essays.result', essay_id=essay.essay_id))
+
+    # GET - 기존 최신 버전 내용 불러오기
+    existing_content = ''
+    if essay.latest_version:
+        try:
+            with open(essay.latest_version.html_path, 'r', encoding='utf-8') as f:
+                existing_content = f.read()
+        except Exception:
+            existing_content = essay.latest_version.html_content or ''
+
+    existing_score = ''
+    existing_grade = ''
+    if essay.result:
+        existing_score = str(essay.result.total_score) if essay.result.total_score else ''
+        existing_grade = essay.result.final_grade or ''
+
+    return render_template('essays/manual_correction.html',
+                           essay=essay,
+                           student=essay.student,
+                           existing_content=existing_content,
+                           existing_score=existing_score,
+                           existing_grade=existing_grade)
+
+
 @essays_bp.route('/<essay_id>/start', methods=['POST'])
 @login_required
 def start_correction(essay_id):
