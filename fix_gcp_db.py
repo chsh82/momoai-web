@@ -1,21 +1,27 @@
-"""GCP DB 종합 수정 스크립트 - 누락 테이블 생성 + 누락 컬럼 추가"""
+"""GCP DB 종합 수정 스크립트 - instance/momoai.db (gunicorn이 사용하는 DB)"""
 import sys
 import os
 sys.path.insert(0, '/home/chsh82/momoai_web')
 os.chdir('/home/chsh82/momoai_web')
+
+# gunicorn과 동일한 DATABASE_URL 설정 → Flask-SQLAlchemy가 instance/momoai.db를 사용
+os.environ['DATABASE_URL'] = 'sqlite:///momoai.db'
 
 from app import create_app
 from app.models import db
 
 app = create_app()
 
-# ── 1. 누락된 테이블 생성 (db.create_all은 이미 있는 테이블은 건드리지 않음) ──
+# ── 1. 누락된 테이블 생성 ──────────────────────────────────────────────────────
 with app.app_context():
-    print("=== 1단계: 누락 테이블 생성 ===")
+    print("=== 1단계: 누락 테이블 생성 (instance/momoai.db) ===")
     db.create_all()
     print("OK: db.create_all() 완료")
+    # Flask app context에서 DB 경로 확인
+    uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    print(f"   사용 중인 DB URI: {uri}")
 
-# ── 2. 기존 테이블에 누락된 컬럼 추가 ──
+# ── 2. 기존 테이블에 누락된 컬럼 추가 ──────────────────────────────────────────
 import sqlite3
 
 DB_PATH = '/home/chsh82/momoai_web/instance/momoai.db'
@@ -23,7 +29,7 @@ if not os.path.exists(DB_PATH):
     print(f"ERROR: DB 파일 없음: {DB_PATH}")
     sys.exit(1)
 
-print(f"\n=== 2단계: 누락 컬럼 추가 ({DB_PATH}) ===")
+print(f"\n=== 2단계: 누락 컬럼 추가 ===")
 
 COLUMNS = [
     # users 테이블
@@ -85,6 +91,12 @@ for sql in COLUMNS:
         skip_count += 1
 
 conn.commit()
+
+# ── 3. 현재 테이블 목록 확인 ───────────────────────────────────────────────────
+tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+print(f"\n=== 3단계: 현재 테이블 목록 ({len(tables)}개) ===")
+print(', '.join(tables))
+
 conn.close()
 
 print(f"\n=== 완료: {ok_count}개 추가, {skip_count}개 건너뜀 ===")
