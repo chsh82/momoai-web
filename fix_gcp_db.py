@@ -1,6 +1,8 @@
 """GCP DB 누락 컬럼 추가 스크립트"""
 import sys
 sys.path.insert(0, '/home/chsh82/momoai_web')
+import os
+os.chdir('/home/chsh82/momoai_web')
 
 from app import create_app
 from app.models import db
