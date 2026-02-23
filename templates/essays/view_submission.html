@@ -218,7 +218,7 @@
         {% if current_user.role in ['teacher', 'admin'] or (current_user.role_level and current_user.role_level <= 2) %}
         <div class="mt-3 pt-3 border-t border-gray-200">
             <a href="{{ url_for('essays.manual_correction', essay_id=essay.essay_id) }}"
-               class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 text-center">
+               class="block w-full bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 text-center">
                 ✍️ 수동 첨삭 작성
                 {% if essay.status in ['reviewing', 'completed'] %}
                 <span class="text-xs opacity-80">(기존 결과 덮어쓰기)</span>

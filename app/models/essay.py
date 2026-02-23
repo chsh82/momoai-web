@@ -128,3 +128,33 @@ class EssayResult(db.Model):
         if not self.result_id:
             import uuid
             self.result_id = str(uuid.uuid4())
+
+
+class CorrectionAttachment(db.Model):
+    """강사 수동 첨삭 첨부파일"""
+    __tablename__ = 'correction_attachments'
+
+    attachment_id = db.Column(db.String(36), primary_key=True)
+    essay_id = db.Column(db.String(36), db.ForeignKey('essays.essay_id', ondelete='CASCADE'),
+                         nullable=False, index=True)
+    version_id = db.Column(db.String(36), db.ForeignKey('essay_versions.version_id', ondelete='CASCADE'),
+                           nullable=True, index=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False)  # 'image' or 'pdf'
+    file_size = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    essay = db.relationship('Essay', backref=db.backref('correction_attachments',
+                                                         cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<CorrectionAttachment {self.original_filename}>'
+
+    def __init__(self, **kwargs):
+        super(CorrectionAttachment, self).__init__(**kwargs)
+        if not self.attachment_id:
+            import uuid
+            self.attachment_id = str(uuid.uuid4())

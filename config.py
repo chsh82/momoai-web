@@ -12,6 +12,7 @@ HTML_FOLDER = OUTPUT_FOLDER / 'html'
 PDF_FOLDER = OUTPUT_FOLDER / 'pdf'
 POST_FILES_FOLDER = UPLOAD_FOLDER / 'post_files'
 MATERIALS_FOLDER = UPLOAD_FOLDER / 'materials'
+CORRECTION_ATTACHMENTS_FOLDER = UPLOAD_FOLDER / 'correction_attachments'
 MOMOAI_DOC_PATH = Path(os.environ.get('MOMOAI_DOC_PATH') or str(BASE_DIR / 'docs' / 'MOMOAI_v3_3_0_final.md'))
 
 # API 키 - 환경 변수에서만 로드 (보안)
@@ -33,7 +34,8 @@ ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
 ALLOWED_MATERIAL_EXTENSIONS = {'pdf', 'docx', 'pptx', 'xlsx', 'txt', 'zip', 'png', 'jpg', 'jpeg'}
 
 # 폴더 생성
-for folder in [UPLOAD_FOLDER, HTML_FOLDER, PDF_FOLDER, POST_FILES_FOLDER, MATERIALS_FOLDER]:
+for folder in [UPLOAD_FOLDER, HTML_FOLDER, PDF_FOLDER, POST_FILES_FOLDER, MATERIALS_FOLDER,
+               CORRECTION_ATTACHMENTS_FOLDER]:
     folder.mkdir(parents=True, exist_ok=True)
 
 
@@ -56,6 +58,7 @@ class Config:
     PDF_FOLDER = str(PDF_FOLDER)
     POST_FILES_FOLDER = str(POST_FILES_FOLDER)
     MATERIALS_FOLDER = str(MATERIALS_FOLDER)
+    CORRECTION_ATTACHMENTS_FOLDER = str(CORRECTION_ATTACHMENTS_FOLDER)
 
     # MOMOAI 설정
     ANTHROPIC_API_KEY = ANTHROPIC_API_KEY

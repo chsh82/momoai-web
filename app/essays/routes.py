@@ -582,6 +582,16 @@ def manual_correction(essay_id):
             flash('첨삭 내용을 입력해주세요.', 'error')
             return redirect(url_for('essays.manual_correction', essay_id=essay_id))
 
+        # 첨부파일 검증 (이미지 + PDF, 최대 10개)
+        uploaded_files = request.files.getlist('correction_attachments')
+        allowed_exts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'}
+        valid_files = []
+        for f in uploaded_files[:10]:
+            if f and f.filename:
+                ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else ''
+                if ext in allowed_exts:
+                    valid_files.append((f, ext))
+
         # 입력이 HTML이면 그대로, 아니면 whitespace-pre-wrap div로 래핑
         if correction_content.strip().startswith('<'):
             html_content = correction_content
@@ -650,6 +660,28 @@ def manual_correction(essay_id):
             essay.is_finalized = True
             essay.finalized_at = _dt.utcnow()
             essay.completed_at = _dt.utcnow()
+
+        # 첨부파일 저장
+        if valid_files:
+            from app.models.essay import CorrectionAttachment
+            attach_folder = Path(current_app.config['CORRECTION_ATTACHMENTS_FOLDER'])
+            attach_folder.mkdir(parents=True, exist_ok=True)
+            import uuid as _uuid
+            for f, ext in valid_files:
+                stored_name = f"{essay.essay_id}_{_uuid.uuid4().hex[:8]}_{secure_filename(f.filename)}"
+                save_path = attach_folder / stored_name
+                f.save(str(save_path))
+                file_type = 'pdf' if ext == 'pdf' else 'image'
+                attach = CorrectionAttachment(
+                    essay_id=essay.essay_id,
+                    version_id=version.version_id,
+                    original_filename=f.filename,
+                    stored_filename=stored_name,
+                    file_path=str(save_path),
+                    file_type=file_type,
+                    file_size=save_path.stat().st_size
+                )
+                db.session.add(attach)
 
         db.session.commit()
 
@@ -787,6 +819,26 @@ def api_status(essay_id):
         'current_version': essay.current_version,
         'is_finalized': essay.is_finalized
     })
+
+
+@essays_bp.route('/correction-attachment/<attachment_id>')
+@login_required
+def serve_correction_attachment(attachment_id):
+    """강사 첨삭 첨부파일 서빙"""
+    from app.models.essay import CorrectionAttachment
+    attach = CorrectionAttachment.query.get_or_404(attachment_id)
+    essay = attach.essay
+
+    if not _can_access_essay(essay):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('essays.index'))
+
+    file_path = Path(attach.file_path)
+    if not file_path.exists():
+        flash('파일을 찾을 수 없습니다.', 'error')
+        return redirect(url_for('essays.result', essay_id=essay.essay_id))
+
+    return send_file(str(file_path), download_name=attach.original_filename, as_attachment=False)
 
 
 @essays_bp.route('/download/<essay_id>')
