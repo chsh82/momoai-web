@@ -319,15 +319,32 @@ def submit_essay():
                 essay.attachment_filename = json.dumps(uploaded_filenames, ensure_ascii=False)
                 essay.attachment_path = json.dumps(uploaded_paths)
 
-        # 담당 강사에게 알림 생성
-        notification = Notification(
-            user_id=student.teacher_id,
-            notification_type='essay_submitted',
-            title='새 과제 제출',
-            message=f'{student.name} 학생이 "{title}" 과제를 제출했습니다.',
-            link_url=url_for('essays.index')  # related_url -> link_url
-        )
-        db.session.add(notification)
+        # 알림 받을 강사 목록 수집 (teacher_id + 수강 중인 과목 강사 모두)
+        from app.models.course import Course, CourseEnrollment
+        teacher_ids = set()
+        if student.teacher_id:
+            teacher_ids.add(student.teacher_id)
+        enrollments = CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).all()
+        for enr in enrollments:
+            course = Course.query.get(enr.course_id)
+            if course and course.teacher_id:
+                teacher_ids.add(course.teacher_id)
+
+        # essay.user_id 보정 (teacher_id가 None이면 첫 번째 수강 강사 사용)
+        if not essay.user_id and teacher_ids:
+            essay.user_id = next(iter(teacher_ids))
+
+        # 강사들에게 알림 생성
+        for tid in teacher_ids:
+            db.session.add(Notification(
+                user_id=tid,
+                notification_type='essay_submitted',
+                title='새 과제 제출',
+                message=f'{student.name} 학생이 "{title}" 과제를 제출했습니다.',
+                link_url=url_for('essays.index')
+            ))
 
         db.session.commit()
 
