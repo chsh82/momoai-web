@@ -308,18 +308,27 @@ def attendance_list():
 
     course_ids = [c.course_id for c in courses]
 
+    # 보강수업 / 일반수업 분리
+    makeup_course_ids = [c.course_id for c in courses if c.course_type == '보강수업']
+    regular_course_ids = [c.course_id for c in courses if c.course_type != '보강수업']
+
     # 강사 목록 로드 (관리자만)
     teachers = []
     if current_user.is_admin:
         teachers = User.query.filter_by(role='teacher', is_active=True).order_by(User.name).all()
 
+    # 오늘 날짜
+    today = datetime.utcnow().date()
+
     if not course_ids:
         return render_template('teacher/attendance_list.html',
                              courses=courses,
                              teachers=teachers,
+                             today=today,
                              today_sessions=[],
                              upcoming_sessions=[],
                              recent_sessions=[],
+                             makeup_sessions=[],
                              search_sessions=[],
                              search_mode=search_mode,
                              course_filter=course_filter,
@@ -328,8 +337,14 @@ def attendance_list():
                              date_to=date_to,
                              status_filter=status_filter)
 
-    # 오늘 날짜
-    today = datetime.utcnow().date()
+    # 보강수업 세션 (과거 30일 ~ 미래 90일, 날짜순)
+    makeup_sessions = []
+    if makeup_course_ids:
+        makeup_sessions = CourseSession.query.filter(
+            CourseSession.course_id.in_(makeup_course_ids),
+            CourseSession.session_date >= today - timedelta(days=30),
+            CourseSession.session_date <= today + timedelta(days=90)
+        ).order_by(CourseSession.session_date, CourseSession.start_time).all()
 
     # 검색 모드
     search_sessions = []
@@ -359,9 +374,11 @@ def attendance_list():
         return render_template('teacher/attendance_list.html',
                              courses=courses,
                              teachers=teachers,
+                             today=today,
                              today_sessions=[],
                              upcoming_sessions=[],
                              recent_sessions=[],
+                             makeup_sessions=makeup_sessions,
                              search_sessions=search_sessions,
                              search_mode=search_mode,
                              course_filter=course_filter,
@@ -371,32 +388,34 @@ def attendance_list():
                              status_filter=status_filter)
 
     # 기본 모드 (검색 안 함)
-    # 오늘 세션
+    # 오늘 세션 (보강수업 제외)
     today_sessions = CourseSession.query.filter(
-        CourseSession.course_id.in_(course_ids),
+        CourseSession.course_id.in_(regular_course_ids),
         CourseSession.session_date == today
-    ).order_by(CourseSession.start_time).all()
+    ).order_by(CourseSession.start_time).all() if regular_course_ids else []
 
-    # 다가오는 세션 (내일부터 7일)
+    # 다가오는 세션 (내일부터 7일, 보강수업 제외)
     upcoming_sessions = CourseSession.query.filter(
-        CourseSession.course_id.in_(course_ids),
+        CourseSession.course_id.in_(regular_course_ids),
         CourseSession.session_date > today,
         CourseSession.session_date <= today + timedelta(days=7)
-    ).order_by(CourseSession.session_date, CourseSession.start_time).limit(10).all()
+    ).order_by(CourseSession.session_date, CourseSession.start_time).limit(10).all() if regular_course_ids else []
 
-    # 최근 완료된 세션 (지난 7일)
+    # 최근 완료된 세션 (지난 7일, 보강수업 제외)
     recent_sessions = CourseSession.query.filter(
-        CourseSession.course_id.in_(course_ids),
+        CourseSession.course_id.in_(regular_course_ids),
         CourseSession.session_date >= today - timedelta(days=7),
         CourseSession.session_date < today
-    ).order_by(CourseSession.session_date.desc(), CourseSession.start_time.desc()).limit(10).all()
+    ).order_by(CourseSession.session_date.desc(), CourseSession.start_time.desc()).limit(10).all() if regular_course_ids else []
 
     return render_template('teacher/attendance_list.html',
                          courses=courses,
                          teachers=teachers,
+                         today=today,
                          today_sessions=today_sessions,
                          upcoming_sessions=upcoming_sessions,
                          recent_sessions=recent_sessions,
+                         makeup_sessions=makeup_sessions,
                          search_sessions=search_sessions,
                          search_mode=search_mode,
                          course_filter=course_filter,
