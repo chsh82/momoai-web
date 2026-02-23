@@ -113,6 +113,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학년</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">재학 학교</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">프로필 상태</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">계정 상태</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
                     </tr>
                 </thead>
@@ -140,6 +141,22 @@
                             <span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded">미작성</span>
                             {% endif %}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set linked_user = user_map.get(student.user_id) if student.user_id else None %}
+                            {% if not linked_user %}
+                            <span class="bg-gray-100 text-gray-500 text-xs font-semibold px-2.5 py-0.5 rounded">계정없음</span>
+                            {% elif linked_user.is_active %}
+                            <button onclick="toggleStudentActive('{{ student.student_id }}', '{{ student.name }}', true)"
+                                    class="bg-green-100 hover:bg-green-200 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded cursor-pointer border-0 transition duration-150">
+                                ✓ 사용
+                            </button>
+                            {% else %}
+                            <button onclick="toggleStudentActive('{{ student.student_id }}', '{{ student.name }}', false)"
+                                    class="bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded cursor-pointer border-0 transition duration-150">
+                                ✗ 미사용
+                            </button>
+                            {% endif %}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <div class="flex gap-2">
                                 <a href="{{ url_for('admin.student_profile', student_id=student.student_id) }}"
@@ -162,7 +179,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                             <div class="text-4xl mb-3">📭</div>
                             {% if search %}
                             <p>검색 결과가 없습니다.</p>
@@ -177,4 +194,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleStudentActive(studentId, studentName, currentlyActive) {
+    const action = currentlyActive ? '미사용(정지)' : '사용(활성화)';
+    if (!confirm(studentName + ' 학생 계정을 ' + action + '으로 변경하시겠습니까?')) return;
+
+    fetch('/admin/students/' + studentId + '/toggle-active', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('오류: ' + data.message);
+        }
+    })
+    .catch(() => alert('요청 중 오류가 발생했습니다.'));
+}
+</script>
 {% endblock %}

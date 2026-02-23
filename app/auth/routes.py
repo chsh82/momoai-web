@@ -259,8 +259,8 @@ def pending_approval():
     if current_user.is_authenticated and current_user.is_active:
         return redirect(url_for('index'))
 
-    # 거절 여부 확인 (account_rejected 알림 존재 여부)
     is_rejected = False
+    is_suspended = False
     if current_user.is_authenticated:
         from app.models.notification import Notification
         is_rejected = Notification.query.filter_by(
@@ -268,8 +268,19 @@ def pending_approval():
             notification_type='account_rejected'
         ).first() is not None
 
+        if not is_rejected:
+            # account_approved 알림 있으면 = 한 번 승인됐다가 정지된 상태
+            is_suspended = Notification.query.filter_by(
+                user_id=current_user.user_id,
+                notification_type='account_approved'
+            ).first() is not None
+
     from flask import make_response
-    response = make_response(render_template('auth/pending_approval.html', is_rejected=is_rejected))
+    response = make_response(render_template(
+        'auth/pending_approval.html',
+        is_rejected=is_rejected,
+        is_suspended=is_suspended
+    ))
     response.headers['Cache-Control'] = 'no-store'
     return response
 

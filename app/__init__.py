@@ -217,16 +217,17 @@ def create_app(config_name='default'):
             pending_users = 0
             if current_user.is_active and current_user.has_permission_level(2):
                 from app.models import User as _UserModel
-                rejected_ids = [
-                    n.user_id for n in Notification.query.filter_by(
-                        notification_type='account_rejected'
+                # 거절됐거나 이미 한 번 승인된(정지 포함) 사용자 제외
+                exclude_ids = [
+                    n.user_id for n in Notification.query.filter(
+                        Notification.notification_type.in_(['account_rejected', 'account_approved'])
                     ).with_entities(Notification.user_id).all()
                 ]
                 q = _UserModel.query.filter_by(is_active=False).filter(
                     _UserModel.role.in_(['teacher', 'parent', 'student'])
                 )
-                if rejected_ids:
-                    q = q.filter(~_UserModel.user_id.in_(rejected_ids))
+                if exclude_ids:
+                    q = q.filter(~_UserModel.user_id.in_(exclude_ids))
                 pending_users = q.count()
 
             counts = {

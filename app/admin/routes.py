@@ -2824,18 +2824,18 @@ def pending_users():
     """승인 대기 중인 전체 회원 목록 (강사/학부모/학생, 거절된 사용자 제외)"""
     role_filter = request.args.get('role', '').strip()
 
-    # 거절된 사용자 ID 목록 (account_rejected 알림 수신자)
-    rejected_ids = [
-        n.user_id for n in Notification.query.filter_by(
-            notification_type='account_rejected'
+    # 거절됐거나 이미 한 번 승인된(정지 포함) 사용자 ID 목록 제외
+    exclude_ids = [
+        n.user_id for n in Notification.query.filter(
+            Notification.notification_type.in_(['account_rejected', 'account_approved'])
         ).with_entities(Notification.user_id).all()
     ]
 
     base_query = User.query.filter_by(is_active=False).filter(
         User.role.in_(['teacher', 'parent', 'student'])
     )
-    if rejected_ids:
-        base_query = base_query.filter(~User.user_id.in_(rejected_ids))
+    if exclude_ids:
+        base_query = base_query.filter(~User.user_id.in_(exclude_ids))
 
     query = base_query
     if role_filter and role_filter in ('teacher', 'parent', 'student'):
@@ -2843,15 +2843,15 @@ def pending_users():
 
     pending = query.order_by(User.created_at.desc()).all()
 
-    # 역할별 카운트 (거절 제외)
+    # 역할별 카운트 (거절/정지 제외)
     def _count_role(role=None):
         q = User.query.filter_by(is_active=False)
         if role:
             q = q.filter_by(role=role)
         else:
             q = q.filter(User.role.in_(['teacher', 'parent', 'student']))
-        if rejected_ids:
-            q = q.filter(~User.user_id.in_(rejected_ids))
+        if exclude_ids:
+            q = q.filter(~User.user_id.in_(exclude_ids))
         return q.count()
 
     counts = {
@@ -4102,6 +4102,13 @@ def student_profiles():
 
     students = query.order_by(Student.name).all()
 
+    # 계정 연결된 학생 user_id → User 매핑
+    linked_user_ids = [s.user_id for s in students if s.user_id]
+    user_map = {}
+    if linked_user_ids:
+        users = User.query.filter(User.user_id.in_(linked_user_ids)).all()
+        user_map = {u.user_id: u for u in users}
+
     # 학년 목록 (드롭다운용)
     grades = ['초1', '초2', '초3', '초4', '초5', '초6',
               '중1', '중2', '중3',
@@ -4112,11 +4119,55 @@ def student_profiles():
 
     return render_template('admin/student_profiles.html',
                          students=students,
+                         user_map=user_map,
                          search=search,
                          grade_filter=grade_filter,
                          course_type_filter=course_type_filter,
                          grades=grades,
                          course_types=course_types)
+
+
+@admin_bp.route('/students/<student_id>/toggle-active', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def toggle_student_active(student_id):
+    """학생 계정 사용/미사용 토글"""
+    student = Student.query.get_or_404(student_id)
+
+    if not student.user_id:
+        return jsonify({'success': False, 'message': '연결된 계정이 없습니다.'}), 400
+
+    user = User.query.get(student.user_id)
+    if not user:
+        return jsonify({'success': False, 'message': '사용자 계정을 찾을 수 없습니다.'}), 404
+
+    user.is_active = not user.is_active
+
+    if user.is_active:
+        # 복원: account_restored 알림
+        Notification.create_notification(
+            user_id=user.user_id,
+            notification_type='account_restored',
+            title='계정이 복원되었습니다',
+            message='관리자가 계정을 다시 활성화했습니다. 서비스를 정상 이용하실 수 있습니다.',
+            link_url='/'
+        )
+        new_status = 'active'
+        message = f'{student.name} 학생 계정이 활성화(사용)되었습니다.'
+    else:
+        # 정지: account_suspended 알림
+        Notification.create_notification(
+            user_id=user.user_id,
+            notification_type='account_suspended',
+            title='계정 이용이 제한되었습니다',
+            message='관리자가 계정을 일시 정지했습니다. 자세한 사항은 학원에 문의해주세요.',
+            link_url='/auth/pending-approval'
+        )
+        new_status = 'suspended'
+        message = f'{student.name} 학생 계정이 비활성화(미사용)되었습니다.'
+
+    db.session.commit()
+    return jsonify({'success': True, 'new_status': new_status, 'message': message})
 
 
 @admin_bp.route('/student-risk-analysis')
