@@ -17,6 +17,67 @@ from app.utils.decorators import requires_role
 from app.utils.course_utils import update_enrollment_attendance_stats, get_course_statistics
 
 
+def _send_feedback_email(parent, feedback):
+    """피드백 이메일 발송"""
+    from flask import current_app
+    if not current_app.config.get('MAIL_SERVER'):
+        return False
+    try:
+        from app.extensions import mail
+        from flask_mail import Message
+        content_preview = feedback.content[:300] + ('...' if len(feedback.content) > 300 else '')
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family:'Noto Sans KR',Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f0f2f5;">
+            <div style="background:linear-gradient(135deg,#1A2744,#1E3A5F);padding:30px;border-radius:12px 12px 0 0;text-align:center;">
+                <h1 style="color:white;margin:0;font-size:24px;">📚 모모의 책장</h1>
+                <p style="color:rgba(255,255,255,0.7);margin:8px 0 0;font-size:13px;">MOMOAI v4.0 - 선생님 피드백</p>
+            </div>
+            <div style="background:white;padding:40px 30px;border-radius:0 0 12px 12px;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+                <h2 style="color:#1A2744;margin-top:0;">📬 피드백이 도착했습니다</h2>
+                <p style="color:#475569;">안녕하세요, <strong>{parent.name}</strong>님!</p>
+                <p style="color:#475569;">선생님으로부터 피드백이 전달되었습니다.</p>
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:20px;margin:20px 0;">
+                    <p style="color:#64748B;font-size:13px;margin:0 0 8px;"><strong>제목:</strong> {feedback.title}</p>
+                    <p style="color:#64748B;font-size:13px;margin:0 0 8px;"><strong>유형:</strong> {feedback.feedback_type}</p>
+                    <hr style="border:none;border-top:1px solid #E2E8F0;margin:12px 0;">
+                    <p style="color:#334155;font-size:14px;margin:0;white-space:pre-wrap;">{content_preview}</p>
+                </div>
+                <p style="color:#94A3B8;font-size:12px;text-align:center;margin:20px 0 0;">© 2026 MOMOAI - 모모의 책장. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+        """
+        msg = Message(
+            subject=f'[MOMOAI] 피드백: {feedback.title}',
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@momoai.kr'),
+            recipients=[parent.email],
+            html=html_body
+        )
+        mail.send(msg)
+        return True
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f'피드백 이메일 발송 실패 ({parent.email}): {e}')
+        return False
+
+
+def _send_feedback_sms(parent, feedback):
+    """피드백 SMS 발송"""
+    if not parent.phone:
+        return False
+    try:
+        from app.admin.routes import send_sms_message
+        content_short = feedback.content[:60] + ('...' if len(feedback.content) > 60 else '')
+        message = f"[MOMOAI 피드백]\n{feedback.title}\n\n{content_short}"
+        return send_sms_message(parent.phone, message)
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f'피드백 SMS 발송 실패 ({parent.phone}): {e}')
+        return False
+
+
 @teacher_bp.route('/')
 @login_required
 @requires_role('teacher', 'admin')
@@ -750,6 +811,21 @@ def create_feedback():
                 message=f'[{feedback.feedback_type}] {feedback.title}',
                 link_url=url_for('parent.all_feedback')
             )
+
+            # 이메일/SMS 발송 (선택 시)
+            parent = User.query.get(feedback.parent_id)
+            if parent:
+                send_email = request.form.get('send_email') == '1'
+                send_sms = request.form.get('send_sms') == '1'
+                results = []
+                if send_email:
+                    ok = _send_feedback_email(parent, feedback)
+                    results.append('이메일 발송 완료' if ok else '이메일 발송 실패')
+                if send_sms:
+                    ok = _send_feedback_sms(parent, feedback)
+                    results.append('SMS 발송 완료' if ok else 'SMS 발송 실패(번호 미등록)')
+                if results:
+                    flash(' · '.join(results), 'info')
 
         flash('피드백이 전송되었습니다.', 'success')
         return redirect(url_for('teacher.student_detail', student_id=form.student_id.data))
