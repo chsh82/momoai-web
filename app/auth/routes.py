@@ -68,11 +68,15 @@ def login():
                 flash(f'이메일 또는 비밀번호가 올바르지 않습니다. (남은 시도: {remaining_attempts}회)', 'error')
             return render_template('auth/login.html', form=form)
 
-        # 계정 비활성화 확인
+        # 계정 비활성화 확인 (승인 대기 포함)
         if not user.is_active:
-            _log_login_attempt(form.email.data, False, 'inactive_account')
-            flash('비활성화된 계정입니다. 관리자에게 문의하세요.', 'error')
-            return render_template('auth/login.html', form=form)
+            # 로그인은 허용하되 승인 대기 페이지로 리다이렉트
+            user.reset_failed_attempts()
+            login_user(user, remember=form.remember_me.data)
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            _log_login_attempt(form.email.data, True, 'pending_approval')
+            return redirect(url_for('auth.pending_approval'))
 
         # 이메일 인증 확인 (메일 서버가 설정된 경우만)
         if current_app.config.get('MAIL_SERVER') and not user.email_verified:
@@ -136,7 +140,7 @@ def signup():
             name=form.name.data,
             phone=form.phone.data if form.phone.data else None,
             role=role,
-            is_active=True,
+            is_active=False,  # 관리자 승인 후 활성화
             email_verified=not mail_configured,
             role_level=5 if role == 'student' else 4
         )
@@ -167,16 +171,30 @@ def signup():
 
         db.session.commit()
 
-        # 이메일 인증 메일 발송
+        # 관리자에게 신규 가입 알림
+        try:
+            from app.models.notification import Notification as _Notif
+            admin_users = User.query.filter(
+                User.role.in_(['admin']),
+                User.is_active == True
+            ).all()
+            for admin in admin_users:
+                _Notif.create_notification(
+                    user_id=admin.user_id,
+                    notification_type='new_user_pending',
+                    title='새 회원가입 승인 대기',
+                    message=f'{user.name} ({user.role}) 님이 회원가입했습니다. 승인이 필요합니다.',
+                    link_url=url_for('admin.pending_users')
+                )
+        except Exception:
+            pass
+
+        # 이메일 인증 메일 발송 (설정된 경우)
         if mail_configured:
             from app.auth.email_utils import send_verification_email
             send_verification_email(user)
-            db.session.commit()
-            flash('회원가입이 완료되었습니다. 이메일 인증 메일을 확인해주세요.', 'success')
-            return redirect(url_for('auth.verify_email_sent', email=user.email))
-        else:
-            flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
-            return redirect(url_for('auth.login'))
+        db.session.commit()
+        return redirect(url_for('auth.pending_approval'))
 
     return render_template('auth/signup.html', form=form)
 
@@ -230,6 +248,16 @@ def resend_verification():
     # 보안상 사용자 존재 여부 노출 방지
     flash('인증 이메일을 재발송했습니다. 메일함을 확인해주세요.', 'info')
     return redirect(url_for('auth.verify_email_sent', email=email))
+
+
+@auth_bp.route('/pending-approval')
+def pending_approval():
+    """승인 대기 페이지 (로그인 여부 무관)"""
+    from flask_login import current_user
+    # 이미 승인된 활성 유저는 대시보드로
+    if current_user.is_authenticated and current_user.is_active:
+        return redirect(url_for('index'))
+    return render_template('auth/pending_approval.html')
 
 
 @auth_bp.route('/logout')

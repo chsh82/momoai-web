@@ -236,6 +236,13 @@
                             </svg>
                         </button>
                         <div x-show="members" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.pending_users') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.pending_users' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                <span>⏳ 승인 대기</span>
+                                {% if unread_counts.pending_users > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.pending_users }}</span>
+                                {% endif %}
+                            </a>
                             <a href="{{ url_for('students.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'students' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 학생 관리

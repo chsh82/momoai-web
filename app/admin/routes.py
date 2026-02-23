@@ -2814,6 +2814,87 @@ def reject_teacher(user_id):
 
 
 # ============================================================================
+# 통합 회원 승인 관리 (Unified User Approval)
+# ============================================================================
+
+@admin_bp.route('/pending-users')
+@login_required
+@requires_permission_level(2)
+def pending_users():
+    """승인 대기 중인 전체 회원 목록 (강사/학부모/학생)"""
+    role_filter = request.args.get('role', '').strip()
+
+    query = User.query.filter_by(is_active=False).filter(
+        User.role.in_(['teacher', 'parent', 'student'])
+    )
+    if role_filter and role_filter in ('teacher', 'parent', 'student'):
+        query = query.filter_by(role=role_filter)
+
+    pending = query.order_by(User.created_at.desc()).all()
+
+    # 역할별 카운트
+    counts = {
+        'all': User.query.filter_by(is_active=False).filter(
+            User.role.in_(['teacher', 'parent', 'student'])).count(),
+        'teacher': User.query.filter_by(is_active=False, role='teacher').count(),
+        'parent': User.query.filter_by(is_active=False, role='parent').count(),
+        'student': User.query.filter_by(is_active=False, role='student').count(),
+    }
+
+    return render_template('admin/pending_users.html',
+                           pending=pending,
+                           role_filter=role_filter,
+                           counts=counts)
+
+
+@admin_bp.route('/pending-users/<user_id>/approve', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def approve_user(user_id):
+    """회원 계정 승인"""
+    user = User.query.get_or_404(user_id)
+
+    if user.is_active:
+        flash(f'{user.name}은(는) 이미 활성화된 계정입니다.', 'warning')
+        return redirect(url_for('admin.pending_users'))
+
+    user.is_active = True
+    db.session.flush()
+
+    # 승인 알림 (사용자가 다음 로그인 시 확인 가능)
+    from app.models.notification import Notification
+    Notification.create_notification(
+        user_id=user.user_id,
+        notification_type='account_approved',
+        title='계정이 승인되었습니다',
+        message='관리자가 회원가입을 승인했습니다. 이제 서비스를 이용하실 수 있습니다.',
+        link_url='/'
+    )
+
+    db.session.commit()
+
+    role_label = {'teacher': '강사', 'parent': '학부모', 'student': '학생'}.get(user.role, user.role)
+    flash(f'{user.name} ({role_label}) 계정이 승인되었습니다.', 'success')
+    return redirect(url_for('admin.pending_users'))
+
+
+@admin_bp.route('/pending-users/<user_id>/reject', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def reject_user(user_id):
+    """회원 계정 거절 (비활성 상태 유지)"""
+    user = User.query.get_or_404(user_id)
+
+    # is_active=False 유지 (삭제하지 않음)
+    # 거절 메모는 현재 별도 필드가 없으므로 관리자 메모로 처리
+    db.session.commit()
+
+    role_label = {'teacher': '강사', 'parent': '학부모', 'student': '학생'}.get(user.role, user.role)
+    flash(f'{user.name} ({role_label}) 계정 승인이 거절되었습니다. 비활성 상태로 유지됩니다.', 'info')
+    return redirect(url_for('admin.pending_users'))
+
+
+# ============================================================================
 # 직원 계정 생성 (Staff Account Creation)
 # ============================================================================
 

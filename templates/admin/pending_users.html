@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}회원 승인 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}👥 회원 승인 관리{% endblock %}
+{% block page_subtitle %}<span class="text-sm text-white text-opacity-70 ml-3">신규 가입 회원 승인</span>{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <a href="{{ url_for('admin.pending_users') }}"
+           class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition {% if not role_filter %}ring-2 ring-blue-500{% endif %}">
+            <p class="text-3xl font-bold text-blue-600">{{ counts.all }}</p>
+            <p class="text-sm text-gray-600 mt-1">전체 대기</p>
+        </a>
+        <a href="{{ url_for('admin.pending_users', role='teacher') }}"
+           class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition {% if role_filter == 'teacher' %}ring-2 ring-purple-500{% endif %}">
+            <p class="text-3xl font-bold text-purple-600">{{ counts.teacher }}</p>
+            <p class="text-sm text-gray-600 mt-1">강사</p>
+        </a>
+        <a href="{{ url_for('admin.pending_users', role='parent') }}"
+           class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition {% if role_filter == 'parent' %}ring-2 ring-green-500{% endif %}">
+            <p class="text-3xl font-bold text-green-600">{{ counts.parent }}</p>
+            <p class="text-sm text-gray-600 mt-1">학부모</p>
+        </a>
+        <a href="{{ url_for('admin.pending_users', role='student') }}"
+           class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition {% if role_filter == 'student' %}ring-2 ring-orange-500{% endif %}">
+            <p class="text-3xl font-bold text-orange-600">{{ counts.student }}</p>
+            <p class="text-sm text-gray-600 mt-1">학생</p>
+        </a>
+    </div>
+
+    <!-- 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-800">
+                ⏳ 승인 대기 회원
+                {% if role_filter %}
+                <span class="ml-2 text-sm font-normal text-gray-500">
+                    ({{ {'teacher':'강사','parent':'학부모','student':'학생'}.get(role_filter, role_filter) }} 필터)
+                </span>
+                {% endif %}
+            </h3>
+            {% if role_filter %}
+            <a href="{{ url_for('admin.pending_users') }}"
+               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                필터 해제
+            </a>
+            {% endif %}
+        </div>
+
+        {% if pending %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">이름</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">이메일</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">역할</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">연락처</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">가입일</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for user in pending %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-gray-800">{{ user.name }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ user.email }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                {% if user.role == 'teacher' %}bg-purple-100 text-purple-800
+                                {% elif user.role == 'parent' %}bg-green-100 text-green-800
+                                {% elif user.role == 'student' %}bg-orange-100 text-orange-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if user.role == 'teacher' %}강사
+                                {% elif user.role == 'parent' %}학부모
+                                {% elif user.role == 'student' %}학생
+                                {% else %}{{ user.role }}{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ user.phone or '-' }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex gap-2">
+                                <form method="POST"
+                                      action="{{ url_for('admin.approve_user', user_id=user.user_id) }}"
+                                      onsubmit="return confirm('{{ user.name }} 계정을 승인하시겠습니까?')">
+                                    <button type="submit"
+                                            class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition duration-200">
+                                        ✓ 승인
+                                    </button>
+                                </form>
+                                <form method="POST"
+                                      action="{{ url_for('admin.reject_user', user_id=user.user_id) }}"
+                                      onsubmit="return confirm('{{ user.name }} 계정 승인을 거절하시겠습니까?\n계정은 비활성 상태로 유지됩니다.')">
+                                    <button type="submit"
+                                            class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium px-3 py-1.5 rounded-lg transition duration-200">
+                                        ✕ 거절
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-16">
+            <div class="text-6xl mb-4">✅</div>
+            <p class="text-gray-500 text-lg">
+                {% if role_filter %}
+                해당 역할의 승인 대기 회원이 없습니다.
+                {% else %}
+                승인 대기 중인 회원이 없습니다.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 안내 -->
+    <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 class="font-medium text-blue-900 mb-1">💡 안내</h4>
+        <ul class="text-sm text-blue-800 space-y-1">
+            <li>• <strong>승인</strong>: 계정을 활성화하며 사용자에게 알림이 발송됩니다</li>
+            <li>• <strong>거절</strong>: 계정을 비활성 상태로 유지합니다 (삭제되지 않음)</li>
+            <li>• 거절된 계정은 일반 회원관리에서 삭제할 수 있습니다</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

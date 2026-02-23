@@ -57,6 +57,25 @@ def create_app(config_name='default'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = '로그인이 필요합니다.'
 
+    # 승인 대기 중인 사용자 접근 제한
+    @app.before_request
+    def check_user_approval():
+        """비활성(승인 대기) 사용자를 pending 페이지로 리다이렉트"""
+        from flask_login import current_user
+        from flask import request, redirect, url_for
+
+        if current_user.is_authenticated and not current_user.is_active:
+            allowed_endpoints = {
+                'auth.pending_approval', 'auth.logout',
+                'auth.login', 'static',
+            }
+            if request.endpoint not in allowed_endpoints:
+                # JSON API 요청은 403 반환
+                if request.path.startswith('/api/') or request.is_json:
+                    from flask import jsonify
+                    return jsonify({'error': '계정 승인 대기 중입니다.', 'code': 'pending_approval'}), 403
+                return redirect(url_for('auth.pending_approval'))
+
     # User loader
     from app.models import User
 
@@ -192,6 +211,15 @@ def create_app(config_name='default'):
 
             hw = _count('homework_assignment')
             ann = _count('class_announcement')
+
+            # 관리자용: 승인 대기 회원 수
+            pending_users = 0
+            if current_user.is_active and current_user.has_permission_level(2):
+                from app.models import User as _UserModel
+                pending_users = _UserModel.query.filter_by(is_active=False).filter(
+                    _UserModel.role.in_(['teacher', 'parent', 'student'])
+                ).count()
+
             counts = {
                 'homework': hw,
                 'announcement': ann,
@@ -199,6 +227,7 @@ def create_app(config_name='default'):
                 'essay': _count('essay_complete'),
                 'feedback': _count(['teacher_feedback', 'consultation']),
                 'new_submission': _count('essay_submitted'),  # 강사용: 새 제출 건수
+                'pending_users': pending_users,  # 관리자용: 승인 대기
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),

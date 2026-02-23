@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>승인 대기 중 - MOMOAI v4.0</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center py-12 px-4">
+    <div class="max-w-md w-full">
+        <!-- 플래시 메시지 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for category, message in messages %}
+            <div class="px-4 py-3 rounded-lg text-sm
+                {% if category == 'error' %}bg-red-100 text-red-800
+                {% elif category == 'success' %}bg-green-100 text-green-800
+                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- 아이콘 + 제목 -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-4xl">⏳</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">승인 대기 중</h1>
+            <p class="text-gray-500 mt-2">관리자가 계정을 검토 중입니다</p>
+        </div>
+
+        <!-- 안내 카드 -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            {% if current_user.is_authenticated %}
+            <div class="mb-6 text-center">
+                <p class="text-lg font-medium text-gray-700">{{ current_user.name }}님,</p>
+                <p class="text-gray-600 mt-1">
+                    가입하신 <span class="font-medium text-blue-600">
+                    {% if current_user.role == 'teacher' %}강사
+                    {% elif current_user.role == 'parent' %}학부모
+                    {% elif current_user.role == 'student' %}학생
+                    {% else %}{{ current_user.role }}{% endif %}
+                    </span> 계정은 현재 관리자 승인을 기다리고 있습니다.
+                </p>
+            </div>
+            {% else %}
+            <div class="mb-6 text-center">
+                <p class="text-gray-600">
+                    회원가입이 완료되었습니다.<br>
+                    관리자 승인 후 서비스를 이용하실 수 있습니다.
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <h4 class="font-medium text-yellow-900 mb-2">📋 안내사항</h4>
+                <ul class="text-sm text-yellow-800 space-y-1">
+                    <li>• 관리자가 계정을 검토하고 승인하면 로그인이 가능합니다</li>
+                    <li>• 승인 완료 후 로그인 시 알림을 통해 안내드립니다</li>
+                    <li>• 문의사항은 학원에 연락해주세요</li>
+                </ul>
+            </div>
+
+            <div class="space-y-3">
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('auth.logout') }}"
+                   class="block w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-3 rounded-lg transition duration-200">
+                    로그아웃
+                </a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}"
+                   class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                    로그인 페이지로
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-6">MOMOAI v4.0</p>
+    </div>
+</body>
+</html>
