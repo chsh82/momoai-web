@@ -89,10 +89,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['video_id'], ['videos.video_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('view_id')
     )
-    with op.batch_alter_table('courses', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_courses_availability_status'), ['availability_status'], unique=False)
-        batch_op.create_index(batch_op.f('ix_courses_course_type'), ['course_type'], unique=False)
-        batch_op.create_index(batch_op.f('ix_courses_grade'), ['grade'], unique=False)
+    # courses 테이블이 존재할 때만 인덱스 추가 (신규 DB에는 아직 없을 수 있음)
+    conn = op.get_bind()
+    tables = conn.execute(sa.text("SELECT name FROM sqlite_master WHERE type='table' AND name='courses'")).fetchall()
+    if tables:
+        with op.batch_alter_table('courses', schema=None) as batch_op:
+            batch_op.create_index(batch_op.f('ix_courses_availability_status'), ['availability_status'], unique=False)
+            batch_op.create_index(batch_op.f('ix_courses_course_type'), ['course_type'], unique=False)
+            batch_op.create_index(batch_op.f('ix_courses_grade'), ['grade'], unique=False)
 
     # ### end Alembic commands ###
 
