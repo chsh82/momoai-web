@@ -3094,6 +3094,34 @@ def edit_parent(parent_id):
     return render_template('admin/edit_parent.html', parent=parent)
 
 
+@admin_bp.route('/staff/<string:user_id>/toggle-active', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def toggle_staff_active(user_id):
+    """강사/직원 계정 사용/미사용 토글"""
+    user = User.query.get_or_404(user_id)
+
+    if user.role not in ('teacher', 'admin'):
+        return jsonify({'success': False, 'message': '강사/직원 계정만 변경할 수 있습니다.'}), 400
+
+    # 자기 자신은 비활성화 불가
+    if user.user_id == current_user.user_id:
+        return jsonify({'success': False, 'message': '자신의 계정은 변경할 수 없습니다.'}), 400
+
+    user.is_active = not user.is_active
+    db.session.commit()
+
+    role_label = '강사' if user.role == 'teacher' else '관리자'
+    if user.is_active:
+        message = f'{user.name} ({role_label}) 계정이 활성화(사용)되었습니다.'
+        new_status = 'active'
+    else:
+        message = f'{user.name} ({role_label}) 계정이 비활성화(미사용)되었습니다.'
+        new_status = 'suspended'
+
+    return jsonify({'success': True, 'new_status': new_status, 'message': message})
+
+
 @admin_bp.route('/users/<string:user_id>/reset-password', methods=['POST'])
 @login_required
 @requires_permission_level(2)

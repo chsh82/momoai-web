@@ -130,14 +130,18 @@
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3">
-                                {% if staff.is_active %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-                                    활성
-                                </span>
+                                {% if staff.user_id == current_user.user_id %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">사용 (본인)</span>
+                                {% elif staff.is_active %}
+                                <button onclick="toggleStaffActive('{{ staff.user_id }}', '{{ staff.name }}', true)"
+                                        class="px-2 py-1 text-xs font-medium rounded bg-green-100 hover:bg-green-200 text-green-800 cursor-pointer border-0 transition duration-150">
+                                    ✓ 사용
+                                </button>
                                 {% else %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">
-                                    비활성
-                                </span>
+                                <button onclick="toggleStaffActive('{{ staff.user_id }}', '{{ staff.name }}', false)"
+                                        class="px-2 py-1 text-xs font-medium rounded bg-red-100 hover:bg-red-200 text-red-800 cursor-pointer border-0 transition duration-150">
+                                    ✗ 미사용
+                                </button>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">
@@ -215,6 +219,26 @@
 
 <script>
 let currentStaffId = null;
+
+function toggleStaffActive(userId, userName, currentlyActive) {
+    const action = currentlyActive ? '미사용(정지)' : '사용(활성화)';
+    if (!confirm(userName + ' 계정을 ' + action + '으로 변경하시겠습니까?')) return;
+
+    fetch('/admin/staff/' + userId + '/toggle-active', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('오류: ' + data.message);
+        }
+    })
+    .catch(() => alert('요청 중 오류가 발생했습니다.'));
+}
 
 function editZoomLink(staffId, currentLink) {
     currentStaffId = staffId;
