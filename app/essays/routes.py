@@ -215,26 +215,35 @@ def new():
                 db.session.add(essay_book)
             db.session.commit()
 
-        # 즉시 첨삭 처리 (Sonnet 4.5는 빠르므로 10~30초면 완료)
-        essay_id = essay.essay_id
+        # 백그라운드 스레드로 첨삭 처리
+        essay_id_val = essay.essay_id
+        student_name = student.name
+        teacher_name = current_user.name
+        api_key = Config.ANTHROPIC_API_KEY
+        app = current_app._get_current_object()
 
-        try:
-            # 상태 메시지 표시
-            flash(f'{student.name} 학생의 첨삭을 처리 중입니다... (약 10~30초 소요)', 'info')
+        essay.status = 'processing'
+        db.session.commit()
 
-            # 즉시 처리 (동기)
-            version, html_path = service.process_essay(essay, student.name, current_user.name)
+        def do_correction():
+            with app.app_context():
+                from app.models import db as _db, Essay as _Essay
+                from app.essays.momoai_service import MOMOAIService as _Service
+                essay_obj = _Essay.query.get(essay_id_val)
+                if not essay_obj:
+                    return
+                try:
+                    svc = _Service(api_key)
+                    svc.process_essay(essay_obj, student_name, teacher_name)
+                except Exception as e:
+                    print(f'[첨삭 오류] {e}')
+                    essay_obj.status = 'failed'
+                    _db.session.commit()
 
-            # 성공 메시지
-            flash(f'{student.name} 학생의 첨삭이 완료되었습니다!', 'success')
-            return redirect(url_for('essays.result', essay_id=essay_id))
+        t = threading.Thread(target=do_correction, daemon=True)
+        t.start()
 
-        except Exception as e:
-            # 에러 처리
-            essay.status = 'failed'
-            db.session.commit()
-            flash(f'첨삭 처리 중 오류가 발생했습니다: {str(e)}', 'error')
-            return redirect(url_for('essays.index'))
+        return redirect(url_for('essays.processing', essay_id=essay_id_val))
 
     return render_template('essays/new.html', form=form)
 

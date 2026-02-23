@@ -128,7 +128,7 @@ v3.3.0 필수 포함 사항:
             # Prompt Caching 적용: system prompt를 5분간 캐싱
             response = self.client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=32000,
+                max_tokens=16000,
                 timeout=600.0,
                 system=[
                     {
@@ -154,7 +154,7 @@ v3.3.0 필수 포함 사항:
             print(f"\n{'='*60}")
             print(f"[첨삭 완료] API 호출 시간: {elapsed_time:.2f}초")
             print(f"응답 길이: {len(response.content[0].text):,} chars")
-            print(f"출력 토큰: {output_tokens:,} / 32000")
+            print(f"출력 토큰: {output_tokens:,} / 16000")
             print(f"Stop reason: {stop_reason}")
             if stop_reason == 'max_tokens':
                 print(f"⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
