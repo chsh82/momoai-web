@@ -66,20 +66,12 @@ def _send_feedback_email(parent, feedback):
 
 def _send_feedback_sms(parent, feedback):
     """피드백 SMS 발송. (성공여부, 사유) 튜플 반환"""
-    from flask import current_app
     if not parent.phone:
         return False, '학부모 휴대폰 번호 미등록'
-    if not current_app.config.get('SMS_API_KEY'):
-        return False, 'SMS API 미설정'
-    try:
-        from app.admin.routes import send_sms_message
-        content_short = feedback.content[:60] + ('...' if len(feedback.content) > 60 else '')
-        message = f"[MOMOAI 피드백]\n{feedback.title}\n\n{content_short}"
-        ok = send_sms_message(parent.phone, message)
-        return (True, '발송 완료') if ok else (False, 'SMS 발송 실패')
-    except Exception as e:
-        current_app.logger.error(f'피드백 SMS 발송 실패 ({parent.phone}): {e}')
-        return False, '전송 중 오류 발생'
+    from app.utils.sms import send_sms_message
+    content_short = feedback.content[:60] + ('...' if len(feedback.content) > 60 else '')
+    message = f"[MOMOAI 피드백]\n{feedback.title}\n\n{content_short}"
+    return send_sms_message(parent.phone, message, title='MOMOAI 피드백')
 
 
 @teacher_bp.route('/')
