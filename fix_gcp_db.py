@@ -94,9 +94,67 @@ for sql in COLUMNS:
 
 conn.commit()
 
-# ── 3. 현재 테이블 목록 확인 ───────────────────────────────────────────────────
+# ── 3. harkness_posts.content NOT NULL 제약 해제 ───────────────────────────────
+print(f"\n=== 3단계: harkness_posts.content nullable 수정 ===")
+try:
+    cur = conn.execute("PRAGMA table_info(harkness_posts)")
+    cols = cur.fetchall()
+    # cols: (cid, name, type, notnull, dflt_value, pk)
+    content_col = next((c for c in cols if c[1] == 'content'), None)
+    if content_col is None:
+        print("SKIP: harkness_posts 테이블 없음")
+    elif content_col[3] == 0:
+        print("SKIP: content 이미 nullable")
+    else:
+        print("FIXING: content NOT NULL → nullable (테이블 재생성)")
+        # question1~3 컬럼이 이미 추가됐는지 확인
+        col_names = [c[1] for c in cols]
+        has_q = 'question1' in col_names
+        # question1~3 없으면 NULL로 채움
+        q_select = ("question1, question1_intent, question2, question2_intent, "
+                    "question3, question3_intent") if has_q else (
+                    "NULL AS question1, NULL AS question1_intent, "
+                    "NULL AS question2, NULL AS question2_intent, "
+                    "NULL AS question3, NULL AS question3_intent")
+        conn.executescript(f"""
+            CREATE TABLE harkness_posts_new (
+                post_id    VARCHAR(36) PRIMARY KEY,
+                board_id   VARCHAR(36) NOT NULL,
+                author_id  VARCHAR(36) NOT NULL,
+                title      VARCHAR(200) NOT NULL,
+                content    TEXT,
+                question1  TEXT,
+                question1_intent TEXT,
+                question2  TEXT,
+                question2_intent TEXT,
+                question3  TEXT,
+                question3_intent TEXT,
+                view_count INTEGER DEFAULT 0,
+                is_notice  BOOLEAN DEFAULT 0,
+                created_at DATETIME,
+                updated_at DATETIME
+            );
+            INSERT INTO harkness_posts_new
+                SELECT post_id, board_id, author_id, title, content,
+                       {q_select},
+                       view_count, is_notice, created_at, updated_at
+                FROM harkness_posts;
+            DROP TABLE harkness_posts;
+            ALTER TABLE harkness_posts_new RENAME TO harkness_posts;
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_harkness_posts_author_id   ON harkness_posts(author_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_harkness_posts_board_id    ON harkness_posts(board_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_harkness_posts_created_at  ON harkness_posts(created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_harkness_posts_is_notice   ON harkness_posts(is_notice)")
+        conn.commit()
+        print("OK: harkness_posts.content → nullable 완료")
+except Exception as e:
+    print(f"ERR: harkness_posts fix 실패: {e}")
+    conn.rollback()
+
+# ── 4. 현재 테이블 목록 확인 ───────────────────────────────────────────────────
 tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
-print(f"\n=== 3단계: 현재 테이블 목록 ({len(tables)}개) ===")
+print(f"\n=== 4단계: 현재 테이블 목록 ({len(tables)}개) ===")
 print(', '.join(tables))
 
 conn.close()
