@@ -18,10 +18,12 @@ from app.utils.course_utils import update_enrollment_attendance_stats, get_cours
 
 
 def _send_feedback_email(parent, feedback):
-    """피드백 이메일 발송"""
+    """피드백 이메일 발송. (성공여부, 사유) 튜플 반환"""
     from flask import current_app
+    if not parent.email:
+        return False, '학부모 이메일 미등록'
     if not current_app.config.get('MAIL_SERVER'):
-        return False
+        return False, '이메일 서버 미설정'
     try:
         from app.extensions import mail
         from flask_mail import Message
@@ -56,26 +58,28 @@ def _send_feedback_email(parent, feedback):
             html=html_body
         )
         mail.send(msg)
-        return True
+        return True, '발송 완료'
     except Exception as e:
-        from flask import current_app
         current_app.logger.error(f'피드백 이메일 발송 실패 ({parent.email}): {e}')
-        return False
+        return False, '전송 중 오류 발생'
 
 
 def _send_feedback_sms(parent, feedback):
-    """피드백 SMS 발송"""
+    """피드백 SMS 발송. (성공여부, 사유) 튜플 반환"""
+    from flask import current_app
     if not parent.phone:
-        return False
+        return False, '학부모 휴대폰 번호 미등록'
+    if not current_app.config.get('SMS_API_KEY'):
+        return False, 'SMS API 미설정'
     try:
         from app.admin.routes import send_sms_message
         content_short = feedback.content[:60] + ('...' if len(feedback.content) > 60 else '')
         message = f"[MOMOAI 피드백]\n{feedback.title}\n\n{content_short}"
-        return send_sms_message(parent.phone, message)
+        ok = send_sms_message(parent.phone, message)
+        return (True, '발송 완료') if ok else (False, 'SMS 발송 실패')
     except Exception as e:
-        from flask import current_app
         current_app.logger.error(f'피드백 SMS 발송 실패 ({parent.phone}): {e}')
-        return False
+        return False, '전송 중 오류 발생'
 
 
 @teacher_bp.route('/')
@@ -817,15 +821,18 @@ def create_feedback():
             if parent:
                 send_email = request.form.get('send_email') == '1'
                 send_sms = request.form.get('send_sms') == '1'
-                results = []
                 if send_email:
-                    ok = _send_feedback_email(parent, feedback)
-                    results.append('이메일 발송 완료' if ok else '이메일 발송 실패')
+                    ok, reason = _send_feedback_email(parent, feedback)
+                    if ok:
+                        flash('이메일 발송 완료', 'success')
+                    else:
+                        flash(f'이메일 발송 실패 ({reason})', 'warning')
                 if send_sms:
-                    ok = _send_feedback_sms(parent, feedback)
-                    results.append('SMS 발송 완료' if ok else 'SMS 발송 실패(번호 미등록)')
-                if results:
-                    flash(' · '.join(results), 'info')
+                    ok, reason = _send_feedback_sms(parent, feedback)
+                    if ok:
+                        flash('SMS 발송 완료', 'success')
+                    else:
+                        flash(f'SMS 발송 실패 ({reason})', 'warning')
 
         flash('피드백이 전송되었습니다.', 'success')
         return redirect(url_for('teacher.student_detail', student_id=form.student_id.data))
