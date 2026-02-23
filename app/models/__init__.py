@@ -8,7 +8,7 @@ db = SQLAlchemy()
 # 모델 import (순환 참조 방지를 위해 db 정의 후 import)
 from app.models.user import User
 from app.models.student import Student
-from app.models.essay import Essay, EssayVersion, EssayResult
+from app.models.essay import Essay, EssayVersion, EssayResult, CorrectionAttachment
 from app.models.essay_score import EssayScore, EssayNote
 from app.models.book import Book, EssayBook
 from app.models.community import Post, Comment, PostLike
@@ -52,6 +52,7 @@ __all__ = [
     'Essay',
     'EssayVersion',
     'EssayResult',
+    'CorrectionAttachment',
     'EssayScore',
     'EssayNote',
     'Book',
