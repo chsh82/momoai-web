@@ -293,7 +293,7 @@
                         <div x-show="learning" x-collapse class="ml-8 mt-1 space-y-1">
                             <a href="{{ url_for('essays.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                과제 관리
+                                첨삭 관리
                             </a>
                             <a href="{{ url_for('admin.teaching_materials') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.teaching_material' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
@@ -553,11 +553,11 @@
                         <div x-show="assignments" x-collapse class="ml-8 mt-1 space-y-1">
                             <a href="{{ url_for('teacher.assignments') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'teacher.assignment' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                과제 관리
+                                과제 출제
                             </a>
                             <a href="{{ url_for('essays.index') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays.index' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                <span>{% if current_user.role == 'parent' %}첨삭 보기{% else %}과제 관리{% endif %}</span>
+                                <span>{% if current_user.role == 'parent' %}첨삭 보기{% else %}첨삭 관리{% endif %}</span>
                                 {% if unread_counts.new_submission > 0 %}
                                 <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.new_submission }}</span>
                                 {% endif %}
