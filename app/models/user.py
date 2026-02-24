@@ -28,6 +28,10 @@ class User(UserMixin, db.Model):
     zoom_link = db.Column(db.Text, nullable=True)  # 암호화된 줌 링크
     zoom_token = db.Column(db.String(100), unique=True, nullable=True, index=True)  # 강사별 고정 토큰
 
+    # 거주 정보 (학부모/학생 계정용)
+    country = db.Column(db.String(100), nullable=True)   # 거주 국가
+    city = db.Column(db.String(100), nullable=True)      # 거주 도시
+
     # 보안 필드
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)

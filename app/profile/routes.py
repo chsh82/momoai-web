@@ -98,10 +98,16 @@ def edit():
     # GET 요청 시 기존 데이터 로드
     if request.method == 'GET':
         form.phone.data = current_user.phone
+        form.country.data = current_user.country
+        form.city.data = current_user.city
         if student_record:
             form.grade.data = student_record.grade
             form.school.data = student_record.school
             form.birth_date.data = student_record.birth_date
+            if student_record.country:
+                form.country.data = student_record.country
+            if student_record.city:
+                form.city.data = student_record.city
 
     if form.validate_on_submit():
         # 이메일 중복 확인 (자신의 이메일 제외)
@@ -114,12 +120,16 @@ def edit():
         current_user.name = form.name.data
         current_user.email = form.email.data
         current_user.phone = form.phone.data if form.phone.data else None
+        current_user.country = form.country.data if form.country.data else None
+        current_user.city = form.city.data if form.city.data else None
 
         # 학생인 경우 Student 테이블도 업데이트
         if current_user.role == 'student' and student_record:
             student_record.name = form.name.data
             student_record.email = form.email.data
             student_record.phone = form.phone.data if form.phone.data else None
+            student_record.country = form.country.data if form.country.data else None
+            student_record.city = form.city.data if form.city.data else None
 
             if form.grade.data:
                 student_record.grade = form.grade.data

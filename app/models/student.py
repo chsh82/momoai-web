@@ -21,6 +21,8 @@ class Student(db.Model):
     tier_updated_at = db.Column(db.DateTime, nullable=True)  # 등급 변경 일시
     email = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
+    country = db.Column(db.String(100), nullable=True)   # 거주 국가
+    city = db.Column(db.String(100), nullable=True)      # 거주 도시
     notes = db.Column(db.Text, nullable=True)
     is_temp = db.Column(db.Boolean, default=False, nullable=False)  # 임시 학생 여부
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

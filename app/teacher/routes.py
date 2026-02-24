@@ -526,6 +526,8 @@ def update_attendance(attendance_id):
     data = request.json
     new_status = data.get('status')
     notes = data.get('notes', '')
+    participation_score = data.get('participation_score')
+    comprehension_score = data.get('comprehension_score')
 
     if new_status not in ['present', 'absent', 'late', 'excused']:
         return jsonify({'success': False, 'message': '잘못된 상태값입니다.'}), 400
@@ -535,6 +537,10 @@ def update_attendance(attendance_id):
     attendance.notes = notes
     attendance.checked_at = datetime.utcnow()
     attendance.checked_by = current_user.user_id
+    if participation_score is not None:
+        attendance.participation_score = int(participation_score)
+    if comprehension_score is not None:
+        attendance.comprehension_score = int(comprehension_score)
 
     db.session.commit()
 
@@ -827,7 +833,7 @@ def create_feedback():
                         flash(f'SMS 발송 실패 ({reason})', 'warning')
 
         flash('피드백이 전송되었습니다.', 'success')
-        return redirect(url_for('teacher.student_detail', student_id=form.student_id.data))
+        return redirect(url_for('teacher.feedbacks'))
 
     return render_template('teacher/feedback_form.html',
                          form=form,

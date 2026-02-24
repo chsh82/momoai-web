@@ -137,8 +137,34 @@
                         </div>
                     </div>
 
-                    <!-- 메모 (선택사항) -->
-                    <div class="mt-3 hidden" id="notes-{{ attendance.attendance_id }}">
+                    <!-- 별점 + 메모 -->
+                    <div class="mt-3 flex flex-col gap-2">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500 w-12">참여도</span>
+                                <div class="flex gap-0.5" id="participation-{{ attendance.attendance_id }}">
+                                    {% for i in range(1, 6) %}
+                                    <button type="button"
+                                            onclick="setStar('{{ attendance.attendance_id }}', 'participation', {{ i }})"
+                                            class="star-btn text-xl leading-none transition
+                                            {% if (attendance.participation_score or 3) >= i %}text-yellow-400{% else %}text-gray-300{% endif %}"
+                                            data-val="{{ i }}">★</button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500 w-12">이해도</span>
+                                <div class="flex gap-0.5" id="comprehension-{{ attendance.attendance_id }}">
+                                    {% for i in range(1, 6) %}
+                                    <button type="button"
+                                            onclick="setStar('{{ attendance.attendance_id }}', 'comprehension', {{ i }})"
+                                            class="star-btn text-xl leading-none transition
+                                            {% if (attendance.comprehension_score or 3) >= i %}text-yellow-400{% else %}text-gray-300{% endif %}"
+                                            data-val="{{ i }}">★</button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
                         <input type="text"
                                placeholder="메모 (선택사항)"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -243,10 +269,33 @@ function updateAttendance(attendanceId, status) {
 function saveNotes(attendanceId, notes) {
     fetch(`/teacher/api/attendance/${attendanceId}`, {
         method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: notes })
+    });
+}
+
+// 별점 설정
+function setStar(attendanceId, type, value) {
+    const containerId = `${type}-${attendanceId}`;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // UI 업데이트
+    container.querySelectorAll('.star-btn').forEach(btn => {
+        const v = parseInt(btn.getAttribute('data-val'));
+        btn.classList.toggle('text-yellow-400', v <= value);
+        btn.classList.toggle('text-gray-300', v > value);
+    });
+
+    // 서버 저장
+    const payload = type === 'participation'
+        ? { participation_score: value }
+        : { comprehension_score: value };
+
+    fetch(`/teacher/api/attendance/${attendanceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
     });
 }
 

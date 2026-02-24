@@ -27,6 +27,10 @@ class Attendance(db.Model):
     # 체크인 방법 (주로 manual)
     checkin_method = db.Column(db.String(20), default='manual')  # manual, system
 
+    # 주관 평가 별점 (1~5, 기본값 3)
+    participation_score = db.Column(db.Integer, default=3, nullable=True)  # 참여도
+    comprehension_score = db.Column(db.Integer, default=3, nullable=True)  # 이해도
+
     # 비고
     notes = db.Column(db.Text, nullable=True)
 

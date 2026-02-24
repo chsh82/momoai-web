@@ -48,6 +48,14 @@ class ProfileEditForm(FlaskForm):
                           validators=[Optional()],
                           format='%Y-%m-%d')
 
+    country = StringField('거주 국가',
+                         validators=[Optional(), Length(max=100)],
+                         render_kw={'placeholder': '예: 대한민국, 미국, 캐나다'})
+
+    city = StringField('거주 도시',
+                       validators=[Optional(), Length(max=100)],
+                       render_kw={'placeholder': '예: 서울, 부산, 뉴욕'})
+
     submit = SubmitField('프로필 수정')
 
 
