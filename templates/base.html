@@ -120,7 +120,9 @@
                :class="{ '-translate-x-full': !mobileMenuOpen, 'translate-x-0': mobileMenuOpen, 'sidebar-collapsed': sidebarCollapsed }">
             <div class="p-6 border-b border-white border-opacity-20 flex items-start justify-between">
                 <div>
-                    <a href="{{ url_for('notifications.index') }}" class="block hover:opacity-80 transition">
+                    <a href="{{ url_for('notifications.index') }}"
+                       class="block hover:opacity-80 transition"
+                       onclick="document.querySelector('aside nav') && (document.querySelector('aside nav').scrollTop = 0); document.querySelector('aside .overflow-y-auto') && (document.querySelector('aside .overflow-y-auto').scrollTop = 0);">
                         <h1 class="text-2xl font-bold text-white">📚 모모의 책장</h1>
                         <p class="text-xs text-white text-opacity-70 mt-1">v4.0 AI 논술 첨삭</p>
                     </a>
