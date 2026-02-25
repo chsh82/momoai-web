@@ -3099,7 +3099,11 @@ def parent_list():
             )
         )
 
-    parents = query.order_by(User.created_at.desc()).all()
+    sort = request.args.get('sort', 'newest')
+    if sort == 'name':
+        parents = query.order_by(User.name).all()
+    else:
+        parents = query.order_by(User.created_at.desc()).all()
 
     # 각 학부모의 연결된 자녀 정보
     parent_data = []
@@ -3119,7 +3123,8 @@ def parent_list():
                            parent_data=parent_data,
                            total=total,
                            active=active,
-                           search=search)
+                           search=search,
+                           sort=sort)
 
 
 @admin_bp.route('/parents/<string:parent_id>/edit', methods=['GET', 'POST'])
