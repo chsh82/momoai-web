@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """강사 라우트"""
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime
 
@@ -901,77 +901,75 @@ def consultations():
 @requires_role('teacher', 'admin')
 def create_consultation():
     """상담 기록 작성"""
-    from app.models.consultation import ConsultationRecord
-    from app.teacher.forms import ConsultationRecordForm
+    import traceback
+    try:
+        from app.models.consultation import ConsultationRecord
+        from app.teacher.forms import ConsultationRecordForm
 
-    form = ConsultationRecordForm()
+        form = ConsultationRecordForm()
 
-    # 상담자 선택지 (강사 본인으로 기본 설정, 관리자는 다른 강사 선택 가능)
-    if current_user.role in ['admin', 'master_admin']:
-        teachers = User.query.filter(User.role.in_(['teacher', 'admin', 'master_admin']))\
-            .order_by(User.name).all()
-        form.counselor_id.choices = [(t.user_id, t.name) for t in teachers]
-    else:
-        form.counselor_id.choices = [(current_user.user_id, current_user.name)]
+        # 상담자 선택지 (강사 본인으로 기본 설정, 관리자는 다른 강사 선택 가능)
+        if current_user.role in ['admin', 'master_admin']:
+            teachers = User.query.filter(User.role.in_(['teacher', 'admin', 'master_admin']))\
+                .order_by(User.name).all()
+            form.counselor_id.choices = [(t.user_id, t.name) for t in teachers]
+        else:
+            form.counselor_id.choices = [(current_user.user_id, current_user.name)]
 
-    # 학생 선택지
-    if current_user.role in ['admin', 'master_admin']:
-        students = Student.query.filter_by(status='active').order_by(Student.name).all()
-    else:
-        # 강사는 자신이 가르치는 학생만
-        from app.models.course import CourseEnrollment
-        enrollments = db.session.query(CourseEnrollment).join(Course).filter(
-            Course.teacher_id == current_user.user_id,
-            CourseEnrollment.status == 'active'
-        ).all()
-        student_ids = list(set([e.student_id for e in enrollments]))
-        students = Student.query.filter(Student.student_id.in_(student_ids)).order_by(Student.name).all()
+        # 학생 선택지
+        if current_user.role in ['admin', 'master_admin']:
+            students = Student.query.order_by(Student.name).all()
+        else:
+            # 강사는 자신이 가르치는 학생만
+            enrollments = db.session.query(CourseEnrollment).join(Course).filter(
+                Course.teacher_id == current_user.user_id,
+                CourseEnrollment.status == 'active'
+            ).all()
+            student_ids = list(set([e.student_id for e in enrollments]))
+            students = Student.query.filter(Student.student_id.in_(student_ids)).order_by(Student.name).all()
 
-    form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, f"{s.name} ({s.student_id[:8]})") for s in students]
+        form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, f"{s.name} ({s.student_id[:8]})") for s in students]
 
-    if request.method == 'GET':
-        # 기본값 설정
-        form.counselor_id.data = current_user.user_id
+        if request.method == 'GET':
+            form.counselor_id.data = current_user.user_id
 
-    if form.validate_on_submit():
-        # 강사는 자신만 상담자로 설정 가능
-        counselor_id = form.counselor_id.data if current_user.role in ['admin', 'master_admin'] else current_user.user_id
+        if form.validate_on_submit():
+            counselor_id = form.counselor_id.data if current_user.role in ['admin', 'master_admin'] else current_user.user_id
+            student = Student.query.get(form.student_id.data)
 
-        # 학생 정보 가져오기
-        student = Student.query.get(form.student_id.data)
+            auto_title = f"[{form.major_category.data}] {student.name} - {form.consultation_date.data.strftime('%Y-%m-%d')}"
+            if form.sub_category.data:
+                auto_title = f"[{form.major_category.data}] {student.name} ({form.sub_category.data}) - {form.consultation_date.data.strftime('%Y-%m-%d')}"
 
-        # 제목 자동 생성: [대분류] 학생명 - 날짜
-        auto_title = f"[{form.major_category.data}] {student.name} - {form.consultation_date.data.strftime('%Y-%m-%d')}"
-        if form.sub_category.data:
-            auto_title = f"[{form.major_category.data}] {student.name} ({form.sub_category.data}) - {form.consultation_date.data.strftime('%Y-%m-%d')}"
+            consultation = ConsultationRecord(
+                consultation_date=form.consultation_date.data,
+                counselor_id=counselor_id,
+                student_id=form.student_id.data,
+                major_category=form.major_category.data,
+                sub_category=form.sub_category.data if form.sub_category.data else None,
+                title=auto_title,
+                content=form.content.data
+            )
+            db.session.add(consultation)
+            db.session.commit()
 
-        consultation = ConsultationRecord(
-            consultation_date=form.consultation_date.data,
-            counselor_id=counselor_id,
-            student_id=form.student_id.data,
-            major_category=form.major_category.data,
-            sub_category=form.sub_category.data if form.sub_category.data else None,
-            title=auto_title,
-            content=form.content.data
-        )
+            flash('상담 기록이 저장되었습니다.', 'success')
+            return redirect(url_for('teacher.consultations'))
 
-        db.session.add(consultation)
-        db.session.commit()
+        if request.method == 'POST':
+            for field_name, errors in form.errors.items():
+                for error in errors:
+                    flash(f'{field_name}: {error}', 'danger')
 
-        flash('상담 기록이 저장되었습니다.', 'success')
-        return redirect(url_for('teacher.consultations'))
+        return render_template('teacher/consultation_form.html',
+                             form=form,
+                             is_admin=current_user.role in ['admin', 'master_admin'])
 
-    # 폼 검증 실패 시 오류 출력
-    if request.method == 'POST':
-        print("Form validation failed!")
-        print(f"Form errors: {form.errors}")
-        for field_name, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field_name}: {error}', 'danger')
-
-    return render_template('teacher/consultation_form.html',
-                         form=form,
-                         is_admin=current_user.role in ['admin', 'master_admin'])
+    except Exception as e:
+        err = traceback.format_exc()
+        current_app.logger.error(f'create_consultation error: {err}')
+        flash(f'오류: {str(e)}', 'error')
+        return f'<pre style="color:red">{err}</pre>', 500
 
 
 @teacher_bp.route('/consultations/<int:consultation_id>')
