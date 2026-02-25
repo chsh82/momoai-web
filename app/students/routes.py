@@ -34,14 +34,19 @@ def index():
     if grade_filter:
         query = query.filter_by(grade=grade_filter)
 
-    # 정렬 (이름순)
-    students = query.order_by(Student.name).all()
+    # 정렬
+    sort = request.args.get('sort', 'name')
+    if sort == 'newest':
+        students = query.order_by(Student.created_at.desc()).all()
+    else:
+        students = query.order_by(Student.name).all()
 
     return render_template('students/index.html',
                          students=students,
                          search_form=search_form,
                          search=search,
-                         grade_filter=grade_filter)
+                         grade_filter=grade_filter,
+                         sort=sort)
 
 
 @students_bp.route('/new', methods=['GET', 'POST'])
