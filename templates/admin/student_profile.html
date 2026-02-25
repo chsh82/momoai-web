@@ -103,6 +103,14 @@
                             <div class="text-sm text-gray-600 mb-1">재학 학교</div>
                             <div class="font-medium">{{ student.school or '-' }}</div>
                         </div>
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">거주 지역</div>
+                            <div class="font-medium">
+                                {% if student.country %}
+                                📍 {{ student.country }}{% if student.city %} · {{ student.city }}{% endif %}
+                                {% else %}-{% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
