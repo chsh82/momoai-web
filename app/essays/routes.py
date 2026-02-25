@@ -125,6 +125,34 @@ def index():
         students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
             .order_by(Student.name).all()
 
+    # 대시보드 통계 (관리자/매니저 전용)
+    dashboard_stats = None
+    if current_user.role in ('admin', 'manager') or (
+            current_user.role_level and current_user.role_level <= 2):
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+
+        # 이번 주 월요일 00:00
+        week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        # 이번 달 1일 00:00
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        week_all = Essay.query.filter(Essay.created_at >= week_start).all()
+        month_all = Essay.query.filter(Essay.created_at >= month_start).all()
+
+        dashboard_stats = {
+            'week': {
+                'total': len(week_all),
+                'completed': sum(1 for e in week_all if e.status == 'completed'),
+                'pending': sum(1 for e in week_all if e.status == 'draft'),
+            },
+            'month': {
+                'total': len(month_all),
+                'completed': sum(1 for e in month_all if e.status == 'completed'),
+                'pending': sum(1 for e in month_all if e.status == 'draft'),
+            },
+        }
+
     return render_template('essays/index.html',
                          essays=essays,
                          students=students,
@@ -132,7 +160,8 @@ def index():
                          status_filter=status_filter,
                          grade_filter=grade_filter,
                          search=search,
-                         sort_by=sort_by)
+                         sort_by=sort_by,
+                         dashboard_stats=dashboard_stats)
 
 
 @essays_bp.route('/new', methods=['GET', 'POST'])

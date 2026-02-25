@@ -32,6 +32,48 @@
         {% endif %}
     {% endwith %}
 
+    <!-- 관리자 대시보드 -->
+    {% if dashboard_stats %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <!-- 주간 현황 -->
+        <div class="bg-white rounded-lg shadow-lg p-5">
+            <h3 class="text-base font-bold text-gray-700 mb-4">📅 주간 첨삭 현황 <span class="text-xs font-normal text-gray-400">(이번 주 월요일~오늘)</span></h3>
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-orange-50 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-orange-600">{{ dashboard_stats.week.pending }}</div>
+                    <div class="text-xs text-gray-500 mt-1">미첨삭</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ dashboard_stats.week.completed }}</div>
+                    <div class="text-xs text-gray-500 mt-1">첨삭완료</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ dashboard_stats.week.total }}</div>
+                    <div class="text-xs text-gray-500 mt-1">총합</div>
+                </div>
+            </div>
+        </div>
+        <!-- 월간 현황 -->
+        <div class="bg-white rounded-lg shadow-lg p-5">
+            <h3 class="text-base font-bold text-gray-700 mb-4">📆 월간 첨삭 현황 <span class="text-xs font-normal text-gray-400">(이번 달 1일~오늘)</span></h3>
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-orange-50 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-orange-600">{{ dashboard_stats.month.pending }}</div>
+                    <div class="text-xs text-gray-500 mt-1">미첨삭</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ dashboard_stats.month.completed }}</div>
+                    <div class="text-xs text-gray-500 mt-1">첨삭완료</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ dashboard_stats.month.total }}</div>
+                    <div class="text-xs text-gray-500 mt-1">총합</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Phase 2: 필터/검색 폼 -->
     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
         <form method="GET" action="{{ url_for('essays.index') }}" class="space-y-4">
