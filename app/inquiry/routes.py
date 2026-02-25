@@ -4,7 +4,7 @@ from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 
 from app.inquiry import inquiry_bp
-from app.models import db, User, ParentStudent, Student, CourseEnrollment
+from app.models import db, User, ParentStudent, Student, CourseEnrollment, Notification
 from app.models.inquiry import InquiryPost, InquiryReply
 
 
@@ -114,6 +114,39 @@ def new_inquiry():
             recipient_id=recipient_id
         )
         db.session.add(post)
+        db.session.flush()  # inquiry_id 확보
+
+        # 수신자에게 알림 발송
+        author_name = current_user.name
+        notif_title = f'새 문의: {title}'
+        notif_message = f'{author_name}님이 문의를 등록했습니다.'
+        notif_link = url_for('inquiry.detail', inquiry_id=post.inquiry_id)
+
+        if recipient_id:
+            # 특정 강사에게 알림
+            db.session.add(Notification(
+                user_id=recipient_id,
+                notification_type='inquiry',
+                title=notif_title,
+                message=notif_message,
+                related_entity_type='inquiry',
+                related_entity_id=post.inquiry_id,
+                link_url=notif_link
+            ))
+        else:
+            # 관리자 전체에게 알림
+            admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+            for admin in admins:
+                db.session.add(Notification(
+                    user_id=admin.user_id,
+                    notification_type='inquiry',
+                    title=notif_title,
+                    message=notif_message,
+                    related_entity_type='inquiry',
+                    related_entity_id=post.inquiry_id,
+                    link_url=notif_link
+                ))
+
         db.session.commit()
 
         flash('문의가 등록되었습니다. 빠른 시일 내에 답변드리겠습니다.', 'success')
