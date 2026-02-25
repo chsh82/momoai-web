@@ -28,7 +28,7 @@ def _get_children_teachers(parent_id):
                         'user': course.teacher,
                         'course_names': []
                     }
-                teachers_map[tid]['course_names'].append(course.name)
+                teachers_map[tid]['course_names'].append(course.course_name)
 
     return list(teachers_map.values())
 
