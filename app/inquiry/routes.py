@@ -88,7 +88,7 @@ def new_inquiry():
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
-        is_private = 'is_private' in request.form
+        is_private = True  # 모든 문의는 비공개 (작성자와 수신자만 열람)
         recipient_type = request.form.get('recipient_type', 'admin')
         recipient_id = None
 
