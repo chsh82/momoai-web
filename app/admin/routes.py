@@ -4203,22 +4203,32 @@ def toggle_student_active(student_id):
 @requires_permission_level(2)  # 매니저 이상
 def student_risk_analysis():
     """전체 학생 위험도 분석 대시보드"""
-    from app.utils.student_insights import get_all_students_risk_analysis
+    import traceback
+    try:
+        from app.utils.student_insights import get_all_students_risk_analysis
 
-    # 전체 학생 위험도 분석
-    risk_analysis = get_all_students_risk_analysis()
+        # 전체 학생 위험도 분석
+        risk_analysis = get_all_students_risk_analysis()
 
-    # 통계 계산
-    stats = {
-        'total': len(risk_analysis['high_risk']) + len(risk_analysis['medium_risk']) + len(risk_analysis['low_risk']),
-        'high_risk': len(risk_analysis['high_risk']),
-        'medium_risk': len(risk_analysis['medium_risk']),
-        'low_risk': len(risk_analysis['low_risk'])
-    }
+        # 통계 계산
+        stats = {
+            'total': len(risk_analysis['high_risk']) + len(risk_analysis['medium_risk']) + len(risk_analysis['low_risk']),
+            'high_risk': len(risk_analysis['high_risk']),
+            'medium_risk': len(risk_analysis['medium_risk']),
+            'low_risk': len(risk_analysis['low_risk'])
+        }
 
-    return render_template('admin/student_risk_analysis.html',
-                         risk_analysis=risk_analysis,
-                         stats=stats)
+        return render_template('admin/student_risk_analysis.html',
+                             risk_analysis=risk_analysis,
+                             stats=stats)
+    except Exception as e:
+        error_detail = traceback.format_exc()
+        current_app.logger.error(f'student_risk_analysis error: {error_detail}')
+        flash(f'오류 발생: {str(e)}', 'error')
+        return render_template('admin/student_risk_analysis.html',
+                             risk_analysis={'high_risk': [], 'medium_risk': [], 'low_risk': []},
+                             stats={'total': 0, 'high_risk': 0, 'medium_risk': 0, 'low_risk': 0},
+                             error_detail=error_detail)
 
 
 @admin_bp.route('/student-profiles/create/<student_id>', methods=['GET', 'POST'])
