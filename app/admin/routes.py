@@ -1319,31 +1319,54 @@ def send_message():
         db.session.add(message)
         db.session.flush()  # message_id 생성
 
-        # 즉시 발송 (실제로는 SMS API 연동 필요)
+        # 즉시 발송
         if not is_scheduled:
-            message.status = 'completed'
-            message.sent_at = datetime.utcnow()
-            message.success_count = len(recipients_data)  # 실제로는 API 응답에 따라 설정
-            message.failed_count = 0
+            from app.utils.sms import send_sms_message as _send_sms
 
-            # 수신자별 발송 기록 (message_id가 이제 생성되었음)
+            success_count = 0
+            failed_count = 0
+            failed_names = []
+
             for recipient_data in recipients_data:
+                phone = recipient_data['phone']
+                ok, reason = _send_sms(phone, content, title=subject if message_type == 'LMS' else None)
+
+                if ok:
+                    success_count += 1
+                    r_status = 'sent'
+                    r_fail_reason = None
+                else:
+                    failed_count += 1
+                    r_status = 'failed'
+                    r_fail_reason = reason
+                    failed_names.append(f"{recipient_data['name']}({reason})")
+
                 recipient = MessageRecipient(
                     message_id=message.message_id,
                     student_id=recipient_data.get('student_id'),
                     recipient_name=recipient_data['name'],
-                    recipient_phone=recipient_data['phone'],
-                    status='sent',
-                    sent_at=datetime.utcnow()
+                    recipient_phone=phone,
+                    status=r_status,
+                    sent_at=datetime.utcnow() if ok else None,
+                    error_message=r_fail_reason
                 )
                 db.session.add(recipient)
+
+            message.status = 'completed'
+            message.sent_at = datetime.utcnow()
+            message.success_count = success_count
+            message.failed_count = failed_count
 
         db.session.commit()
 
         if is_scheduled:
             flash(f'문자가 {scheduled_at.strftime("%Y-%m-%d %H:%M")}에 발송 예약되었습니다.', 'success')
+        elif failed_count > 0 and success_count == 0:
+            flash(f'문자 발송 실패: {", ".join(failed_names[:5])}', 'error')
+        elif failed_count > 0:
+            flash(f'{message_type} {success_count}건 발송 완료, {failed_count}건 실패: {", ".join(failed_names[:3])}', 'warning')
         else:
-            flash(f'{message_type} 문자 {len(recipients_data)}건이 발송되었습니다.', 'success')
+            flash(f'{message_type} 문자 {success_count}건이 발송되었습니다.', 'success')
 
         return redirect(url_for('admin.message_detail', message_id=message.message_id))
 
