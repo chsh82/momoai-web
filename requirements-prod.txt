@@ -12,7 +12,7 @@ pymysql==1.1.1           # MySQL (대안)
 supervisor==4.2.5
 
 # 로깅
-python-json-logger==3.3.1
+python-json-logger==3.3.0
 
 # 보안
 cryptography>=46.0.4
