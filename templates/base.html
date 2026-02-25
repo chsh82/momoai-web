@@ -525,10 +525,6 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.class_messages' %}text-blue-600 bg-blue-50{% endif %}">
                                 수업 공지 및 메세지
                             </a>
-                            <a href="{{ url_for('inquiry.index') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
-                                📬 문의 관리
-                            </a>
                         </div>
                     </div>
 

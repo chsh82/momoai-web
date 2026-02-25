@@ -43,9 +43,14 @@ def index():
     if current_user.role == 'admin':
         # 관리자: 전체 조회
         status_filter = request.args.get('status', '')
+        recipient_type_filter = request.args.get('recipient_type', '')
         query = InquiryPost.query
         if status_filter:
             query = query.filter_by(status=status_filter)
+        if recipient_type_filter == 'teacher':
+            query = query.filter(InquiryPost.recipient_id.isnot(None))
+        elif recipient_type_filter == 'admin':
+            query = query.filter(InquiryPost.recipient_id.is_(None))
         pagination = query.order_by(InquiryPost.created_at.desc()).paginate(
             page=page, per_page=per_page, error_out=False)
         pending_count = InquiryPost.query.filter_by(status='pending').count()
@@ -71,6 +76,7 @@ def index():
     return render_template('inquiry/index.html',
                            pagination=pagination,
                            status_filter=status_filter,
+                           recipient_type_filter=recipient_type_filter if current_user.role == 'admin' else '',
                            pending_count=pending_count)
 
 
