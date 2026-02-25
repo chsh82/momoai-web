@@ -18,6 +18,8 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default='teacher', index=True)
     role_level = db.Column(db.Integer, default=4, index=True)  # 1=master, 2=manager, 3=teacher, 4=parent, 5=student
     is_active = db.Column(db.Boolean, default=True)
+    is_deleted = db.Column(db.Boolean, default=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     must_change_password = db.Column(db.Boolean, default=False)  # 초기 비밀번호 변경 필요 여부
 
     # 프로필 이미지

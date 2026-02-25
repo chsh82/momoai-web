@@ -78,7 +78,7 @@
     </div>
 
     <!-- 비활성 계정 목록 -->
-    <div class="bg-white rounded-lg shadow">
+    <div class="bg-white rounded-lg shadow mb-8">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h3 class="text-xl font-bold text-gray-800">
                 비활성 계정 목록
@@ -150,6 +150,64 @@
                     비활성화된 계정이 없습니다.
                     {% endif %}
                 </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 삭제 아이디 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+            <h3 class="text-xl font-bold text-red-800">
+                삭제 아이디 목록
+                <span class="text-sm font-normal text-red-500 ml-2">{{ deleted_users|length }}명</span>
+            </h3>
+            <p class="text-xs text-red-400 mt-1">영구 삭제 처리된 계정입니다. 복원이 불가합니다.</p>
+        </div>
+        <div class="p-6">
+            {% if deleted_users %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">역할</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">가입일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">삭제일</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for user in deleted_users %}
+                        <tr class="hover:bg-red-50 opacity-75">
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-gray-500 line-through">{{ user.name }}</p>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-400">{{ user.email }}</td>
+                            <td class="px-4 py-3">
+                                {% if user.role == 'teacher' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-400">강사</span>
+                                {% elif user.role == 'parent' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-400">학부모</span>
+                                {% elif user.role == 'student' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-50 text-purple-400">학생</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-400">
+                                {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-red-400">
+                                {{ user.deleted_at.strftime('%Y-%m-%d %H:%M') if user.deleted_at else '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">🗑️</div>
+                <p class="text-gray-400 text-lg">삭제된 계정이 없습니다.</p>
             </div>
             {% endif %}
         </div>

@@ -3177,14 +3177,14 @@ def delete_parent(parent_id):
         flash('학부모 계정이 아닙니다.', 'danger')
         return redirect(url_for('admin.parent_list'))
 
+    from datetime import datetime as dt
     name = user.name
-    ParentStudent.query.filter_by(parent_id=parent_id).delete()
-    ParentLinkRequest.query.filter_by(parent_id=parent_id).delete()
-    Notification.query.filter_by(user_id=parent_id).delete()
-    db.session.delete(user)
+    user.is_active = False
+    user.is_deleted = True
+    user.deleted_at = dt.utcnow()
     db.session.commit()
 
-    flash(f'{name} 계정이 완전 삭제되었습니다.', 'success')
+    flash(f'{name} 계정이 삭제되었습니다.', 'success')
     return redirect(url_for('admin.parent_list'))
 
 
@@ -4976,9 +4976,10 @@ def account_management():
     role_filter = request.args.get('role', '').strip()
     search = request.args.get('search', '').strip()
 
+    # 비활성 계정 (삭제되지 않은 것만)
     query = User.query.filter_by(is_active=False).filter(
         User.role.in_(['teacher', 'parent', 'student'])
-    )
+    ).filter(db.or_(User.is_deleted == False, User.is_deleted == None))
 
     if role_filter:
         query = query.filter_by(role=role_filter)
@@ -4993,16 +4994,35 @@ def account_management():
 
     users = query.order_by(User.created_at.desc()).all()
 
+    # 삭제된 계정
+    deleted_query = User.query.filter_by(is_deleted=True).filter(
+        User.role.in_(['teacher', 'parent', 'student'])
+    )
+    if role_filter:
+        deleted_query = deleted_query.filter_by(role=role_filter)
+    if search:
+        deleted_query = deleted_query.filter(
+            db.or_(
+                User.name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%')
+            )
+        )
+    deleted_users = deleted_query.order_by(User.deleted_at.desc()).all()
+
     # 역할별 통계
     role_counts = {
-        'teacher': User.query.filter_by(is_active=False, role='teacher').count(),
-        'parent': User.query.filter_by(is_active=False, role='parent').count(),
-        'student': User.query.filter_by(is_active=False, role='student').count(),
+        'teacher': User.query.filter_by(is_active=False, role='teacher').filter(
+            db.or_(User.is_deleted == False, User.is_deleted == None)).count(),
+        'parent': User.query.filter_by(is_active=False, role='parent').filter(
+            db.or_(User.is_deleted == False, User.is_deleted == None)).count(),
+        'student': User.query.filter_by(is_active=False, role='student').filter(
+            db.or_(User.is_deleted == False, User.is_deleted == None)).count(),
     }
     total_inactive = sum(role_counts.values())
 
     return render_template('admin/account_management.html',
                            users=users,
+                           deleted_users=deleted_users,
                            total_inactive=total_inactive,
                            role_counts=role_counts,
                            role_filter=role_filter,
