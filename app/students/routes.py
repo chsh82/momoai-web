@@ -34,6 +34,11 @@ def index():
     if grade_filter:
         query = query.filter_by(grade=grade_filter)
 
+    # 국가 필터
+    country_filter = request.args.get('country_filter', '').strip()
+    if country_filter:
+        query = query.filter_by(country=country_filter)
+
     # 정렬
     sort = request.args.get('sort', 'name')
     if sort == 'newest':
@@ -41,11 +46,22 @@ def index():
     else:
         students = query.order_by(Student.name).all()
 
+    # 실제 등록된 국가 목록 (중복 제거, 정렬)
+    base_query = Student.query.filter_by(is_temp=False)
+    if not (current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)):
+        base_query = base_query.filter_by(teacher_id=current_user.user_id)
+    registered_countries = sorted(set(
+        s.country for s in base_query.with_entities(Student.country).all()
+        if s.country
+    ))
+
     return render_template('students/index.html',
                          students=students,
                          search_form=search_form,
                          search=search,
                          grade_filter=grade_filter,
+                         country_filter=country_filter,
+                         registered_countries=registered_countries,
                          sort=sort)
 
 
