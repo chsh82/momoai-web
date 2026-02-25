@@ -58,7 +58,12 @@
             <div class="mb-6">
                 {{ form.email.label(class="block text-gray-700 font-medium mb-2") }}
                 <span class="text-sm text-gray-500">(선택사항)</span>
+                {% if linked_email and not form.email.data %}
+                {{ form.email(class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50", value=linked_email, placeholder="예: student@example.com") }}
+                <p class="text-xs text-blue-600 mt-1">💡 가입 계정 이메일이 자동 입력되었습니다. 확인 후 저장하세요.</p>
+                {% else %}
                 {{ form.email(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="예: student@example.com") }}
+                {% endif %}
                 {% if form.email.errors %}
                     <div class="text-red-600 text-sm mt-1">
                         {% for error in form.email.errors %}
@@ -252,8 +257,18 @@ document.getElementById('customCountryInput')?.addEventListener('input', functio
 });
 
 window.addEventListener('DOMContentLoaded', function() {
-    const initCountry = document.getElementById('countryInput').value || '대한민국';
-    const initCity = document.getElementById('cityInput').value || '';
+    let initCountry = document.getElementById('countryInput').value || '대한민국';
+    let initCity = document.getElementById('cityInput').value || '';
+
+    // 기본값: 대한민국이고 도시 미설정이면 서울
+    if (initCountry === '대한민국' && !initCity) {
+        initCity = '서울';
+        document.getElementById('cityInput').value = '서울';
+    }
+    // 국가 미설정이면 대한민국 기본
+    if (!document.getElementById('countryInput').value) {
+        document.getElementById('countryInput').value = '대한민국';
+    }
 
     // 국가 탭 초기 하이라이트
     document.querySelectorAll('.country-tab').forEach(btn => {
@@ -278,13 +293,6 @@ window.addEventListener('DOMContentLoaded', function() {
             ).join('');
         } else {
             citySection.classList.add('hidden');
-        }
-    }
-
-    if (!document.getElementById('countryInput').value) {
-        document.getElementById('countryInput').value = '대한민국';
-        if (!document.getElementById('cityInput').value) {
-            document.getElementById('cityInput').value = '서울';
         }
     }
     updatePreview();

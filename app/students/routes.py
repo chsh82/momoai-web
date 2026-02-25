@@ -165,6 +165,14 @@ def edit(student_id):
 
     form = StudentForm(obj=student)
 
+    # 연결된 계정 이메일 (이메일 미입력 시 자동완성용)
+    from app.models.user import User as UserModel
+    linked_email = None
+    if student.user_id:
+        linked_user = UserModel.query.get(student.user_id)
+        if linked_user:
+            linked_email = linked_user.email
+
     if form.validate_on_submit():
         student.name = form.name.data
         student.grade = form.grade.data
@@ -183,7 +191,8 @@ def edit(student_id):
                          form=form,
                          title=f'{student.name} 정보 수정',
                          is_edit=True,
-                         student=student)
+                         student=student,
+                         linked_email=linked_email)
 
 
 @students_bp.route('/<student_id>/delete', methods=['POST'])
