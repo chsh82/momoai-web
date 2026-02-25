@@ -203,6 +203,18 @@ def reply(inquiry_id):
     )
     db.session.add(reply_obj)
     post.status = 'answered'
+
+    # 문의 작성자(학부모/학생)에게 답변 알림
+    db.session.add(Notification(
+        user_id=post.author_id,
+        notification_type='inquiry',
+        title=f'문의 답변: {post.title}',
+        message=f'{current_user.name}님이 문의에 답변했습니다.',
+        related_entity_type='inquiry',
+        related_entity_id=inquiry_id,
+        link_url=url_for('inquiry.detail', inquiry_id=inquiry_id)
+    ))
+
     db.session.commit()
 
     flash('답변이 등록되었습니다.', 'success')

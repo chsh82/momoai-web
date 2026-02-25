@@ -277,6 +277,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 상담 내용 관리
                             </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                📬 문의 관리
+                            </a>
                             <a href="{{ url_for('admin.student_profiles') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_profile' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 📋 학생 프로필
@@ -552,6 +556,10 @@
                             <a href="{{ url_for('teacher.consultations') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 상담 작성
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                📬 문의 관리
                             </a>
                         </div>
                     </div>
