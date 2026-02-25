@@ -34,7 +34,7 @@ class StudentRegistrationSurveyForm(FlaskForm):
                                 validators=[DataRequired(message='학교 이름을 입력하세요.')],
                                 render_kw={'placeholder': '예: 서울초등학교'})
 
-    grade = SelectField('7. <2026> 기준으로 학생은 몇 학년인가요?',
+    grade = SelectField('7. <2026년>을 기준으로 학생은 몇 학년인가요?',
                        choices=[
                            ('', '-- 선택하세요 --'),
                            ('초1', '초등학교 1학년'),
