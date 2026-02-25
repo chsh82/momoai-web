@@ -3141,6 +3141,7 @@ def edit_parent(parent_id):
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
         phone = request.form.get('phone', '').strip()
+        kakao_id = request.form.get('kakao_id', '').strip()
         is_active = 'is_active' in request.form
 
         if not name or not email:
@@ -3158,6 +3159,7 @@ def edit_parent(parent_id):
         parent.name = name
         parent.email = email
         parent.phone = phone if phone else None
+        parent.kakao_id = kakao_id if kakao_id else None
         parent.is_active = is_active
         db.session.commit()
 

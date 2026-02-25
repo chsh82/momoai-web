@@ -62,6 +62,8 @@ def new():
             grade=form.grade.data,
             email=form.email.data if form.email.data else None,
             phone=form.phone.data if form.phone.data else None,
+            country=form.country.data if form.country.data else '대한민국',
+            city=form.city.data if form.city.data else '서울',
             notes=form.notes.data if form.notes.data else None
         )
 
@@ -168,6 +170,8 @@ def edit(student_id):
         student.grade = form.grade.data
         student.email = form.email.data if form.email.data else None
         student.phone = form.phone.data if form.phone.data else None
+        student.country = form.country.data if form.country.data else '대한민국'
+        student.city = form.city.data if form.city.data else None
         student.notes = form.notes.data if form.notes.data else None
 
         db.session.commit()

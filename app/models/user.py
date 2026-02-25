@@ -33,6 +33,7 @@ class User(UserMixin, db.Model):
     # 거주 정보 (학부모/학생 계정용)
     country = db.Column(db.String(100), nullable=True)   # 거주 국가
     city = db.Column(db.String(100), nullable=True)      # 거주 도시
+    kakao_id = db.Column(db.String(100), nullable=True)  # 카카오톡 아이디 (학부모용)
 
     # 강사 소개 (teacher 역할용)
     teacher_intro = db.Column(db.Text, nullable=True)

@@ -31,6 +31,9 @@ class StudentForm(FlaskForm):
         Length(max=50, message='전화번호는 50자 이내여야 합니다.')
     ])
 
+    country = StringField('거주 국가', validators=[Optional(), Length(max=100)])
+    city = StringField('거주 도시', validators=[Optional(), Length(max=100)])
+
     notes = TextAreaField('메모', validators=[
         Optional()
     ])
