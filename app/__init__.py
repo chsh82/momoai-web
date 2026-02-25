@@ -259,15 +259,30 @@ def create_app(config_name='default'):
         try:
             from flask_login import current_user
             if not current_user.is_authenticated or current_user.role != 'parent':
+                return {'parent_survey_completed': True}
+            from app.models import ParentStudent, Student
+            from app.models.student_profile import StudentProfile
+
+            # 연결된 모든 자녀 조회
+            children = db.session.query(Student).join(
+                ParentStudent, ParentStudent.student_id == Student.student_id
+            ).filter(
+                ParentStudent.parent_id == current_user.user_id,
+                ParentStudent.is_active == True
+            ).all()
+
+            if not children:
+                # 연결된 자녀 없음 → 설문 필요 (녹색)
                 return {'parent_survey_completed': False}
-            from app.models import ParentStudent
-            has_children = ParentStudent.query.filter_by(
-                parent_id=current_user.user_id,
-                is_active=True
-            ).first() is not None
-            return {'parent_survey_completed': has_children}
+
+            # 자녀 중 프로필(설문)이 없는 경우가 하나라도 있으면 녹색 유지
+            all_completed = all(
+                StudentProfile.query.filter_by(student_id=child.student_id).first() is not None
+                for child in children
+            )
+            return {'parent_survey_completed': all_completed}
         except Exception:
-            return {'parent_survey_completed': False}
+            return {'parent_survey_completed': True}
 
     # 기본 라우트 - 역할별 포털로 리다이렉트
     @app.route('/')
