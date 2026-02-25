@@ -153,6 +153,47 @@ def index():
             },
         }
 
+        # 강사 목록
+        from app.models.user import User as UserModel
+        teachers = UserModel.query.filter_by(role='teacher', is_active=True).order_by(UserModel.name).all()
+        dashboard_stats['teachers'] = teachers
+
+        # 선택된 강사별 통계
+        selected_teacher_id = request.args.get('dashboard_teacher_id', '').strip()
+        dashboard_stats['selected_teacher_id'] = selected_teacher_id
+        dashboard_stats['teacher_stats'] = None
+
+        if selected_teacher_id:
+            from app.models.course import Course, CourseEnrollment
+            course_student_ids = db.session.query(CourseEnrollment.student_id).join(
+                Course, CourseEnrollment.course_id == Course.course_id
+            ).filter(Course.teacher_id == selected_teacher_id).subquery()
+
+            def _teacher_essays(since):
+                return Essay.query.outerjoin(Student).filter(
+                    Essay.created_at >= since,
+                    db.or_(
+                        Essay.user_id == selected_teacher_id,
+                        Student.teacher_id == selected_teacher_id,
+                        Student.student_id.in_(course_student_ids)
+                    )
+                ).all()
+
+            t_week = _teacher_essays(week_start)
+            t_month = _teacher_essays(month_start)
+            dashboard_stats['teacher_stats'] = {
+                'week': {
+                    'total': len(t_week),
+                    'completed': sum(1 for e in t_week if e.status == 'completed'),
+                    'pending': sum(1 for e in t_week if e.status == 'draft'),
+                },
+                'month': {
+                    'total': len(t_month),
+                    'completed': sum(1 for e in t_month if e.status == 'completed'),
+                    'pending': sum(1 for e in t_month if e.status == 'draft'),
+                },
+            }
+
     return render_template('essays/index.html',
                          essays=essays,
                          students=students,
