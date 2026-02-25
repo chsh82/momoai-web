@@ -63,10 +63,11 @@
             <div class="mb-6">
                 <label class="block text-gray-700 font-medium mb-2">{{ form.target_roles.label }}</label>
                 <div class="grid grid-cols-4 gap-2">
-                    {% for choice in form.target_roles %}
+                    {% for value, text in form.target_roles.choices %}
                     <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        {{ choice(class="mr-2") }}
-                        <span class="text-gray-700">{{ choice.label.text }}</span>
+                        <input type="checkbox" name="target_roles" value="{{ value }}" class="mr-2"
+                               {% if value in (form.target_roles.data or []) %}checked{% endif %}>
+                        <span class="text-gray-700">{{ text }}</span>
                     </label>
                     {% endfor %}
                 </div>
@@ -77,10 +78,11 @@
             <div class="mb-6">
                 <label class="block text-gray-700 font-medium mb-2">{{ form.target_tiers.label }}</label>
                 <div class="grid grid-cols-4 gap-2">
-                    {% for choice in form.target_tiers %}
+                    {% for value, text in form.target_tiers.choices %}
                     <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        {{ choice(class="mr-2") }}
-                        <span class="text-gray-700">{{ choice.label.text }}</span>
+                        <input type="checkbox" name="target_tiers" value="{{ value }}" class="mr-2"
+                               {% if value in (form.target_tiers.data or []) %}checked{% endif %}>
+                        <span class="text-gray-700">{{ text }}</span>
                     </label>
                     {% endfor %}
                 </div>
