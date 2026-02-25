@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}문의 작성 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('inquiry.index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 문의 목록으로
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">📬 문의 작성</h2>
+        <p class="text-gray-500 mt-1 text-sm">문의하신 내용은 선택하신 수신자가 확인 후 답변드립니다.</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="POST" action="{{ url_for('inquiry.new_inquiry') }}" id="inquiryForm">
+
+            <!-- 수신자 선택 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                    수신자 <span class="text-red-500">*</span>
+                </label>
+                <div class="flex gap-3 mb-3">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="recipient_type" value="admin" checked
+                               class="mr-2" onchange="toggleRecipient()">
+                        <span class="px-4 py-2 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm" id="adminLabel">
+                            🏫 관리자에게
+                        </span>
+                    </label>
+                    <label class="flex items-center cursor-pointer {% if not teachers_data %}opacity-40{% endif %}">
+                        <input type="radio" name="recipient_type" value="teacher"
+                               class="mr-2" onchange="toggleRecipient()"
+                               {% if not teachers_data %}disabled{% endif %}>
+                        <span class="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium text-sm" id="teacherLabel">
+                            👩‍🏫 담당 강사에게
+                        </span>
+                    </label>
+                </div>
+
+                <!-- 강사 선택 드롭다운 (기본 숨김) -->
+                <div id="teacherSelectBox" style="display:none;" class="mt-3">
+                    {% if teachers_data %}
+                    <select name="recipient_id" id="recipient_id"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                        <option value="">— 강사를 선택해주세요 —</option>
+                        {% for t in teachers_data %}
+                        <option value="{{ t.user.user_id }}">
+                            {{ t.user.name }} 선생님
+                            ({{ t.course_names | join(', ') }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <p class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
+                        현재 수강 중인 수업이 없어 강사 선택이 불가합니다.
+                    </p>
+                    {% endif %}
+                </div>
+
+                {% if not teachers_data %}
+                <p class="text-xs text-gray-400 mt-2">자녀가 수강 중인 수업이 없어 관리자에게만 문의 가능합니다.</p>
+                {% endif %}
+            </div>
+
+            <!-- 제목 -->
+            <div class="mb-5">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                    제목 <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="title" name="title" required
+                       value="{{ title_val }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="문의 제목을 입력해주세요">
+            </div>
+
+            <!-- 내용 -->
+            <div class="mb-5">
+                <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
+                    내용 <span class="text-red-500">*</span>
+                </label>
+                <textarea id="content" name="content" rows="10" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="문의 내용을 상세히 작성해주세요">{{ content_val }}</textarea>
+            </div>
+
+            <!-- 비공개 여부 -->
+            <div class="mb-6 bg-gray-50 rounded-lg p-4">
+                <label class="flex items-center cursor-pointer gap-2">
+                    <input type="checkbox" name="is_private" value="1" checked
+                           class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                    <span class="text-sm font-medium text-gray-700">🔒 비공개 문의</span>
+                </label>
+                <p class="text-xs text-gray-500 mt-1 ml-6">비공개 시 본인과 수신자(관리자/강사)만 열람 가능합니다.</p>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition">
+                    문의 등록하기
+                </button>
+                <a href="{{ url_for('inquiry.index') }}"
+                   class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition text-center">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleRecipient() {
+    const type = document.querySelector('input[name="recipient_type"]:checked').value;
+    const teacherBox = document.getElementById('teacherSelectBox');
+    const adminLabel = document.getElementById('adminLabel');
+    const teacherLabel = document.getElementById('teacherLabel');
+
+    if (type === 'teacher') {
+        teacherBox.style.display = 'block';
+        adminLabel.className = 'px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium text-sm';
+        teacherLabel.className = 'px-4 py-2 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm';
+    } else {
+        teacherBox.style.display = 'none';
+        adminLabel.className = 'px-4 py-2 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm';
+        teacherLabel.className = 'px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium text-sm';
+        // 강사 선택 초기화
+        const sel = document.getElementById('recipient_id');
+        if (sel) sel.value = '';
+    }
+}
+</script>
+{% endblock %}

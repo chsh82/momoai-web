@@ -159,7 +159,8 @@ def delete(book_id):
 @login_required
 def isbn_lookup():
     """ISBN으로 도서 정보 조회"""
-    isbn = request.json.get('isbn', '').strip()
+    data = request.get_json(silent=True) or {}
+    isbn = data.get('isbn', '').strip()
 
     if not isbn:
         return jsonify({'success': False, 'message': 'ISBN을 입력하세요.'}), 400

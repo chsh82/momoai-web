@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}문의 게시판 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">📬 문의 게시판</h2>
+            {% if current_user.role in ('admin', 'teacher') %}
+            <p class="text-gray-500 mt-1 text-sm">
+                학부모·학생의 문의를 확인하고 답변해주세요.
+                {% if pending_count > 0 %}
+                <span class="ml-2 bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    미답변 {{ pending_count }}건
+                </span>
+                {% endif %}
+            </p>
+            {% else %}
+            <p class="text-gray-500 mt-1 text-sm">궁금한 사항을 문의하시면 담당자가 답변드립니다.</p>
+            {% endif %}
+        </div>
+        {% if current_user.role in ('parent', 'student') %}
+        <a href="{{ url_for('inquiry.new_inquiry') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition flex items-center gap-2">
+            <span class="text-lg">✏️</span>
+            <span>문의 작성</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 관리자/강사용 필터 -->
+    {% if current_user.role in ('admin', 'teacher') %}
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" class="flex gap-3 items-center flex-wrap">
+            <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="">전체 상태</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>⏳ 답변 대기</option>
+                <option value="answered" {% if status_filter == 'answered' %}selected{% endif %}>✅ 답변 완료</option>
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition text-sm">
+                필터 적용
+            </button>
+            {% if status_filter %}
+            <a href="{{ url_for('inquiry.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition text-sm">
+                초기화
+            </a>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- 문의 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        {% if pagination.items %}
+        <div class="divide-y divide-gray-100">
+            {% for post in pagination.items %}
+            <a href="{{ url_for('inquiry.detail', inquiry_id=post.inquiry_id) }}"
+               class="flex items-start gap-4 px-6 py-4 hover:bg-gray-50 transition">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        {% if post.is_private %}
+                        <span class="text-xs text-gray-400">🔒</span>
+                        {% endif %}
+                        <p class="font-medium text-gray-800 truncate">{{ post.title }}</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-gray-500">
+                        <span>{{ post.author.name }}</span>
+                        <span class="text-gray-300">|</span>
+                        <span>수신:
+                            {% if post.recipient %}
+                                {{ post.recipient.name }} 선생님
+                            {% else %}
+                                관리자
+                            {% endif %}
+                        </span>
+                        <span>{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        {% if post.replies %}
+                        <span class="text-blue-500 font-medium">💬 답변 {{ post.replies|length }}개</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex-shrink-0 pt-1">
+                    {% if post.status == 'answered' %}
+                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">✅ 답변완료</span>
+                    {% else %}
+                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">⏳ 답변대기</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- 페이지네이션 -->
+        {% if pagination.pages > 1 %}
+        <div class="px-6 py-4 border-t border-gray-100 flex justify-center gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('inquiry.index', page=pagination.prev_num, status=status_filter) }}"
+               class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded transition">이전</a>
+            {% endif %}
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                <a href="{{ url_for('inquiry.index', page=p, status=status_filter) }}"
+                   class="px-3 py-1 text-sm rounded transition {% if p == pagination.page %}bg-blue-600 text-white{% else %}bg-gray-200 hover:bg-gray-300{% endif %}">
+                    {{ p }}
+                </a>
+                {% else %}
+                <span class="px-3 py-1 text-sm text-gray-400">…</span>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('inquiry.index', page=pagination.next_num, status=status_filter) }}"
+               class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded transition">다음</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-16">
+            <div class="text-6xl mb-4">📭</div>
+            {% if current_user.role in ('parent', 'student') %}
+            <p class="text-gray-500 text-lg mb-2">아직 문의 내역이 없습니다.</p>
+            <p class="text-gray-400 text-sm mb-6">궁금한 점이 있으시면 문의해주세요!</p>
+            <a href="{{ url_for('inquiry.new_inquiry') }}"
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 rounded-lg transition">
+                첫 문의 작성하기
+            </a>
+            {% else %}
+            <p class="text-gray-500 text-lg">
+                {% if status_filter %}필터 조건에 맞는 문의가 없습니다.{% else %}등록된 문의가 없습니다.{% endif %}
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

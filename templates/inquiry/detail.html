@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - 문의 게시판 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('inquiry.index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 문의 목록으로
+        </a>
+    </div>
+
+    <!-- 문의 내용 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        {% if post.is_private %}
+                        <span class="text-gray-400 text-sm">🔒 비공개</span>
+                        {% endif %}
+                        {% if post.status == 'answered' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">✅ 답변완료</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">⏳ 답변대기</span>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">{{ post.title }}</h2>
+                    <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
+                        <span>{{ post.author.name }}</span>
+                        <span class="text-gray-300">|</span>
+                        <span>수신:
+                            {% if post.recipient %}
+                                <span class="font-medium text-indigo-600">{{ post.recipient.name }} 선생님</span>
+                            {% else %}
+                                <span class="font-medium text-blue-600">관리자</span>
+                            {% endif %}
+                        </span>
+                        <span>{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                </div>
+                {% if current_user.user_id == post.author_id or current_user.role == 'admin' %}
+                <form method="POST" action="{{ url_for('inquiry.delete_inquiry', inquiry_id=post.inquiry_id) }}"
+                      onsubmit="return confirm('이 문의를 삭제하시겠습니까?')">
+                    <button type="submit"
+                            class="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-1 border border-red-300 rounded hover:bg-red-50 transition">
+                        삭제
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="px-6 py-5">
+            <div class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ post.content }}</div>
+        </div>
+    </div>
+
+    <!-- 답변 목록 -->
+    {% if post.replies %}
+    <div class="space-y-4 mb-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide px-1">
+            답변 {{ post.replies|length }}개
+        </h3>
+        {% for r in post.replies %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="px-5 py-3 border-b border-blue-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-blue-700 font-medium text-sm">💬 {{ r.author.name }}</span>
+                    <span class="text-xs text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                        {{ '관리자' if r.author.role == 'admin' else '강사' }}
+                    </span>
+                </div>
+                <span class="text-xs text-gray-400">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div class="px-5 py-4">
+                <div class="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">{{ r.content }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 답변 작성 (관리자/강사만) -->
+    {% if current_user.role in ('admin', 'teacher') %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">
+                {% if post.replies %}추가 답변 작성{% else %}답변 작성{% endif %}
+            </h3>
+        </div>
+        <div class="px-6 py-5">
+            <form method="POST" action="{{ url_for('inquiry.reply', inquiry_id=post.inquiry_id) }}">
+                <div class="mb-4">
+                    <textarea name="content" rows="6" required
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="답변 내용을 입력해주세요"></textarea>
+                </div>
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition">
+                    답변 등록
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    {% if not post.replies %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+        <p class="text-gray-500">아직 답변이 없습니다. 빠른 시일 내에 답변드리겠습니다.</p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

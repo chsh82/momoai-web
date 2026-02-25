@@ -1205,8 +1205,19 @@ def messages():
     # 필터
     status_filter = request.args.get('status', '').strip()
     type_filter = request.args.get('type', '').strip()
+    sender_id_filter = request.args.get('sender_id', '').strip()
+    search = request.args.get('search', '').strip()
 
-    query = Message.query.filter_by(sender_id=current_user.user_id)
+    # 관리자(level 1-2)는 전체 조회, 강사(level 3)는 본인만
+    if current_user.role_level <= 2:
+        query = Message.query
+        senders = User.query.filter(User.role.in_(['admin', 'teacher']), User.is_active == True).order_by(User.name).all()
+    else:
+        query = Message.query.filter_by(sender_id=current_user.user_id)
+        senders = []
+
+    if sender_id_filter and current_user.role_level <= 2:
+        query = query.filter_by(sender_id=sender_id_filter)
 
     if status_filter:
         query = query.filter_by(status=status_filter)
@@ -1214,19 +1225,39 @@ def messages():
     if type_filter:
         query = query.filter_by(message_type=type_filter)
 
+    if search:
+        query = query.filter(
+            db.or_(
+                Message.content.contains(search),
+                Message.subject.contains(search)
+            )
+        )
+
     messages = query.order_by(Message.created_at.desc()).all()
 
     # 통계
-    total_sent = Message.query.filter_by(sender_id=current_user.user_id, status='completed').count()
-    total_recipients = db.session.query(func.sum(Message.total_recipients))\
-        .filter_by(sender_id=current_user.user_id, status='completed').scalar() or 0
+    if current_user.role_level <= 2:
+        stats_query = Message.query.filter_by(status='completed')
+        if sender_id_filter:
+            stats_query = stats_query.filter_by(sender_id=sender_id_filter)
+        total_sent = stats_query.count()
+        total_recipients = db.session.query(func.sum(Message.total_recipients)).filter(
+            Message.status == 'completed'
+        ).scalar() or 0
+    else:
+        total_sent = Message.query.filter_by(sender_id=current_user.user_id, status='completed').count()
+        total_recipients = db.session.query(func.sum(Message.total_recipients))\
+            .filter_by(sender_id=current_user.user_id, status='completed').scalar() or 0
 
     return render_template('admin/messages.html',
                          messages=messages,
                          total_sent=total_sent,
                          total_recipients=total_recipients,
                          status_filter=status_filter,
-                         type_filter=type_filter)
+                         type_filter=type_filter,
+                         sender_id_filter=sender_id_filter,
+                         search=search,
+                         senders=senders)
 
 
 @admin_bp.route('/messages/new', methods=['GET', 'POST'])
@@ -1370,11 +1401,19 @@ def send_message():
 
         return redirect(url_for('admin.message_detail', message_id=message.message_id))
 
-    # GET: 학생 목록
-    students = Student.query.filter(Student.phone.isnot(None)).order_by(Student.name).all()
+    # GET: 학생 목록 + 학부모 목록 (자녀 정보 포함)
+    students = Student.query.order_by(Student.grade, Student.name).all()
+    parents_list = User.query.filter_by(role='parent', is_active=True).order_by(User.name).all()
+    parents_with_children = []
+    for parent in parents_list:
+        children = db.session.query(Student).join(
+            ParentStudent, ParentStudent.student_id == Student.student_id
+        ).filter(ParentStudent.parent_id == parent.user_id).order_by(Student.grade, Student.name).all()
+        parents_with_children.append({'parent': parent, 'children': children})
 
     return render_template('admin/send_message.html',
-                         students=students)
+                         students=students,
+                         parents_with_children=parents_with_children)
 
 
 @admin_bp.route('/messages/<message_id>')
@@ -3115,6 +3154,27 @@ def edit_parent(parent_id):
         return redirect(url_for('admin.parent_list'))
 
     return render_template('admin/edit_parent.html', parent=parent)
+
+
+@admin_bp.route('/parents/<string:parent_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(1)  # master_admin만
+def delete_parent(parent_id):
+    """학부모 계정 완전 삭제"""
+    user = User.query.get_or_404(parent_id)
+    if user.role != 'parent':
+        flash('학부모 계정이 아닙니다.', 'danger')
+        return redirect(url_for('admin.parent_list'))
+
+    name = user.name
+    ParentStudent.query.filter_by(parent_id=parent_id).delete()
+    ParentLinkRequest.query.filter_by(parent_id=parent_id).delete()
+    Notification.query.filter_by(user_id=parent_id).delete()
+    db.session.delete(user)
+    db.session.commit()
+
+    flash(f'{name} 계정이 완전 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.parent_list'))
 
 
 @admin_bp.route('/staff/<string:user_id>/toggle-active', methods=['POST'])
@@ -4893,3 +4953,58 @@ def messages_manage():
         course_cache=course_cache,
         student_cache=student_cache,
     )
+
+
+# ==================== 아이디 관리 ====================
+
+@admin_bp.route('/account-management')
+@login_required
+@requires_permission_level(2)
+def account_management():
+    """비활성 계정 조회 및 복원"""
+    role_filter = request.args.get('role', '').strip()
+    search = request.args.get('search', '').strip()
+
+    query = User.query.filter_by(is_active=False).filter(
+        User.role.in_(['teacher', 'parent', 'student'])
+    )
+
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+
+    if search:
+        query = query.filter(
+            db.or_(
+                User.name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%')
+            )
+        )
+
+    users = query.order_by(User.created_at.desc()).all()
+
+    # 역할별 통계
+    role_counts = {
+        'teacher': User.query.filter_by(is_active=False, role='teacher').count(),
+        'parent': User.query.filter_by(is_active=False, role='parent').count(),
+        'student': User.query.filter_by(is_active=False, role='student').count(),
+    }
+    total_inactive = sum(role_counts.values())
+
+    return render_template('admin/account_management.html',
+                           users=users,
+                           total_inactive=total_inactive,
+                           role_counts=role_counts,
+                           role_filter=role_filter,
+                           search=search)
+
+
+@admin_bp.route('/users/<string:user_id>/restore', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def restore_user(user_id):
+    """비활성 계정 복원"""
+    user = User.query.get_or_404(user_id)
+    user.is_active = True
+    db.session.commit()
+    flash(f'{user.name} 계정이 복원되었습니다.', 'success')
+    return redirect(url_for('admin.account_management'))

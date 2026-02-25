@@ -10,7 +10,7 @@ from app.models.user import User
 from app.models.student import Student
 from app.models.essay import Essay, EssayVersion, EssayResult, CorrectionAttachment
 from app.models.essay_score import EssayScore, EssayNote
-from app.models.book import Book, EssayBook
+from app.models.book import Book, EssayBook, BookRating
 from app.models.community import Post, Comment, PostLike
 from app.models.notification import Notification
 from app.models.tag import Tag, PostTag, Bookmark
@@ -42,6 +42,8 @@ from app.models.ocr_history import OCRHistory
 from app.models.consultation import ConsultationRecord
 from app.models.student_profile import StudentProfile
 from app.models.login_log import LoginAttemptLog
+from app.models.inquiry import InquiryPost, InquiryReply
+from app.models.site_content import SiteContent
 from app.models.ace_evaluation import WeeklyEvaluation, AceEvaluation, ACE_AXES, ACE_ALL_ITEMS
 from app.models.notification_reply import NotificationReply
 

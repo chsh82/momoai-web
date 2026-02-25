@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}강사 소개 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <a href="{{ url_for('news.hub') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← 모모 소식</a>
+            <h2 class="text-3xl font-bold text-gray-800 mt-1">👨‍🏫 강사 소개</h2>
+        </div>
+        {% if current_user.role == 'teacher' %}
+        <a href="{{ url_for('news.my_profile') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            내 소개 수정
+        </a>
+        {% endif %}
+    </div>
+
+    {% if teacher_list %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for teacher in teacher_list %}
+        <a href="{{ url_for('news.teacher_detail', teacher_id=teacher.user_id) }}"
+           class="bg-white rounded-lg shadow hover:shadow-md transition p-6 flex items-start gap-4">
+            {% if teacher.profile_image_filename %}
+            <img src="{{ url_for('static', filename='uploads/profiles/' + teacher.profile_image_filename) }}"
+                 class="w-16 h-16 rounded-full object-cover flex-shrink-0" alt="{{ teacher.name }}">
+            {% else %}
+            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-2xl">👨‍🏫</span>
+            </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-bold text-gray-800">{{ teacher.name }}</h3>
+                <p class="text-sm text-gray-500 mt-1 line-clamp-3">
+                    {{ teacher.teacher_intro[:100] }}{% if teacher.teacher_intro and teacher.teacher_intro|length > 100 %}...{% endif %}
+                </p>
+                <div class="mt-2 text-blue-600 text-sm font-medium">소개 보기 →</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">👨‍🏫</div>
+        <p class="text-gray-500 text-lg">아직 소개가 등록된 강사가 없습니다.</p>
+        {% if current_user.role == 'teacher' %}
+        <a href="{{ url_for('news.my_profile') }}"
+           class="inline-block mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition">
+            내 소개 등록하기
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

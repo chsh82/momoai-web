@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""ISBN 조회 서비스 - 2단계 검색 전략"""
+"""ISBN 조회 서비스 - Google Books + Open Library 순차 조회"""
 import requests
 
 
 class ISBNService:
-    """Google Books API를 사용한 ISBN 조회 서비스"""
+    """Google Books + Open Library API를 사용한 ISBN 조회 서비스"""
 
     GOOGLE_BOOKS_API = "https://www.googleapis.com/books/v1/volumes"
+    OPEN_LIBRARY_API = "https://openlibrary.org/api/books"
 
     @staticmethod
     def _extract_book_info(book_data):

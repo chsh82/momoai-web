@@ -20,6 +20,8 @@ class Book(db.Model):
     description = db.Column(db.Text, nullable=True)
     recommendation_reason = db.Column(db.Text, nullable=True)
     cover_image_url = db.Column(db.String(500), nullable=True)
+    is_curriculum = db.Column(db.Boolean, default=False, nullable=False)   # 수업도서 뱃지
+    is_recommended = db.Column(db.Boolean, default=False, nullable=False)  # 추천도서 뱃지
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -37,10 +39,64 @@ class Book(db.Model):
             import uuid
             self.book_id = str(uuid.uuid4())
 
+    # Ratings relationship
+    ratings = db.relationship('BookRating', back_populates='book',
+                              cascade='all, delete-orphan')
+
     @property
     def essay_count(self):
         """이 도서를 참고한 첨삭 수"""
         return len(self.essay_relations)
+
+    @property
+    def avg_fun_score(self):
+        """학생 재미 평균 점수"""
+        scores = [r.fun_score for r in self.ratings]
+        return round(sum(scores) / len(scores), 1) if scores else None
+
+    @property
+    def avg_usefulness_score(self):
+        """학생 유익함 평균 점수"""
+        scores = [r.usefulness_score for r in self.ratings]
+        return round(sum(scores) / len(scores), 1) if scores else None
+
+    @property
+    def avg_score(self):
+        """평균 별점 = (재미 평균 + 유익함 평균) / 2 (학생만 반영)"""
+        if not self.ratings:
+            return None
+        total = sum(r.fun_score + r.usefulness_score for r in self.ratings)
+        return round(total / (len(self.ratings) * 2), 1)
+
+    @property
+    def rating_count(self):
+        """평점 참여 학생 수"""
+        return len(self.ratings)
+
+
+class BookRating(db.Model):
+    """도서 평점 모델 (학생만 작성 가능)"""
+    __tablename__ = 'book_ratings'
+
+    rating_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    book_id = db.Column(db.String(36), db.ForeignKey('books.book_id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+    fun_score = db.Column(db.Integer, nullable=False)          # 재미 1-5
+    usefulness_score = db.Column(db.Integer, nullable=False)   # 유익함 1-5
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('book_id', 'user_id', name='unique_book_rating'),
+    )
+
+    user = db.relationship('User', foreign_keys=[user_id])
+    book = db.relationship('Book', back_populates='ratings')
+
+    def __repr__(self):
+        return f'<BookRating book={self.book_id} user={self.user_id}>'
 
 
 class EssayBook(db.Model):

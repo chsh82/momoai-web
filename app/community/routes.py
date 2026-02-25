@@ -59,6 +59,10 @@ def index():
 @login_required
 def new():
     """게시글 작성"""
+    if current_user.role != 'admin':
+        flash('관리자만 게시글을 작성할 수 있습니다.', 'error')
+        return redirect(url_for('community.index'))
+
     form = PostForm()
 
     if form.validate_on_submit():
@@ -152,8 +156,8 @@ def edit(post_id):
     post = Post.query.get_or_404(post_id)
 
     # 권한 확인
-    if post.user_id != current_user.user_id:
-        flash('권한이 없습니다.', 'error')
+    if current_user.role != 'admin':
+        flash('관리자만 게시글을 수정할 수 있습니다.', 'error')
         return redirect(url_for('community.detail', post_id=post_id))
 
     form = PostForm(obj=post)
@@ -206,8 +210,8 @@ def delete(post_id):
     post = Post.query.get_or_404(post_id)
 
     # 권한 확인
-    if post.user_id != current_user.user_id:
-        flash('권한이 없습니다.', 'error')
+    if current_user.role != 'admin':
+        flash('관리자만 게시글을 삭제할 수 있습니다.', 'error')
         return redirect(url_for('community.detail', post_id=post_id))
 
     db.session.delete(post)

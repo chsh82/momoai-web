@@ -10,7 +10,7 @@
             <h2 class="text-3xl font-bold text-gray-800">📋 입시정보</h2>
             <p class="text-gray-600 mt-2">중요한 입시 정보를 확인하세요</p>
         </div>
-        {% if current_user.has_permission_level(2) %}
+        {% if current_user.role == 'admin' %}
         <a href="{{ url_for('library.create_admission_info') }}"
            class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2">
             <span class="text-xl">✏️</span>

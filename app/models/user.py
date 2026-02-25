@@ -32,6 +32,10 @@ class User(UserMixin, db.Model):
     country = db.Column(db.String(100), nullable=True)   # 거주 국가
     city = db.Column(db.String(100), nullable=True)      # 거주 도시
 
+    # 강사 소개 (teacher 역할용)
+    teacher_intro = db.Column(db.Text, nullable=True)
+    teacher_intro_public = db.Column(db.Boolean, default=False)
+
     # 보안 필드
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}아이디 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">🔒 아이디 관리</h2>
+        <p class="text-gray-500 text-sm">비활성화된 계정을 조회하고 복원할 수 있습니다.</p>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">전체 비활성</p>
+                    <p class="text-3xl font-bold text-gray-600">{{ total_inactive }}</p>
+                </div>
+                <div class="text-gray-400 text-4xl">🔒</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">강사</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ role_counts.teacher }}</p>
+                </div>
+                <div class="text-blue-400 text-4xl">👨‍🏫</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">학부모</p>
+                    <p class="text-3xl font-bold text-green-600">{{ role_counts.parent }}</p>
+                </div>
+                <div class="text-green-400 text-4xl">👪</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">학생</p>
+                    <p class="text-3xl font-bold text-purple-600">{{ role_counts.student }}</p>
+                </div>
+                <div class="text-purple-400 text-4xl">🎓</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검색 및 필터 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" class="flex flex-wrap gap-3 items-center">
+            <input type="text" name="search" value="{{ search }}"
+                   class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-64"
+                   placeholder="이름 또는 이메일로 검색...">
+
+            <select name="role" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">전체 역할</option>
+                <option value="teacher" {% if role_filter == 'teacher' %}selected{% endif %}>강사</option>
+                <option value="parent" {% if role_filter == 'parent' %}selected{% endif %}>학부모</option>
+                <option value="student" {% if role_filter == 'student' %}selected{% endif %}>학생</option>
+            </select>
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
+                검색
+            </button>
+
+            {% if search or role_filter %}
+            <a href="{{ url_for('admin.account_management') }}"
+               class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition">
+                초기화
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- 비활성 계정 목록 -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-xl font-bold text-gray-800">
+                비활성 계정 목록
+                <span class="text-sm font-normal text-gray-500 ml-2">{{ users|length }}명</span>
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if users %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">역할</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">가입일</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">마지막 로그인</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3">
+                                <p class="font-medium text-gray-800">{{ user.name }}</p>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ user.email }}</td>
+                            <td class="px-4 py-3">
+                                {% if user.role == 'teacher' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">강사</span>
+                                {% elif user.role == 'parent' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">학부모</span>
+                                {% elif user.role == 'student' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">학생</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                {% if user.last_login %}
+                                {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                <span class="text-gray-400">미로그인</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <form method="POST"
+                                      action="{{ url_for('admin.restore_user', user_id=user.user_id) }}"
+                                      onsubmit="return confirm('{{ user.name }} 계정을 복원하시겠습니까?')">
+                                    <button type="submit"
+                                            class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded">
+                                        복원
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">✅</div>
+                <p class="text-gray-500 text-lg">
+                    {% if search or role_filter %}
+                    검색 조건에 해당하는 비활성 계정이 없습니다.
+                    {% else %}
+                    비활성화된 계정이 없습니다.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

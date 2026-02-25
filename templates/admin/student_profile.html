@@ -144,9 +144,9 @@
                         <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition">
                             <div class="flex items-center justify-between mb-2">
                                 <div>
-                                    <div class="font-medium text-lg">{{ enrollment.course.name }}</div>
-                                    <div class="text-sm text-gray-600">{{ enrollment.course.course_type }} | {{ enrollment.course.grade }}</div>
-                                    <div class="text-sm text-gray-500">강사: {{ enrollment.course.teacher.name }}</div>
+                                    <div class="font-medium text-lg">{{ enrollment.course.name if enrollment.course else '(삭제된 수업)' }}</div>
+                                    <div class="text-sm text-gray-600">{{ enrollment.course.course_type if enrollment.course else '' }} | {{ enrollment.course.grade if enrollment.course else '' }}</div>
+                                    <div class="text-sm text-gray-500">강사: {{ enrollment.course.teacher.name if enrollment.course and enrollment.course.teacher else '미정' }}</div>
                                 </div>
                                 <span class="px-3 py-1 {% if enrollment.status == 'active' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %} text-sm font-medium rounded-full">
                                     {% if enrollment.status == 'active' %}수강중{% else %}종료{% endif %}

@@ -72,7 +72,7 @@
                         수신자 <span class="text-red-500">*</span>
                     </label>
 
-                    <!-- 수신자 유형 -->
+                    <!-- 수신자 유형 (전체/개별) -->
                     <div class="mb-4 flex gap-4">
                         <label class="flex items-center cursor-pointer">
                             <input type="radio" name="recipient_type" value="individual" checked
@@ -82,12 +82,72 @@
                         <label class="flex items-center cursor-pointer">
                             <input type="radio" name="recipient_type" value="all"
                                    class="mr-2" onchange="toggleRecipientType()">
-                            <span class="font-medium text-gray-700">전체 학생</span>
+                            <span class="font-medium text-gray-700">전체 (필터 적용)</span>
                         </label>
                     </div>
 
                     <!-- 개별 선택 -->
                     <div id="recipientSelect">
+                        <!-- 학생/학부모 토글 -->
+                        <div class="mb-3 flex items-center gap-2">
+                            <span class="text-sm text-gray-600 font-medium">대상:</span>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="target_group" value="student" checked
+                                       class="mr-1" onchange="switchTargetGroup()">
+                                <span class="px-3 py-1 text-sm rounded border border-blue-500 bg-blue-50 text-blue-700 font-medium">학생</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="target_group" value="parent"
+                                       class="mr-1" onchange="switchTargetGroup()">
+                                <span class="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 font-medium">학부모</span>
+                            </label>
+                        </div>
+
+                        <!-- 필터 (학생용) -->
+                        <div id="studentFilters" class="mb-3 flex flex-wrap gap-3">
+                            <select id="gradeFilter" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onchange="filterRecipients()">
+                                <option value="">전체 학년</option>
+                                <option value="초1">초1</option>
+                                <option value="초2">초2</option>
+                                <option value="초3">초3</option>
+                                <option value="초4">초4</option>
+                                <option value="초5">초5</option>
+                                <option value="초6">초6</option>
+                                <option value="중1">중1</option>
+                                <option value="중2">중2</option>
+                                <option value="중3">중3</option>
+                                <option value="고1">고1</option>
+                                <option value="고2">고2</option>
+                                <option value="고3">고3</option>
+                            </select>
+                            <input type="text" id="nameSearch" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-40"
+                                   placeholder="이름 검색..." oninput="filterRecipients()">
+                        </div>
+
+                        <!-- 필터 (학부모용 - 자녀 이름/학년 기준) -->
+                        <div id="parentFilters" class="mb-3 flex flex-wrap gap-3" style="display:none;">
+                            <select id="parentGradeFilter" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onchange="filterParents()">
+                                <option value="">자녀 전체 학년</option>
+                                <option value="초1">초1</option>
+                                <option value="초2">초2</option>
+                                <option value="초3">초3</option>
+                                <option value="초4">초4</option>
+                                <option value="초5">초5</option>
+                                <option value="초6">초6</option>
+                                <option value="중1">중1</option>
+                                <option value="중2">중2</option>
+                                <option value="중3">중3</option>
+                                <option value="고1">고1</option>
+                                <option value="고2">고2</option>
+                                <option value="고3">고3</option>
+                            </select>
+                            <input type="text" id="childNameSearch" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-40"
+                                   placeholder="자녀 이름 검색..." oninput="filterParents()">
+                        </div>
+
+                        <!-- 전체 선택/해제 버튼 -->
                         <div class="mb-2">
                             <button type="button" onclick="selectAll()" class="text-blue-600 hover:text-blue-800 text-sm font-medium mr-3">
                                 전체 선택
@@ -96,26 +156,67 @@
                                 전체 해제
                             </button>
                         </div>
-                        <div class="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
+
+                        <!-- 학생 목록 -->
+                        <div id="studentList" class="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
                             {% if students %}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2" id="studentGrid">
                                 {% for student in students %}
-                                <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                <label class="recipient-item flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+                                       data-name="{{ student.name }}" data-grade="{{ student.grade }}">
                                     <input type="checkbox" name="recipients[]" value="{{ student.student_id }}"
                                            class="mr-2 recipient-checkbox" onchange="updateRecipientCount()">
                                     <span class="text-sm text-gray-800">
-                                        {{ student.name }} ({{ student.grade }})
+                                        {{ student.name }}
+                                        <span class="text-gray-500">({{ student.grade }})</span>
                                         {% if student.phone %}
-                                        <span class="text-gray-500">- {{ student.phone }}</span>
+                                        <span class="text-gray-400 text-xs"> {{ student.phone }}</span>
+                                        {% else %}
+                                        <span class="text-red-400 text-xs"> 번호없음</span>
                                         {% endif %}
                                     </span>
                                 </label>
                                 {% endfor %}
                             </div>
                             {% else %}
-                            <p class="text-gray-500 text-center py-4">연락처가 등록된 학생이 없습니다.</p>
+                            <p class="text-gray-500 text-center py-4">등록된 학생이 없습니다.</p>
                             {% endif %}
                         </div>
+
+                        <!-- 학부모 목록 (기본 숨김) -->
+                        <div id="parentList" class="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto" style="display:none;">
+                            {% if parents_with_children %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2" id="parentGrid">
+                                {% for item in parents_with_children %}
+                                <label class="parent-item flex items-start p-2 hover:bg-gray-50 rounded cursor-pointer"
+                                       data-child-names="{{ item.children | map(attribute='name') | join(',') }}"
+                                       data-child-grades="{{ item.children | map(attribute='grade') | join(',') }}">
+                                    <input type="checkbox" name="recipients[]" value="{{ item.parent.user_id }}"
+                                           class="mr-2 mt-0.5 recipient-checkbox" onchange="updateRecipientCount()">
+                                    <span class="text-sm text-gray-800">
+                                        {{ item.parent.name }}
+                                        {% if item.children %}
+                                        <span class="text-gray-500 text-xs ml-1">
+                                            (자녀:
+                                            {% for child in item.children %}{{ child.name }}({{ child.grade }}){% if not loop.last %}, {% endif %}{% endfor %})
+                                        </span>
+                                        {% else %}
+                                        <span class="text-gray-400 text-xs ml-1">(자녀 미등록)</span>
+                                        {% endif %}
+                                        {% if item.parent.phone %}
+                                        <span class="text-gray-400 text-xs"> {{ item.parent.phone }}</span>
+                                        {% else %}
+                                        <span class="text-red-400 text-xs"> 번호없음</span>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-500 text-center py-4">등록된 학부모가 없습니다.</p>
+                            {% endif %}
+                        </div>
+
                         <p class="mt-2 text-sm text-gray-600">
                             선택된 수신자: <span id="recipientCount" class="font-medium text-blue-600">0</span>명
                         </p>
@@ -216,18 +317,74 @@ function updateCharCount() {
 function toggleRecipientType() {
     const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
     const recipientSelect = document.getElementById('recipientSelect');
+    recipientSelect.style.display = (recipientType === 'all') ? 'none' : 'block';
+}
 
-    if (recipientType === 'all') {
-        recipientSelect.style.display = 'none';
+function switchTargetGroup() {
+    const group = document.querySelector('input[name="target_group"]:checked').value;
+    const studentList = document.getElementById('studentList');
+    const parentList = document.getElementById('parentList');
+    const studentFilters = document.getElementById('studentFilters');
+    const parentFilters = document.getElementById('parentFilters');
+
+    // 언체크 모든 체크박스
+    deselectAll();
+
+    if (group === 'student') {
+        studentList.style.display = 'block';
+        parentList.style.display = 'none';
+        studentFilters.style.display = 'flex';
+        parentFilters.style.display = 'none';
     } else {
-        recipientSelect.style.display = 'block';
+        studentList.style.display = 'none';
+        parentList.style.display = 'block';
+        studentFilters.style.display = 'none';
+        parentFilters.style.display = 'flex';
     }
+
+    // 토글 버튼 스타일 업데이트
+    document.querySelectorAll('input[name="target_group"]').forEach(radio => {
+        const span = radio.nextElementSibling;
+        if (radio.checked) {
+            span.className = 'px-3 py-1 text-sm rounded border border-blue-500 bg-blue-50 text-blue-700 font-medium';
+        } else {
+            span.className = 'px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 font-medium';
+        }
+    });
+}
+
+function filterRecipients() {
+    const grade = document.getElementById('gradeFilter').value;
+    const name = document.getElementById('nameSearch').value.toLowerCase();
+
+    document.querySelectorAll('.recipient-item').forEach(item => {
+        const itemName = item.dataset.name.toLowerCase();
+        const itemGrade = item.dataset.grade;
+        const matchGrade = !grade || itemGrade === grade;
+        const matchName = !name || itemName.includes(name);
+        item.style.display = (matchGrade && matchName) ? '' : 'none';
+    });
+}
+
+function filterParents() {
+    const grade = document.getElementById('parentGradeFilter').value;
+    const name = document.getElementById('childNameSearch').value.toLowerCase();
+    document.querySelectorAll('.parent-item').forEach(item => {
+        const childNames = (item.dataset.childNames || '').toLowerCase();
+        const childGrades = item.dataset.childGrades || '';
+        const matchName = !name || childNames.includes(name);
+        const matchGrade = !grade || childGrades.split(',').some(g => g.trim() === grade);
+        item.style.display = (matchName && matchGrade) ? '' : 'none';
+    });
 }
 
 function selectAll() {
-    document.querySelectorAll('.recipient-checkbox').forEach(checkbox => {
-        checkbox.checked = true;
-    });
+    const group = document.querySelector('input[name="target_group"]:checked').value;
+    if (group === 'student') {
+        document.querySelectorAll('#studentList .recipient-item:not([style*="none"]) .recipient-checkbox').forEach(cb => cb.checked = true);
+    } else {
+        document.querySelectorAll('#parentList .parent-item:not([style*="none"]) .recipient-checkbox').forEach(cb => cb.checked = true);
+    }
     updateRecipientCount();
 }
 

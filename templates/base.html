@@ -157,13 +157,19 @@
                     <a href="{{ url_for('library.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library' in request.endpoint %}active{% endif %}">
                         <span class="text-xl">📖</span>
-                        <span>학습 자료실</span>
+                        <span>모모 게시판</span>
                     </a>
 
                     <a href="{{ url_for('community.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'community' in request.endpoint %}active{% endif %}">
                         <span class="text-xl">💬</span>
                         <span>커뮤니티</span>
+                    </a>
+
+                    <a href="{{ url_for('news.hub') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'news.' in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">📰</span>
+                        <span>모모 소식</span>
                     </a>
                     {% endif %}
                 </div>
@@ -258,6 +264,10 @@
                             <a href="{{ url_for('admin.parent_list') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['admin.parent_list', 'admin.edit_parent'] %}text-green-600 bg-green-50{% endif %}">
                                 학부모 관리
+                            </a>
+                            <a href="{{ url_for('admin.account_management') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['admin.account_management'] %}text-green-600 bg-green-50{% endif %}">
+                                🔒 아이디 관리
                             </a>
                             <a href="{{ url_for('admin.parent_link_requests') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.parent_link' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
@@ -395,6 +405,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.messages_manage' %}text-yellow-600 bg-yellow-50{% endif %}">
                                 📢 수업 공지 및 메세지
                             </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📬 문의 관리
+                            </a>
                         </div>
                     </div>
 
@@ -437,7 +451,7 @@
                             </a>
                             <a href="{{ url_for('library.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.index' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
-                                학습 자료실
+                                모모 게시판
                             </a>
                             <a href="{{ url_for('library.create_hall_of_fame') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
@@ -506,6 +520,10 @@
                             <a href="{{ url_for('teacher.class_messages') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.class_messages' %}text-blue-600 bg-blue-50{% endif %}">
                                 수업 공지 및 메세지
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                📬 문의 관리
                             </a>
                         </div>
                     </div>
@@ -799,6 +817,10 @@
                                 <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.feedback }}</span>
                                 {% endif %}
                             </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📬 문의 게시판
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -1007,6 +1029,13 @@
                             </a>
                         </div>
                     </div>
+
+                    <!-- 모모 소식 (최상위 메뉴) -->
+                    <a href="{{ url_for('news.hub') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'news.' in request.endpoint %}active{% endif %} mt-2">
+                        <span class="text-xl">📰</span>
+                        <span>모모 소식</span>
+                    </a>
                 </div>
                 {% endif %}
 

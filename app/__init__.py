@@ -185,6 +185,12 @@ def create_app(config_name='default'):
     from app.zoom import zoom_bp
     app.register_blueprint(zoom_bp, url_prefix='/zoom')
 
+    from app.inquiry import inquiry_bp
+    app.register_blueprint(inquiry_bp)
+
+    from app.news import news_bp
+    app.register_blueprint(news_bp)
+
     # Context processor: 미읽은 알림 카운트 주입
     @app.context_processor
     def inject_unread_counts():

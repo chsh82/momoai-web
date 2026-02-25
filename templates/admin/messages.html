@@ -66,11 +66,26 @@
                 <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>실패</option>
             </select>
 
+            {% if senders %}
+            <select name="sender_id" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">전체 발신자</option>
+                {% for sender in senders %}
+                <option value="{{ sender.user_id }}" {% if sender_id_filter == sender.user_id %}selected{% endif %}>
+                    {{ sender.name }} ({{ '관리자' if sender.role == 'admin' else '강사' }})
+                </option>
+                {% endfor %}
+            </select>
+            {% endif %}
+
+            <input type="text" name="search" value="{{ search }}"
+                   class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-48"
+                   placeholder="제목/내용 검색...">
+
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
                 필터 적용
             </button>
 
-            {% if status_filter or type_filter %}
+            {% if status_filter or type_filter or sender_id_filter or search %}
             <a href="{{ url_for('admin.messages') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition duration-200">
                 필터 초기화
             </a>
@@ -87,6 +102,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">유형</th>
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">제목/내용</th>
+                        {% if senders %}<th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">발신자</th>{% endif %}
                         <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">수신자</th>
                         <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">성공/실패</th>
                         <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">상태</th>
@@ -117,6 +133,11 @@
                                 </p>
                             </div>
                         </td>
+                        {% if senders %}
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {{ message.sender.name if message.sender else '-' }}
+                        </td>
+                        {% endif %}
                         <td class="px-6 py-4 text-center">
                             <span class="font-medium text-gray-800">{{ message.total_recipients }}명</span>
                         </td>

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ content_type }} 편집 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ back_url }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← 돌아가기</a>
+        <h2 class="text-3xl font-bold text-gray-800 mt-1">{{ content_type }} 편집</h2>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="POST" action="{{ save_url }}">
+            <!-- 제목 -->
+            <div class="mb-5">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                <input type="text" id="title" name="title"
+                       value="{{ content.title or content_type }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="제목을 입력해주세요">
+            </div>
+
+            <!-- 내용 -->
+            <div class="mb-6">
+                <label for="content" class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                <textarea id="content" name="content" rows="20"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                          placeholder="내용을 입력해주세요 (줄바꿈 그대로 표시됩니다)">{{ content.content or '' }}</textarea>
+                <p class="text-xs text-gray-400 mt-1">줄바꿈과 들여쓰기가 그대로 표시됩니다.</p>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 rounded-lg transition">
+                    저장
+                </button>
+                <a href="{{ back_url }}"
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-8 py-3 rounded-lg transition">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

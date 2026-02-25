@@ -126,10 +126,71 @@ def books():
 @login_required
 def book_detail(book_id):
     """추천도서 상세"""
+    from app.models.book import BookRating
     book = Book.query.get_or_404(book_id)
 
+    # 현재 사용자의 기존 평점 조회
+    my_rating = None
+    if current_user.role == 'student':
+        my_rating = BookRating.query.filter_by(
+            book_id=book_id, user_id=current_user.user_id
+        ).first()
+
     return render_template('library/book_detail.html',
-                         book=book)
+                         book=book,
+                         my_rating=my_rating)
+
+
+@library_bp.route('/books/<book_id>/rate', methods=['POST'])
+@login_required
+def rate_book(book_id):
+    """도서 평점 등록/수정 (학생만)"""
+    if current_user.role != 'student':
+        return jsonify({'success': False, 'message': '학생만 평점을 등록할 수 있습니다.'}), 403
+
+    book = Book.query.get_or_404(book_id)
+    from app.models.book import BookRating
+
+    data = request.get_json(silent=True) or {}
+    try:
+        fun_score = int(data.get('fun_score', 0))
+        usefulness_score = int(data.get('usefulness_score', 0))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'message': '점수 형식이 올바르지 않습니다.'}), 400
+
+    if not (1 <= fun_score <= 5 and 1 <= usefulness_score <= 5):
+        return jsonify({'success': False, 'message': '점수는 1~5 사이여야 합니다.'}), 400
+
+    existing = BookRating.query.filter_by(
+        book_id=book_id, user_id=current_user.user_id
+    ).first()
+
+    if existing:
+        existing.fun_score = fun_score
+        existing.usefulness_score = usefulness_score
+        is_update = True
+    else:
+        rating = BookRating(
+            book_id=book_id,
+            user_id=current_user.user_id,
+            fun_score=fun_score,
+            usefulness_score=usefulness_score
+        )
+        db.session.add(rating)
+        is_update = False
+
+    db.session.commit()
+
+    # 갱신된 통계 반환
+    db.session.refresh(book)
+    return jsonify({
+        'success': True,
+        'message': '평점이 수정되었습니다.' if is_update else '평점이 등록되었습니다.',
+        'avg_score': book.avg_score,
+        'avg_fun': book.avg_fun_score,
+        'avg_usefulness': book.avg_usefulness_score,
+        'rating_count': book.rating_count
+    })
 
 
 # ==================== 명예의 전당 ====================
@@ -349,7 +410,9 @@ def create_book():
                 category=request.form.get('category') or None,
                 description=request.form.get('description') or None,
                 recommendation_reason=request.form.get('recommendation_reason') or None,
-                cover_image_url=request.form.get('cover_image_url') or None
+                cover_image_url=request.form.get('cover_image_url') or None,
+                is_curriculum=bool(request.form.get('is_curriculum')),
+                is_recommended=bool(request.form.get('is_recommended'))
             )
 
             db.session.add(book)
@@ -382,6 +445,8 @@ def edit_book(book_id):
             book.description = request.form.get('description') or None
             book.recommendation_reason = request.form.get('recommendation_reason') or None
             book.cover_image_url = request.form.get('cover_image_url') or None
+            book.is_curriculum = bool(request.form.get('is_curriculum'))
+            book.is_recommended = bool(request.form.get('is_recommended'))
 
             db.session.commit()
 

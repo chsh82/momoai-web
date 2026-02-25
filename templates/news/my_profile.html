@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}강사 소개 수정 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('news.teachers') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← 강사 소개 목록</a>
+        <h2 class="text-3xl font-bold text-gray-800 mt-1">내 강사 소개 수정</h2>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="POST">
+            <!-- 소개 내용 -->
+            <div class="mb-5">
+                <label for="teacher_intro" class="block text-sm font-medium text-gray-700 mb-2">
+                    소개 내용
+                </label>
+                <textarea id="teacher_intro" name="teacher_intro" rows="15"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="강사 소개를 자유롭게 작성해주세요.&#10;(전공, 경력, 교육 철학 등)">{{ current_user.teacher_intro or '' }}</textarea>
+            </div>
+
+            <!-- 공개 여부 -->
+            <div class="mb-6">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="teacher_intro_public" value="1"
+                           {% if current_user.teacher_intro_public %}checked{% endif %}
+                           class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                    <span class="text-sm text-gray-700">강사 소개 목록에 공개</span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1 ml-6">체크 시 모든 로그인 사용자에게 공개됩니다.</p>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 rounded-lg transition">
+                    저장
+                </button>
+                <a href="{{ url_for('news.teachers') }}"
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-8 py-3 rounded-lg transition">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

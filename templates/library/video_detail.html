@@ -66,7 +66,7 @@
     </div>
 
     <!-- Admin Edit Button -->
-    {% if current_user.has_permission_level(2) %}
+    {% if current_user.role == 'admin' %}
     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <div class="flex items-center justify-between">
             <span class="text-sm text-gray-600">관리자 전용</span>

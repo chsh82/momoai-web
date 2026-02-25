@@ -10,7 +10,7 @@
             <h2 class="text-3xl font-bold text-gray-800">📖 추천도서</h2>
             <p class="text-gray-600 mt-2">학생들에게 추천하는 도서 목록입니다</p>
         </div>
-        {% if current_user.has_permission_level(2) %}
+        {% if current_user.role == 'admin' %}
         <a href="{{ url_for('library.create_book') }}"
            class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2">
             <span class="text-xl">✏️</span>
@@ -26,7 +26,7 @@
         <a href="{{ url_for('library.book_detail', book_id=book.book_id) }}"
            class="block group">
             <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition duration-300">
-                <div class="bg-gray-100 overflow-hidden aspect-[3/4] flex items-center justify-center">
+                <div class="bg-gray-100 overflow-hidden aspect-[3/4] flex items-center justify-center relative">
                     {% if book.cover_image %}
                     <img src="{{ book.cover_image }}"
                          alt="{{ book.title }}"
@@ -34,14 +34,37 @@
                     {% else %}
                     <span class="text-6xl">📕</span>
                     {% endif %}
+                    <!-- 뱃지 -->
+                    {% if book.is_curriculum or book.is_recommended %}
+                    <div class="absolute top-2 left-2 flex flex-col gap-1">
+                        {% if book.is_curriculum %}
+                        <span class="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded shadow">수업도서</span>
+                        {% endif %}
+                        {% if book.is_recommended %}
+                        <span class="px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded shadow">추천도서</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="p-4">
-                    <h3 class="font-semibold text-gray-800 group-hover:text-blue-600 transition duration-200 line-clamp-2 mb-2">
+                    <h3 class="font-semibold text-gray-800 group-hover:text-blue-600 transition duration-200 line-clamp-2 mb-1">
                         {{ book.title }}
                     </h3>
-                    <p class="text-sm text-gray-600 mb-2">{{ book.author }}</p>
+                    <p class="text-sm text-gray-600 mb-1">{{ book.author }}</p>
                     {% if book.publisher %}
-                    <p class="text-xs text-gray-500">{{ book.publisher }}</p>
+                    <p class="text-xs text-gray-500 mb-2">{{ book.publisher }}</p>
+                    {% endif %}
+                    <!-- 별점 표시 -->
+                    {% if book.avg_score %}
+                    <div class="flex items-center gap-1 mt-1">
+                        {% set full_stars = book.avg_score | round | int %}
+                        {% for i in range(1, 6) %}
+                            <span class="{% if i <= full_stars %}text-yellow-400{% else %}text-gray-300{% endif %} text-sm leading-none">★</span>
+                        {% endfor %}
+                        <span class="text-xs text-gray-500 ml-1">{{ book.avg_score }} <span class="text-gray-400">({{ book.rating_count }}명)</span></span>
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-gray-400 mt-1">평점 없음</p>
                     {% endif %}
                 </div>
             </div>

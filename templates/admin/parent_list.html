@@ -125,7 +125,7 @@
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <a href="{{ url_for('admin.edit_parent', parent_id=item.user.user_id) }}"
                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">수정</a>
                                     <span class="text-gray-300">|</span>
@@ -140,6 +140,17 @@
                                             비밀번호 초기화
                                         </button>
                                     </form>
+                                    {% if current_user.role_level == 1 %}
+                                    <span class="text-gray-300">|</span>
+                                    <form method="POST"
+                                          action="{{ url_for('admin.delete_parent', parent_id=item.user.user_id) }}"
+                                          onsubmit="return confirm('{{ item.user.name }} 계정을 완전 삭제하시겠습니까? 복원 불가합니다.')">
+                                        <button type="submit"
+                                                class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded">
+                                            완전 삭제
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

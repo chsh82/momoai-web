@@ -11,9 +11,11 @@
             <a href="{{ url_for('community.bookmarks') }}" class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
                 🔖 내 북마크
             </a>
+            {% if current_user.role == 'admin' %}
             <a href="{{ url_for('community.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
                 + 새 글 작성
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -167,9 +169,11 @@
         <div class="text-6xl mb-4">💬</div>
         <h3 class="text-xl font-bold text-gray-800 mb-2">게시글이 없습니다</h3>
         <p class="text-gray-600 mb-6">첫 게시글을 작성해보세요.</p>
+        {% if current_user.role == 'admin' %}
         <a href="{{ url_for('community.new') }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
             + 첫 글 작성하기
         </a>
+        {% endif %}
     </div>
     {% endif %}
 </div>

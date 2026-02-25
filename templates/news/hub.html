@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}모모 소식 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">📰 모모 소식</h2>
+        <p class="text-gray-500 mt-1">모모의 강좌, 강사, 학원 소개를 확인하세요.</p>
+    </div>
+
+    <!-- 카드 그리드 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 강좌 소개 -->
+        <a href="{{ url_for('news.courses') }}"
+           class="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-8 text-center group">
+            <div class="text-5xl mb-4">📚</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">강좌 소개</h3>
+            <p class="text-gray-500 text-sm">모모의 다양한 강좌 프로그램을 소개합니다.</p>
+            <div class="mt-4 text-blue-600 text-sm font-medium">자세히 보기 →</div>
+        </a>
+
+        <!-- 강사 소개 -->
+        <a href="{{ url_for('news.teachers') }}"
+           class="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-8 text-center group">
+            <div class="text-5xl mb-4">👨‍🏫</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2 group-hover:text-green-600 transition-colors">강사 소개</h3>
+            <p class="text-gray-500 text-sm">열정 넘치는 모모의 강사진을 소개합니다.</p>
+            <div class="mt-4 text-green-600 text-sm font-medium">자세히 보기 →</div>
+        </a>
+
+        <!-- 모모 소개 -->
+        <a href="{{ url_for('news.about') }}"
+           class="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-8 text-center group">
+            <div class="text-5xl mb-4">🏫</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2 group-hover:text-purple-600 transition-colors">모모 소개</h3>
+            <p class="text-gray-500 text-sm">모모 학원의 교육 철학과 비전을 소개합니다.</p>
+            <div class="mt-4 text-purple-600 text-sm font-medium">자세히 보기 →</div>
+        </a>
+    </div>
+
+    <!-- 강사 편집 바로가기 -->
+    {% if current_user.role == 'teacher' %}
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+        <div>
+            <p class="text-blue-900 font-medium">강사 소개 페이지를 작성해보세요</p>
+            <p class="text-blue-700 text-sm">본인의 소개를 등록하면 강사 소개 목록에 표시됩니다.</p>
+        </div>
+        <a href="{{ url_for('news.my_profile') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            소개 작성하기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
