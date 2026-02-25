@@ -64,8 +64,20 @@
 
     <!-- 강사 목록 -->
     <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <h3 class="text-xl font-bold text-gray-800">강사 목록</h3>
+            <div class="flex gap-2">
+                <a href="?role={{ role_filter }}&sort=name"
+                   class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
+                          {% if sort == 'name' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    가나다순
+                </a>
+                <a href="?role={{ role_filter }}&sort=newest"
+                   class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
+                          {% if sort != 'name' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    최신순
+                </a>
+            </div>
         </div>
         <div class="p-6">
             {% if staff_members %}

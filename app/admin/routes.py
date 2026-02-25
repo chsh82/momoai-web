@@ -3056,20 +3056,26 @@ def staff_list():
     """직원 목록 (강사/관리자)"""
     role_filter = request.args.get('role', 'all')
     
+    sort = request.args.get('sort', 'newest')
+
     query = User.query.filter(User.role.in_(['teacher', 'admin']))
-    
+
     if role_filter != 'all':
         query = query.filter(User.role == role_filter)
-    
-    staff_members = query.order_by(User.created_at.desc()).all()
-    
+
+    if sort == 'name':
+        staff_members = query.order_by(User.name).all()
+    else:
+        staff_members = query.order_by(User.created_at.desc()).all()
+
     # 통계
     teacher_count = User.query.filter(User.role == 'teacher').count()
     admin_count = User.query.filter(User.role == 'admin').count()
-    
+
     return render_template('admin/staff_list.html',
                          staff_members=staff_members,
                          role_filter=role_filter,
+                         sort=sort,
                          teacher_count=teacher_count,
                          admin_count=admin_count)
 
