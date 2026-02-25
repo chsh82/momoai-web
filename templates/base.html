@@ -148,22 +148,10 @@
                         <span>알림</span>
                     </a>
 
-                    {% if current_user.role == 'admin' %}
-                    <!-- 관리자 전용 공통 메뉴: 제거됨 (역할별 포털 사용) -->
-                    {% endif %}
-
-                    {% if current_user.role in ['admin', 'teacher'] %}
-                    <!-- 관리자/강사 공통 메뉴 -->
                     <a href="{{ url_for('library.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library' in request.endpoint %}active{% endif %}">
                         <span class="text-xl">📖</span>
                         <span>모모 게시판</span>
-                    </a>
-
-                    <a href="{{ url_for('community.index') }}"
-                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'community' in request.endpoint %}active{% endif %}">
-                        <span class="text-xl">💬</span>
-                        <span>커뮤니티</span>
                     </a>
 
                     <a href="{{ url_for('news.hub') }}"
@@ -171,7 +159,12 @@
                         <span class="text-xl">📰</span>
                         <span>모모 소식</span>
                     </a>
-                    {% endif %}
+
+                    <a href="{{ url_for('community.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'community' in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">💬</span>
+                        <span>커뮤니티</span>
+                    </a>
                 </div>
             </nav>
 
