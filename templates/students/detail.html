@@ -85,6 +85,14 @@
                 <div class="text-lg font-medium text-gray-800">{{ student.phone }}</div>
             </div>
             {% endif %}
+            {% if student.country %}
+            <div>
+                <div class="text-sm text-gray-600 mb-1">거주 지역</div>
+                <div class="text-lg font-medium text-gray-800">
+                    📍 {{ student.country }}{% if student.city %} · {{ student.city }}{% endif %}
+                </div>
+            </div>
+            {% endif %}
             <div>
                 <div class="text-sm text-gray-600 mb-1">등록일</div>
                 <div class="text-lg font-medium text-gray-800">{{ student.created_at.strftime('%Y-%m-%d') }}</div>
