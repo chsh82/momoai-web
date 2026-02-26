@@ -9,6 +9,11 @@ from app.models import db, Student
 from app.utils.report_generator import ReportGenerator
 
 
+def _get_course_models():
+    from app.models.course import Course, CourseEnrollment
+    return Course, CourseEnrollment
+
+
 @students_bp.route('/')
 @login_required
 def index():
@@ -160,11 +165,75 @@ def detail(student_id):
             if radar_data['thinking_types'] or radar_data['integrated_indicators']:
                 radar_data['has_data'] = True
 
+    # 수강 현황 및 입반 가능 수업 조회
+    Course, CourseEnrollment = _get_course_models()
+    current_enrollments = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).join(Course).order_by(Course.course_name).all()
+
+    enrolled_course_ids = [e.course_id for e in current_enrollments]
+    available_courses = Course.query.filter(
+        ~Course.course_id.in_(enrolled_course_ids),
+        Course.is_terminated == False
+    ).order_by(Course.grade, Course.course_name).all()
+
     return render_template('students/detail.html',
                          student=student,
                          essays=essays,
                          score_data=score_data,
-                         radar_data=radar_data)
+                         radar_data=radar_data,
+                         current_enrollments=current_enrollments,
+                         available_courses=available_courses)
+
+
+@students_bp.route('/<student_id>/enroll', methods=['POST'])
+@login_required
+def enroll(student_id):
+    """학생 수강반 입반"""
+    student = Student.query.get_or_404(student_id)
+    is_admin = current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)
+    if not is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('students.index'))
+
+    course_id = request.form.get('course_id')
+    if not course_id:
+        flash('수강반을 선택하세요.', 'error')
+        return redirect(url_for('students.detail', student_id=student_id))
+
+    from app.models.course import Course, CourseEnrollment
+    course = Course.query.get_or_404(course_id)
+
+    if course.is_full:
+        flash(f'"{course.course_name}" 수업은 정원이 초과되었습니다.', 'error')
+        return redirect(url_for('students.detail', student_id=student_id))
+
+    from app.utils.course_utils import enroll_student_to_course
+    enrollment = enroll_student_to_course(course_id, student_id)
+    if enrollment:
+        db.session.commit()
+        flash(f'"{course.course_name}" 수업에 입반 완료되었습니다.', 'success')
+    else:
+        flash('이미 해당 수업에 등록된 학생입니다.', 'error')
+
+    return redirect(url_for('students.detail', student_id=student_id))
+
+
+@students_bp.route('/<student_id>/unenroll/<enrollment_id>', methods=['POST'])
+@login_required
+def unenroll(student_id, enrollment_id):
+    """학생 수강반 퇴반"""
+    is_admin = current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)
+    if not is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('students.index'))
+
+    from app.models.course import CourseEnrollment
+    enrollment = CourseEnrollment.query.get_or_404(enrollment_id)
+    enrollment.status = 'dropped'
+    db.session.commit()
+    flash('수강반에서 퇴반 처리되었습니다.', 'info')
+    return redirect(url_for('students.detail', student_id=student_id))
 
 
 @students_bp.route('/<student_id>/edit', methods=['GET', 'POST'])

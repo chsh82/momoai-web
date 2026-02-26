@@ -104,6 +104,11 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
+                                <button type="button"
+                                        onclick="openTeacherEditModal('{{ post.board_id }}', {{ post.title|tojson }}, {{ post.content|tojson }}, {{ '1' if post.is_notice else '0' }})"
+                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition">
+                                    수정
+                                </button>
                                 <form method="POST" action="{{ url_for('admin.board_teacher_toggle_notice', post_id=post.board_id) }}">
                                     <button type="submit" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">
                                         {{ '공지해제' if post.is_notice else '공지설정' }}
@@ -155,4 +160,52 @@
         {% endif %}
     </div>
 </div>
+
+<!-- 강사 게시글 수정 모달 -->
+<div id="teacherEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h4 class="text-lg font-bold text-gray-800">게시글 수정</h4>
+            <button onclick="document.getElementById('teacherEditModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="teacherEditForm" method="POST">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+                <input type="text" name="title" id="teacherEditTitle" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">내용 <span class="text-red-500">*</span></label>
+                <textarea name="content" id="teacherEditContent" rows="7" required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
+            </div>
+            <div class="mb-5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="is_notice" id="teacherEditIsNotice" value="1" class="w-4 h-4 text-yellow-500">
+                    <span class="text-sm text-gray-700">공지글로 설정</span>
+                </label>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                    저장
+                </button>
+                <button type="button" onclick="document.getElementById('teacherEditModal').classList.add('hidden')"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openTeacherEditModal(postId, title, content, isNotice) {
+    document.getElementById('teacherEditForm').action = '/admin/boards/teacher/posts/' + postId + '/edit';
+    document.getElementById('teacherEditTitle').value = title;
+    document.getElementById('teacherEditContent').value = content;
+    document.getElementById('teacherEditIsNotice').checked = (isNotice == 1);
+    document.getElementById('teacherEditModal').classList.remove('hidden');
+}
+</script>
 {% endblock %}

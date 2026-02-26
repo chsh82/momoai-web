@@ -115,12 +115,19 @@
                             {{ post.created_at.strftime('%Y-%m-%d') }}
                         </td>
                         <td class="px-4 py-3">
-                            <form method="POST" action="{{ url_for('admin.board_class_delete_post', post_id=post.post_id) }}"
-                                  onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
-                                <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
-                                    삭제
+                            <div class="flex items-center gap-3">
+                                <button type="button"
+                                        onclick="openClassEditModal('{{ post.post_id }}', {{ post.title|tojson }}, {{ post.content|tojson }}, '{{ post.post_type }}', {{ '1' if post.is_notice else '0' }}, {{ '1' if post.is_pinned else '0' }})"
+                                        class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">
+                                    수정
                                 </button>
-                            </form>
+                                <form method="POST" action="{{ url_for('admin.board_class_delete_post', post_id=post.post_id) }}"
+                                      onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
+                                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
+                                        삭제
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -160,4 +167,70 @@
         {% endif %}
     </div>
 </div>
+
+<!-- 클래스 게시글 수정 모달 -->
+<div id="classEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h4 class="text-lg font-bold text-gray-800">게시글 수정</h4>
+            <button onclick="document.getElementById('classEditModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="classEditForm" method="POST">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+                <input type="text" name="title" id="classEditTitle" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">내용 <span class="text-red-500">*</span></label>
+                <textarea name="content" id="classEditContent" rows="6" required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"></textarea>
+            </div>
+            <div class="flex items-center gap-6 mb-5">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">유형</label>
+                    <select name="post_type" id="classEditType"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="question">질문</option>
+                        <option value="notice">공지</option>
+                        <option value="material">자료</option>
+                        <option value="discussion">토론</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-4 pt-5">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="is_notice" id="classEditIsNotice" value="1" class="w-4 h-4">
+                        <span class="text-sm text-gray-700">공지</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="is_pinned" id="classEditIsPinned" value="1" class="w-4 h-4">
+                        <span class="text-sm text-gray-700">고정</span>
+                    </label>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                    저장
+                </button>
+                <button type="button" onclick="document.getElementById('classEditModal').classList.add('hidden')"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openClassEditModal(postId, title, content, postType, isNotice, isPinned) {
+    document.getElementById('classEditForm').action = '/admin/boards/class/posts/' + postId + '/edit';
+    document.getElementById('classEditTitle').value = title;
+    document.getElementById('classEditContent').value = content;
+    document.getElementById('classEditType').value = postType;
+    document.getElementById('classEditIsNotice').checked = (isNotice == 1);
+    document.getElementById('classEditIsPinned').checked = (isPinned == 1);
+    document.getElementById('classEditModal').classList.remove('hidden');
+}
+</script>
 {% endblock %}

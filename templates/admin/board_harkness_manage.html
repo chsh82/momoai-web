@@ -92,12 +92,19 @@
                             {{ board.created_at.strftime('%Y-%m-%d') }}
                         </td>
                         <td class="px-4 py-3">
-                            <form method="POST" action="{{ url_for('admin.board_harkness_toggle_active', board_id=board.board_id) }}">
-                                <button type="submit" class="text-sm font-medium transition
-                                    {% if board.is_active %}text-red-600 hover:text-red-800{% else %}text-green-600 hover:text-green-800{% endif %}">
-                                    {{ '비활성화' if board.is_active else '활성화' }}
+                            <div class="flex items-center gap-3">
+                                <button type="button"
+                                        onclick="openHarknessBoardEditModal('{{ board.board_id }}', {{ board.title|tojson }}, {{ (board.description or '')|tojson }})"
+                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition">
+                                    수정
                                 </button>
-                            </form>
+                                <form method="POST" action="{{ url_for('admin.board_harkness_toggle_active', board_id=board.board_id) }}">
+                                    <button type="submit" class="text-sm font-medium transition
+                                        {% if board.is_active %}text-red-600 hover:text-red-800{% else %}text-blue-600 hover:text-blue-800{% endif %}">
+                                        {{ '비활성화' if board.is_active else '활성화' }}
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -179,12 +186,19 @@
                             {{ post.created_at.strftime('%Y-%m-%d') }}
                         </td>
                         <td class="px-4 py-3">
-                            <form method="POST" action="{{ url_for('admin.board_harkness_delete_post', post_id=post.post_id) }}"
-                                  onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
-                                <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
-                                    삭제
+                            <div class="flex items-center gap-3">
+                                <button type="button"
+                                        onclick="openHarknessPostEditModal('{{ post.post_id }}', {{ post.title|tojson }}, {{ (post.content or '')|tojson }}, {{ '1' if post.is_notice else '0' }})"
+                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition">
+                                    수정
                                 </button>
-                            </form>
+                                <form method="POST" action="{{ url_for('admin.board_harkness_delete_post', post_id=post.post_id) }}"
+                                      onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
+                                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800 transition">
+                                        삭제
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -224,4 +238,92 @@
         {% endif %}
     </div>
 </div>
+
+<!-- 하크니스 게시판 수정 모달 -->
+<div id="harknessBoardEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h4 class="text-lg font-bold text-gray-800">게시판 수정</h4>
+            <button onclick="document.getElementById('harknessBoardEditModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="harknessBoardEditForm" method="POST">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">게시판 이름 <span class="text-red-500">*</span></label>
+                <input type="text" name="title" id="harknessBoardEditTitle" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            </div>
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                <textarea name="description" id="harknessBoardEditDesc" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize-y"
+                          placeholder="게시판 설명 (선택)"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                    저장
+                </button>
+                <button type="button" onclick="document.getElementById('harknessBoardEditModal').classList.add('hidden')"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 하크니스 게시글 수정 모달 -->
+<div id="harknessPostEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h4 class="text-lg font-bold text-gray-800">게시글 수정</h4>
+            <button onclick="document.getElementById('harknessPostEditModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="harknessPostEditForm" method="POST">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+                <input type="text" name="title" id="harknessPostEditTitle" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">내용</label>
+                <textarea name="content" id="harknessPostEditContent" rows="6"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize-y"></textarea>
+            </div>
+            <div class="mb-5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="is_notice" id="harknessPostEditIsNotice" value="1" class="w-4 h-4 text-yellow-500">
+                    <span class="text-sm text-gray-700">공지글로 설정</span>
+                </label>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                    저장
+                </button>
+                <button type="button" onclick="document.getElementById('harknessPostEditModal').classList.add('hidden')"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openHarknessBoardEditModal(boardId, title, description) {
+    document.getElementById('harknessBoardEditForm').action = '/admin/boards/harkness/boards/' + boardId + '/edit';
+    document.getElementById('harknessBoardEditTitle').value = title;
+    document.getElementById('harknessBoardEditDesc').value = description;
+    document.getElementById('harknessBoardEditModal').classList.remove('hidden');
+}
+
+function openHarknessPostEditModal(postId, title, content, isNotice) {
+    document.getElementById('harknessPostEditForm').action = '/admin/boards/harkness/posts/' + postId + '/edit';
+    document.getElementById('harknessPostEditTitle').value = title;
+    document.getElementById('harknessPostEditContent').value = content;
+    document.getElementById('harknessPostEditIsNotice').checked = (isNotice == 1);
+    document.getElementById('harknessPostEditModal').classList.remove('hidden');
+}
+</script>
 {% endblock %}

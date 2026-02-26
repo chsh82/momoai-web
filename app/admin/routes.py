@@ -3385,6 +3385,27 @@ def board_class_manage():
                            total_comments=total_comments)
 
 
+@admin_bp.route('/boards/class/posts/<post_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_class_edit_post(post_id):
+    """클래스 게시판 게시글 수정 (관리자)"""
+    from app.models.class_board import ClassBoardPost
+
+    post = ClassBoardPost.query.get_or_404(post_id)
+    post.title = request.form.get('title', post.title).strip()
+    post.content = request.form.get('content', post.content).strip()
+    post.post_type = request.form.get('post_type', post.post_type)
+    post.is_notice = request.form.get('is_notice') == '1'
+    post.is_pinned = request.form.get('is_pinned') == '1'
+    db.session.commit()
+
+    flash(f'"{post.title}" 게시글이 수정되었습니다.', 'success')
+    return redirect(url_for('admin.board_class_manage',
+                            page=request.args.get('page', 1),
+                            search=request.args.get('search', '')))
+
+
 @admin_bp.route('/boards/class/posts/<post_id>/delete', methods=['POST'])
 @login_required
 @requires_permission_level(2)
@@ -3429,6 +3450,25 @@ def board_teacher_manage():
                            pagination=pagination,
                            search=search,
                            total_posts=total_posts)
+
+
+@admin_bp.route('/boards/teacher/posts/<post_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_teacher_edit_post(post_id):
+    """강사 게시판 게시글 수정 (관리자)"""
+    from app.models.teacher_board import TeacherBoard
+
+    post = TeacherBoard.query.get_or_404(post_id)
+    post.title = request.form.get('title', post.title).strip()
+    post.content = request.form.get('content', post.content).strip()
+    post.is_notice = request.form.get('is_notice') == '1'
+    db.session.commit()
+
+    flash(f'"{post.title}" 게시글이 수정되었습니다.', 'success')
+    return redirect(url_for('admin.board_teacher_manage',
+                            page=request.args.get('page', 1),
+                            search=request.args.get('search', '')))
 
 
 @admin_bp.route('/boards/teacher/posts/<post_id>/delete', methods=['POST'])
@@ -3503,6 +3543,22 @@ def board_harkness_manage():
                            total_posts=total_posts)
 
 
+@admin_bp.route('/boards/harkness/boards/<board_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_harkness_edit_board(board_id):
+    """하크니스 게시판 수정 (관리자)"""
+    from app.models.harkness_board import HarknessBoard
+
+    board = HarknessBoard.query.get_or_404(board_id)
+    board.title = request.form.get('title', board.title).strip()
+    board.description = request.form.get('description', board.description or '').strip() or None
+    db.session.commit()
+
+    flash(f'"{board.title}" 게시판이 수정되었습니다.', 'success')
+    return redirect(url_for('admin.board_harkness_manage'))
+
+
 @admin_bp.route('/boards/harkness/boards/<board_id>/toggle-active', methods=['POST'])
 @login_required
 @requires_permission_level(2)
@@ -3517,6 +3573,25 @@ def board_harkness_toggle_active(board_id):
     status = '활성화' if board.is_active else '비활성화'
     flash(f'"{board.title}" 게시판이 {status}되었습니다.', 'success')
     return redirect(url_for('admin.board_harkness_manage'))
+
+
+@admin_bp.route('/boards/harkness/posts/<post_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_harkness_edit_post(post_id):
+    """하크니스 게시글 수정 (관리자)"""
+    from app.models.harkness_board import HarknessPost
+
+    post = HarknessPost.query.get_or_404(post_id)
+    post.title = request.form.get('title', post.title).strip()
+    post.content = request.form.get('content', post.content or '').strip() or None
+    post.is_notice = request.form.get('is_notice') == '1'
+    db.session.commit()
+
+    flash(f'"{post.title}" 게시글이 수정되었습니다.', 'success')
+    return redirect(url_for('admin.board_harkness_manage',
+                            page=request.args.get('page', 1),
+                            search=request.args.get('search', '')))
 
 
 @admin_bp.route('/boards/harkness/posts/<post_id>/delete', methods=['POST'])
