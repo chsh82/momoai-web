@@ -248,6 +248,7 @@
                     class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
         <form id="harknessBoardEditForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">게시판 이름 <span class="text-red-500">*</span></label>
                 <input type="text" name="title" id="harknessBoardEditTitle" required
@@ -281,6 +282,7 @@
                     class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
         <form id="harknessPostEditForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
                 <input type="text" name="title" id="harknessPostEditTitle" required

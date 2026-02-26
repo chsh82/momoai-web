@@ -177,6 +177,7 @@
                     class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
         <form id="classEditForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
                 <input type="text" name="title" id="classEditTitle" required
