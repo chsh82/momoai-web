@@ -34,7 +34,31 @@ class GeminiOCRService:
                 """
             )
 
-    def extract_and_analyze(self, image_path):
+    def _log_gemini_usage(self, response, user_id=None, essay_id=None, usage_type='ocr'):
+        """Gemini API 사용량 로그 저장"""
+        try:
+            from app.models.api_usage_log import ApiUsageLog
+            from app.models import db
+            meta = getattr(response, 'usage_metadata', None)
+            input_tok  = getattr(meta, 'prompt_token_count',     0) if meta else 0
+            output_tok = getattr(meta, 'candidates_token_count', 0) if meta else 0
+            cost = ApiUsageLog.calc_gemini_cost(self.model_name, input_tok, output_tok)
+            log = ApiUsageLog(
+                user_id=user_id,
+                api_type='gemini',
+                model_name=self.model_name,
+                usage_type=usage_type,
+                essay_id=essay_id,
+                input_tokens=input_tok,
+                output_tokens=output_tok,
+                cost_usd=cost,
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as e:
+            print(f"[Gemini 사용량 로그 저장 실패] {e}")
+
+    def extract_and_analyze(self, image_path, user_id=None, essay_id=None):
         """
         이미지 또는 PDF에서 텍스트 추출 + 내용 분석 + 맞춤법 교정
 
@@ -85,6 +109,7 @@ class GeminiOCRService:
             original_text = result.get('original_text', '텍스트 추출 실패')
             summary = result.get('summary', '분석 불가')
             corrected_text = result.get('corrected_text', '교정 불가')
+            self._log_gemini_usage(response, user_id=user_id, essay_id=essay_id, usage_type='ocr')
 
         except Exception as e:
             print(f"[Gemini Error] {str(e)}")

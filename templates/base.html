@@ -262,6 +262,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['admin.account_management'] %}text-green-600 bg-green-50{% endif %}">
                                 🔒 아이디 관리
                             </a>
+                            <a href="{{ url_for('admin.api_usage_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'admin.api_usage_dashboard' %}text-green-600 bg-green-50{% endif %}">
+                                📊 API 사용량
+                            </a>
                             <a href="{{ url_for('admin.parent_link_requests') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.parent_link' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 학부모 연결 관리

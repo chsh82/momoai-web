@@ -98,7 +98,10 @@ v3.3.0 필수 포함 사항:
                      notes: Optional[str] = None,
                      revision_note: Optional[str] = None,
                      teacher_name: Optional[str] = None,
-                     is_revision_of_completed: bool = False) -> str:
+                     is_revision_of_completed: bool = False,
+                     user_id: Optional[str] = None,
+                     essay_id: Optional[str] = None,
+                     usage_type: str = 'correction') -> str:
         """
         논술문 분석 및 HTML 리포트 생성
 
@@ -126,9 +129,15 @@ v3.3.0 필수 포함 사항:
         print(f"{'='*60}\n")
 
         with _api_semaphore:  # 동시 2개 제한 — 나머지는 여기서 대기
-            return self._call_api_with_retry(student_name, grade, user_prompt)
+            return self._call_api_with_retry(
+                student_name, grade, user_prompt,
+                user_id=user_id,
+                essay_id=essay_id,
+                usage_type=usage_type,
+            )
 
-    def _call_api_with_retry(self, student_name: str, grade: str, user_prompt: str) -> str:
+    def _call_api_with_retry(self, student_name: str, grade: str, user_prompt: str,
+                              user_id=None, essay_id=None, usage_type='correction') -> str:
         """Rate Limit 에러 시 최대 3회 재시도 (30초 간격)"""
         max_retries = 3
         retry_delays = [30, 60, 120]  # 초
@@ -183,6 +192,29 @@ v3.3.0 필수 포함 사항:
                     print(f"캐시 읽기: {cache_read:,} 토큰 (캐싱 활용!)")
                     print(f"💰 비용 절감: 약 90% (캐싱된 토큰 무료)")
                 print(f"{'='*60}\n")
+
+                # 사용량 로그 저장
+                try:
+                    from app.models.api_usage_log import ApiUsageLog
+                    input_tok = getattr(usage, 'input_tokens', 0)
+                    cost = ApiUsageLog.calc_claude_cost(
+                        input_tok, output_tokens, cache_read, cache_creation)
+                    log = ApiUsageLog(
+                        user_id=user_id,
+                        api_type='claude',
+                        model_name='claude-sonnet-4-6',
+                        usage_type=usage_type,
+                        essay_id=essay_id,
+                        input_tokens=input_tok,
+                        output_tokens=output_tokens,
+                        cache_read_tokens=cache_read,
+                        cache_write_tokens=cache_creation,
+                        cost_usd=cost,
+                    )
+                    db.session.add(log)
+                    db.session.commit()
+                except Exception as log_err:
+                    print(f"[사용량 로그 저장 실패] {log_err}")
 
                 # Extract HTML from response
                 html_content = response.content[0].text
@@ -336,7 +368,10 @@ v3.3.0 필수 포함 사항:
                 grade=essay.grade,
                 essay_text=essay.original_text,
                 notes=notes,
-                teacher_name=teacher_name
+                teacher_name=teacher_name,
+                user_id=essay.user_id,
+                essay_id=essay.essay_id,
+                usage_type='correction',
             )
 
             # HTML 저장
@@ -434,7 +469,10 @@ v3.3.0 필수 포함 사항:
                 notes=notes,
                 revision_note=revision_note,
                 teacher_name=teacher_name,
-                is_revision_of_completed=is_revision_of_completed
+                is_revision_of_completed=is_revision_of_completed,
+                user_id=essay.user_id,
+                essay_id=essay.essay_id,
+                usage_type='regeneration',
             )
 
             # HTML 저장

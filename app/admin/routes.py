@@ -4968,6 +4968,128 @@ def messages_manage():
     )
 
 
+# ==================== API 사용량 대시보드 ====================
+
+@admin_bp.route('/api-usage')
+@login_required
+@requires_permission_level(1)
+def api_usage_dashboard():
+    """Claude / Gemini API 월별 사용량 대시보드"""
+    from app.models.api_usage_log import ApiUsageLog
+    from sqlalchemy import extract, func
+
+    # 월 선택 파라미터
+    today = date.today()
+    year  = request.args.get('year',  today.year,  type=int)
+    month = request.args.get('month', today.month, type=int)
+
+    base_q = ApiUsageLog.query.filter(
+        extract('year',  ApiUsageLog.created_at) == year,
+        extract('month', ApiUsageLog.created_at) == month,
+    )
+
+    # ── 요약 통계 ─────────────────────────────────────────
+    def summary(api_type=None):
+        q = base_q
+        if api_type:
+            q = q.filter(ApiUsageLog.api_type == api_type)
+        row = q.with_entities(
+            func.count(ApiUsageLog.id),
+            func.sum(ApiUsageLog.input_tokens),
+            func.sum(ApiUsageLog.output_tokens),
+            func.sum(ApiUsageLog.cache_read_tokens),
+            func.sum(ApiUsageLog.cache_write_tokens),
+            func.sum(ApiUsageLog.cost_usd),
+        ).first()
+        return {
+            'count':        row[0] or 0,
+            'input_tokens': row[1] or 0,
+            'output_tokens':row[2] or 0,
+            'cache_read':   row[3] or 0,
+            'cache_write':  row[4] or 0,
+            'cost_usd':     round(row[5] or 0, 4),
+        }
+
+    total_stats  = summary()
+    claude_stats = summary('claude')
+    gemini_stats = summary('gemini')
+
+    # ── 일별 추이 (당월) ──────────────────────────────────
+    daily_rows = base_q.with_entities(
+        extract('day', ApiUsageLog.created_at).label('day'),
+        ApiUsageLog.api_type,
+        func.sum(ApiUsageLog.cost_usd).label('cost'),
+        func.count(ApiUsageLog.id).label('cnt'),
+    ).group_by('day', ApiUsageLog.api_type).order_by('day').all()
+
+    import calendar
+    days_in_month = calendar.monthrange(year, month)[1]
+    daily_claude = [0.0] * (days_in_month + 1)
+    daily_gemini = [0.0] * (days_in_month + 1)
+    for row in daily_rows:
+        d = int(row.day)
+        if row.api_type == 'claude':
+            daily_claude[d] = round(row.cost or 0, 4)
+        else:
+            daily_gemini[d] = round(row.cost or 0, 4)
+
+    # ── 계정별 사용량 ─────────────────────────────────────
+    user_rows = base_q.with_entities(
+        ApiUsageLog.user_id,
+        ApiUsageLog.api_type,
+        func.count(ApiUsageLog.id).label('cnt'),
+        func.sum(ApiUsageLog.input_tokens + ApiUsageLog.output_tokens).label('total_tok'),
+        func.sum(ApiUsageLog.cost_usd).label('cost'),
+    ).group_by(ApiUsageLog.user_id, ApiUsageLog.api_type).all()
+
+    # user_id → User 매핑
+    uid_set = {r.user_id for r in user_rows if r.user_id}
+    users_map = {u.user_id: u for u in User.query.filter(User.user_id.in_(uid_set)).all()}
+
+    user_stats = {}   # user_id → {name, role, claude:{}, gemini:{}}
+    for r in user_rows:
+        uid = r.user_id or '(미확인)'
+        if uid not in user_stats:
+            u = users_map.get(uid)
+            user_stats[uid] = {
+                'name': u.name if u else '(알 수 없음)',
+                'role': u.role if u else '-',
+                'claude': {'cnt': 0, 'total_tok': 0, 'cost': 0.0},
+                'gemini': {'cnt': 0, 'total_tok': 0, 'cost': 0.0},
+            }
+        key = r.api_type if r.api_type in ('claude', 'gemini') else 'claude'
+        user_stats[uid][key]['cnt']       += r.cnt or 0
+        user_stats[uid][key]['total_tok'] += int(r.total_tok or 0)
+        user_stats[uid][key]['cost']      += round(r.cost or 0, 4)
+
+    user_list = sorted(user_stats.values(),
+                       key=lambda x: x['claude']['cost'] + x['gemini']['cost'],
+                       reverse=True)
+
+    # ── 월 선택용 목록 ────────────────────────────────────
+    month_options = []
+    for i in range(12):
+        d = today.replace(day=1) - timedelta(days=1) * (i * 30)
+        month_options.append({'year': d.year, 'month': d.month,
+                               'label': f"{d.year}년 {d.month}월"})
+
+    USD_TO_KRW = 1400
+
+    return render_template(
+        'admin/api_usage.html',
+        year=year, month=month,
+        total_stats=total_stats,
+        claude_stats=claude_stats,
+        gemini_stats=gemini_stats,
+        daily_claude=daily_claude[1:],
+        daily_gemini=daily_gemini[1:],
+        days_in_month=days_in_month,
+        user_list=user_list,
+        month_options=month_options,
+        USD_TO_KRW=USD_TO_KRW,
+    )
+
+
 # ==================== 아이디 관리 ====================
 
 @admin_bp.route('/account-management')

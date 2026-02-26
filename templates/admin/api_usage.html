@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}API 사용량 - MOMOAI v4.0{% endblock %}
+{% block page_title %}📊 API 사용량 대시보드{% endblock %}
+{% block page_subtitle %}<span class="text-sm text-white text-opacity-70 ml-3">Claude · Gemini 월별 토큰 및 비용</span>{% endblock %}
+
+{% block chart_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- 월 선택 -->
+    <div class="flex items-center gap-3 mb-6">
+        <form method="GET" class="flex items-center gap-2">
+            <select name="year" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                {% for opt in month_options %}
+                <option value="{{ opt.year }}"  {% if opt.year == year and opt.month == month %}selected{% endif %}
+                        data-month="{{ opt.month }}">{{ opt.year }}</option>
+                {% endfor %}
+            </select>
+            <select name="month" id="monthSel" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}월</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">조회</button>
+        </form>
+        <span class="text-gray-500 text-sm ml-2">현재: <strong>{{ year }}년 {{ month }}월</strong></span>
+    </div>
+
+    <!-- 요약 카드 3개 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+
+        <!-- 합계 -->
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-indigo-500">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide">전체 합계</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">${{ "%.4f"|format(total_stats.cost_usd) }}</p>
+                    <p class="text-sm text-gray-500">≈ {{ "{:,.0f}".format((total_stats.cost_usd * USD_TO_KRW)|round) }}원</p>
+                </div>
+                <span class="text-3xl">💰</span>
+            </div>
+            <div class="text-xs text-gray-500 space-y-0.5">
+                <div>총 호출 <strong>{{ total_stats.count }}건</strong></div>
+                <div>입력 토큰 <strong>{{ "{:,}".format(total_stats.input_tokens) }}</strong></div>
+                <div>출력 토큰 <strong>{{ "{:,}".format(total_stats.output_tokens) }}</strong></div>
+            </div>
+        </div>
+
+        <!-- Claude -->
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-orange-400">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <p class="text-xs font-semibold text-orange-500 uppercase tracking-wide">Claude (첨삭)</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">${{ "%.4f"|format(claude_stats.cost_usd) }}</p>
+                    <p class="text-sm text-gray-500">≈ {{ "{:,.0f}".format((claude_stats.cost_usd * USD_TO_KRW)|round) }}원</p>
+                </div>
+                <span class="text-3xl">🤖</span>
+            </div>
+            <div class="text-xs text-gray-500 space-y-0.5">
+                <div>호출 <strong>{{ claude_stats.count }}건</strong></div>
+                <div>출력 토큰 <strong>{{ "{:,}".format(claude_stats.output_tokens) }}</strong></div>
+                <div>캐시 절감 <strong>{{ "{:,}".format(claude_stats.cache_read) }}</strong> 토큰</div>
+            </div>
+        </div>
+
+        <!-- Gemini -->
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-400">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide">Gemini (OCR)</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">${{ "%.4f"|format(gemini_stats.cost_usd) }}</p>
+                    <p class="text-sm text-gray-500">≈ {{ "{:,.0f}".format((gemini_stats.cost_usd * USD_TO_KRW)|round) }}원</p>
+                </div>
+                <span class="text-3xl">🔍</span>
+            </div>
+            <div class="text-xs text-gray-500 space-y-0.5">
+                <div>호출 <strong>{{ gemini_stats.count }}건</strong></div>
+                <div>입력 토큰 <strong>{{ "{:,}".format(gemini_stats.input_tokens) }}</strong></div>
+                <div>출력 토큰 <strong>{{ "{:,}".format(gemini_stats.output_tokens) }}</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 일별 비용 차트 -->
+    <div class="bg-white rounded-xl shadow p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">📈 일별 비용 추이 ({{ year }}년 {{ month }}월)</h3>
+        <canvas id="dailyChart" height="80"></canvas>
+    </div>
+
+    <!-- 계정별 사용량 -->
+    <div class="bg-white rounded-xl shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-800">👤 계정별 사용량</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                        <th class="px-5 py-3 text-left">이름 / 역할</th>
+                        <th class="px-5 py-3 text-right">Claude 호출</th>
+                        <th class="px-5 py-3 text-right">Claude 토큰</th>
+                        <th class="px-5 py-3 text-right">Claude 비용</th>
+                        <th class="px-5 py-3 text-right">Gemini 호출</th>
+                        <th class="px-5 py-3 text-right">Gemini 토큰</th>
+                        <th class="px-5 py-3 text-right">Gemini 비용</th>
+                        <th class="px-5 py-3 text-right font-bold">합계</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for u in user_list %}
+                    {% set total = u.claude.cost + u.gemini.cost %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-5 py-3">
+                            <div class="font-medium text-gray-800">{{ u.name }}</div>
+                            <div class="text-xs text-gray-400">{{ u.role }}</div>
+                        </td>
+                        <td class="px-5 py-3 text-right text-gray-600">{{ u.claude.cnt }}건</td>
+                        <td class="px-5 py-3 text-right text-gray-600">{{ "{:,}".format(u.claude.total_tok) }}</td>
+                        <td class="px-5 py-3 text-right text-orange-600 font-medium">
+                            ${{ "%.4f"|format(u.claude.cost) }}
+                            <div class="text-xs text-gray-400">{{ "{:,.0f}".format((u.claude.cost * USD_TO_KRW)|round) }}원</div>
+                        </td>
+                        <td class="px-5 py-3 text-right text-gray-600">{{ u.gemini.cnt }}건</td>
+                        <td class="px-5 py-3 text-right text-gray-600">{{ "{:,}".format(u.gemini.total_tok) }}</td>
+                        <td class="px-5 py-3 text-right text-blue-600 font-medium">
+                            ${{ "%.4f"|format(u.gemini.cost) }}
+                            <div class="text-xs text-gray-400">{{ "{:,.0f}".format((u.gemini.cost * USD_TO_KRW)|round) }}원</div>
+                        </td>
+                        <td class="px-5 py-3 text-right font-bold text-indigo-700">
+                            ${{ "%.4f"|format(total) }}
+                            <div class="text-xs font-normal text-gray-500">{{ "{:,.0f}".format((total * USD_TO_KRW)|round) }}원</div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-5 py-12 text-center text-gray-400">
+                            이번 달 사용 기록이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="text-xs text-gray-400 text-right">* 환율 기준: 1 USD = {{ USD_TO_KRW }}원 (고정값, 참고용)</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labels  = Array.from({length: {{ days_in_month }}}, (_, i) => i + 1);
+const claude  = {{ daily_claude | tojson }};
+const gemini  = {{ daily_gemini | tojson }};
+
+new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [
+            {
+                label: 'Claude ($)',
+                data: claude,
+                backgroundColor: 'rgba(251,146,60,0.7)',
+                borderColor: 'rgba(251,146,60,1)',
+                borderWidth: 1,
+                borderRadius: 4,
+            },
+            {
+                label: 'Gemini ($)',
+                data: gemini,
+                backgroundColor: 'rgba(96,165,250,0.7)',
+                borderColor: 'rgba(96,165,250,1)',
+                borderWidth: 1,
+                borderRadius: 4,
+            },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ` $${ctx.parsed.y.toFixed(4)}`
+                }
+            }
+        },
+        scales: {
+            x: { stacked: false },
+            y: {
+                beginAtZero: true,
+                ticks: { callback: v => `$${v}` }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

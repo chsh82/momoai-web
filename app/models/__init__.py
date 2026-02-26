@@ -46,6 +46,7 @@ from app.models.inquiry import InquiryPost, InquiryReply
 from app.models.site_content import SiteContent
 from app.models.ace_evaluation import WeeklyEvaluation, AceEvaluation, ACE_AXES, ACE_ALL_ITEMS
 from app.models.notification_reply import NotificationReply
+from app.models.api_usage_log import ApiUsageLog
 
 __all__ = [
     'db',
