@@ -4978,6 +4978,12 @@ def api_usage_dashboard():
     from app.models.api_usage_log import ApiUsageLog
     from sqlalchemy import extract, func
 
+    # 테이블이 없으면 자동 생성
+    try:
+        ApiUsageLog.query.limit(1).all()
+    except Exception:
+        db.create_all()
+
     # 월 선택 파라미터
     today = date.today()
     year  = request.args.get('year',  today.year,  type=int)
