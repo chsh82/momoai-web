@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """MOMOAI 첨삭 서비스 (SQLAlchemy 연동)"""
 import anthropic
+import threading
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple
@@ -8,6 +10,9 @@ from flask import current_app
 
 from app.models import db, Essay, EssayVersion, EssayResult, EssayScore, EssayNote
 from app.essays.score_parser import get_parser
+
+# 동시 API 호출 제한 (최대 2개 동시 처리, 나머지는 큐 대기)
+_api_semaphore = threading.Semaphore(2)
 
 
 class MOMOAIService:
@@ -116,85 +121,116 @@ v3.3.0 필수 포함 사항:
             teacher_name, is_revision_of_completed
         )
 
-        try:
-            print(f"\n{'='*60}")
-            print(f"[첨삭 시작] {student_name} 학생 - {grade}")
-            print(f"System prompt 길이: {len(self.system_prompt):,} chars")
-            print(f"User prompt 길이: {len(user_prompt):,} chars")
-            print(f"{'='*60}\n")
+        print(f"\n{'='*60}")
+        print(f"[첨삭 대기] {student_name} 학생 - {grade} (슬롯 획득 시도)")
+        print(f"{'='*60}\n")
 
-            start_time = time.time()
+        with _api_semaphore:  # 동시 2개 제한 — 나머지는 여기서 대기
+            return self._call_api_with_retry(student_name, grade, user_prompt)
 
-            # Prompt Caching 적용: system prompt를 5분간 캐싱
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=20000,
-                timeout=600.0,
-                system=[
-                    {
-                        "type": "text",
-                        "text": self.system_prompt,
-                        "cache_control": {"type": "ephemeral"}  # 5분간 캐싱
-                    }
-                ],
-                messages=[
-                    {"role": "user", "content": user_prompt}
-                ]
-            )
+    def _call_api_with_retry(self, student_name: str, grade: str, user_prompt: str) -> str:
+        """Rate Limit 에러 시 최대 3회 재시도 (30초 간격)"""
+        max_retries = 3
+        retry_delays = [30, 60, 120]  # 초
 
-            elapsed_time = time.time() - start_time
+        for attempt in range(max_retries + 1):
+            try:
+                print(f"\n{'='*60}")
+                print(f"[첨삭 시작] {student_name} 학생 - {grade}"
+                      + (f" (재시도 {attempt}/{max_retries})" if attempt > 0 else ""))
+                print(f"System prompt 길이: {len(self.system_prompt):,} chars")
+                print(f"User prompt 길이: {len(user_prompt):,} chars")
+                print(f"{'='*60}\n")
 
-            # 캐싱 정보 출력
-            usage = response.usage
-            cache_creation = getattr(usage, 'cache_creation_input_tokens', 0)
-            cache_read = getattr(usage, 'cache_read_input_tokens', 0)
-            output_tokens = getattr(usage, 'output_tokens', 0)
-            stop_reason = response.stop_reason
+                start_time = time.time()
 
-            print(f"\n{'='*60}")
-            print(f"[첨삭 완료] API 호출 시간: {elapsed_time:.2f}초")
-            print(f"응답 길이: {len(response.content[0].text):,} chars")
-            print(f"출력 토큰: {output_tokens:,} / 20000")
-            print(f"Stop reason: {stop_reason}")
-            if stop_reason == 'max_tokens':
-                print(f"⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
-            if cache_creation > 0:
-                print(f"캐시 생성: {cache_creation:,} 토큰 (첫 요청)")
-            if cache_read > 0:
-                print(f"캐시 읽기: {cache_read:,} 토큰 (캐싱 활용!)")
-                print(f"💰 비용 절감: 약 90% (캐싱된 토큰 무료)")
-            print(f"{'='*60}\n")
+                # Prompt Caching 적용: system prompt를 5분간 캐싱
+                response = self.client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=20000,
+                    timeout=600.0,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": self.system_prompt,
+                            "cache_control": {"type": "ephemeral"}  # 5분간 캐싱
+                        }
+                    ],
+                    messages=[
+                        {"role": "user", "content": user_prompt}
+                    ]
+                )
 
-            # Extract HTML from response
-            html_content = response.content[0].text
+                elapsed_time = time.time() - start_time
 
-            # Remove markdown code blocks if present
-            if '```html' in html_content:
-                start = html_content.find('```html') + 7
-                end = html_content.find('```', start)
-                if end != -1:
-                    html_content = html_content[start:end].strip()
-            elif '```' in html_content:
-                start = html_content.find('```') + 3
-                end = html_content.find('```', start)
-                if end != -1:
-                    html_content = html_content[start:end].strip()
+                # 캐싱 정보 출력
+                usage = response.usage
+                cache_creation = getattr(usage, 'cache_creation_input_tokens', 0)
+                cache_read = getattr(usage, 'cache_read_input_tokens', 0)
+                output_tokens = getattr(usage, 'output_tokens', 0)
+                stop_reason = response.stop_reason
 
-            # Find DOCTYPE or <html tag
-            if '<!DOCTYPE' in html_content or '<html' in html_content:
-                if '<!DOCTYPE' in html_content:
-                    html_start = html_content.find('<!DOCTYPE')
-                    html_content = html_content[html_start:]
-                elif '<html' in html_content:
-                    html_start = html_content.find('<html')
-                    html_content = html_content[html_start:]
+                print(f"\n{'='*60}")
+                print(f"[첨삭 완료] API 호출 시간: {elapsed_time:.2f}초")
+                print(f"응답 길이: {len(response.content[0].text):,} chars")
+                print(f"출력 토큰: {output_tokens:,} / 20000")
+                print(f"Stop reason: {stop_reason}")
+                if stop_reason == 'max_tokens':
+                    print(f"⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
+                if cache_creation > 0:
+                    print(f"캐시 생성: {cache_creation:,} 토큰 (첫 요청)")
+                if cache_read > 0:
+                    print(f"캐시 읽기: {cache_read:,} 토큰 (캐싱 활용!)")
+                    print(f"💰 비용 절감: 약 90% (캐싱된 토큰 무료)")
+                print(f"{'='*60}\n")
 
-                return html_content
-            else:
-                raise Exception("API 응답에서 HTML을 찾을 수 없습니다.")
+                # Extract HTML from response
+                html_content = response.content[0].text
 
-        except Exception as e:
-            raise Exception(f"첨삭 중 오류가 발생했습니다: {e}")
+                # Remove markdown code blocks if present
+                if '```html' in html_content:
+                    start = html_content.find('```html') + 7
+                    end = html_content.find('```', start)
+                    if end != -1:
+                        html_content = html_content[start:end].strip()
+                elif '```' in html_content:
+                    start = html_content.find('```') + 3
+                    end = html_content.find('```', start)
+                    if end != -1:
+                        html_content = html_content[start:end].strip()
+
+                # Find DOCTYPE or <html tag
+                if '<!DOCTYPE' in html_content or '<html' in html_content:
+                    if '<!DOCTYPE' in html_content:
+                        html_start = html_content.find('<!DOCTYPE')
+                        html_content = html_content[html_start:]
+                    elif '<html' in html_content:
+                        html_start = html_content.find('<html')
+                        html_content = html_content[html_start:]
+                    return html_content
+                else:
+                    raise Exception("API 응답에서 HTML을 찾을 수 없습니다.")
+
+            except anthropic.RateLimitError as e:
+                # Rate Limit: 재시도
+                if attempt < max_retries:
+                    wait = retry_delays[attempt]
+                    print(f"⚠️ [Rate Limit] {wait}초 후 재시도 ({attempt+1}/{max_retries})...")
+                    time.sleep(wait)
+                    continue
+                raise Exception(f"API 요청 한도 초과 (재시도 {max_retries}회 실패): {e}")
+
+            except anthropic.APIStatusError as e:
+                # 5xx 서버 에러: 재시도
+                if e.status_code >= 500 and attempt < max_retries:
+                    wait = retry_delays[attempt]
+                    print(f"⚠️ [서버 에러 {e.status_code}] {wait}초 후 재시도 ({attempt+1}/{max_retries})...")
+                    time.sleep(wait)
+                    continue
+                raise Exception(f"첨삭 중 API 오류가 발생했습니다: {e}")
+
+            except Exception as e:
+                raise Exception(f"첨삭 중 오류가 발생했습니다: {e}")
 
     def save_html(self, html_content: str, filename: str) -> str:
         """

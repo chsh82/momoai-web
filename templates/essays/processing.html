@@ -123,6 +123,7 @@ function checkStatus() {
             if (data.status === 'reviewing' || data.status === 'completed') {
                 // 완료됨 - 결과 페이지로 이동
                 document.getElementById('statusText').textContent = '첨삭이 완료되었습니다!';
+                document.getElementById('statusText').classList.add('text-green-600');
                 setTimeout(() => {
                     window.location.href = `/essays/result/${essayId}`;
                 }, 1000);
@@ -138,7 +139,15 @@ function checkStatus() {
                 document.getElementById('statusText').textContent = '처리 시간이 초과되었습니다. 새로고침 후 다시 확인해주세요.';
                 document.getElementById('statusText').classList.add('text-orange-600');
             } else {
-                // 계속 진행 중
+                // 큐 대기 현황 표시
+                const el = document.getElementById('statusText');
+                if (data.queue_waiting > 0) {
+                    el.textContent = `앞에 ${data.queue_waiting}건이 처리 중입니다. 순서대로 진행됩니다...`;
+                    el.className = 'text-xl font-bold text-orange-600 mb-2';
+                } else {
+                    el.textContent = 'AI가 논술문을 분석 중입니다...';
+                    el.className = 'text-xl font-bold text-gray-800 mb-2';
+                }
                 setTimeout(checkStatus, 2000); // 2초마다 체크
             }
         })

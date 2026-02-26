@@ -883,11 +883,20 @@ def api_status(essay_id):
     if not _can_access_essay(essay):
         return jsonify({'error': '접근 권한이 없습니다.'}), 403
 
+    # 현재 처리 중인 총 건수 (큐 대기 현황)
+    from app.essays.momoai_service import _api_semaphore
+    processing_count = Essay.query.filter_by(status='processing').count()
+    # 세마포어 여유 슬롯 계산 (최대 2)
+    available_slots = _api_semaphore._value
+    queue_waiting = max(0, processing_count - available_slots)
+
     return jsonify({
         'essay_id': essay.essay_id,
         'status': essay.status,
         'current_version': essay.current_version,
-        'is_finalized': essay.is_finalized
+        'is_finalized': essay.is_finalized,
+        'processing_count': processing_count,
+        'queue_waiting': queue_waiting,
     })
 
 
