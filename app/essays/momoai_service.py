@@ -147,7 +147,7 @@ v3.3.0 필수 포함 사항:
                 # Prompt Caching 적용: system prompt를 5분간 캐싱
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=20000,
+                    max_tokens=25000,
                     timeout=600.0,
                     system=[
                         {
