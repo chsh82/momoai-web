@@ -3559,6 +3559,22 @@ def board_harkness_edit_board(board_id):
     return redirect(url_for('admin.board_harkness_manage'))
 
 
+@admin_bp.route('/boards/harkness/boards/<board_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def board_harkness_delete_board(board_id):
+    """하크니스 게시판 삭제 (관리자) — 하위 게시글 포함 cascade 삭제"""
+    from app.models.harkness_board import HarknessBoard
+
+    board = HarknessBoard.query.get_or_404(board_id)
+    board_title = board.title
+    db.session.delete(board)
+    db.session.commit()
+
+    flash(f'"{board_title}" 게시판이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.board_harkness_manage'))
+
+
 @admin_bp.route('/boards/harkness/boards/<board_id>/toggle-active', methods=['POST'])
 @login_required
 @requires_permission_level(2)

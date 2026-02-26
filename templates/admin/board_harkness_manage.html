@@ -271,6 +271,14 @@
                         class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition">취소</button>
             </div>
         </form>
+        <form id="harknessBoardDeleteForm" method="POST" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    onclick="return confirm('게시판을 삭제하면 하위 게시글도 모두 삭제됩니다. 계속하시겠습니까?')"
+                    class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg text-sm transition border border-red-200">
+                게시판 삭제
+            </button>
+        </form>
     </div>
 </div>
 
@@ -323,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             var d = btn.dataset;
             document.getElementById('harknessBoardEditForm').action = '/admin/boards/harkness/boards/' + d.boardId + '/edit';
+            document.getElementById('harknessBoardDeleteForm').action = '/admin/boards/harkness/boards/' + d.boardId + '/delete';
             document.getElementById('harknessBoardEditTitle').value = d.title;
             document.getElementById('harknessBoardEditDesc').value = d.description;
             document.getElementById('harknessBoardEditModal').classList.remove('hidden');
