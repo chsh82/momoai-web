@@ -3563,11 +3563,31 @@ def board_harkness_edit_board(board_id):
 @login_required
 @requires_permission_level(2)
 def board_harkness_delete_board(board_id):
-    """하크니스 게시판 삭제 (관리자) — 하위 게시글 포함 cascade 삭제"""
-    from app.models.harkness_board import HarknessBoard
+    """하크니스 게시판 삭제 (관리자) — 하위 레코드 수동 삭제 후 게시판 삭제"""
+    from app.models.harkness_board import (
+        HarknessBoard, HarknessPost, HarknessComment,
+        HarknessPostLike, HarknessQuestionLike
+    )
 
     board = HarknessBoard.query.get_or_404(board_id)
     board_title = board.title
+
+    post_ids = [p.post_id for p in
+                HarknessPost.query.filter_by(board_id=board_id)
+                .with_entities(HarknessPost.post_id).all()]
+
+    if post_ids:
+        HarknessQuestionLike.query.filter(
+            HarknessQuestionLike.post_id.in_(post_ids)
+        ).delete(synchronize_session=False)
+        HarknessPostLike.query.filter(
+            HarknessPostLike.post_id.in_(post_ids)
+        ).delete(synchronize_session=False)
+        HarknessComment.query.filter(
+            HarknessComment.post_id.in_(post_ids)
+        ).delete(synchronize_session=False)
+        HarknessPost.query.filter_by(board_id=board_id).delete(synchronize_session=False)
+
     db.session.delete(board)
     db.session.commit()
 
