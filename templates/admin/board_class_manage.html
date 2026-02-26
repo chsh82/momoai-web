@@ -117,8 +117,13 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <button type="button"
-                                        onclick="openClassEditModal('{{ post.post_id }}', {{ post.title|tojson }}, {{ post.content|tojson }}, '{{ post.post_type }}', {{ '1' if post.is_notice else '0' }}, {{ '1' if post.is_pinned else '0' }})"
-                                        class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">
+                                        class="text-sm font-medium text-blue-600 hover:text-blue-800 transition btn-class-edit"
+                                        data-post-id="{{ post.post_id }}"
+                                        data-title="{{ post.title|e }}"
+                                        data-content="{{ post.content|e }}"
+                                        data-post-type="{{ post.post_type }}"
+                                        data-is-notice="{{ '1' if post.is_notice else '0' }}"
+                                        data-is-pinned="{{ '1' if post.is_pinned else '0' }}">
                                     수정
                                 </button>
                                 <form method="POST" action="{{ url_for('admin.board_class_delete_post', post_id=post.post_id) }}"
@@ -224,14 +229,19 @@
 </div>
 
 <script>
-function openClassEditModal(postId, title, content, postType, isNotice, isPinned) {
-    document.getElementById('classEditForm').action = '/admin/boards/class/posts/' + postId + '/edit';
-    document.getElementById('classEditTitle').value = title;
-    document.getElementById('classEditContent').value = content;
-    document.getElementById('classEditType').value = postType;
-    document.getElementById('classEditIsNotice').checked = (isNotice == 1);
-    document.getElementById('classEditIsPinned').checked = (isPinned == 1);
-    document.getElementById('classEditModal').classList.remove('hidden');
-}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-class-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var d = btn.dataset;
+            document.getElementById('classEditForm').action = '/admin/boards/class/posts/' + d.postId + '/edit';
+            document.getElementById('classEditTitle').value = d.title;
+            document.getElementById('classEditContent').value = d.content;
+            document.getElementById('classEditType').value = d.postType;
+            document.getElementById('classEditIsNotice').checked = (d.isNotice === '1');
+            document.getElementById('classEditIsPinned').checked = (d.isPinned === '1');
+            document.getElementById('classEditModal').classList.remove('hidden');
+        });
+    });
+});
 </script>
 {% endblock %}

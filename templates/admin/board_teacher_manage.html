@@ -105,8 +105,11 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <button type="button"
-                                        onclick="openTeacherEditModal('{{ post.board_id }}', {{ post.title|tojson }}, {{ post.content|tojson }}, {{ '1' if post.is_notice else '0' }})"
-                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition">
+                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition btn-teacher-edit"
+                                        data-post-id="{{ post.board_id }}"
+                                        data-title="{{ post.title|e }}"
+                                        data-content="{{ post.content|e }}"
+                                        data-is-notice="{{ '1' if post.is_notice else '0' }}">
                                     수정
                                 </button>
                                 <form method="POST" action="{{ url_for('admin.board_teacher_toggle_notice', post_id=post.board_id) }}">
@@ -201,12 +204,17 @@
 </div>
 
 <script>
-function openTeacherEditModal(postId, title, content, isNotice) {
-    document.getElementById('teacherEditForm').action = '/admin/boards/teacher/posts/' + postId + '/edit';
-    document.getElementById('teacherEditTitle').value = title;
-    document.getElementById('teacherEditContent').value = content;
-    document.getElementById('teacherEditIsNotice').checked = (isNotice == 1);
-    document.getElementById('teacherEditModal').classList.remove('hidden');
-}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-teacher-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var d = btn.dataset;
+            document.getElementById('teacherEditForm').action = '/admin/boards/teacher/posts/' + d.postId + '/edit';
+            document.getElementById('teacherEditTitle').value = d.title;
+            document.getElementById('teacherEditContent').value = d.content;
+            document.getElementById('teacherEditIsNotice').checked = (d.isNotice === '1');
+            document.getElementById('teacherEditModal').classList.remove('hidden');
+        });
+    });
+});
 </script>
 {% endblock %}

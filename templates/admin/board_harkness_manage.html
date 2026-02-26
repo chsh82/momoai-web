@@ -94,8 +94,10 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <button type="button"
-                                        onclick="openHarknessBoardEditModal('{{ board.board_id }}', {{ board.title|tojson }}, {{ (board.description or '')|tojson }})"
-                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition">
+                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition btn-harkness-board-edit"
+                                        data-board-id="{{ board.board_id }}"
+                                        data-title="{{ board.title|e }}"
+                                        data-description="{{ (board.description or '')|e }}">
                                     수정
                                 </button>
                                 <form method="POST" action="{{ url_for('admin.board_harkness_toggle_active', board_id=board.board_id) }}">
@@ -188,8 +190,11 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <button type="button"
-                                        onclick="openHarknessPostEditModal('{{ post.post_id }}', {{ post.title|tojson }}, {{ (post.content or '')|tojson }}, {{ '1' if post.is_notice else '0' }})"
-                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition">
+                                        class="text-sm font-medium text-green-600 hover:text-green-800 transition btn-harkness-post-edit"
+                                        data-post-id="{{ post.post_id }}"
+                                        data-title="{{ post.title|e }}"
+                                        data-content="{{ (post.content or '')|e }}"
+                                        data-is-notice="{{ '1' if post.is_notice else '0' }}">
                                     수정
                                 </button>
                                 <form method="POST" action="{{ url_for('admin.board_harkness_delete_post', post_id=post.post_id) }}"
@@ -313,19 +318,27 @@
 </div>
 
 <script>
-function openHarknessBoardEditModal(boardId, title, description) {
-    document.getElementById('harknessBoardEditForm').action = '/admin/boards/harkness/boards/' + boardId + '/edit';
-    document.getElementById('harknessBoardEditTitle').value = title;
-    document.getElementById('harknessBoardEditDesc').value = description;
-    document.getElementById('harknessBoardEditModal').classList.remove('hidden');
-}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-harkness-board-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var d = btn.dataset;
+            document.getElementById('harknessBoardEditForm').action = '/admin/boards/harkness/boards/' + d.boardId + '/edit';
+            document.getElementById('harknessBoardEditTitle').value = d.title;
+            document.getElementById('harknessBoardEditDesc').value = d.description;
+            document.getElementById('harknessBoardEditModal').classList.remove('hidden');
+        });
+    });
 
-function openHarknessPostEditModal(postId, title, content, isNotice) {
-    document.getElementById('harknessPostEditForm').action = '/admin/boards/harkness/posts/' + postId + '/edit';
-    document.getElementById('harknessPostEditTitle').value = title;
-    document.getElementById('harknessPostEditContent').value = content;
-    document.getElementById('harknessPostEditIsNotice').checked = (isNotice == 1);
-    document.getElementById('harknessPostEditModal').classList.remove('hidden');
-}
+    document.querySelectorAll('.btn-harkness-post-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var d = btn.dataset;
+            document.getElementById('harknessPostEditForm').action = '/admin/boards/harkness/posts/' + d.postId + '/edit';
+            document.getElementById('harknessPostEditTitle').value = d.title;
+            document.getElementById('harknessPostEditContent').value = d.content;
+            document.getElementById('harknessPostEditIsNotice').checked = (d.isNotice === '1');
+            document.getElementById('harknessPostEditModal').classList.remove('hidden');
+        });
+    });
+});
 </script>
 {% endblock %}
