@@ -382,4 +382,11 @@ def create_app(config_name='default'):
         except Exception as e:
             return str(e), 500
 
+    # 앱 시작 시 누락된 테이블 자동 생성 (api_usage_logs 등)
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception:
+            pass
+
     return app
