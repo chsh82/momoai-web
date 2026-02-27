@@ -25,20 +25,30 @@ def register_korean_font():
     """
     한글 폰트 등록
     Windows: 맑은 고딕 (malgun.ttf)
+    Linux (GCP): NanumGothic (fonts-nanum 패키지)
     """
     if not REPORTLAB_AVAILABLE:
         raise ImportError("reportlab이 설치되어 있지 않습니다. pip install reportlab을 실행하세요.")
 
-    try:
-        # Windows 기본 폰트 경로
-        font_path = 'C:\\Windows\\Fonts\\malgun.ttf'
+    candidates = [
+        # Windows
+        ('MalgunGothic', 'C:\\Windows\\Fonts\\malgun.ttf'),
+        # Linux - Nanum Gothic (sudo apt install fonts-nanum)
+        ('NanumGothic', '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'),
+        ('NanumGothic', '/usr/share/fonts/nanum/NanumGothic.ttf'),
+        ('NanumGothic', '/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf'),
+        # Linux - Noto CJK
+        ('NotoSansCJK', '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'),
+        ('NotoSansCJK', '/usr/share/fonts/noto-cjk/NotoSansCJKkr-Regular.otf'),
+    ]
 
-        if os.path.exists(font_path):
-            pdfmetrics.registerFont(TTFont('MalgunGothic', font_path))
-            return 'MalgunGothic'
-        else:
-            # 폰트 없으면 기본 폰트 사용
-            return 'Helvetica'
+    try:
+        for font_name, font_path in candidates:
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont(font_name, font_path))
+                return font_name
+        # 폰트 없으면 기본 폰트 사용 (한글 깨짐)
+        return 'Helvetica'
     except Exception as e:
         print(f"폰트 등록 실패: {e}")
         return 'Helvetica'
@@ -439,3 +449,340 @@ def generate_monthly_report_pdf(month_str, statistics):
     doc.build(story)
 
     return create_pdf_response(buffer, f"월간리포트_{month_str}")
+
+
+# ==================== 강사 사용 설명서 PDF ====================
+
+def generate_teacher_manual_pdf():
+    """
+    강사 사용 설명서 PDF 생성
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        topMargin=20*mm, bottomMargin=20*mm,
+        leftMargin=20*mm, rightMargin=20*mm
+    )
+
+    font_name = register_korean_font()
+    styles = getSampleStyleSheet()
+
+    # ── 스타일 정의 ──────────────────────────────────────────
+    title_style = ParagraphStyle(
+        'ManualTitle', parent=styles['Normal'],
+        fontName=font_name, fontSize=22, leading=28,
+        alignment=TA_CENTER, textColor=colors.HexColor('#312E81'),
+        spaceAfter=6
+    )
+    subtitle_style = ParagraphStyle(
+        'ManualSubtitle', parent=styles['Normal'],
+        fontName=font_name, fontSize=11, leading=14,
+        alignment=TA_CENTER, textColor=colors.HexColor('#6366F1'),
+        spaceAfter=4
+    )
+    section_style = ParagraphStyle(
+        'SectionHead', parent=styles['Normal'],
+        fontName=font_name, fontSize=14, leading=18,
+        textColor=colors.HexColor('#4338CA'),
+        spaceBefore=14, spaceAfter=6
+    )
+    body_style = ParagraphStyle(
+        'Body', parent=styles['Normal'],
+        fontName=font_name, fontSize=10, leading=15,
+        spaceAfter=4
+    )
+    bullet_style = ParagraphStyle(
+        'Bullet', parent=styles['Normal'],
+        fontName=font_name, fontSize=9.5, leading=14,
+        leftIndent=14, spaceAfter=2
+    )
+    note_style = ParagraphStyle(
+        'Note', parent=styles['Normal'],
+        fontName=font_name, fontSize=9, leading=12,
+        textColor=colors.HexColor('#475569'),
+        leftIndent=10, spaceAfter=4
+    )
+    toc_style = ParagraphStyle(
+        'TOC', parent=styles['Normal'],
+        fontName=font_name, fontSize=10, leading=16,
+        textColor=colors.HexColor('#1E40AF')
+    )
+    faq_q_style = ParagraphStyle(
+        'FAQQ', parent=styles['Normal'],
+        fontName=font_name, fontSize=10, leading=14,
+        textColor=colors.HexColor('#1E293B')
+    )
+    faq_a_style = ParagraphStyle(
+        'FAQA', parent=styles['Normal'],
+        fontName=font_name, fontSize=9.5, leading=13,
+        textColor=colors.HexColor('#475569'),
+        leftIndent=12, spaceAfter=6
+    )
+
+    story = []
+
+    # ── 표지 ────────────────────────────────────────────────
+    story.append(Spacer(1, 25*mm))
+    story.append(Paragraph("MOMOAI v4.0", title_style))
+    story.append(Paragraph("강사 사용 설명서", title_style))
+    story.append(Spacer(1, 4*mm))
+    story.append(Paragraph("Teacher User Manual", subtitle_style))
+    story.append(Spacer(1, 8*mm))
+
+    # 구분선 테이블
+    divider = Table([['']], colWidths=[170*mm])
+    divider.setStyle(TableStyle([
+        ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#4338CA')),
+    ]))
+    story.append(divider)
+    story.append(Spacer(1, 6*mm))
+    story.append(Paragraph(f"발급일: {datetime.now().strftime('%Y년 %m월 %d일')}", subtitle_style))
+    story.append(Spacer(1, 30*mm))
+
+    # ── 목차 ────────────────────────────────────────────────
+    toc_data = [
+        ['목  차 (Table of Contents)', ''],
+        ['1.  로그인 및 기본 설정', ''],
+        ['2.  수업 관리', ''],
+        ['3.  출석 체크', ''],
+        ['4.  피드백 작성', ''],
+        ['5.  첨삭 (에세이)', ''],
+        ['6.  수업 공지 및 메세지', ''],
+        ['7.  학습 자료 등록', ''],
+        ['8.  과제 출제 및 채점', ''],
+        ['9.  게시판', ''],
+        ['10. 학생 평가', ''],
+        ['11. 자주 묻는 질문 (FAQ)', ''],
+    ]
+    toc_table = Table(toc_data, colWidths=[130*mm, 40*mm])
+    toc_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#EEF2FF')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#312E81')),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1E40AF')),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+    ]))
+    story.append(toc_table)
+    story.append(PageBreak())
+
+    # ── 섹션 헬퍼 ────────────────────────────────────────────
+    def add_section(num, title, items):
+        story.append(Paragraph(f"{num}. {title}", section_style))
+        for item_type, text in items:
+            if item_type == 'body':
+                story.append(Paragraph(text, body_style))
+            elif item_type == 'bullet':
+                story.append(Paragraph(f"• {text}", bullet_style))
+            elif item_type == 'numbered':
+                story.append(Paragraph(text, bullet_style))
+            elif item_type == 'note':
+                story.append(Paragraph(f"※ {text}", note_style))
+            elif item_type == 'space':
+                story.append(Spacer(1, 3*mm))
+        story.append(Spacer(1, 3*mm))
+
+    # ── 1. 로그인 및 기본 설정 ──────────────────────────────
+    add_section('1', '로그인 및 기본 설정', [
+        ('body', '[최초 로그인]'),
+        ('numbered', '1) 관리자가 발급한 이메일 / 임시 비밀번호로 로그인합니다.'),
+        ('numbered', '2) 최초 로그인 시 비밀번호 변경을 요청할 수 있습니다.'),
+        ('numbered', '3) 비밀번호는 영문 소문자 + 숫자 + 특수문자를 포함해야 합니다.'),
+        ('space', ''),
+        ('body', '[프로필 설정]'),
+        ('bullet', '좌측 하단 프로필 버튼을 클릭하여 내 정보를 수정할 수 있습니다.'),
+        ('bullet', '강사 소개를 작성하면 모모 소식 → 강사 소개 페이지에 표시됩니다.'),
+        ('bullet', 'Zoom 링크를 등록하면 학생들에게 공유됩니다.'),
+    ])
+
+    # ── 2. 수업 관리 ─────────────────────────────────────────
+    story.append(Paragraph("2. 수업 관리", section_style))
+    story.append(Paragraph("사이드바 내 수업 → 수업 목록에서 담당 수업 전체를 확인합니다.", body_style))
+
+    course_data = [
+        ['메뉴', '기능'],
+        ['수업 목록', '담당 수업 전체 조회 / 수업별 학생 현황 확인'],
+        ['주간 시간표', '이번 주 수업 일정을 달력 형식으로 확인'],
+        ['수업 상세', '수강생 목록 · 출석률 · 세션별 현황 확인'],
+    ]
+    ct = Table(course_data, colWidths=[50*mm, 120*mm])
+    ct.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F3FF')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(ct)
+    story.append(Paragraph("※ 수업 개설 및 수강생 추가는 관리자만 가능합니다. 변경이 필요하면 관리자에게 요청하세요.", note_style))
+    story.append(Spacer(1, 3*mm))
+
+    # ── 3. 출석 체크 ─────────────────────────────────────────
+    add_section('3', '출석 체크', [
+        ('body', '사이드바 내 수업 → 출석 체크로 이동합니다.'),
+        ('numbered', '1) 오늘 또는 해당 날짜의 세션을 선택합니다.'),
+        ('numbered', '2) 학생 이름 옆 버튼으로 출석 / 지각 / 결석 / 인정결석을 선택합니다.'),
+        ('numbered', '3) 기본값은 출석으로 설정되어 있습니다. 결석·지각 학생만 변경하면 됩니다.'),
+        ('numbered', '4) 출석 체크 완료 버튼을 클릭하면 세션이 완료 처리됩니다.'),
+        ('note', '완료 처리된 세션도 이후 수정이 가능합니다. 수업 목록 → 해당 세션 → 출석 현황에서 수정하세요.'),
+    ])
+
+    # ── 4. 피드백 작성 ───────────────────────────────────────
+    add_section('4', '피드백 작성', [
+        ('body', '사이드바 학생 관리 → 피드백 작성으로 이동합니다.'),
+        ('numbered', '1) 피드백을 받을 학생을 선택합니다.'),
+        ('numbered', '2) 수업 날짜, 피드백 내용, 점수를 입력합니다.'),
+        ('numbered', '3) SMS 발송 옵션을 체크하면 학부모에게 문자가 자동 발송됩니다.'),
+        ('numbered', '4) 저장하면 학부모 포털에서 확인 가능하며, 학생에게는 보이지 않습니다.'),
+        ('note', '피드백은 학부모와 관리자만 열람 가능합니다. 학생은 볼 수 없습니다.'),
+    ])
+
+    # ── 5. 첨삭 (에세이) ─────────────────────────────────────
+    add_section('5', '첨삭 (에세이)', [
+        ('body', '학생이 에세이를 제출하면 강사에게 알림이 발송됩니다.'),
+        ('numbered', '1) 좌측 상단 알림(벨 아이콘)에서 새 제출 알림을 확인합니다.'),
+        ('numbered', '2) 또는 사이드바 학습 관리 → 에세이 첨삭에서 목록을 확인합니다.'),
+        ('numbered', '3) 에세이를 열어 내용을 확인하고 첨삭 및 점수를 입력합니다.'),
+        ('numbered', '4) AI 자동 첨삭 기능을 활용하면 초안을 빠르게 생성할 수 있습니다.'),
+    ])
+
+    # ── 6. 수업 공지 및 메세지 ───────────────────────────────
+    story.append(Paragraph("6. 수업 공지 및 메세지", section_style))
+    story.append(Paragraph("사이드바 내 수업 → 수업 공지 및 메세지로 이동합니다.", body_style))
+
+    msg_data = [
+        ['유형', '설명'],
+        ['수업 전체 공지', '수업을 선택하여 해당 수업 수강생 전원에게 공지/과제를 발송합니다.'],
+        ['개별 학생 메세지', '특정 학생에게만 개인 메세지 / 숙제를 발송합니다.'],
+    ]
+    mt = Table(msg_data, colWidths=[50*mm, 120*mm])
+    mt.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F3FF')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(mt)
+    story.append(Paragraph("※ 학부모 포함 발송 체크박스를 선택하면 학생과 학부모 모두에게 알림이 전달됩니다.", note_style))
+    story.append(Spacer(1, 3*mm))
+
+    # ── 7. 학습 자료 등록 ────────────────────────────────────
+    add_section('7', '학습 자료 등록', [
+        ('body', '사이드바 학습 자료로 이동합니다.'),
+        ('bullet', 'PDF, DOC, PPT, HWP, ZIP 등 파일을 업로드할 수 있습니다.'),
+        ('bullet', '학년별 또는 수업별로 공개 대상을 지정할 수 있습니다.'),
+        ('bullet', '게시 기간(시작일 / 종료일)을 설정하면 해당 기간에만 표시됩니다.'),
+    ])
+
+    # ── 8. 과제 출제 및 채점 ─────────────────────────────────
+    add_section('8', '과제 출제 및 채점', [
+        ('body', '사이드바 학습 관리 → 과제 관리로 이동합니다.'),
+        ('numbered', '1) 새 과제 출제를 클릭하여 제목, 내용, 마감일, 대상 수업을 설정합니다.'),
+        ('numbered', '2) 학생이 과제를 제출하면 목록에서 확인 가능합니다.'),
+        ('numbered', '3) 제출된 과제를 열어 점수 및 코멘트를 입력하고 채점합니다.'),
+        ('numbered', '4) 채점 결과는 학생 포털에서 확인 가능합니다.'),
+    ])
+
+    # ── 9. 게시판 ────────────────────────────────────────────
+    story.append(Paragraph("9. 게시판", section_style))
+
+    board_data = [
+        ['게시판', '설명'],
+        ['강사 게시판', '강사 전용 게시판입니다. 강사끼리 정보 공유 및 소통할 수 있습니다.'],
+        ['클래스 게시판', '수업별 학생 소통 공간입니다. 수업을 선택하여 게시글을 작성하세요.'],
+        ['하크니스 게시판', '하크니스 수업 전용 토론 게시판입니다. 게시판을 생성하여 운영합니다.'],
+    ]
+    bt = Table(board_data, colWidths=[50*mm, 120*mm])
+    bt.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F3FF')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(bt)
+    story.append(Spacer(1, 3*mm))
+
+    # ── 10. 학생 평가 ────────────────────────────────────────
+    story.append(Paragraph("10. 학생 평가", section_style))
+
+    eval_data = [
+        ['평가 유형', '설명'],
+        ['주간 평가', '매주 학생의 수업 참여도, 이해도 등을 항목별로 평가합니다. 누적 데이터로 성장 추이를 확인할 수 있습니다.'],
+        ['ACE 평가', '분기별 종합 평가입니다. 결과는 학부모 리포트로 출력할 수 있습니다.'],
+        ['독서 MBTI', '학생의 독서 성향을 파악하는 설문입니다. 결과를 바탕으로 맞춤 지도 방향을 설정할 수 있습니다.'],
+    ]
+    et = Table(eval_data, colWidths=[40*mm, 130*mm])
+    et.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F3FF')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    story.append(et)
+    story.append(Spacer(1, 3*mm))
+
+    # ── 11. FAQ ─────────────────────────────────────────────
+    story.append(Paragraph("11. 자주 묻는 질문 (FAQ)", section_style))
+
+    faqs = [
+        ('출석을 잘못 체크했어요.',
+         '수업 목록 → 해당 수업 → 세션 클릭 → 출석 현황에서 언제든지 수정 가능합니다.'),
+        ('피드백을 작성했는데 학생이 볼 수 있나요?',
+         '아니요. 피드백은 학부모와 관리자만 열람할 수 있습니다. 학생에게는 표시되지 않습니다.'),
+        ('수업 공지를 보냈는데 학부모한테도 가나요?',
+         '메세지 작성 시 "학부모 포함 발송" 체크박스를 선택한 경우에만 학부모에게도 알림이 발송됩니다.'),
+        ('학생이 에세이를 제출하면 어떻게 알 수 있나요?',
+         '알림(벨 아이콘)에 새 제출 알림이 표시됩니다. 알림을 클릭하면 바로 이동됩니다.'),
+        ('수업에 학생을 추가하거나 빼고 싶어요.',
+         '수강생 변경은 관리자만 가능합니다. 관리자에게 요청해 주세요.'),
+        ('비밀번호를 변경하고 싶어요.',
+         '좌측 하단 프로필 → 비밀번호 변경에서 직접 변경할 수 있습니다.'),
+    ]
+    for q, a in faqs:
+        story.append(Paragraph(f"Q. {q}", faq_q_style))
+        story.append(Paragraph(f"A. {a}", faq_a_style))
+
+    story.append(Spacer(1, 8*mm))
+
+    # ── 하단 안내 ────────────────────────────────────────────
+    footer_data = [['추가 문의사항이 있으면 관리자에게 문의해 주세요. | © 2026 MOMOAI - 모모의 책장']]
+    ft = Table(footer_data, colWidths=[170*mm])
+    ft.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#4338CA')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(ft)
+
+    doc.build(story)
+    return create_pdf_response(buffer, "MOMOAI_강사사용설명서")

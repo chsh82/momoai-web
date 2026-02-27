@@ -3325,3 +3325,12 @@ def ace_report(student_id):
 def help_page():
     """강사 도움말"""
     return render_template('teacher/help.html')
+
+
+@teacher_bp.route('/help/pdf')
+@login_required
+@requires_role('teacher', 'admin')
+def help_pdf():
+    """강사 도움말 PDF 다운로드"""
+    from app.utils.pdf_utils import generate_teacher_manual_pdf
+    return generate_teacher_manual_pdf()
