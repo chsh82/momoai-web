@@ -132,7 +132,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         8. 시작 시간 <span class="text-red-500">*</span>
                     </label>
-                    {{ form.start_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="autoSetEndTime(); generateCourseName()") }}
+                    {{ form.start_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="autoSetEndTime(); generateCourseName()", step="300") }}
                     {% if form.start_time.errors %}
                     <p class="text-red-600 text-sm mt-1">{{ form.start_time.errors[0] }}</p>
                     {% endif %}
@@ -144,9 +144,9 @@
                         9. 종료 시간 <span class="text-red-500">*</span>
                         <span class="text-gray-500 text-xs">(수업 타입과 학년에 따라 자동 설정, 변경 가능)</span>
                     </label>
-                    {{ form.end_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    {{ form.end_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", step="300") }}
                     <p class="text-xs text-gray-500 mt-1">
-                        베이직: +30분 | 프리미엄: +60분 | 정규반: 초등 +120분, 중등 +150분 | 하크니스: +150분
+                        베이직: +30분 | 프리미엄: +60분 | 정규반: 초등 +120분, 중등 +150분 | 하크니스: +150분 | 기타: +60분
                     </p>
                     {% if form.end_time.errors %}
                     <p class="text-red-600 text-sm mt-1">{{ form.end_time.errors[0] }}</p>
@@ -180,6 +180,18 @@
                            class="w-full px-3 py-2 text-base font-bold text-blue-800 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="정보를 입력하면 수업명이 자동으로 생성됩니다">
                     <p class="text-xs text-blue-600 mt-1">* 자동 생성된 수업명을 직접 수정하여 저장할 수 있습니다</p>
+
+                    <!-- 특별 제목 [] 추가 -->
+                    <div class="mt-3 flex gap-2 items-center">
+                        <input type="text" id="specialTitleInput"
+                               class="flex-1 px-3 py-1.5 text-sm bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                               placeholder="특별 제목 입력 (예: 영어, 수학심화 ...)">
+                        <button type="button" onclick="insertBracketTitle()"
+                                class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                            [ ] 추가
+                        </button>
+                    </div>
+                    <p class="text-xs text-blue-500 mt-1">* 입력 후 [ ] 추가 버튼을 누르면 수업명 앞에 [제목]이 붙습니다</p>
                 </div>
 
                 <!-- 회당 수업료 미리보기 -->
@@ -343,14 +355,46 @@ function resetForm() {
     document.getElementById('previewCourseName').value = '';
 }
 
-// 페이지 로드 시 현재 날짜 설정
+// 특별 제목 [] 추가
+function insertBracketTitle() {
+    const specialInput = document.getElementById('specialTitleInput');
+    const nameInput = document.getElementById('previewCourseName');
+    const text = specialInput.value.trim();
+    if (!text) return;
+    const bracket = `[${text}]`;
+    // 이미 같은 괄호가 있으면 중복 추가 안 함
+    if (nameInput.value.includes(bracket)) {
+        specialInput.value = '';
+        return;
+    }
+    // 수업명 맨 앞에 삽입
+    nameInput.value = bracket + ' ' + nameInput.value;
+    userEditedName = true;
+    specialInput.value = '';
+}
+
+// 페이지 로드 시 초기값 설정
 window.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const startDateInput = document.querySelector('input[name="start_date"]');
+    const endDateInput = document.querySelector('input[name="end_date"]');
+    const startTimeInput = document.querySelector('input[name="start_time"]');
+
+    // 시작일 기본값: 오늘
     if (!startDateInput.value) {
         startDateInput.value = today;
-        autoSelectWeekday();
     }
+    // 종료일 기본값: 시작일과 동일
+    if (!endDateInput.value) {
+        endDateInput.value = startDateInput.value;
+    }
+    // 시작 시간 기본값: 12:00
+    if (!startTimeInput.value) {
+        startTimeInput.value = '12:00';
+    }
+
+    autoSelectWeekday();
+    autoSetEndTime();  // 종료 시간 자동 설정 (기본 +60분)
 });
 </script>
 {% endblock %}
