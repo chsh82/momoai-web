@@ -686,6 +686,13 @@
                             </a>
                         </div>
                     </div>
+
+                    <!-- 도움말 -->
+                    <a href="{{ url_for('teacher.help_page') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.help_page' %}active{% endif %} mt-2">
+                        <span class="text-xl">📖</span>
+                        <span>사용 설명서</span>
+                    </a>
                 </div>
                 {% endif %}
 

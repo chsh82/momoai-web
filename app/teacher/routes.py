@@ -3317,3 +3317,11 @@ def ace_report(student_id):
                          selected_quarter_idx=selected_quarter_idx,
                          ace_axes=ACE_AXES,
                          report_date=datetime.today())
+
+
+@teacher_bp.route('/help')
+@login_required
+@requires_role('teacher', 'admin')
+def help_page():
+    """강사 도움말"""
+    return render_template('teacher/help.html')
