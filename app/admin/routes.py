@@ -242,7 +242,12 @@ def create_course():
         from datetime import datetime
         date_code = form.start_date.data.strftime('%y%m%d')
         type_code = form.course_type.data[0] if form.course_type.data else 'X'
-        course_code = f"{form.grade.data}{type_code}{date_code}"
+        base_code = f"{form.grade.data}{type_code}{date_code}"
+        course_code = base_code
+        suffix = 2
+        while Course.query.filter_by(course_code=course_code).first():
+            course_code = f"{base_code}-{suffix}"
+            suffix += 1
 
         # 3. is_terminated 처리
         is_terminated = (form.is_terminated.data == 'Y')
