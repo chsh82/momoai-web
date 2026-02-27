@@ -177,7 +177,9 @@
                     communication: true,
                     boardManage: true,
                     finance: true,
-                    content: true
+                    content: true,
+                    consultation: true,
+                    siteManage: true
                 }">
                     <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">관리자</div>
 
@@ -260,21 +262,9 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['admin.account_management'] %}text-green-600 bg-green-50{% endif %}">
                                 🔒 아이디 관리
                             </a>
-                            <a href="{{ url_for('admin.api_usage_dashboard') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'admin.api_usage_dashboard' %}text-green-600 bg-green-50{% endif %}">
-                                📊 API 사용량
-                            </a>
                             <a href="{{ url_for('admin.parent_link_requests') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.parent_link' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 학부모 연결 관리
-                            </a>
-                            <a href="{{ url_for('admin.consultations') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
-                                상담 내용 관리
-                            </a>
-                            <a href="{{ url_for('inquiry.index') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
-                                📬 문의 관리
                             </a>
                             <a href="{{ url_for('admin.student_profiles') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_profile' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
@@ -287,7 +277,31 @@
                         </div>
                     </div>
 
-                    <!-- 3. 학습 관리 -->
+                    <!-- 3. 상담 관리 -->
+                    <div class="mt-2">
+                        <button @click="consultation = !consultation"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <span class="font-medium">상담 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': consultation }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="consultation" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.consultations') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.consultation' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                📋 상담 내용 관리
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                📬 문의 관리
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. 학습 관리 -->
                     <div class="mt-2">
                         <button @click="learning = !learning"
                                 class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
@@ -463,7 +477,27 @@
                         </div>
                     </div>
 
-                    <!-- 8. 커뮤니티 -->
+                    <!-- 8. 사이트 관리 -->
+                    <div class="mt-2">
+                        <button @click="siteManage = !siteManage"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">⚙️</span>
+                                <span class="font-medium">사이트 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': siteManage }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="siteManage" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.api_usage_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-gray-600 hover:bg-gray-100 rounded transition {% if request.endpoint == 'admin.api_usage_dashboard' %}text-gray-600 bg-gray-100{% endif %}">
+                                📊 API 사용량
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 9. 커뮤니티 -->
                     <a href="{{ url_for('community.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'community' in request.endpoint %}active{% endif %} mt-2">
                         <span class="text-xl">💭</span>
