@@ -25,6 +25,7 @@ class CourseForm(FlaskForm):
                            ('고1', '고등 1학년'),
                            ('고2', '고등 2학년'),
                            ('고3', '고등 3학년'),
+                           ('무학년제', '무학년제'),
                        ],
                        validators=[DataRequired(message='학년을 선택하세요.')])
 
