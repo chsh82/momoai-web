@@ -2830,7 +2830,7 @@ def approve_teacher(user_id):
     
     # 승인 처리
     teacher.is_active = True
-    
+
     # 승인 알림
     notification = Notification(
         user_id=teacher.user_id,
@@ -2841,7 +2841,13 @@ def approve_teacher(user_id):
     )
     db.session.add(notification)
     db.session.commit()
-    
+
+    # SMS 발송
+    if teacher.phone:
+        from app.utils.sms import send_sms_message
+        sms_msg = f'[MOMOAI] {teacher.name}님, 강사 계정이 승인되었습니다. 이제 로그인하여 시스템을 사용할 수 있습니다.'
+        send_sms_message(teacher.phone, sms_msg)
+
     flash(f'{teacher.name}님의 강사 계정이 승인되었습니다.', 'success')
     return redirect(url_for('admin.pending_teachers'))
 
@@ -2959,6 +2965,13 @@ def approve_user(user_id):
     )
 
     db.session.commit()
+
+    # SMS 발송
+    if user.phone:
+        from app.utils.sms import send_sms_message
+        role_label_sms = {'teacher': '강사', 'parent': '학부모', 'student': '학생'}.get(user.role, '회원')
+        sms_msg = f'[MOMOAI] {user.name}님, {role_label_sms} 계정이 승인되었습니다. 이제 로그인하여 서비스를 이용하실 수 있습니다.'
+        send_sms_message(user.phone, sms_msg)
 
     role_label = {'teacher': '강사', 'parent': '학부모', 'student': '학생'}.get(user.role, user.role)
     flash(f'{user.name} ({role_label}) 계정이 승인되었습니다.', 'success')
