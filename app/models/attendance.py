@@ -18,7 +18,7 @@ class Attendance(db.Model):
                              nullable=False, index=True)
 
     # 출석 상태
-    status = db.Column(db.String(20), default='absent', index=True)  # present, absent, late, excused
+    status = db.Column(db.String(20), default='present', index=True)  # present, absent, late, excused
 
     # 출석 체크 정보
     checked_at = db.Column(db.DateTime, nullable=True)
