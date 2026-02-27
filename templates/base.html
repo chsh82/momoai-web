@@ -136,9 +136,10 @@
                 </button>
             </div>
 
-            <!-- 고정 메인 메뉴 -->
-            <nav class="p-4 border-b border-white border-opacity-20">
-                <div class="space-y-1">
+            <!-- 스크롤 가능한 포털 메뉴 -->
+            <div class="flex-1 overflow-y-auto p-4" id="scrollable-menu">
+                <!-- 공통 메뉴 -->
+                <div class="space-y-1 mb-2">
                     <a href="{{ url_for('notifications.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'notifications' in request.endpoint %}bg-white bg-opacity-15 text-white border-blue-400{% endif %}">
                         <span class="text-xl relative inline-block">
@@ -166,12 +167,9 @@
                         <span>커뮤니티</span>
                     </a>
                 </div>
-            </nav>
 
-            <!-- 스크롤 가능한 포털 메뉴 -->
-            <div class="flex-1 overflow-y-auto p-4" id="scrollable-menu">
                 {% if current_user.has_permission_level(2) %}
-                <div class="mt-6 pt-6 border-t border-white border-opacity-20" x-data="{
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
                     academic: true,
                     members: true,
                     learning: true,
@@ -475,7 +473,7 @@
                 {% endif %}
 
                 {% if current_user.role in ['teacher', 'admin'] %}
-                <div class="mt-6 pt-6 border-t border-white border-opacity-20" x-data="{
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
                     courses: true,
                     students: true,
                     assignments: true,
@@ -658,7 +656,7 @@
                 {% endif %}
 
                 {% if current_user.role in ['parent', 'admin'] %}
-                <div class="mt-6 pt-6 border-t border-white border-opacity-20" x-data="{
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
                     children: true,
                     learning: true,
                     evaluation: true,
@@ -828,7 +826,7 @@
                 {% endif %}
 
                 {% if current_user.role in ['student', 'admin'] %}
-                <div class="mt-6 pt-6 border-t border-white border-opacity-20" x-data="{
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
                     courses: true,
                     learning: true,
                     tests: true,
@@ -1041,7 +1039,7 @@
                 {% endif %}
 
                 {% if current_user.role in ['admin', 'teacher'] %}
-                <div class="mt-6 pt-6 border-t border-white border-opacity-20">
+                <div class="pt-3 border-t border-white border-opacity-20">
                     <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">빠른 작업</div>
                     <a href="{{ url_for('essays.new') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent">
