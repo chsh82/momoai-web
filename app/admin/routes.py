@@ -258,10 +258,12 @@ def create_course():
 
         # 4. 수업 타입별 회당 수업료
         price_map = {
+            '베이직': 50000,
             '프리미엄': 65000,
             '정규반': 60000,
             '하크니스': 65000,
             '시그니처': 75000,
+            '모의고사': 10000,
         }
         price_per_session = price_map.get(form.course_type.data, 0)
 
