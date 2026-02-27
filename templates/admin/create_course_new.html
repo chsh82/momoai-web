@@ -173,12 +173,13 @@
                     <p class="text-xs text-gray-500 mt-1 ml-6">체크하면 보강수업 신청이 가능합니다</p>
                 </div>
 
-                <!-- 자동 생성되는 수업명 미리보기 -->
+                <!-- 수업명 (자동 생성 + 직접 수정 가능) -->
                 <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 class="font-medium text-blue-900 mb-2">📝 자동 생성될 수업명</h4>
-                    <p id="previewCourseName" class="text-lg font-bold text-blue-800">
-                        정보를 입력하면 수업명이 자동으로 생성됩니다
-                    </p>
+                    <h4 class="font-medium text-blue-900 mb-2">📝 수업명 (자동 생성, 직접 수정 가능)</h4>
+                    <input type="text" id="previewCourseName" name="course_name"
+                           class="w-full px-3 py-2 text-base font-bold text-blue-800 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="정보를 입력하면 수업명이 자동으로 생성됩니다">
+                    <p class="text-xs text-blue-600 mt-1">* 자동 생성된 수업명을 직접 수정하여 저장할 수 있습니다</p>
                 </div>
 
                 <!-- 버튼 -->
@@ -264,7 +265,17 @@ function autoSetEndTime() {
 }
 
 // 수업명 자동 생성
+let userEditedName = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('previewCourseName').addEventListener('input', function() {
+        userEditedName = true;
+    });
+});
+
 function generateCourseName() {
+    if (userEditedName) return;  // 사용자가 직접 수정한 경우 자동 갱신 안 함
+
     const grade = document.querySelector('select[name="grade"]').value;
     const courseType = document.querySelector('select[name="course_type"]').value;
     const teacherId = document.querySelector('select[name="teacher_id"]');
@@ -279,31 +290,23 @@ function generateCourseName() {
     // 시작 시간
     const startTime = startTimeInput ? startTimeInput.value : '';
 
+    const nameInput = document.getElementById('previewCourseName');
     if (grade && courseType && teacherName && teacherName !== '-- 강사 선택 --') {
-        // 형식: [학년] [수업타입] [요일] [시간] - [강사명]
-        // 예: 초1 베이직 월 14:00 - 김선생
         let courseName = `${grade} ${courseType}`;
-
-        if (weekdayText) {
-            courseName += ` ${weekdayText}`;
-        }
-
-        if (startTime) {
-            courseName += ` ${startTime}`;
-        }
-
+        if (weekdayText) courseName += ` ${weekdayText}`;
+        if (startTime) courseName += ` ${startTime}`;
         courseName += ` - ${teacherName}`;
-
-        document.getElementById('previewCourseName').textContent = courseName;
+        nameInput.value = courseName;
     } else {
-        document.getElementById('previewCourseName').textContent = '정보를 입력하면 수업명이 자동으로 생성됩니다';
+        nameInput.value = '';
     }
 }
 
 // 폼 리셋
 function resetForm() {
     document.getElementById('courseForm').reset();
-    document.getElementById('previewCourseName').textContent = '정보를 입력하면 수업명이 자동으로 생성됩니다';
+    userEditedName = false;
+    document.getElementById('previewCourseName').value = '';
 }
 
 // 페이지 로드 시 현재 날짜 설정

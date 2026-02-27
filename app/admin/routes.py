@@ -230,13 +230,17 @@ def create_course():
         # 시작 시간
         start_time_text = form.start_time.data.strftime('%H:%M') if form.start_time.data else ''
 
-        # 1. 수업명 자동 생성: [학년] [수업타입] [요일] [시간] - [강사명]
-        course_name = f"{form.grade.data} {form.course_type.data}"
-        if weekday_text:
-            course_name += f" {weekday_text}"
-        if start_time_text:
-            course_name += f" {start_time_text}"
-        course_name += f" - {teacher.name}"
+        # 1. 수업명: 사용자가 입력한 값 우선, 없으면 자동 생성
+        submitted_name = (form.course_name.data or '').strip()
+        if submitted_name:
+            course_name = submitted_name
+        else:
+            course_name = f"{form.grade.data} {form.course_type.data}"
+            if weekday_text:
+                course_name += f" {weekday_text}"
+            if start_time_text:
+                course_name += f" {start_time_text}"
+            course_name += f" - {teacher.name}"
 
         # 2. 수업 코드 자동 생성: [학년][수업타입 첫 글자][날짜YYMMDD]
         from datetime import datetime
@@ -251,6 +255,15 @@ def create_course():
 
         # 3. is_terminated 처리
         is_terminated = (form.is_terminated.data == 'Y')
+
+        # 4. duration_minutes 계산 (시작~종료 시간 차이)
+        duration_minutes = 60  # 기본값
+        if form.start_time.data and form.end_time.data:
+            start_total = form.start_time.data.hour * 60 + form.start_time.data.minute
+            end_total = form.end_time.data.hour * 60 + form.end_time.data.minute
+            diff = end_total - start_total
+            if diff > 0:
+                duration_minutes = diff
 
         # 수업 생성
         course = Course(
@@ -268,6 +281,7 @@ def create_course():
             availability_status=form.availability_status.data,
             makeup_class_allowed=form.makeup_class_allowed.data,
             schedule_type='weekly',
+            duration_minutes=duration_minutes,
             max_students=15,
             price_per_session=0,
             status='active' if not is_terminated else 'completed',
