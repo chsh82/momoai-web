@@ -256,7 +256,16 @@ def create_course():
         # 3. is_terminated 처리
         is_terminated = (form.is_terminated.data == 'Y')
 
-        # 4. duration_minutes 계산 (시작~종료 시간 차이)
+        # 4. 수업 타입별 회당 수업료
+        price_map = {
+            '프리미엄': 65000,
+            '정규반': 60000,
+            '하크니스': 65000,
+            '시그니처': 75000,
+        }
+        price_per_session = price_map.get(form.course_type.data, 0)
+
+        # 5. duration_minutes 계산 (시작~종료 시간 차이)
         duration_minutes = 60  # 기본값
         if form.start_time.data and form.end_time.data:
             start_total = form.start_time.data.hour * 60 + form.start_time.data.minute
@@ -283,7 +292,7 @@ def create_course():
             schedule_type='weekly',
             duration_minutes=duration_minutes,
             max_students=15,
-            price_per_session=0,
+            price_per_session=price_per_session,
             status='active' if not is_terminated else 'completed',
             created_by=current_user.user_id
         )

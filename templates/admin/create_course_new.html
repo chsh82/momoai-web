@@ -174,12 +174,18 @@
                 </div>
 
                 <!-- 수업명 (자동 생성 + 직접 수정 가능) -->
-                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 class="font-medium text-blue-900 mb-2">📝 수업명 (자동 생성, 직접 수정 가능)</h4>
                     <input type="text" id="previewCourseName" name="course_name"
                            class="w-full px-3 py-2 text-base font-bold text-blue-800 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="정보를 입력하면 수업명이 자동으로 생성됩니다">
                     <p class="text-xs text-blue-600 mt-1">* 자동 생성된 수업명을 직접 수정하여 저장할 수 있습니다</p>
+                </div>
+
+                <!-- 회당 수업료 미리보기 -->
+                <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-medium text-green-900 mb-1">💰 회당 수업료</h4>
+                    <p id="previewPrice" class="text-lg font-bold text-green-800">수업 타입을 선택하면 자동 설정됩니다</p>
                 </div>
 
                 <!-- 버튼 -->
@@ -264,6 +270,28 @@ function autoSetEndTime() {
     endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
 }
 
+// 수업 타입별 가격 미리보기
+const priceMap = {
+    '프리미엄': 65000,
+    '정규반': 60000,
+    '하크니스': 65000,
+    '시그니처': 75000,
+};
+
+function updatePricePreview() {
+    const courseType = document.querySelector('select[name="course_type"]').value;
+    const priceEl = document.getElementById('previewPrice');
+    if (!priceEl) return;
+    const price = priceMap[courseType];
+    if (price !== undefined) {
+        priceEl.textContent = price.toLocaleString() + '원 / 회';
+    } else if (courseType) {
+        priceEl.textContent = '0원 / 회 (해당 없음)';
+    } else {
+        priceEl.textContent = '수업 타입을 선택하면 자동 설정됩니다';
+    }
+}
+
 // 수업명 자동 생성
 let userEditedName = false;
 
@@ -271,6 +299,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('previewCourseName').addEventListener('input', function() {
         userEditedName = true;
     });
+    const courseTypeSelect = document.querySelector('select[name="course_type"]');
+    if (courseTypeSelect) {
+        courseTypeSelect.addEventListener('change', updatePricePreview);
+    }
 });
 
 function generateCourseName() {
