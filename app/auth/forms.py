@@ -8,10 +8,8 @@ from app.models import User
 
 
 def validate_password_strength(form, field):
-    """비밀번호 복잡도 검증 (대문자, 소문자, 숫자, 특수문자 필수)"""
+    """비밀번호 복잡도 검증 (소문자, 숫자, 특수문자 필수)"""
     password = field.data
-    if not re.search(r'[A-Z]', password):
-        raise ValidationError('비밀번호에 영문 대문자를 포함해야 합니다.')
     if not re.search(r'[a-z]', password):
         raise ValidationError('비밀번호에 영문 소문자를 포함해야 합니다.')
     if not re.search(r'\d', password):
