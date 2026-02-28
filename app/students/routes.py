@@ -295,6 +295,7 @@ def delete(student_id):
     student_name = student.name
 
     try:
+        from sqlalchemy import inspect as sa_inspect
         from app.models.consultation import ConsultationRecord
         from app.models.student_profile import StudentProfile
         from app.models.schema_quiz import SchemaQuizResult, SchemaQuizSession
@@ -302,16 +303,27 @@ def delete(student_id):
         from app.models.zoom_access import ZoomAccessLog
         from app.models.reading_mbti import ReadingMBTIResponse, ReadingMBTIResult
 
-        # cascade='CASCADE' 없는 테이블 먼저 수동 삭제
-        ConsultationRecord.query.filter_by(student_id=student_id).delete()
-        StudentProfile.query.filter_by(student_id=student_id).delete()
-        SchemaQuizResult.query.filter_by(student_id=student_id).delete()
-        SchemaQuizSession.query.filter_by(student_id=student_id).delete()
-        VocabularyQuizResult.query.filter_by(student_id=student_id).delete()
-        VocabularyQuizSession.query.filter_by(student_id=student_id).delete()
-        ZoomAccessLog.query.filter_by(student_id=student_id).delete()
-        ReadingMBTIResponse.query.filter_by(student_id=student_id).delete()
-        ReadingMBTIResult.query.filter_by(student_id=student_id).delete()
+        existing = sa_inspect(db.engine).get_table_names()
+
+        # cascade='CASCADE' 없는 테이블 먼저 수동 삭제 (테이블 존재 여부 확인 후)
+        if 'consultation_records' in existing:
+            ConsultationRecord.query.filter_by(student_id=student_id).delete()
+        if 'student_profiles' in existing:
+            StudentProfile.query.filter_by(student_id=student_id).delete()
+        if 'schema_quiz_results' in existing:
+            SchemaQuizResult.query.filter_by(student_id=student_id).delete()
+        if 'schema_quiz_sessions' in existing:
+            SchemaQuizSession.query.filter_by(student_id=student_id).delete()
+        if 'vocabulary_quiz_results' in existing:
+            VocabularyQuizResult.query.filter_by(student_id=student_id).delete()
+        if 'vocabulary_quiz_sessions' in existing:
+            VocabularyQuizSession.query.filter_by(student_id=student_id).delete()
+        if 'zoom_access_logs' in existing:
+            ZoomAccessLog.query.filter_by(student_id=student_id).delete()
+        if 'reading_mbti_responses' in existing:
+            ReadingMBTIResponse.query.filter_by(student_id=student_id).delete()
+        if 'reading_mbti_results' in existing:
+            ReadingMBTIResult.query.filter_by(student_id=student_id).delete()
 
         db.session.delete(student)
         db.session.commit()
