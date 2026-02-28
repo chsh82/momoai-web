@@ -94,6 +94,37 @@ def create_board():
                          board=None)
 
 
+# ==================== 게시판 이름 수정 ====================
+
+@harkness_bp.route('/boards/<board_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_board(board_id):
+    """하크니스 게시판 이름/설명 수정 (생성자 또는 관리자)"""
+    board = HarknessBoard.query.get_or_404(board_id)
+
+    # 권한 확인: 생성자 또는 관리자
+    if current_user.user_id != board.created_by and not current_user.is_admin:
+        flash('게시판을 수정할 권한이 없습니다.', 'error')
+        return redirect(url_for('harkness.index'))
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+
+        if not title:
+            flash('제목을 입력해주세요.', 'error')
+            return redirect(url_for('harkness.edit_board', board_id=board_id))
+
+        board.title = title
+        board.description = description
+        db.session.commit()
+
+        flash('게시판 정보가 수정되었습니다.', 'success')
+        return redirect(url_for('harkness.board_detail', board_id=board_id))
+
+    return render_template('harkness/board_edit.html', board=board)
+
+
 # ==================== 게시판 상세 (게시글 목록) ====================
 
 @harkness_bp.route('/boards/<board_id>')

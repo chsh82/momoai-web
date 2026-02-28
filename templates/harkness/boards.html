@@ -49,41 +49,49 @@
     {% if boards %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% for board in boards %}
-        <a href="{{ url_for('harkness.board_detail', board_id=board.board_id) }}"
-           class="block bg-white rounded-lg shadow hover:shadow-lg transition duration-200 p-6">
-            <div class="flex items-start justify-between mb-3">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-2">
-                        {% if board.board_type == 'harkness_all' %}
-                        <span class="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">전체</span>
-                        {% else %}
-                        <span class="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">수업</span>
+        <div class="relative bg-white rounded-lg shadow hover:shadow-lg transition duration-200">
+            <a href="{{ url_for('harkness.board_detail', board_id=board.board_id) }}"
+               class="block p-6">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1 pr-16">
+                        <div class="flex items-center gap-2 mb-2">
+                            {% if board.board_type == 'harkness_all' %}
+                            <span class="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">전체</span>
+                            {% else %}
+                            <span class="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">수업</span>
+                            {% endif %}
+                            <h3 class="text-xl font-bold text-gray-800">{{ board.title }}</h3>
+                        </div>
+                        {% if board.description %}
+                        <p class="text-gray-600 text-sm mb-3">{{ board.description }}</p>
                         {% endif %}
-                        <h3 class="text-xl font-bold text-gray-800">{{ board.title }}</h3>
+                        {% if board.course %}
+                        <p class="text-sm text-gray-500">
+                            📚 {{ board.course.course_name }}
+                        </p>
+                        {% endif %}
                     </div>
-                    {% if board.description %}
-                    <p class="text-gray-600 text-sm mb-3">{{ board.description }}</p>
-                    {% endif %}
-                    {% if board.course %}
-                    <p class="text-sm text-gray-500">
-                        📚 {{ board.course.course_name }}
-                    </p>
-                    {% endif %}
                 </div>
-            </div>
 
-            <div class="flex items-center justify-between pt-3 border-t border-gray-200">
-                <div class="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📝 {{ board.post_count }}개 글</span>
-                    <span>👤 {{ board.creator.name }}</span>
+                <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                        <span>📝 {{ board.post_count }}개 글</span>
+                        <span>👤 {{ board.creator.name }}</span>
+                    </div>
+                    {% if board.latest_post %}
+                    <span class="text-xs text-gray-500">
+                        최근: {{ board.latest_post.created_at.strftime('%m/%d %H:%M') }}
+                    </span>
+                    {% endif %}
                 </div>
-                {% if board.latest_post %}
-                <span class="text-xs text-gray-500">
-                    최근: {{ board.latest_post.created_at.strftime('%m/%d %H:%M') }}
-                </span>
-                {% endif %}
-            </div>
-        </a>
+            </a>
+            {% if current_user.is_admin or current_user.user_id == board.created_by %}
+            <a href="{{ url_for('harkness.edit_board', board_id=board.board_id) }}"
+               class="absolute top-4 right-4 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg font-medium transition">
+                ✏️ 수정
+            </a>
+            {% endif %}
+        </div>
         {% endfor %}
     </div>
     {% else %}
