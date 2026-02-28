@@ -294,10 +294,32 @@ def delete(student_id):
 
     student_name = student.name
 
-    db.session.delete(student)
-    db.session.commit()
+    try:
+        from app.models.consultation import ConsultationRecord
+        from app.models.student_profile import StudentProfile
+        from app.models.schema_quiz import SchemaQuizResult, SchemaQuizSession
+        from app.models.vocabulary_quiz import VocabularyQuizResult, VocabularyQuizSession
+        from app.models.zoom_access import ZoomAccessLog
+        from app.models.reading_mbti import ReadingMBTIResponse, ReadingMBTIResult
 
-    flash(f'{student_name} 학생이 삭제되었습니다.', 'info')
+        # cascade='CASCADE' 없는 테이블 먼저 수동 삭제
+        ConsultationRecord.query.filter_by(student_id=student_id).delete()
+        StudentProfile.query.filter_by(student_id=student_id).delete()
+        SchemaQuizResult.query.filter_by(student_id=student_id).delete()
+        SchemaQuizSession.query.filter_by(student_id=student_id).delete()
+        VocabularyQuizResult.query.filter_by(student_id=student_id).delete()
+        VocabularyQuizSession.query.filter_by(student_id=student_id).delete()
+        ZoomAccessLog.query.filter_by(student_id=student_id).delete()
+        ReadingMBTIResponse.query.filter_by(student_id=student_id).delete()
+        ReadingMBTIResult.query.filter_by(student_id=student_id).delete()
+
+        db.session.delete(student)
+        db.session.commit()
+        flash(f'{student_name} 학생이 삭제되었습니다.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'삭제 중 오류가 발생했습니다: {str(e)}', 'error')
+
     return redirect(url_for('students.index'))
 
 
