@@ -5323,3 +5323,20 @@ def restore_user(user_id):
     db.session.commit()
     flash(f'{user.name} 계정이 복원되었습니다.', 'success')
     return redirect(url_for('admin.account_management'))
+
+
+@admin_bp.route('/help')
+@login_required
+@requires_permission_level(2)
+def help_page():
+    """관리자 사이트 사용 설명서"""
+    return render_template('admin/help.html')
+
+
+@admin_bp.route('/help/pdf')
+@login_required
+@requires_permission_level(2)
+def help_pdf():
+    """관리자 사용 설명서 PDF 다운로드"""
+    from app.utils.pdf_utils import generate_admin_manual_pdf
+    return generate_admin_manual_pdf()

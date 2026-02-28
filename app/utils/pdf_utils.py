@@ -1149,3 +1149,164 @@ def generate_parent_manual_pdf():
     story.append(ft)
     doc.build(story)
     return create_pdf_response(buffer, "MOMOAI_학부모사용설명서")
+
+
+def generate_admin_manual_pdf():
+    """관리자 사이트 사용 설명서 PDF 생성"""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+
+    buffer = BytesIO()
+    font_name = register_korean_font()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=20*mm, leftMargin=20*mm,
+                            topMargin=20*mm, bottomMargin=20*mm)
+
+    styles = getSampleStyleSheet()
+    title_style   = ParagraphStyle('KTitle',   fontName=font_name, fontSize=22, leading=28, spaceAfter=6,  textColor=colors.HexColor('#1E3A5F'), alignment=1)
+    sub_style     = ParagraphStyle('KSub',     fontName=font_name, fontSize=11, leading=16, spaceAfter=16, textColor=colors.HexColor('#4B5563'), alignment=1)
+    h2_style      = ParagraphStyle('KH2',      fontName=font_name, fontSize=14, leading=20, spaceBefore=14, spaceAfter=6, textColor=colors.HexColor('#1E3A5F'))
+    body_style    = ParagraphStyle('KBody',    fontName=font_name, fontSize=10, leading=16, spaceAfter=4,  textColor=colors.HexColor('#374151'))
+    bullet_style  = ParagraphStyle('KBullet',  fontName=font_name, fontSize=10, leading=15, spaceAfter=3,  leftIndent=12, textColor=colors.HexColor('#374151'))
+    numbered_style= ParagraphStyle('KNum',     fontName=font_name, fontSize=10, leading=15, spaceAfter=3,  leftIndent=12, textColor=colors.HexColor('#374151'))
+    note_style    = ParagraphStyle('KNote',    fontName=font_name, fontSize=9,  leading=14, spaceAfter=4,  leftIndent=12, textColor=colors.HexColor('#6B7280'))
+
+    story = []
+
+    # 표지
+    story.append(Spacer(1, 30*mm))
+    story.append(Paragraph("📚 MOMOAI v4.0", title_style))
+    story.append(Spacer(1, 4*mm))
+    story.append(Paragraph("관리자 사이트 사용 설명서", title_style))
+    story.append(Spacer(1, 6*mm))
+    story.append(Paragraph("관리자 기능 전체 안내", sub_style))
+    story.append(Spacer(1, 20*mm))
+
+    toc_data = [
+        ["목  차"],
+        ["1. 로그인 및 계정 관리"],
+        ["2. 학생 관리"],
+        ["3. 수업 관리"],
+        ["4. 수납 관리"],
+        ["5. 강사 관리"],
+        ["6. 학부모 관리"],
+        ["7. 교재 및 동영상 관리"],
+        ["8. 공지사항 및 문자 발송"],
+        ["9. 전체 수업 현황"],
+        ["10. 자주 묻는 질문"],
+    ]
+    toc_styles = [
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (0, 0), 13), ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A5F')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8FAFC')),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#374151')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TOPPADDING', (0, 0), (-1, -1), 7), ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ('LEFTPADDING', (0, 0), (-1, -1), 16),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+    ]
+    toc = Table(toc_data, colWidths=[150*mm])
+    toc.setStyle(TableStyle(toc_styles))
+    story.append(toc)
+    story.append(Spacer(1, 10*mm))
+
+    def add_section(num, title, items):
+        story.append(Paragraph(f"{num}. {title}", h2_style))
+        for kind, text in items:
+            if kind == 'body':
+                story.append(Paragraph(text, body_style))
+            elif kind == 'bullet':
+                story.append(Paragraph(f"• {text}", bullet_style))
+            elif kind == 'numbered':
+                story.append(Paragraph(text, numbered_style))
+            elif kind == 'note':
+                story.append(Paragraph(f"※ {text}", note_style))
+            elif kind == 'space':
+                story.append(Spacer(1, 3*mm))
+        story.append(Spacer(1, 5*mm))
+
+    add_section('1', '로그인 및 계정 관리', [
+        ('body', 'momoai.kr 접속 후 관리자 계정(이메일/비밀번호)으로 로그인합니다.'),
+        ('bullet', 'master_admin(최고 관리자): 모든 기능 사용 가능, 완전 삭제 권한 포함'),
+        ('bullet', 'manager(매니저): 대부분의 관리 기능 사용 가능'),
+        ('note', '계정 완전 삭제는 복원이 불가능합니다. 신중하게 진행하세요.'),
+    ])
+
+    add_section('2', '학생 관리', [
+        ('body', '사이드바 → 학생 관리 → 학생 목록에서 전체 학생을 조회합니다.'),
+        ('numbered', '1) 학생 추가: 이름, 학년, 이메일, 담당 강사 입력'),
+        ('numbered', '2) 학생 프로필: 학습 성향, 독서 이력, 티어(A/B/C/VIP) 관리'),
+        ('numbered', '3) 학생 삭제: 상세 페이지 → 삭제 버튼 (모든 관련 데이터 함께 삭제)'),
+    ])
+
+    add_section('3', '수업 관리', [
+        ('body', '사이드바 → 수업 관리 → 수업 개설에서 새 수업을 만듭니다.'),
+        ('bullet', '학년, 수업 유형, 시작일, 강사 선택 시 수업명·코드 자동 생성'),
+        ('bullet', '수업별 학생 등록: 수업 상세 → 학생 관리 탭'),
+        ('bullet', '보강수업 승인: 학생 신청 → 관리자 승인 → 1회 보강 수업 자동 생성'),
+        ('bullet', '전체 수업 현황: 강사별 주간 시간표 조회'),
+    ])
+
+    add_section('4', '수납 관리', [
+        ('body', '사이드바 → 수납 관리에서 월별, 학생별 수납 내역을 확인합니다.'),
+        ('bullet', '출결 기반 자동 수업료 계산'),
+        ('bullet', '납부 상태(대기/완료/취소)로 필터링하여 미납 학생 파악'),
+    ])
+
+    add_section('5', '강사 관리', [
+        ('body', '사이드바 → 강사 관리에서 강사 계정을 생성하고 관리합니다.'),
+        ('bullet', '강사 추가: 이메일, 이름, 권한 레벨 설정'),
+        ('bullet', '전체 수업 현황에서 강사별 주간 일정 확인 가능'),
+    ])
+
+    add_section('6', '학부모 관리', [
+        ('body', '사이드바 → 학부모 관리에서 학부모 계정을 조회합니다.'),
+        ('bullet', '자녀 연결 승인: 사이드바 → 학부모 연결 관리'),
+        ('bullet', '학부모 완전 삭제: 학부모 목록 → 완전 삭제 (master_admin 전용)'),
+    ])
+
+    add_section('7', '교재 및 동영상 관리', [
+        ('body', '사이드바 → 학습 교재 / 학습 동영상에서 학습 자료를 등록합니다.'),
+        ('bullet', '지원 파일 형식: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, HWP, ZIP'),
+        ('bullet', '유튜브 URL 입력 또는 직접 파일 업로드'),
+        ('bullet', '학년별 / 수업별 공개 범위 설정, 게시 기간 설정'),
+    ])
+
+    add_section('8', '공지사항 및 문자 발송', [
+        ('body', '사이드바 → 공지사항 관리에서 전체 또는 역할별 공지를 작성합니다.'),
+        ('bullet', '문자 발송: 학생/학부모 선택 후 메시지 발송 (개별/그룹)'),
+        ('bullet', '발송 내역: 발신자, 내용 키워드로 검색 가능'),
+    ])
+
+    add_section('9', '전체 수업 현황', [
+        ('body', '사이드바 → 전체 수업현황. 강사 드롭다운으로 강사별 주간 일정 조회.'),
+        ('bullet', '이전 주 / 이번 주 / 다음 주 버튼으로 주차 이동'),
+        ('bullet', '상단 통계: 전체/예정/완료/취소 세션 수'),
+    ])
+
+    add_section('10', '자주 묻는 질문', [
+        ('body', 'Q. 삭제한 학생 데이터를 복구할 수 있나요?'),
+        ('bullet', 'A. 영구 삭제 후에는 복구 불가. 삭제 전 비활성화를 먼저 고려하세요.'),
+        ('space', ''),
+        ('body', 'Q. 비활성 계정과 영구 삭제의 차이는?'),
+        ('bullet', 'A. 비활성화는 로그인만 차단(복원 가능), 영구 삭제는 모든 데이터 삭제(복원 불가).'),
+        ('space', ''),
+        ('body', 'Q. 강사/학부모 신규 계정은 어떻게 만드나요?'),
+        ('bullet', 'A. 강사: 강사 관리 → 강사 추가. 학부모: 직접 회원가입 후 자녀 연결 신청 → 관리자 승인.'),
+    ])
+
+    ft = Table([["MOMOAI v4.0 관리자 사이트 사용 설명서"]], colWidths=[170*mm])
+    ft.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white), ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#1E3A5F')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 8), ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(ft)
+    doc.build(story)
+    return create_pdf_response(buffer, "MOMOAI_관리자사용설명서")
