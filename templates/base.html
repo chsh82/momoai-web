@@ -1075,35 +1075,6 @@
                 </div>
                 {% endif %}
 
-                <!-- 사이트 사용 설명서 (전체 목차 맨 아래) -->
-                <div class="pt-3 border-t border-white border-opacity-20 mt-2">
-                    {% if current_user.role == 'admin' %}
-                    <a href="{{ url_for('admin.help_page') }}"
-                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'admin.help_page' %}active{% endif %}">
-                        <span class="text-xl">📖</span>
-                        <span>사이트 사용 설명서</span>
-                    </a>
-                    {% elif current_user.role == 'teacher' %}
-                    <a href="{{ url_for('teacher.help_page') }}"
-                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.help_page' %}active{% endif %}">
-                        <span class="text-xl">📖</span>
-                        <span>사이트 사용 설명서</span>
-                    </a>
-                    {% elif current_user.role == 'parent' %}
-                    <a href="{{ url_for('parent.help_page') }}"
-                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'parent.help_page' %}active{% endif %}">
-                        <span class="text-xl">📖</span>
-                        <span>사이트 사용 설명서</span>
-                    </a>
-                    {% elif current_user.role == 'student' %}
-                    <a href="{{ url_for('student.help_page') }}"
-                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'student.help_page' %}active{% endif %}">
-                        <span class="text-xl">📖</span>
-                        <span>사이트 사용 설명서</span>
-                    </a>
-                    {% endif %}
-                </div>
-
                 {% if current_user.role in ['admin', 'teacher'] %}
                 <div class="pt-3 border-t border-white border-opacity-20">
                     <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">빠른 작업</div>
@@ -1119,6 +1090,31 @@
                         <span>학생 추가</span>
                     </a>
                 </div>
+                {% endif %}
+            </div>
+
+            <!-- 사이트 사용 설명서 (항상 보이는 고정 영역) -->
+            <div class="px-4 py-2 border-t border-white border-opacity-20">
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('admin.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'admin.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% elif current_user.role == 'teacher' %}
+                <a href="{{ url_for('teacher.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'teacher.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% elif current_user.role == 'parent' %}
+                <a href="{{ url_for('parent.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'parent.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% elif current_user.role == 'student' %}
+                <a href="{{ url_for('student.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'student.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
                 {% endif %}
             </div>
 
