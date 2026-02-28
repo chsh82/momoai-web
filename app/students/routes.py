@@ -295,37 +295,45 @@ def delete(student_id):
     student_name = student.name
 
     try:
-        from sqlalchemy import inspect as sa_inspect
-        from app.models.consultation import ConsultationRecord
-        from app.models.student_profile import StudentProfile
-        from app.models.schema_quiz import SchemaQuizResult, SchemaQuizSession
-        from app.models.vocabulary_quiz import VocabularyQuizResult, VocabularyQuizSession
-        from app.models.zoom_access import ZoomAccessLog
-        from app.models.reading_mbti import ReadingMBTIResponse, ReadingMBTIResult
+        from sqlalchemy import text, inspect as sa_inspect
 
-        existing = sa_inspect(db.engine).get_table_names()
+        existing = set(sa_inspect(db.engine).get_table_names())
 
-        # cascade='CASCADE' 없는 테이블 먼저 수동 삭제 (테이블 존재 여부 확인 후)
-        if 'consultation_records' in existing:
-            ConsultationRecord.query.filter_by(student_id=student_id).delete()
-        if 'student_profiles' in existing:
-            StudentProfile.query.filter_by(student_id=student_id).delete()
-        if 'schema_quiz_results' in existing:
-            SchemaQuizResult.query.filter_by(student_id=student_id).delete()
-        if 'schema_quiz_sessions' in existing:
-            SchemaQuizSession.query.filter_by(student_id=student_id).delete()
-        if 'vocabulary_quiz_results' in existing:
-            VocabularyQuizResult.query.filter_by(student_id=student_id).delete()
-        if 'vocabulary_quiz_sessions' in existing:
-            VocabularyQuizSession.query.filter_by(student_id=student_id).delete()
-        if 'zoom_access_logs' in existing:
-            ZoomAccessLog.query.filter_by(student_id=student_id).delete()
-        if 'reading_mbti_responses' in existing:
-            ReadingMBTIResponse.query.filter_by(student_id=student_id).delete()
-        if 'reading_mbti_results' in existing:
-            ReadingMBTIResult.query.filter_by(student_id=student_id).delete()
+        # ORM session에서 제거 (backref 관계 자동 SELECT 방지)
+        db.session.expunge(student)
 
-        db.session.delete(student)
+        # Raw SQL로 삭제 - ORM relationship 로딩 완전 우회
+        # 존재하는 테이블만 삭제
+        optional_tables = [
+            'consultation_records',
+            'student_profiles',
+            'schema_quiz_results',
+            'schema_quiz_sessions',
+            'vocabulary_quiz_results',
+            'vocabulary_quiz_sessions',
+            'zoom_access_logs',
+            'reading_mbti_responses',
+            'reading_mbti_results',
+        ]
+        for table in optional_tables:
+            if table in existing:
+                db.session.execute(
+                    text(f"DELETE FROM {table} WHERE student_id = :id"),
+                    {"id": student_id}
+                )
+
+        # essays도 raw SQL로 삭제
+        if 'essays' in existing:
+            db.session.execute(
+                text("DELETE FROM essays WHERE student_id = :id"),
+                {"id": student_id}
+            )
+
+        # 학생 레코드 삭제
+        db.session.execute(
+            text("DELETE FROM students WHERE student_id = :id"),
+            {"id": student_id}
+        )
         db.session.commit()
         flash(f'{student_name} 학생이 삭제되었습니다.', 'info')
     except Exception as e:
