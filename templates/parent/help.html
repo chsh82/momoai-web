@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}학부모 도움말 - MOMOAI v4.0{% endblock %}
+{% block page_title %}📖 학부모 사용 설명서{% endblock %}
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">MOMOAI 주요 기능 안내</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+
+    <!-- PDF 다운로드 버튼 -->
+    <div class="flex justify-end mb-4">
+        <a href="{{ url_for('parent.help_pdf') }}"
+           class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            PDF 다운로드
+        </a>
+    </div>
+
+    <!-- 목차 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">📋 목차</h2>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+            <a href="#section-login"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>1.</span> 로그인 및 기본 설정</a>
+            <a href="#section-child"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>2.</span> 자녀 연결</a>
+            <a href="#section-attend"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>3.</span> 자녀 출결 현황</a>
+            <a href="#section-essay"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>4.</span> 과제 및 첨삭 확인</a>
+            <a href="#section-material" class="flex items-center gap-2 text-blue-600 hover:underline"><span>5.</span> 학습 교재 및 동영상</a>
+            <a href="#section-eval"     class="flex items-center gap-2 text-blue-600 hover:underline"><span>6.</span> 평가 정보</a>
+            <a href="#section-makeup"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>7.</span> 보강수업 신청</a>
+            <a href="#section-payment"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>8.</span> 수납 관리</a>
+            <a href="#section-board"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>9.</span> 게시판 및 피드백</a>
+            <a href="#section-faq"      class="flex items-center gap-2 text-blue-600 hover:underline"><span>10.</span> 자주 묻는 질문</a>
+        </div>
+    </div>
+
+    <!-- 1. 로그인 및 기본 설정 -->
+    <div id="section-login" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">1</span>
+            로그인 및 기본 설정
+        </h2>
+        <div class="space-y-4 text-gray-700 text-sm leading-relaxed">
+            <div class="bg-blue-50 rounded-lg p-4">
+                <p class="font-semibold text-blue-800 mb-2">🔐 회원가입 및 로그인</p>
+                <ol class="list-decimal list-inside space-y-1 text-blue-700">
+                    <li>MOMOAI 홈페이지에서 <strong>회원가입</strong> 후 관리자 승인을 기다립니다.</li>
+                    <li>승인 완료 시 SMS 문자가 발송됩니다.</li>
+                    <li>비밀번호는 <strong>영문 소문자 + 숫자 + 특수문자</strong>를 포함해야 합니다.</li>
+                </ol>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4">
+                <p class="font-semibold text-green-800 mb-2">👤 프로필 설정</p>
+                <ul class="list-disc list-inside space-y-1 text-green-700">
+                    <li>좌측 하단 <strong>프로필</strong> 버튼에서 내 정보 및 비밀번호를 변경할 수 있습니다.</li>
+                    <li>전화번호를 등록해 두면 중요 알림을 SMS로 받을 수 있습니다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 자녀 연결 -->
+    <div id="section-child" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">2</span>
+            자녀 연결
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <p>MOMOAI에서 자녀 정보를 확인하려면 먼저 <strong>자녀 연결</strong>을 해야 합니다.</p>
+            <ol class="list-decimal list-inside space-y-2 bg-gray-50 rounded-lg p-4">
+                <li>사이드바 <strong>자녀 관리 → 자녀 연결</strong>을 클릭합니다.</li>
+                <li>자녀의 이름, 학년, 학원 등록 코드를 입력하고 신청합니다.</li>
+                <li>관리자가 확인 후 승인하면 자녀 정보가 연동됩니다.</li>
+                <li>승인/거절 여부는 알림과 SMS로 안내됩니다.</li>
+            </ol>
+            <div class="bg-green-50 border-l-4 border-green-400 p-3 rounded">
+                <p class="text-green-800 text-xs">💡 한 자녀에 여러 학부모 계정(엄마, 아빠 등)을 연결할 수 있습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 출결 현황 -->
+    <div id="section-attend" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">3</span>
+            자녀 출결 현황
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <p>사이드바 <strong>학습 현황 → 출결 현황</strong>으로 이동합니다.</p>
+            <ul class="list-disc list-inside space-y-1 bg-gray-50 rounded-lg p-4">
+                <li>자녀가 여러 명이라면 상단 탭에서 자녀를 선택합니다.</li>
+                <li>수업별 출석률, 출석/지각/결석 횟수를 확인할 수 있습니다.</li>
+                <li>세션별 상세 출석 내역도 확인 가능합니다.</li>
+            </ul>
+            <div class="flex gap-3 text-xs mt-2">
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">✓ 출석</span>
+                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">⏰ 지각</span>
+                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full font-medium">✗ 결석</span>
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">📋 인정결석</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 과제 및 첨삭 -->
+    <div id="section-essay" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
+            과제 및 첨삭 확인
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <p>사이드바 <strong>학습 현황 → 과제 및 첨삭</strong>으로 이동합니다.</p>
+            <ul class="list-disc list-inside space-y-2 bg-gray-50 rounded-lg p-4">
+                <li>자녀가 제출한 에세이 목록을 확인할 수 있습니다.</li>
+                <li>첨삭이 완료된 글쓰기의 <strong>점수, 강사 코멘트, 수정 내용</strong>을 확인할 수 있습니다.</li>
+                <li>미완료 과제는 자녀에게 제출을 독려해 주세요.</li>
+            </ul>
+            <div class="bg-orange-50 border-l-4 border-orange-400 p-3 rounded">
+                <p class="text-orange-800 text-xs">🔒 첨삭 내용은 학부모에게만 공개됩니다. 학생 본인은 강사가 별도 공유한 경우에만 볼 수 있습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 학습 교재 및 동영상 -->
+    <div id="section-material" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">5</span>
+            학습 교재 및 동영상
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="bg-blue-50 rounded-lg p-3">
+                    <p class="font-semibold text-blue-800 mb-1">📚 학습 교재</p>
+                    <p class="text-blue-700 text-xs">사이드바 <strong>학습 현황 → 학습 교재</strong>에서 자녀의 학습 자료를 확인하고 다운로드할 수 있습니다.</p>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-3">
+                    <p class="font-semibold text-purple-800 mb-1">🎬 학습 동영상</p>
+                    <p class="text-purple-700 text-xs">사이드바 <strong>학습 현황 → 학습 동영상</strong>에서 자녀에게 배정된 강의 영상을 시청할 수 있습니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 평가 정보 -->
+    <div id="section-eval" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
+            평가 정보
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="bg-indigo-50 rounded-lg p-3">
+                    <p class="font-semibold text-indigo-800 mb-1">🧠 독서논술 MBTI</p>
+                    <p class="text-indigo-700 text-xs">자녀의 독서 성향 유형 결과를 확인합니다.</p>
+                </div>
+                <div class="bg-indigo-50 rounded-lg p-3">
+                    <p class="font-semibold text-indigo-800 mb-1">📝 주간 평가</p>
+                    <p class="text-indigo-700 text-xs">강사가 매주 입력하는 수업 참여도, 이해도 평가를 확인합니다.</p>
+                </div>
+                <div class="bg-indigo-50 rounded-lg p-3">
+                    <p class="font-semibold text-indigo-800 mb-1">⭐ ACE 분기 평가</p>
+                    <p class="text-indigo-700 text-xs">분기별 종합 평가 결과 및 리포트를 확인합니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. 보강수업 -->
+    <div id="section-makeup" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
+            보강수업 신청
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <p>사이드바 <strong>보강수업</strong>으로 이동합니다.</p>
+            <ol class="list-decimal list-inside space-y-2 bg-gray-50 rounded-lg p-4">
+                <li>보강 가능한 수업 목록에서 원하는 수업을 선택합니다.</li>
+                <li>사유를 입력하고 신청하면 관리자가 검토 후 승인합니다.</li>
+                <li>승인/거절 여부는 알림으로 안내됩니다.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- 8. 수납 관리 -->
+    <div id="section-payment" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">8</span>
+            수납 관리
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <p>사이드바 <strong>수납 관리</strong>로 이동합니다.</p>
+            <ul class="list-disc list-inside space-y-1 bg-gray-50 rounded-lg p-4">
+                <li>자녀의 수업별 수강료 납부 현황을 확인할 수 있습니다.</li>
+                <li>미납, 납부 완료 상태를 한눈에 파악할 수 있습니다.</li>
+                <li>납부 관련 문의는 관리자에게 직접 연락해 주세요.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 9. 게시판 및 피드백 -->
+    <div id="section-board" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">9</span>
+            게시판 및 피드백
+        </h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <p class="font-semibold text-gray-800 mb-1">📢 공지사항</p>
+                    <p class="text-gray-600 text-xs">학원 공지 및 수업 안내를 확인합니다.</p>
+                </div>
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <p class="font-semibold text-gray-800 mb-1">💬 선생님 피드백</p>
+                    <p class="text-gray-600 text-xs">강사가 작성한 자녀의 수업 피드백을 확인합니다. 학생에게는 공개되지 않습니다.</p>
+                </div>
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <p class="font-semibold text-gray-800 mb-1">📬 문의 게시판</p>
+                    <p class="text-gray-600 text-xs">학원에 문의사항을 남기면 관리자/강사가 답변합니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. FAQ -->
+    <div id="section-faq" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">10</span>
+            자주 묻는 질문 (FAQ)
+        </h2>
+        <div class="space-y-3">
+            {% set faqs = [
+                ('자녀를 연결했는데 정보가 보이지 않아요.', '관리자 승인이 필요합니다. 승인 후 SMS로 안내되며, 보통 1영업일 내 처리됩니다.'),
+                ('피드백을 받았는데 자녀도 볼 수 있나요?', '아니요. 선생님 피드백은 학부모와 관리자만 열람할 수 있습니다. 학생에게는 표시되지 않습니다.'),
+                ('출결 정보가 잘못된 것 같아요.', '담당 강사 또는 관리자에게 문의해 주세요. 수정 요청 시 정정 처리해 드립니다.'),
+                ('수납 내역이 맞지 않아요.', '관리자에게 직접 문의해 주세요. 관리자가 수납 내역을 확인하고 수정할 수 있습니다.'),
+                ('보강수업 신청 후 답변이 없어요.', '관리자가 검토 중입니다. 승인/거절 시 알림과 SMS로 안내됩니다.'),
+                ('비밀번호를 잊어버렸어요.', '로그인 화면에서 비밀번호를 재설정하거나, 관리자에게 초기화를 요청하세요.')
+            ] %}
+            {% for q, a in faqs %}
+            <div class="border border-gray-200 rounded-lg p-4">
+                <p class="font-semibold text-gray-800 mb-1">Q. {{ q }}</p>
+                <p class="text-gray-600 text-sm">A. {{ a }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 문의 안내 -->
+    <div class="bg-indigo-600 rounded-lg p-6 mb-6 text-white text-center">
+        <p class="text-lg font-bold mb-1">추가 문의사항이 있으신가요?</p>
+        <p class="text-indigo-200 text-sm mb-3">시스템 이용 중 문제가 발생하면 문의 게시판을 이용해 주세요.</p>
+        <a href="{{ url_for('inquiry.new_inquiry') }}"
+           class="inline-block bg-white text-indigo-600 font-semibold px-6 py-2 rounded-lg hover:bg-indigo-50 transition">
+            📬 문의하기
+        </a>
+    </div>
+
+    <div class="text-center mb-8">
+        <a href="#" class="text-gray-500 hover:text-gray-700 text-sm">▲ 맨 위로</a>
+    </div>
+
+</div>
+{% endblock %}

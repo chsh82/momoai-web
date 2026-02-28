@@ -863,6 +863,13 @@
                             </a>
                         </div>
                     </div>
+
+                    <!-- 도움말 -->
+                    <a href="{{ url_for('parent.help_page') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'parent.help_page' %}active{% endif %} mt-2">
+                        <span class="text-xl">📖</span>
+                        <span>사용 설명서</span>
+                    </a>
                 </div>
                 {% endif %}
 
@@ -1075,6 +1082,13 @@
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'news.' in request.endpoint %}active{% endif %} mt-2">
                         <span class="text-xl">📰</span>
                         <span>모모 소식</span>
+                    </a>
+
+                    <!-- 도움말 -->
+                    <a href="{{ url_for('student.help_page') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'student.help_page' %}active{% endif %} mt-2">
+                        <span class="text-xl">📖</span>
+                        <span>사용 설명서</span>
                     </a>
                 </div>
                 {% endif %}

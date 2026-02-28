@@ -2409,3 +2409,20 @@ def weekly_evaluation_report(student_id):
                          max_score=max_score,
                          min_score=min_score,
                          period=period)
+
+
+@parent_bp.route('/help')
+@login_required
+@requires_role('parent', 'admin')
+def help_page():
+    """학부모 도움말"""
+    return render_template('parent/help.html')
+
+
+@parent_bp.route('/help/pdf')
+@login_required
+@requires_role('parent', 'admin')
+def help_pdf():
+    """학부모 도움말 PDF 다운로드"""
+    from app.utils.pdf_utils import generate_parent_manual_pdf
+    return generate_parent_manual_pdf()

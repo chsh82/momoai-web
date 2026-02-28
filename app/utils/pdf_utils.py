@@ -786,3 +786,366 @@ def generate_teacher_manual_pdf():
 
     doc.build(story)
     return create_pdf_response(buffer, "MOMOAI_강사사용설명서")
+
+
+# ==================== 학생 사용 설명서 PDF ====================
+
+def generate_student_manual_pdf():
+    """학생 사용 설명서 PDF 생성"""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            topMargin=20*mm, bottomMargin=20*mm,
+                            leftMargin=20*mm, rightMargin=20*mm)
+
+    font_name = register_korean_font()
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle('T', parent=styles['Normal'], fontName=font_name, fontSize=22, leading=28, alignment=TA_CENTER, textColor=colors.HexColor('#312E81'), spaceAfter=6)
+    subtitle_style = ParagraphStyle('S', parent=styles['Normal'], fontName=font_name, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor('#6366F1'), spaceAfter=4)
+    section_style = ParagraphStyle('H', parent=styles['Normal'], fontName=font_name, fontSize=14, leading=18, textColor=colors.HexColor('#4338CA'), spaceBefore=14, spaceAfter=6)
+    body_style = ParagraphStyle('B', parent=styles['Normal'], fontName=font_name, fontSize=10, leading=15, spaceAfter=4)
+    bullet_style = ParagraphStyle('BU', parent=styles['Normal'], fontName=font_name, fontSize=9.5, leading=14, leftIndent=14, spaceAfter=2)
+    note_style = ParagraphStyle('N', parent=styles['Normal'], fontName=font_name, fontSize=9, leading=12, textColor=colors.HexColor('#475569'), leftIndent=10, spaceAfter=4)
+    faq_q_style = ParagraphStyle('FQ', parent=styles['Normal'], fontName=font_name, fontSize=10, leading=14, textColor=colors.HexColor('#1E293B'))
+    faq_a_style = ParagraphStyle('FA', parent=styles['Normal'], fontName=font_name, fontSize=9.5, leading=13, textColor=colors.HexColor('#475569'), leftIndent=12, spaceAfter=6)
+
+    story = []
+
+    # 표지
+    story.append(Spacer(1, 25*mm))
+    story.append(Paragraph("MOMOAI v4.0", title_style))
+    story.append(Paragraph("학생 사용 설명서", title_style))
+    story.append(Spacer(1, 4*mm))
+    story.append(Paragraph("Student User Manual", subtitle_style))
+    story.append(Spacer(1, 8*mm))
+    divider = Table([['']], colWidths=[170*mm])
+    divider.setStyle(TableStyle([('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#4338CA'))]))
+    story.append(divider)
+    story.append(Spacer(1, 6*mm))
+    story.append(Paragraph(f"발급일: {datetime.now().strftime('%Y년 %m월 %d일')}", subtitle_style))
+    story.append(Spacer(1, 30*mm))
+
+    # 목차
+    toc_data = [
+        ['목  차', ''],
+        ['1.  로그인 및 기본 설정', ''],
+        ['2.  수업 확인', ''],
+        ['3.  출결 현황', ''],
+        ['4.  글쓰기 제출 (에세이)', ''],
+        ['5.  과제 확인 및 제출', ''],
+        ['6.  학습 교재 및 동영상', ''],
+        ['7.  보강수업 신청', ''],
+        ['8.  게시판', ''],
+        ['9.  평가 및 테스트', ''],
+        ['10. 자주 묻는 질문 (FAQ)', ''],
+    ]
+    toc_table = Table(toc_data, colWidths=[130*mm, 40*mm])
+    toc_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, 0), 12), ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#EEF2FF')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#312E81')),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1E40AF')),
+        ('TOPPADDING', (0, 0), (-1, 0), 8), ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 4), ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10), ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+    ]))
+    story.append(toc_table)
+    story.append(PageBreak())
+
+    def add_section(num, title, items):
+        story.append(Paragraph(f"{num}. {title}", section_style))
+        for item_type, text in items:
+            if item_type == 'body': story.append(Paragraph(text, body_style))
+            elif item_type in ('bullet', 'numbered'): story.append(Paragraph(f"• {text}" if item_type == 'bullet' else text, bullet_style))
+            elif item_type == 'note': story.append(Paragraph(f"※ {text}", note_style))
+            elif item_type == 'space': story.append(Spacer(1, 3*mm))
+        story.append(Spacer(1, 3*mm))
+
+    def add_table(headers, rows, widths):
+        data = [headers] + rows
+        t = Table(data, colWidths=widths)
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F3FF')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+            ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8), ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(t)
+
+    # 1. 로그인
+    add_section('1', '로그인 및 기본 설정', [
+        ('body', '[최초 로그인]'),
+        ('numbered', '1) 관리자 또는 학부모가 안내한 이메일 / 비밀번호로 로그인합니다.'),
+        ('numbered', '2) 비밀번호는 영문 소문자 + 숫자 + 특수문자를 포함해야 합니다.'),
+        ('numbered', '3) 비밀번호를 잊어버린 경우 관리자에게 초기화를 요청하세요.'),
+        ('space', ''),
+        ('body', '[프로필 설정]'),
+        ('bullet', '좌측 하단 프로필 버튼에서 내 정보를 수정할 수 있습니다.'),
+        ('bullet', '프로필 사진을 등록하면 게시판에서 표시됩니다.'),
+    ])
+
+    # 2. 수업
+    story.append(Paragraph("2. 수업 확인", section_style))
+    story.append(Paragraph("사이드바 내 수업 → 수업 목록에서 현재 수강 중인 수업을 확인합니다.", body_style))
+    add_table(['메뉴', '기능'], [['수업 목록', '수강 중인 수업 목록 및 강사 정보 확인'], ['수업 상세', '수업별 세션 일정, 출석 현황, 강사 연락처 확인']], [50*mm, 120*mm])
+    story.append(Paragraph("※ 수업 등록/변경은 관리자만 가능합니다. 수강 신청이 필요하면 관리자에게 문의하세요.", note_style))
+    story.append(Spacer(1, 3*mm))
+
+    # 3. 출결
+    add_section('3', '출결 현황', [
+        ('body', '사이드바 내 수업 → 출결 현황에서 내 출석 기록을 확인합니다.'),
+        ('bullet', '수업별 출석 통계(출석 / 지각 / 결석 횟수)를 확인할 수 있습니다.'),
+        ('bullet', '출석 상태는 강사가 직접 입력합니다. 오류가 있으면 강사에게 문의하세요.'),
+    ])
+
+    # 4. 에세이
+    add_section('4', '글쓰기 제출 (에세이)', [
+        ('body', '사이드바 학습 활동 → 글쓰기 제출로 이동합니다.'),
+        ('numbered', '1) 책 제목을 검색하거나 직접 입력합니다.'),
+        ('numbered', '2) 글쓰기 내용을 입력하고 제출합니다.'),
+        ('numbered', '3) 제출 즉시 담당 강사에게 자동으로 알림이 발송됩니다.'),
+        ('numbered', '4) 강사가 첨삭을 완료하면 알림을 받고 내 첨삭에서 확인할 수 있습니다.'),
+        ('note', '첨삭 완료 알림은 좌측 상단 알림(벨 아이콘)에서 확인할 수 있습니다.'),
+    ])
+
+    # 5. 과제
+    add_section('5', '과제 확인 및 제출', [
+        ('body', '사이드바 내 수업 → 과제 보기로 이동합니다.'),
+        ('numbered', '1) 강사가 출제한 과제 목록이 표시됩니다.'),
+        ('numbered', '2) 과제를 클릭하여 내용을 확인하고 답변을 작성합니다.'),
+        ('numbered', '3) 제출을 클릭하면 강사에게 전달됩니다.'),
+        ('numbered', '4) 채점된 과제는 목록에서 점수와 코멘트를 확인할 수 있습니다.'),
+        ('note', '마감일이 지난 과제는 제출이 불가할 수 있습니다. 기한을 꼭 확인하세요.'),
+    ])
+
+    # 6. 교재/동영상
+    story.append(Paragraph("6. 학습 교재 및 동영상", section_style))
+    add_table(['구분', '설명'], [['학습 교재', '사이드바 학습 활동 → 학습 교재에서 강사가 등록한 자료(PDF, 문서 등)를 다운로드할 수 있습니다.'], ['학습 동영상', '사이드바 학습 활동 → 학습 동영상에서 유튜브 강의를 시청할 수 있습니다.']], [40*mm, 130*mm])
+    story.append(Paragraph("※ 내 학년과 수강 중인 수업에 맞는 교재/동영상만 표시됩니다.", note_style))
+    story.append(Spacer(1, 3*mm))
+
+    # 7. 보강
+    add_section('7', '보강수업 신청', [
+        ('body', '사이드바 보강수업 → 신청하기로 이동합니다.'),
+        ('numbered', '1) 보강 가능한 수업 목록에서 원하는 수업을 선택합니다.'),
+        ('numbered', '2) 보강이 필요한 사유를 입력하고 신청합니다.'),
+        ('numbered', '3) 관리자가 승인하면 알림이 발송됩니다.'),
+        ('numbered', '4) 신청 내역은 보강수업 → 신청 내역에서 확인할 수 있습니다.'),
+    ])
+
+    # 8. 게시판
+    story.append(Paragraph("8. 게시판", section_style))
+    add_table(['게시판', '설명'], [['공지사항', '학원 공지와 강사 메세지를 확인합니다.'], ['클래스 게시판', '수업별 게시판에서 강사·학생과 소통합니다.'], ['하크니스 게시판', '하크니스 수업 전용 토론 게시판입니다.']], [50*mm, 120*mm])
+    story.append(Spacer(1, 3*mm))
+
+    # 9. 평가
+    story.append(Paragraph("9. 평가 및 테스트", section_style))
+    add_table(['평가 유형', '설명'], [['독서논술 MBTI', '나의 독서 성향을 알아보는 설문입니다.'], ['주간 평가', '강사가 매주 입력하는 수업 참여도 평가입니다.'], ['학습 진도', '수업별 진행 현황을 확인합니다.']], [45*mm, 125*mm])
+    story.append(Spacer(1, 3*mm))
+
+    # 10. FAQ
+    story.append(Paragraph("10. 자주 묻는 질문 (FAQ)", section_style))
+    faqs = [
+        ('출석이 잘못 기록된 것 같아요.', '강사에게 직접 문의하거나 관리자에게 수정을 요청하세요.'),
+        ('에세이를 제출했는데 강사가 확인하나요?', '제출 즉시 담당 강사에게 알림이 발송됩니다.'),
+        ('학습 교재가 보이지 않아요.', '내 학년 또는 수강 수업에 맞는 교재만 표시됩니다. 강사에게 문의하세요.'),
+        ('보강수업 신청 후 승인이 안 돼요.', '관리자가 검토 중입니다. 승인/거절 시 알림으로 안내됩니다.'),
+        ('비밀번호를 변경하고 싶어요.', '좌측 하단 프로필 → 비밀번호 변경에서 직접 변경할 수 있습니다.'),
+    ]
+    for q, a in faqs:
+        story.append(Paragraph(f"Q. {q}", faq_q_style))
+        story.append(Paragraph(f"A. {a}", faq_a_style))
+
+    story.append(Spacer(1, 8*mm))
+    footer_data = [['추가 문의사항이 있으면 관리자에게 문의해 주세요. | © 2026 MOMOAI - 모모의 책장']]
+    ft = Table(footer_data, colWidths=[170*mm])
+    ft.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white), ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#4338CA')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 8), ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(ft)
+    doc.build(story)
+    return create_pdf_response(buffer, "MOMOAI_학생사용설명서")
+
+
+# ==================== 학부모 사용 설명서 PDF ====================
+
+def generate_parent_manual_pdf():
+    """학부모 사용 설명서 PDF 생성"""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            topMargin=20*mm, bottomMargin=20*mm,
+                            leftMargin=20*mm, rightMargin=20*mm)
+
+    font_name = register_korean_font()
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle('T', parent=styles['Normal'], fontName=font_name, fontSize=22, leading=28, alignment=TA_CENTER, textColor=colors.HexColor('#312E81'), spaceAfter=6)
+    subtitle_style = ParagraphStyle('S', parent=styles['Normal'], fontName=font_name, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor('#6366F1'), spaceAfter=4)
+    section_style = ParagraphStyle('H', parent=styles['Normal'], fontName=font_name, fontSize=14, leading=18, textColor=colors.HexColor('#4338CA'), spaceBefore=14, spaceAfter=6)
+    body_style = ParagraphStyle('B', parent=styles['Normal'], fontName=font_name, fontSize=10, leading=15, spaceAfter=4)
+    bullet_style = ParagraphStyle('BU', parent=styles['Normal'], fontName=font_name, fontSize=9.5, leading=14, leftIndent=14, spaceAfter=2)
+    note_style = ParagraphStyle('N', parent=styles['Normal'], fontName=font_name, fontSize=9, leading=12, textColor=colors.HexColor('#475569'), leftIndent=10, spaceAfter=4)
+    faq_q_style = ParagraphStyle('FQ', parent=styles['Normal'], fontName=font_name, fontSize=10, leading=14, textColor=colors.HexColor('#1E293B'))
+    faq_a_style = ParagraphStyle('FA', parent=styles['Normal'], fontName=font_name, fontSize=9.5, leading=13, textColor=colors.HexColor('#475569'), leftIndent=12, spaceAfter=6)
+
+    story = []
+
+    # 표지
+    story.append(Spacer(1, 25*mm))
+    story.append(Paragraph("MOMOAI v4.0", title_style))
+    story.append(Paragraph("학부모 사용 설명서", title_style))
+    story.append(Spacer(1, 4*mm))
+    story.append(Paragraph("Parent User Manual", subtitle_style))
+    story.append(Spacer(1, 8*mm))
+    divider = Table([['']], colWidths=[170*mm])
+    divider.setStyle(TableStyle([('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#4338CA'))]))
+    story.append(divider)
+    story.append(Spacer(1, 6*mm))
+    story.append(Paragraph(f"발급일: {datetime.now().strftime('%Y년 %m월 %d일')}", subtitle_style))
+    story.append(Spacer(1, 30*mm))
+
+    # 목차
+    toc_data = [
+        ['목  차', ''],
+        ['1.  로그인 및 기본 설정', ''],
+        ['2.  자녀 연결', ''],
+        ['3.  자녀 출결 현황', ''],
+        ['4.  과제 및 첨삭 확인', ''],
+        ['5.  학습 교재 및 동영상', ''],
+        ['6.  평가 정보', ''],
+        ['7.  보강수업 신청', ''],
+        ['8.  수납 관리', ''],
+        ['9.  게시판 및 피드백', ''],
+        ['10. 자주 묻는 질문 (FAQ)', ''],
+    ]
+    toc_table = Table(toc_data, colWidths=[130*mm, 40*mm])
+    toc_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, 0), 12), ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#EEF2FF')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#312E81')),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1E40AF')),
+        ('TOPPADDING', (0, 0), (-1, 0), 8), ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 4), ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10), ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+    ]))
+    story.append(toc_table)
+    story.append(PageBreak())
+
+    def add_section(num, title, items):
+        story.append(Paragraph(f"{num}. {title}", section_style))
+        for item_type, text in items:
+            if item_type == 'body': story.append(Paragraph(text, body_style))
+            elif item_type in ('bullet', 'numbered'): story.append(Paragraph(f"• {text}" if item_type == 'bullet' else text, bullet_style))
+            elif item_type == 'note': story.append(Paragraph(f"※ {text}", note_style))
+            elif item_type == 'space': story.append(Spacer(1, 3*mm))
+        story.append(Spacer(1, 3*mm))
+
+    def add_table(headers, rows, widths):
+        data = [headers] + rows
+        t = Table(data, colWidths=widths)
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F3FF')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C7D2FE')),
+            ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8), ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(t)
+
+    # 1. 로그인
+    add_section('1', '로그인 및 기본 설정', [
+        ('body', '[회원가입 및 로그인]'),
+        ('numbered', '1) MOMOAI 홈페이지에서 회원가입 후 관리자 승인을 기다립니다.'),
+        ('numbered', '2) 승인 완료 시 SMS 문자가 발송됩니다.'),
+        ('numbered', '3) 비밀번호는 영문 소문자 + 숫자 + 특수문자를 포함해야 합니다.'),
+        ('space', ''),
+        ('body', '[프로필 설정]'),
+        ('bullet', '좌측 하단 프로필 버튼에서 내 정보 및 비밀번호를 변경할 수 있습니다.'),
+        ('bullet', '전화번호를 등록해 두면 중요 알림을 SMS로 받을 수 있습니다.'),
+    ])
+
+    # 2. 자녀 연결
+    add_section('2', '자녀 연결', [
+        ('body', 'MOMOAI에서 자녀 정보를 확인하려면 먼저 자녀 연결을 해야 합니다.'),
+        ('numbered', '1) 사이드바 자녀 관리 → 자녀 연결을 클릭합니다.'),
+        ('numbered', '2) 자녀의 이름, 학년, 학원 등록 코드를 입력하고 신청합니다.'),
+        ('numbered', '3) 관리자가 확인 후 승인하면 자녀 정보가 연동됩니다.'),
+        ('numbered', '4) 승인/거절 여부는 알림과 SMS로 안내됩니다.'),
+        ('note', '한 자녀에 여러 학부모 계정(엄마, 아빠 등)을 연결할 수 있습니다.'),
+    ])
+
+    # 3. 출결
+    add_section('3', '자녀 출결 현황', [
+        ('body', '사이드바 학습 현황 → 출결 현황으로 이동합니다.'),
+        ('bullet', '자녀가 여러 명이라면 상단 탭에서 자녀를 선택합니다.'),
+        ('bullet', '수업별 출석률, 출석/지각/결석 횟수를 확인할 수 있습니다.'),
+        ('bullet', '세션별 상세 출석 내역도 확인 가능합니다.'),
+    ])
+
+    # 4. 과제/첨삭
+    add_section('4', '과제 및 첨삭 확인', [
+        ('body', '사이드바 학습 현황 → 과제 및 첨삭으로 이동합니다.'),
+        ('bullet', '자녀가 제출한 에세이 목록을 확인할 수 있습니다.'),
+        ('bullet', '첨삭이 완료된 글쓰기의 점수, 강사 코멘트, 수정 내용을 확인할 수 있습니다.'),
+        ('note', '첨삭 내용은 학부모에게만 공개됩니다. 학생 본인은 강사가 별도 공유한 경우에만 볼 수 있습니다.'),
+    ])
+
+    # 5. 교재/동영상
+    story.append(Paragraph("5. 학습 교재 및 동영상", section_style))
+    add_table(['구분', '설명'], [['학습 교재', '사이드바 학습 현황 → 학습 교재에서 자녀의 학습 자료를 다운로드할 수 있습니다.'], ['학습 동영상', '사이드바 학습 현황 → 학습 동영상에서 자녀에게 배정된 강의 영상을 시청할 수 있습니다.']], [40*mm, 130*mm])
+    story.append(Spacer(1, 3*mm))
+
+    # 6. 평가
+    story.append(Paragraph("6. 평가 정보", section_style))
+    add_table(['평가 유형', '설명'], [['독서논술 MBTI', '자녀의 독서 성향 유형 결과를 확인합니다.'], ['주간 평가', '강사가 매주 입력하는 수업 참여도, 이해도 평가를 확인합니다.'], ['ACE 분기 평가', '분기별 종합 평가 결과 및 리포트를 확인합니다.']], [45*mm, 125*mm])
+    story.append(Spacer(1, 3*mm))
+
+    # 7. 보강
+    add_section('7', '보강수업 신청', [
+        ('body', '사이드바 보강수업으로 이동합니다.'),
+        ('numbered', '1) 보강 가능한 수업 목록에서 원하는 수업을 선택합니다.'),
+        ('numbered', '2) 사유를 입력하고 신청하면 관리자가 검토 후 승인합니다.'),
+        ('numbered', '3) 승인/거절 여부는 알림으로 안내됩니다.'),
+    ])
+
+    # 8. 수납
+    add_section('8', '수납 관리', [
+        ('body', '사이드바 수납 관리로 이동합니다.'),
+        ('bullet', '자녀의 수업별 수강료 납부 현황을 확인할 수 있습니다.'),
+        ('bullet', '미납, 납부 완료 상태를 한눈에 파악할 수 있습니다.'),
+        ('bullet', '납부 관련 문의는 관리자에게 직접 연락해 주세요.'),
+    ])
+
+    # 9. 게시판
+    story.append(Paragraph("9. 게시판 및 피드백", section_style))
+    add_table(['게시판', '설명'], [['공지사항', '학원 공지 및 수업 안내를 확인합니다.'], ['선생님 피드백', '강사가 작성한 자녀의 수업 피드백을 확인합니다. 학생에게는 공개되지 않습니다.'], ['문의 게시판', '학원에 문의사항을 남기면 관리자/강사가 답변합니다.']], [45*mm, 125*mm])
+    story.append(Spacer(1, 3*mm))
+
+    # 10. FAQ
+    story.append(Paragraph("10. 자주 묻는 질문 (FAQ)", section_style))
+    faqs = [
+        ('자녀를 연결했는데 정보가 보이지 않아요.', '관리자 승인이 필요합니다. 승인 후 SMS로 안내되며 보통 1영업일 내 처리됩니다.'),
+        ('피드백을 받았는데 자녀도 볼 수 있나요?', '아니요. 선생님 피드백은 학부모와 관리자만 열람할 수 있습니다.'),
+        ('출결 정보가 잘못된 것 같아요.', '담당 강사 또는 관리자에게 문의해 주세요.'),
+        ('수납 내역이 맞지 않아요.', '관리자에게 직접 문의해 주세요.'),
+        ('보강수업 신청 후 답변이 없어요.', '관리자가 검토 중입니다. 승인/거절 시 알림과 SMS로 안내됩니다.'),
+        ('비밀번호를 잊어버렸어요.', '로그인 화면에서 재설정하거나 관리자에게 초기화를 요청하세요.'),
+    ]
+    for q, a in faqs:
+        story.append(Paragraph(f"Q. {q}", faq_q_style))
+        story.append(Paragraph(f"A. {a}", faq_a_style))
+
+    story.append(Spacer(1, 8*mm))
+    footer_data = [['추가 문의사항이 있으면 관리자에게 문의해 주세요. | © 2026 MOMOAI - 모모의 책장']]
+    ft = Table(footer_data, colWidths=[170*mm])
+    ft.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name), ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white), ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#4338CA')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 8), ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(ft)
+    doc.build(story)
+    return create_pdf_response(buffer, "MOMOAI_학부모사용설명서")

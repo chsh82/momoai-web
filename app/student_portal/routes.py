@@ -2671,3 +2671,20 @@ def my_harkness_questions():
         .filter_by(author_id=current_user.user_id)\
         .order_by(HarknessPost.created_at.desc()).all()
     return render_template('student/my_harkness_questions.html', posts=posts)
+
+
+@student_bp.route('/help')
+@login_required
+@requires_role('student', 'admin')
+def help_page():
+    """학생 도움말"""
+    return render_template('student/help.html')
+
+
+@student_bp.route('/help/pdf')
+@login_required
+@requires_role('student', 'admin')
+def help_pdf():
+    """학생 도움말 PDF 다운로드"""
+    from app.utils.pdf_utils import generate_student_manual_pdf
+    return generate_student_manual_pdf()
