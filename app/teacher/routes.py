@@ -382,17 +382,13 @@ def attendance_list():
                              courses=courses,
                              teachers=teachers,
                              today=today,
-                             today_sessions=[],
-                             upcoming_sessions=[],
-                             recent_sessions=[],
+                             past_sessions=[],
+                             attendance_map={},
                              makeup_sessions=[],
-                             search_sessions=[],
-                             search_mode=search_mode,
                              course_filter=course_filter,
                              teacher_filter=teacher_filter,
                              date_from=date_from,
-                             date_to=date_to,
-                             status_filter=status_filter)
+                             date_to=date_to)
 
     # 보강수업 세션 (과거 30일 ~ 미래 90일, 날짜순)
     makeup_sessions = []
@@ -403,83 +399,47 @@ def attendance_list():
             CourseSession.session_date <= today + timedelta(days=90)
         ).order_by(CourseSession.session_date, CourseSession.start_time).all()
 
-    # 검색 모드
-    search_sessions = []
-    if search_mode:
-        # 검색 쿼리
-        query = CourseSession.query.filter(CourseSession.course_id.in_(course_ids))
-
-        # 날짜 필터
-        if date_from:
-            query = query.filter(CourseSession.session_date >= date_from)
-        if date_to:
-            query = query.filter(CourseSession.session_date <= date_to)
-
-        # 수업 필터
-        if course_filter:
-            query = query.filter(CourseSession.course_id == course_filter)
-
-        # 상태 필터
-        if status_filter:
-            query = query.filter(CourseSession.status == status_filter)
-
-        search_sessions = query.order_by(
-            CourseSession.session_date.desc(),
-            CourseSession.start_time.desc()
-        ).limit(50).all()
-
-        return render_template('teacher/attendance_list.html',
-                             courses=courses,
-                             teachers=teachers,
-                             today=today,
-                             today_sessions=[],
-                             upcoming_sessions=[],
-                             recent_sessions=[],
-                             makeup_sessions=makeup_sessions,
-                             search_sessions=search_sessions,
-                             search_mode=search_mode,
-                             course_filter=course_filter,
-                             teacher_filter=teacher_filter,
-                             date_from=date_from,
-                             date_to=date_to,
-                             status_filter=status_filter)
-
-    # 기본 모드 (검색 안 함)
-    # 오늘 세션 (보강수업 제외)
-    today_sessions = CourseSession.query.filter(
+    # 오늘 포함 과거 세션 전체, 최신순 (limit 100)
+    past_query = CourseSession.query.filter(
         CourseSession.course_id.in_(regular_course_ids),
-        CourseSession.session_date == today
-    ).order_by(CourseSession.start_time).all() if regular_course_ids else []
+        CourseSession.session_date <= today
+    )
 
-    # 다가오는 세션 (내일부터 7일, 보강수업 제외)
-    upcoming_sessions = CourseSession.query.filter(
-        CourseSession.course_id.in_(regular_course_ids),
-        CourseSession.session_date > today,
-        CourseSession.session_date <= today + timedelta(days=7)
-    ).order_by(CourseSession.session_date, CourseSession.start_time).limit(10).all() if regular_course_ids else []
+    # 필터 적용
+    if course_filter:
+        past_query = past_query.filter(CourseSession.course_id == course_filter)
+    if date_from:
+        past_query = past_query.filter(CourseSession.session_date >= date_from)
+    if date_to:
+        past_query = past_query.filter(CourseSession.session_date <= date_to)
 
-    # 최근 완료된 세션 (지난 7일, 보강수업 제외)
-    recent_sessions = CourseSession.query.filter(
-        CourseSession.course_id.in_(regular_course_ids),
-        CourseSession.session_date >= today - timedelta(days=7),
-        CourseSession.session_date < today
-    ).order_by(CourseSession.session_date.desc(), CourseSession.start_time.desc()).limit(10).all() if regular_course_ids else []
+    past_sessions = past_query.order_by(
+        CourseSession.session_date.desc(),
+        CourseSession.start_time.desc()
+    ).limit(100).all() if regular_course_ids else []
+
+    # 각 세션의 출결 레코드를 딕셔너리로 미리 로드 {session_id: [attendance, ...]}
+    from collections import defaultdict
+    attendance_map = defaultdict(list)
+    if past_sessions:
+        session_ids = [s.session_id for s in past_sessions]
+        all_attendances = Attendance.query.filter(
+            Attendance.session_id.in_(session_ids)
+        ).join(Student).order_by(Student.name).all()
+        for a in all_attendances:
+            attendance_map[a.session_id].append(a)
 
     return render_template('teacher/attendance_list.html',
                          courses=courses,
                          teachers=teachers,
                          today=today,
-                         today_sessions=today_sessions,
-                         upcoming_sessions=upcoming_sessions,
-                         recent_sessions=recent_sessions,
+                         past_sessions=past_sessions,
+                         attendance_map=attendance_map,
                          makeup_sessions=makeup_sessions,
-                         search_sessions=search_sessions,
-                         search_mode=search_mode,
                          course_filter=course_filter,
                          teacher_filter=teacher_filter,
                          date_from=date_from,
-                         date_to=date_to,
-                         status_filter=status_filter)
+                         date_to=date_to)
 
 
 @teacher_bp.route('/sessions/<session_id>/attendance')
@@ -525,7 +485,7 @@ def update_attendance(attendance_id):
 
     data = request.json
     new_status = data.get('status')
-    notes = data.get('notes', '')
+    notes = data.get('notes')  # None이면 기존 notes 유지
     participation_score = data.get('participation_score')
     comprehension_score = data.get('comprehension_score')
 
@@ -534,7 +494,8 @@ def update_attendance(attendance_id):
 
     # 출석 상태 업데이트
     attendance.status = new_status
-    attendance.notes = notes
+    if notes is not None:
+        attendance.notes = notes
     attendance.checked_at = datetime.utcnow()
     attendance.checked_by = current_user.user_id
     if participation_score is not None:

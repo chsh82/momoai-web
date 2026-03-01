@@ -48,6 +48,10 @@
                         class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
                     📋 기본정보
                 </button>
+                <button onclick="showTab('enrollment')" id="tab-enrollment"
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    📚 수강이력
+                </button>
                 <button onclick="showTab('profile')" id="tab-profile"
                         class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     📝 프로필
@@ -455,6 +459,83 @@
                    class="inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
                     ➕ 프로필 생성하기
                 </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 수강이력 탭 -->
+        <div id="content-enrollment" class="tab-content hidden">
+            {% if enrollments %}
+            <div class="space-y-4">
+                {% for enrollment in enrollments %}
+                {% set att_records = enrollment.attendance_records %}
+                {% set present_count = att_records|selectattr('status', 'eq', 'present')|list|length %}
+                {% set late_count = att_records|selectattr('status', 'eq', 'late')|list|length %}
+                {% set absent_count = att_records|selectattr('status', 'eq', 'absent')|list|length %}
+                {% set total_count = att_records|length %}
+                <div class="bg-white rounded-lg shadow overflow-hidden border-l-4
+                            {% if enrollment.status == 'active' %}border-green-400{% else %}border-gray-300{% endif %}">
+                    <div class="px-6 py-4 flex flex-wrap items-start justify-between gap-4
+                                {% if enrollment.status == 'active' %}bg-green-50{% else %}bg-gray-50{% endif %}">
+                        <div>
+                            <h4 class="text-base font-bold text-gray-800">
+                                {{ enrollment.course.course_name if enrollment.course else '(수업 삭제됨)' }}
+                            </h4>
+                            <p class="text-sm text-gray-600 mt-1">
+                                강사:
+                                {% if enrollment.course and enrollment.course.teacher %}
+                                    {{ enrollment.course.teacher.name }}
+                                {% else %}
+                                    미배정
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-gray-500 mt-0.5">
+                                입반일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') if enrollment.enrolled_at else '-' }}
+                            </p>
+                        </div>
+                        <span class="px-3 py-1 text-sm font-medium rounded-full
+                                     {% if enrollment.status == 'active' %}bg-green-100 text-green-700{% elif enrollment.status == 'completed' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if enrollment.status == 'active' %}수강중
+                            {% elif enrollment.status == 'completed' %}수강완료
+                            {% elif enrollment.status == 'dropped' %}중도하차
+                            {% else %}{{ enrollment.status }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="px-6 py-3">
+                        <div class="flex flex-wrap gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-gray-800">{{ total_count }}</div>
+                                <div class="text-xs text-gray-500">전체 수업</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-green-600">{{ present_count }}</div>
+                                <div class="text-xs text-gray-500">출석</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-yellow-600">{{ late_count }}</div>
+                                <div class="text-xs text-gray-500">지각</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-red-600">{{ absent_count }}</div>
+                                <div class="text-xs text-gray-500">결석</div>
+                            </div>
+                            {% if total_count > 0 %}
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-blue-600">
+                                    {{ ((present_count + late_count) / total_count * 100)|round(0)|int }}%
+                                </div>
+                                <div class="text-xs text-gray-500">출석률</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+                <div class="text-5xl mb-4">📚</div>
+                <p class="text-gray-700 font-medium">수강 이력이 없습니다.</p>
             </div>
             {% endif %}
         </div>

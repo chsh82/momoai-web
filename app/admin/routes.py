@@ -4296,8 +4296,9 @@ def student_profile(student_id):
     student = Student.query.get_or_404(student_id)
     profile = StudentProfile.query.filter_by(student_id=student_id).first()
 
-    # 수강 내역 (모든 수업)
-    enrollments = CourseEnrollment.query.filter_by(student_id=student_id).all()
+    # 수강 내역 (모든 수업, 최신 입반순)
+    enrollments = CourseEnrollment.query.filter_by(student_id=student_id)\
+        .order_by(CourseEnrollment.enrolled_at.desc()).all()
 
     # 학부모 정보
     parent_relations = ParentStudent.query.filter_by(student_id=student_id, is_active=True).all()

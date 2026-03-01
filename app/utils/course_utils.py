@@ -79,8 +79,13 @@ def create_attendance_records_for_enrollment(enrollment):
 
     attendance_records = []
 
+    enrollment_date = enrollment.enrolled_at.date() if enrollment.enrolled_at else None
+
     # 해당 수업의 모든 세션에 대해 출석 레코드 생성
     for session in enrollment.course.sessions:
+        # 입반일 이전 세션은 건너뜀
+        if enrollment_date and session.session_date < enrollment_date:
+            continue
         # 이미 존재하는지 확인
         existing = Attendance.query.filter_by(
             session_id=session.session_id,
@@ -120,6 +125,10 @@ def create_attendance_records_for_session(session):
     # 해당 수업의 모든 활성 수강생에 대해 출석 레코드 생성
     for enrollment in session.course.enrollments:
         if enrollment.status == 'active':
+            # 입반일 이후 세션만 생성
+            enrollment_date = enrollment.enrolled_at.date() if enrollment.enrolled_at else None
+            if enrollment_date and enrollment_date > session.session_date:
+                continue
             # 이미 존재하는지 확인
             existing = Attendance.query.filter_by(
                 session_id=session.session_id,
