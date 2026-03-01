@@ -207,16 +207,31 @@
                         </button>
                     </div>
 
-                    <!-- 별점 (참여도) -->
-                    <div class="flex items-center gap-0.5" id="stars-{{ att.attendance_id }}">
+                    <!-- 참여도 별점 -->
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-xs text-gray-500 mr-1 whitespace-nowrap">참여도</span>
                         {% for i in range(1, 6) %}
-                        <button onclick="setScore('{{ att.attendance_id }}', {{ i }})"
+                        <button onclick="setScore('{{ att.attendance_id }}', {{ i }}, 'participation')"
                                 data-score="{{ i }}"
                                 class="star-btn text-base leading-none transition
                                        {% if att.participation_score and att.participation_score >= i %}text-yellow-400 hover:text-yellow-500{% else %}text-gray-300 hover:text-yellow-300{% endif %}">★</button>
                         {% endfor %}
-                        <span class="text-xs text-gray-400 ml-1" id="score-text-{{ att.attendance_id }}">
-                            {% if att.participation_score %}{{ att.participation_score }}점{% else %}-{% endif %}
+                        <span class="text-xs text-gray-400 ml-1 w-6" id="p-score-{{ att.attendance_id }}">
+                            {% if att.participation_score %}{{ att.participation_score }}{% else %}-{% endif %}
+                        </span>
+                    </div>
+
+                    <!-- 이해도 별점 -->
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-xs text-blue-500 mr-1 whitespace-nowrap">이해도</span>
+                        {% for i in range(1, 6) %}
+                        <button onclick="setScore('{{ att.attendance_id }}', {{ i }}, 'comprehension')"
+                                data-score="{{ i }}"
+                                class="comp-star-btn text-base leading-none transition
+                                       {% if att.comprehension_score and att.comprehension_score >= i %}text-blue-400 hover:text-blue-500{% else %}text-gray-300 hover:text-blue-300{% endif %}">★</button>
+                        {% endfor %}
+                        <span class="text-xs text-gray-400 ml-1 w-6" id="c-score-{{ att.attendance_id }}">
+                            {% if att.comprehension_score %}{{ att.comprehension_score }}{% else %}-{% endif %}
                         </span>
                     </div>
                 </div>
@@ -259,7 +274,8 @@
                 버튼 클릭 시 즉시 저장
             </span>
             <span class="flex items-center gap-1.5">
-                ★ 별점 클릭 시 참여도 즉시 저장
+                <span class="text-yellow-400">★</span> 참여도 &nbsp;
+                <span class="text-blue-400">★</span> 이해도 — 각각 클릭 시 즉시 저장
             </span>
         </div>
     </div>
@@ -310,34 +326,49 @@ function updateStatusButtons(attendanceId, newStatus) {
     });
 }
 
-async function setScore(attendanceId, score) {
+async function setScore(attendanceId, score, type) {
     const row = document.querySelector(`[data-att-id="${attendanceId}"]`);
     const status = row ? row.dataset.currentStatus : 'present';
+    const payload = {status: status};
+    if (type === 'participation') payload.participation_score = score;
+    else payload.comprehension_score = score;
     try {
         const res = await fetch(`/teacher/api/attendance/${attendanceId}`, {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({status: status, participation_score: score})
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.success) {
-            updateStarUI(attendanceId, score);
+            if (type === 'participation') updateStarUI(attendanceId, score, 'p');
+            else updateStarUI(attendanceId, score, 'c');
         }
     } catch (e) {
         console.error('별점 저장 실패:', e);
     }
 }
 
-function updateStarUI(attendanceId, score) {
-    const container = document.getElementById('stars-' + attendanceId);
-    if (!container) return;
-    container.querySelectorAll('.star-btn').forEach(btn => {
+function updateStarUI(attendanceId, score, prefix) {
+    // prefix: 'p' = 참여도(yellow), 'c' = 이해도(blue)
+    const isParticipation = prefix === 'p';
+    const btnClass = isParticipation ? 'star-btn' : 'comp-star-btn';
+    const activeColor = isParticipation
+        ? 'text-yellow-400 hover:text-yellow-500'
+        : 'text-blue-400 hover:text-blue-500';
+    const inactiveColor = isParticipation
+        ? 'text-gray-300 hover:text-yellow-300'
+        : 'text-gray-300 hover:text-blue-300';
+
+    // 해당 att 행 내에서 버튼 찾기
+    const row = document.querySelector(`[data-att-id="${attendanceId}"]`);
+    if (!row) return;
+    row.querySelectorAll('.' + btnClass).forEach(btn => {
         const s = parseInt(btn.dataset.score);
-        btn.className = 'star-btn text-base leading-none transition ' +
-            (s <= score ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-300');
+        btn.className = btnClass + ' text-base leading-none transition ' +
+            (s <= score ? activeColor : inactiveColor);
     });
-    const scoreText = document.getElementById('score-text-' + attendanceId);
-    if (scoreText) scoreText.textContent = score + '점';
+    const scoreText = document.getElementById(prefix + '-score-' + attendanceId);
+    if (scoreText) scoreText.textContent = score;
 }
 
 function toggleIncompleteFilter(checked) {
