@@ -231,8 +231,11 @@ def hall_of_fame_detail(post_id):
     post.view_count += 1
     db.session.commit()
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('hall_of_fame', post.post_id)
     return render_template('library/hall_of_fame_detail.html',
-                         post=post)
+                         post=post,
+                         images=images)
 
 
 # ==================== 입시정보 ====================
@@ -287,8 +290,11 @@ def admission_info_detail(post_id):
     post.view_count += 1
     db.session.commit()
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('admission_info', post.post_id)
     return render_template('library/admission_info_detail.html',
-                         post=post)
+                         post=post,
+                         images=images)
 
 
 # ==================== 관리자 전용 ====================
@@ -519,6 +525,14 @@ def create_hall_of_fame():
             )
 
             db.session.add(post)
+            db.session.flush()  # post_id 확보
+
+            # 이미지 업로드 처리 (최대 10장)
+            from app.utils.image_utils import save_post_images
+            img_files = request.files.getlist('images')
+            for img in save_post_images(img_files, 'hall_of_fame', post.post_id, current_user.user_id):
+                db.session.add(img)
+
             db.session.commit()
 
             flash('명예의 전당 게시글이 등록되었습니다.', 'success')
@@ -531,7 +545,8 @@ def create_hall_of_fame():
     students = Student.query.order_by(Student.name).all()
     return render_template('library/admin/hall_of_fame_form.html',
                          post=None,
-                         students=students)
+                         students=students,
+                         images=[])
 
 
 @library_bp.route('/admin/hall-of-fame/<post_id>/edit', methods=['GET', 'POST'])
@@ -581,6 +596,21 @@ def edit_hall_of_fame(post_id):
             post.is_published = bool(request.form.get('is_published'))
             post.updated_at = datetime.now()
 
+            # 이미지 삭제 처리
+            from app.models.post_image import PostImage
+            from app.utils.image_utils import delete_post_image, save_post_images
+            delete_ids = request.form.getlist('delete_images')
+            for img_id in delete_ids:
+                img = PostImage.query.get(img_id)
+                if img and img.post_id == post.post_id:
+                    delete_post_image(img)
+
+            # 새 이미지 업로드
+            existing_count = PostImage.query.filter_by(board_type='hall_of_fame', post_id=post.post_id).count()
+            img_files = request.files.getlist('images')
+            for img in save_post_images(img_files, 'hall_of_fame', post.post_id, current_user.user_id, existing_count):
+                db.session.add(img)
+
             db.session.commit()
 
             flash('명예의 전당 게시글이 수정되었습니다.', 'success')
@@ -590,10 +620,13 @@ def edit_hall_of_fame(post_id):
             db.session.rollback()
             flash(f'수정 중 오류가 발생했습니다: {str(e)}', 'error')
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('hall_of_fame', post.post_id)
     students = Student.query.order_by(Student.name).all()
     return render_template('library/admin/hall_of_fame_form.html',
                          post=post,
-                         students=students)
+                         students=students,
+                         images=images)
 
 
 @library_bp.route('/admin/hall-of-fame/<post_id>/delete', methods=['POST'])
@@ -670,6 +703,14 @@ def create_admission_info():
             )
 
             db.session.add(post)
+            db.session.flush()  # post_id 확보
+
+            # 이미지 업로드 처리 (최대 10장)
+            from app.utils.image_utils import save_post_images
+            img_files = request.files.getlist('images')
+            for img in save_post_images(img_files, 'admission_info', post.post_id, current_user.user_id):
+                db.session.add(img)
+
             db.session.commit()
 
             flash('입시정보 게시글이 등록되었습니다.', 'success')
@@ -680,7 +721,8 @@ def create_admission_info():
             flash(f'등록 중 오류가 발생했습니다: {str(e)}', 'error')
 
     return render_template('library/admin/admission_info_form.html',
-                         post=None)
+                         post=None,
+                         images=[])
 
 
 @library_bp.route('/admin/admission-info/<post_id>/edit', methods=['GET', 'POST'])
@@ -740,6 +782,21 @@ def edit_admission_info(post_id):
             post.is_important = bool(request.form.get('is_important'))
             post.updated_at = datetime.now()
 
+            # 이미지 삭제 처리
+            from app.models.post_image import PostImage
+            from app.utils.image_utils import delete_post_image, save_post_images
+            delete_ids = request.form.getlist('delete_images')
+            for img_id in delete_ids:
+                img = PostImage.query.get(img_id)
+                if img and img.post_id == post.post_id:
+                    delete_post_image(img)
+
+            # 새 이미지 업로드
+            existing_count = PostImage.query.filter_by(board_type='admission_info', post_id=post.post_id).count()
+            img_files = request.files.getlist('images')
+            for img in save_post_images(img_files, 'admission_info', post.post_id, current_user.user_id, existing_count):
+                db.session.add(img)
+
             db.session.commit()
 
             flash('입시정보 게시글이 수정되었습니다.', 'success')
@@ -749,8 +806,11 @@ def edit_admission_info(post_id):
             db.session.rollback()
             flash(f'수정 중 오류가 발생했습니다: {str(e)}', 'error')
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('admission_info', post.post_id)
     return render_template('library/admin/admission_info_form.html',
-                         post=post)
+                         post=post,
+                         images=images)
 
 
 @library_bp.route('/admin/admission-info/<post_id>/delete', methods=['POST'])

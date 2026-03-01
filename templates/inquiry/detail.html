@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'macros/image_upload.html' import image_display_section %}
 
 {% block title %}{{ post.title }} - 문의 게시판 - MOMOAI v4.0{% endblock %}
 
@@ -54,6 +55,7 @@
         </div>
         <div class="px-6 py-5">
             <div class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ post.content }}</div>
+            {{ image_display_section(images|default([])) }}
         </div>
     </div>
 

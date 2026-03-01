@@ -115,6 +115,12 @@ def new():
                     )
                     db.session.add(post_file)
 
+        # 이미지 업로드 처리 (최대 10장)
+        from app.utils.image_utils import save_post_images
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'community', post.post_id, current_user.user_id):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('게시글이 작성되었습니다.', 'success')
@@ -123,7 +129,8 @@ def new():
     return render_template('community/form.html',
                          form=form,
                          title='새 게시글 작성',
-                         is_edit=False)
+                         is_edit=False,
+                         images=[])
 
 
 @community_bp.route('/<post_id>')
@@ -143,8 +150,12 @@ def detail(post_id):
     comments = Comment.query.filter_by(post_id=post_id, parent_comment_id=None)\
         .order_by(Comment.created_at.asc()).all()
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('community', post.post_id)
+
     return render_template('community/detail.html',
                          post=post,
+                         images=images,
                          comment_form=comment_form,
                          comments=comments)
 
@@ -191,16 +202,34 @@ def edit(post_id):
                 post_tag = PostTag(post_id=post.post_id, tag_id=tag.tag_id)
                 db.session.add(post_tag)
 
+        # 이미지 삭제 처리
+        from app.models.post_image import PostImage
+        from app.utils.image_utils import delete_post_image, save_post_images, get_post_images
+        delete_ids = request.form.getlist('delete_images')
+        for img_id in delete_ids:
+            img = PostImage.query.get(img_id)
+            if img and img.post_id == post.post_id:
+                delete_post_image(img)
+
+        # 새 이미지 업로드
+        existing_count = PostImage.query.filter_by(board_type='community', post_id=post.post_id).count()
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'community', post.post_id, current_user.user_id, existing_count):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('게시글이 수정되었습니다.', 'success')
         return redirect(url_for('community.detail', post_id=post.post_id))
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('community', post.post_id)
     return render_template('community/form.html',
                          form=form,
                          title='게시글 수정',
                          is_edit=True,
-                         post=post)
+                         post=post,
+                         images=images)
 
 
 @community_bp.route('/<post_id>/delete', methods=['POST'])
@@ -416,6 +445,76 @@ def tag_posts(tag_name):
     return render_template('community/tag_posts.html',
                          tag=tag,
                          posts=posts)
+
+
+# 게시판 이미지 서빙 (모든 게시판 공용)
+@community_bp.route('/post-images/<filename>')
+@login_required
+def serve_post_image(filename):
+    """게시판 이미지 서빙 (전체 게시판 공용)"""
+    from flask import send_from_directory
+    images_folder = current_app.config['POST_IMAGES_FOLDER']
+    return send_from_directory(images_folder, filename)
+
+
+# 에디터 이미지 업로드 (모든 게시판 공용 AJAX)
+@community_bp.route('/upload-image', methods=['POST'])
+@login_required
+def upload_image():
+    """리치 에디터 이미지 업로드 (전체 게시판 공용)"""
+    import os
+    import uuid as uuid_module
+
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'message': '이미지가 없습니다.'}), 400
+
+    file = request.files['image']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '유효하지 않은 파일입니다.'}), 400
+
+    # 확장자 확인 (파일명 또는 content_type 기반)
+    ext = os.path.splitext(file.filename or '')[1].lower()
+    if not ext and file.content_type:
+        content_type_map = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp',
+            'image/bmp': '.bmp',
+        }
+        ext = content_type_map.get(file.content_type, '.png')
+
+    if ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']:
+        return jsonify({'success': False, 'message': '이미지 파일만 업로드 가능합니다.'}), 400
+
+    images_folder = current_app.config['POST_IMAGES_FOLDER']
+    os.makedirs(images_folder, exist_ok=True)
+
+    stored_filename = f"{uuid_module.uuid4().hex}{ext}"
+    file_path = os.path.join(images_folder, stored_filename)
+    file.save(file_path)
+
+    image_url = url_for('community.serve_post_image', filename=stored_filename)
+    return jsonify({'success': True, 'url': image_url, 'filename': stored_filename})
+
+
+# 게시판 이미지 단건 삭제 (AJAX)
+@community_bp.route('/post-images/<image_id>/delete', methods=['POST'])
+@login_required
+def delete_post_image(image_id):
+    """게시판 이미지 삭제 (게시글 작성자 또는 관리자)"""
+    from flask import jsonify
+    from app.models.post_image import PostImage
+    from app.utils.image_utils import delete_post_image as _delete
+    from app.models import db
+
+    img = PostImage.query.get_or_404(image_id)
+    if img.uploaded_by != current_user.user_id and current_user.role not in ['admin', 'manager']:
+        return jsonify({'success': False, 'error': '권한 없음'}), 403
+
+    _delete(img)
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 # 파일 다운로드

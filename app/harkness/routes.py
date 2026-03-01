@@ -232,6 +232,14 @@ def create_post(board_id):
             is_notice=is_notice
         )
         db.session.add(post)
+        db.session.flush()  # post_id 확보
+
+        # 이미지 업로드 처리 (최대 10장)
+        from app.utils.image_utils import save_post_images
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'harkness', post.post_id, current_user.user_id):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('게시글이 등록되었습니다.', 'success')
@@ -240,6 +248,7 @@ def create_post(board_id):
     return render_template('harkness/post_form.html',
                          board=board,
                          post=None,
+                         images=[],
                          can_write_notice=can_write_notice(current_user, board))
 
 
@@ -291,9 +300,13 @@ def post_detail(board_id, post_id):
     q2_likes, q2_liked = get_question_like_info(2)
     q3_likes, q3_liked = get_question_like_info(3)
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('harkness', post.post_id)
+
     return render_template('harkness/post.html',
                          board=board,
                          post=post,
+                         images=images,
                          comments=comments,
                          q1_comments=q1_comments,
                          q2_comments=q2_comments,
@@ -358,14 +371,32 @@ def edit_post(board_id, post_id):
         if can_write_notice(current_user, board):
             post.is_notice = is_notice
 
+        # 이미지 삭제 처리
+        from app.models.post_image import PostImage
+        from app.utils.image_utils import delete_post_image, save_post_images
+        delete_ids = request.form.getlist('delete_images')
+        for img_id in delete_ids:
+            img = PostImage.query.get(img_id)
+            if img and img.post_id == post.post_id:
+                delete_post_image(img)
+
+        # 새 이미지 업로드
+        existing_count = PostImage.query.filter_by(board_type='harkness', post_id=post.post_id).count()
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'harkness', post.post_id, current_user.user_id, existing_count):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('게시글이 수정되었습니다.', 'success')
         return redirect(url_for('harkness.post_detail', board_id=board_id, post_id=post_id))
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('harkness', post.post_id)
     return render_template('harkness/post_form.html',
                          board=board,
                          post=post,
+                         images=images,
                          can_write_notice=can_write_notice(current_user, board))
 
 

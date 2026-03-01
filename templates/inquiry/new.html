@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'macros/image_upload.html' import image_upload_section %}
 
 {% block title %}문의 작성 - MOMOAI v4.0{% endblock %}
 
@@ -14,7 +15,7 @@
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <form method="POST" action="{{ url_for('inquiry.new_inquiry') }}" id="inquiryForm">
+        <form method="POST" action="{{ url_for('inquiry.new_inquiry') }}" id="inquiryForm" enctype="multipart/form-data">
 
             <!-- 수신자 선택 -->
             <div class="mb-6">
@@ -83,6 +84,11 @@
                 <textarea id="content" name="content" rows="10" required
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="문의 내용을 상세히 작성해주세요">{{ content_val }}</textarea>
+            </div>
+
+            <!-- 이미지 업로드 -->
+            <div class="mb-5">
+                {{ image_upload_section([]) }}
             </div>
 
             <!-- 버튼 -->

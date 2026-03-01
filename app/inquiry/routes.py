@@ -153,6 +153,12 @@ def new_inquiry():
                     link_url=notif_link
                 ))
 
+        # 이미지 업로드 처리 (최대 10장)
+        from app.utils.image_utils import save_post_images
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'inquiry', post.inquiry_id, current_user.user_id):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('문의가 등록되었습니다. 빠른 시일 내에 답변드리겠습니다.', 'success')
@@ -181,7 +187,9 @@ def detail(inquiry_id):
     if current_user.role == 'teacher' and post.recipient_id != current_user.user_id:
         abort(403)
 
-    return render_template('inquiry/detail.html', post=post)
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('inquiry', post.inquiry_id)
+    return render_template('inquiry/detail.html', post=post, images=images)
 
 
 @inquiry_bp.route('/<string:inquiry_id>/reply', methods=['POST'])

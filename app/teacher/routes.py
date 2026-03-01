@@ -2238,6 +2238,14 @@ def create_class_board_post(course_id):
             is_notice=is_notice
         )
         db.session.add(post)
+        db.session.flush()  # post_id 확보
+
+        # 이미지 업로드 처리 (최대 10장)
+        from app.utils.image_utils import save_post_images
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'class_board', post.post_id, current_user.user_id):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('게시글이 등록되었습니다.', 'success')
@@ -2247,7 +2255,8 @@ def create_class_board_post(course_id):
 
     return render_template('teacher/class_board_form.html',
                          course=course,
-                         is_edit=False)
+                         is_edit=False,
+                         images=[])
 
 
 @teacher_bp.route('/class-board/<course_id>/<post_id>')
@@ -2268,9 +2277,12 @@ def class_board_post_detail(course_id, post_id):
         post.view_count += 1
         db.session.commit()
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('class_board', post.post_id)
     return render_template('teacher/class_board_post_detail.html',
                          course=course,
-                         post=post)
+                         post=post,
+                         images=images)
 
 
 @teacher_bp.route('/class-board/<course_id>/<post_id>/edit', methods=['GET', 'POST'])
@@ -2308,6 +2320,22 @@ def edit_class_board_post(course_id, post_id):
         post.is_pinned = is_pinned
         post.is_notice = is_notice
         post.updated_at = datetime.utcnow()
+
+        # 이미지 삭제 처리
+        from app.models.post_image import PostImage
+        from app.utils.image_utils import delete_post_image, save_post_images
+        delete_ids = request.form.getlist('delete_images')
+        for img_id in delete_ids:
+            img = PostImage.query.get(img_id)
+            if img and img.post_id == post.post_id:
+                delete_post_image(img)
+
+        # 새 이미지 업로드
+        existing_count = PostImage.query.filter_by(board_type='class_board', post_id=post.post_id).count()
+        img_files = request.files.getlist('images')
+        for img in save_post_images(img_files, 'class_board', post.post_id, current_user.user_id, existing_count):
+            db.session.add(img)
+
         db.session.commit()
 
         flash('게시글이 수정되었습니다.', 'success')
@@ -2315,10 +2343,13 @@ def edit_class_board_post(course_id, post_id):
                               course_id=course_id,
                               post_id=post_id))
 
+    from app.utils.image_utils import get_post_images
+    images = get_post_images('class_board', post.post_id)
     return render_template('teacher/class_board_form.html',
                          course=course,
                          post=post,
-                         is_edit=True)
+                         is_edit=True,
+                         images=images)
 
 
 @teacher_bp.route('/class-board/<course_id>/<post_id>/delete', methods=['POST'])

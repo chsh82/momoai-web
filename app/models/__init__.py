@@ -15,6 +15,7 @@ from app.models.community import Post, Comment, PostLike
 from app.models.notification import Notification
 from app.models.tag import Tag, PostTag, Bookmark
 from app.models.post_file import PostFile
+from app.models.post_image import PostImage
 from app.models.course import Course, CourseEnrollment, CourseSession
 from app.models.attendance import Attendance
 from app.models.payment import Payment
@@ -68,6 +69,7 @@ __all__ = [
     'PostTag',
     'Bookmark',
     'PostFile',
+    'PostImage',
     'Course',
     'CourseEnrollment',
     'CourseSession',

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'macros/image_upload.html' import image_display_section %}
 
 {% block title %}{{ post.title }} - MOMOAI v4.0{% endblock %}
 
@@ -74,8 +75,9 @@
 
         <!-- Content -->
         <div class="prose max-w-none mb-6">
-            <div class="text-gray-800 leading-relaxed whitespace-pre-wrap">{{ post.content }}</div>
+            <div class="text-gray-800 leading-relaxed prose max-w-none">{{ post.content | safe }}</div>
         </div>
+        {{ image_display_section(images|default([])) }}
     </div>
 
     <!-- 댓글 -->
