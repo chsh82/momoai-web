@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}피드백 작성 - MOMOAI v4.0{% endblock %}
+{% block title %}{% if edit_mode %}피드백 수정{% else %}피드백 작성{% endif %} - MOMOAI v4.0{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
-        <a href="{{ url_for('teacher.students') }}"
+        <a href="{{ url_for('teacher.feedbacks') }}"
            class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
-            ← 학생 목록으로
+            ← 피드백 목록으로
         </a>
-        <h2 class="text-3xl font-bold text-gray-800">학부모 피드백 작성</h2>
+        <h2 class="text-3xl font-bold text-gray-800">{% if edit_mode %}피드백 수정{% else %}학부모 피드백 작성{% endif %}</h2>
         <p class="text-gray-600 mt-2">학생은 이 피드백을 볼 수 없습니다.</p>
     </div>
 
@@ -26,29 +26,43 @@
 
     <!-- Form -->
     <div class="bg-white rounded-lg shadow-lg p-8">
-        <form method="POST" action="" id="feedbackForm">
+        <form method="POST" action="{% if edit_mode %}{{ url_for('teacher.edit_feedback', feedback_id=feedback.feedback_id) }}{% endif %}" id="feedbackForm">
             {{ form.hidden_tag() }}
 
             <div class="space-y-6">
                 <!-- 학생 선택 -->
                 <div>
                     {{ form.student_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {% if edit_mode %}
+                    <div class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
+                        {{ feedback.student.name if feedback.student else '' }} ({{ feedback.student.grade if feedback.student else '' }})
+                    </div>
+                    <input type="hidden" name="student_id" value="{{ feedback.student_id }}">
+                    {% else %}
                     {{ form.student_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.student_id.errors else ""), onchange="loadParents(this.value)") }}
                     {% if form.student_id.errors %}
                         {% for error in form.student_id.errors %}
                         <p class="text-red-500 text-sm mt-1">{{ error }}</p>
                         {% endfor %}
                     {% endif %}
+                    {% endif %}
                 </div>
 
                 <!-- 학부모 선택 -->
                 <div>
                     {{ form.parent_id.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                    {% if edit_mode %}
+                    <div class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
+                        {{ feedback.parent.name if feedback.parent else '' }}
+                    </div>
+                    <input type="hidden" name="parent_id" value="{{ feedback.parent_id }}">
+                    {% else %}
                     {{ form.parent_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.parent_id.errors else ""), id="parentSelect") }}
                     {% if form.parent_id.errors %}
                         {% for error in form.parent_id.errors %}
                         <p class="text-red-500 text-sm mt-1">{{ error }}</p>
                         {% endfor %}
+                    {% endif %}
                     {% endif %}
                 </div>
 
@@ -93,6 +107,7 @@
                     {% endif %}
                 </div>
 
+                {% if not edit_mode %}
                 <!-- 알림 발송 옵션 -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <h4 class="text-sm font-medium text-gray-700 mb-3">📬 추가 알림 발송</h4>
@@ -110,18 +125,15 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-2">인앱 알림은 항상 발송됩니다. 추가로 이메일/SMS 발송 여부를 선택하세요.</p>
                 </div>
+                {% endif %}
 
                 <!-- 버튼 -->
                 <div class="flex gap-3 pt-4">
                     <button type="submit"
                             class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
-                        피드백 전송
+                        {% if edit_mode %}수정 저장{% else %}피드백 전송{% endif %}
                     </button>
                     <a href="{{ url_for('teacher.feedbacks') }}"
-                       class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
-                        📋 피드백 기록보기
-                    </a>
-                    <a href="{{ url_for('teacher.students') }}"
                        class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
                         취소
                     </a>

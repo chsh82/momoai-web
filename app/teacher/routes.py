@@ -952,6 +952,76 @@ def feedbacks():
                          feedbacks=feedbacks)
 
 
+@teacher_bp.route('/feedback/<feedback_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def edit_feedback(feedback_id):
+    """피드백 수정"""
+    feedback = TeacherFeedback.query.get_or_404(feedback_id)
+
+    if feedback.teacher_id != current_user.user_id and not current_user.is_admin:
+        flash('수정 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.feedbacks'))
+
+    form = TeacherFeedbackForm(obj=feedback)
+
+    # 학생 목록 (작성자 본인의 학생)
+    my_courses = Course.query.filter_by(teacher_id=current_user.user_id).all()
+    course_ids = [c.course_id for c in my_courses]
+    enrollments = CourseEnrollment.query.filter(
+        CourseEnrollment.course_id.in_(course_ids),
+        CourseEnrollment.status == 'active'
+    ).all()
+    students = list(set([e.student for e in enrollments]))
+    # 원래 학생이 목록에 없을 경우 추가
+    if feedback.student and feedback.student not in students:
+        students.append(feedback.student)
+    form.student_id.choices = [
+        (s.student_id, s.name) for s in sorted(students, key=lambda x: x.name)
+    ]
+
+    # 학부모 목록
+    parent_relations = ParentStudent.query.filter_by(
+        student_id=feedback.student_id, is_active=True
+    ).all()
+    parents = [pr.parent for pr in parent_relations]
+    form.parent_id.choices = [('', '-- 학부모 선택 --')] + [
+        (p.user_id, f"{p.name} ({p.email})") for p in parents
+    ]
+
+    if form.validate_on_submit():
+        feedback.feedback_type = form.feedback_type.data
+        feedback.priority = form.priority.data
+        feedback.title = form.title.data
+        feedback.content = form.content.data
+        feedback.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash('피드백이 수정되었습니다.', 'success')
+        return redirect(url_for('teacher.feedbacks'))
+
+    return render_template('teacher/feedback_form.html',
+                           form=form,
+                           feedback=feedback,
+                           edit_mode=True)
+
+
+@teacher_bp.route('/feedback/<feedback_id>/delete', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def delete_feedback(feedback_id):
+    """피드백 삭제"""
+    feedback = TeacherFeedback.query.get_or_404(feedback_id)
+
+    if feedback.teacher_id != current_user.user_id and not current_user.is_admin:
+        flash('삭제 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.feedbacks'))
+
+    db.session.delete(feedback)
+    db.session.commit()
+    flash('피드백이 삭제되었습니다.', 'success')
+    return redirect(url_for('teacher.feedbacks'))
+
+
 # ==================== 상담 기록 ====================
 
 @teacher_bp.route('/consultations')
