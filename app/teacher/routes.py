@@ -432,20 +432,23 @@ def attendance_list():
         for a in all_attendances:
             attendance_map[a.session_id].append(a)
 
-        # 해당 세션에 배정된 글쓰기와 점수 로드
-        from app.models.essay import Essay, EssayResult
-        essays_in_sessions = Essay.query.filter(
-            Essay.session_id.in_(session_ids)
-        ).all()
-        for e in essays_in_sessions:
-            essay_map[(e.session_id, e.student_id)] = e
-
-        essay_ids = [e.essay_id for e in essays_in_sessions]
-        if essay_ids:
-            results = EssayResult.query.filter(
-                EssayResult.essay_id.in_(essay_ids)
+        # 해당 세션에 배정된 글쓰기와 점수 로드 (컬럼 없으면 무시)
+        try:
+            from app.models.essay import Essay, EssayResult
+            essays_in_sessions = Essay.query.filter(
+                Essay.session_id.in_(session_ids)
             ).all()
-            result_map = {r.essay_id: r for r in results}
+            for e in essays_in_sessions:
+                essay_map[(e.session_id, e.student_id)] = e
+
+            essay_ids = [e.essay_id for e in essays_in_sessions]
+            if essay_ids:
+                results = EssayResult.query.filter(
+                    EssayResult.essay_id.in_(essay_ids)
+                ).all()
+                result_map = {r.essay_id: r for r in results}
+        except Exception:
+            pass  # DB 컬럼 미생성 시 essay 데이터 없이 진행
 
     return render_template('teacher/attendance_list.html',
                          courses=courses,
