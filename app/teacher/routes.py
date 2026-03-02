@@ -1648,12 +1648,25 @@ def class_messages():
         Notification.notification_type.in_(['class_announcement', 'homework_assignment']),
         Notification.related_user_id == current_user.user_id,
         User.role == 'student'  # 학생에게 보낸 것만 (학부모 중복 제거)
-    ).order_by(Notification.created_at.desc()).limit(10).all()
+    ).order_by(Notification.created_at.desc()).limit(20).all()
+
+    # 수신자 이름+학년 사전 (user_id → "이름 (학년)")
+    student_info_map = {}
+    for msg in recent_messages:
+        if msg.user_id and msg.user_id not in student_info_map:
+            st = Student.query.filter_by(user_id=msg.user_id).first()
+            if st:
+                student_info_map[msg.user_id] = f"{st.name} ({st.grade})"
+            elif msg.user:
+                student_info_map[msg.user_id] = msg.user.name
+            else:
+                student_info_map[msg.user_id] = '알 수 없음'
 
     return render_template('teacher/class_messages.html',
                          courses=my_courses,
                          students=students,
-                         recent_messages=recent_messages)
+                         recent_messages=recent_messages,
+                         student_info_map=student_info_map)
 
 
 @teacher_bp.route('/class-messages/send-to-course', methods=['POST'])
