@@ -14,6 +14,7 @@ from app.essays.momoai_service import MOMOAIService
 from app.essays.ocr_service import OCRService
 from app.essays.gemini_ocr_service import GeminiOCRService
 from app.models import db, Student, Essay, EssayVersion, Notification, OCRHistory
+from app.models.book import EssayBook
 from config import Config
 
 
@@ -1485,6 +1486,10 @@ def delete_essay(essay_id):
     essay = Essay.query.get_or_404(essay_id)
     student_name = essay.student.name if essay.student else '알 수 없음'
     title = essay.title or f'{student_name}의 논술'
+
+    # SQLite는 FK cascade를 기본 비활성화 — 수동으로 연관 레코드 먼저 삭제
+    OCRHistory.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+    EssayBook.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
 
     db.session.delete(essay)
     db.session.commit()
