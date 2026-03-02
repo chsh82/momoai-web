@@ -855,6 +855,19 @@ def start_correction(essay_id):
         flash('이미 완료된 첨삭입니다. 결과 페이지에서 재생성 기능을 이용하세요.', 'warning')
         return redirect(url_for('essays.result', essay_id=essay.essay_id))
 
+    # 첨삭 모델 선택 반영
+    from app.models import CourseEnrollment, Course as _Course
+    requested_model = request.form.get('correction_model', 'standard')
+    if requested_model == 'harkness':
+        is_harkness = db.session.query(CourseEnrollment).join(_Course).filter(
+            CourseEnrollment.student_id == essay.student_id,
+            CourseEnrollment.status == 'active',
+            _Course.course_type == '하크니스'
+        ).count() > 0
+        essay.correction_model = 'harkness' if is_harkness else 'standard'
+    else:
+        essay.correction_model = 'standard'
+
     # 백그라운드 스레드로 처리 시작
     essay.status = 'processing'
     db.session.commit()
@@ -1199,11 +1212,20 @@ def view_submission(essay_id):
         .order_by(OCRHistory.created_at.desc())\
         .all()
 
+    # 하크니스 수업 수강 여부 (모델 선택 UI용)
+    from app.models import CourseEnrollment, Course as _Course
+    is_harkness_student = db.session.query(CourseEnrollment).join(_Course).filter(
+        CourseEnrollment.student_id == essay.student_id,
+        CourseEnrollment.status == 'active',
+        _Course.course_type == '하크니스'
+    ).count() > 0
+
     return render_template('essays/view_submission.html',
                          essay=essay,
                          student=essay.student,
                          attachments=attachments,
-                         ocr_records=ocr_records)
+                         ocr_records=ocr_records,
+                         is_harkness_student=is_harkness_student)
 
 
 @essays_bp.route('/ocr')
