@@ -1878,6 +1878,87 @@ def send_student_message():
     return redirect(url_for('teacher.class_messages'))
 
 
+@teacher_bp.route('/class-messages/<notification_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def edit_class_message(notification_id):
+    """과제/공지 메시지 수정 — 같은 배치(발송자+유형+대상+5분 이내)를 일괄 수정"""
+    from datetime import timedelta
+
+    notif = Notification.query.get_or_404(notification_id)
+
+    if notif.related_user_id != current_user.user_id and not current_user.is_admin:
+        flash('수정 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.class_messages'))
+
+    if request.method == 'POST':
+        new_title_raw = request.form.get('title', '').strip()
+        new_message   = request.form.get('message', '').strip()
+
+        if not new_title_raw or not new_message:
+            flash('제목과 내용을 입력해주세요.', 'error')
+            return render_template('teacher/class_message_edit.html', notif=notif)
+
+        # 같은 배치: 동일 발송자 + 유형 + 대상 entity + 5분 이내 생성
+        window_start = notif.created_at - timedelta(minutes=5)
+        window_end   = notif.created_at + timedelta(minutes=5)
+        batch = Notification.query.filter(
+            Notification.related_user_id == current_user.user_id,
+            Notification.notification_type == notif.notification_type,
+            Notification.related_entity_id == notif.related_entity_id,
+            Notification.created_at >= window_start,
+            Notification.created_at <= window_end,
+        ).all()
+
+        # 배치 전체의 title 접두어(수업명/학생명 부분)는 유지하고, 사용자가 입력한 제목만 교체
+        # 원본 title에서 '] ' 이후 부분이 사용자 입력 제목
+        for n in batch:
+            if '] ' in n.title:
+                prefix = n.title[:n.title.index('] ') + 2]
+                n.title = prefix + new_title_raw
+            else:
+                n.title = new_title_raw
+            n.message = new_message
+
+        db.session.commit()
+        flash(f'메시지가 수정되었습니다. ({len(batch)}명 대상)', 'success')
+        return redirect(url_for('teacher.class_messages'))
+
+    return render_template('teacher/class_message_edit.html', notif=notif)
+
+
+@teacher_bp.route('/class-messages/<notification_id>/delete', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def delete_class_message(notification_id):
+    """과제/공지 메시지 삭제 — 같은 배치 일괄 삭제"""
+    from datetime import timedelta
+
+    notif = Notification.query.get_or_404(notification_id)
+
+    if notif.related_user_id != current_user.user_id and not current_user.is_admin:
+        flash('삭제 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.class_messages'))
+
+    window_start = notif.created_at - timedelta(minutes=5)
+    window_end   = notif.created_at + timedelta(minutes=5)
+    batch = Notification.query.filter(
+        Notification.related_user_id == current_user.user_id,
+        Notification.notification_type == notif.notification_type,
+        Notification.related_entity_id == notif.related_entity_id,
+        Notification.created_at >= window_start,
+        Notification.created_at <= window_end,
+    ).all()
+
+    count = len(batch)
+    for n in batch:
+        db.session.delete(n)
+    db.session.commit()
+
+    flash(f'메시지가 삭제되었습니다. ({count}명 대상)', 'success')
+    return redirect(url_for('teacher.class_messages'))
+
+
 @teacher_bp.route('/class-messages/<notification_id>')
 @login_required
 @requires_role('teacher', 'admin')
