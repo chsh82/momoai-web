@@ -228,6 +228,15 @@ def new():
         for s in students
     ]
 
+    # 하크니스 수업 수강 학생 ID 목록 (모델 선택 UI용)
+    from app.models import CourseEnrollment, Course as _Course
+    harkness_ids_rows = db.session.query(CourseEnrollment.student_id).join(_Course).filter(
+        CourseEnrollment.status == 'active',
+        _Course.course_type == '하크니스',
+        CourseEnrollment.student_id.in_([s.student_id for s in students])
+    ).distinct().all()
+    harkness_student_ids = {row[0] for row in harkness_ids_rows}
+
     # 도서 목록 로드
     books = Book.query.order_by(Book.title).all()
     form.book_ids.choices = [
@@ -242,6 +251,19 @@ def new():
             flash('잘못된 학생 선택입니다.', 'error')
             return redirect(url_for('essays.new'))
 
+        # 첨삭 모델 결정
+        from app.models import CourseEnrollment, Course as _Course
+        requested_model = request.form.get('correction_model', 'standard')
+        if requested_model == 'harkness':
+            is_harkness = db.session.query(CourseEnrollment).join(_Course).filter(
+                CourseEnrollment.student_id == student.student_id,
+                CourseEnrollment.status == 'active',
+                _Course.course_type == '하크니스'
+            ).count() > 0
+            correction_model = 'harkness' if is_harkness else 'standard'
+        else:
+            correction_model = 'standard'
+
         # MOMOAI 서비스 초기화
         service = MOMOAIService(Config.ANTHROPIC_API_KEY)
 
@@ -254,6 +276,10 @@ def new():
             grade=student.grade,
             notes=form.notes.data
         )
+
+        # 첨삭 모델 저장
+        essay.correction_model = correction_model
+        db.session.commit()
 
         # 파일 첨부 처리
         if form.attachment.data:
@@ -318,7 +344,8 @@ def new():
 
         return redirect(url_for('essays.processing', essay_id=essay_id_val))
 
-    return render_template('essays/new.html', form=form)
+    return render_template('essays/new.html', form=form,
+                           harkness_student_ids=list(harkness_student_ids))
 
 
 @essays_bp.route('/quick', methods=['GET', 'POST'])

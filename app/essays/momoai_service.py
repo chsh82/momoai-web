@@ -264,6 +264,170 @@ v3.3.0 필수 포함 사항:
             except Exception as e:
                 raise Exception(f"첨삭 중 오류가 발생했습니다: {e}")
 
+    # ------------------------------------------------------------------ #
+    #  스탠다드 모델 (3단계 체인 호출)                                     #
+    # ------------------------------------------------------------------ #
+
+    def _load_standard_document(self) -> str:
+        """스탠다드 모델 규칙 문서 로드"""
+        try:
+            doc_path = current_app.config.get('MOMOAI_STANDARD_DOC_PATH')
+            with open(doc_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            raise Exception(f"스탠다드 모델 문서를 로드할 수 없습니다: {e}")
+
+    def _extract_html_block(self, text: str) -> str:
+        """응답에서 ```html 코드블록 내용 추출"""
+        if '```html' in text:
+            start = text.find('```html') + 7
+            end = text.find('```', start)
+            if end != -1:
+                return text[start:end].strip()
+        if '```' in text:
+            start = text.find('```') + 3
+            end = text.find('```', start)
+            if end != -1:
+                return text[start:end].strip()
+        return text.strip()
+
+    def _call_standard_step(self, standard_system: str, messages: list,
+                             step_name: str, student_name: str,
+                             user_id=None, essay_id=None) -> str:
+        """스탠다드 모델 단계별 API 호출 (retry 포함)"""
+        import time
+        max_retries = 3
+        retry_delays = [30, 60, 120]
+
+        for attempt in range(max_retries + 1):
+            try:
+                print(f"\n[스탠다드 {step_name}] {student_name} 학생 시작"
+                      + (f" (재시도 {attempt})" if attempt > 0 else ""))
+                start_time = time.time()
+
+                response = self.client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=8192,
+                    timeout=300.0,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": standard_system,
+                            "cache_control": {"type": "ephemeral"}
+                        }
+                    ],
+                    messages=messages,
+                )
+
+                elapsed = time.time() - start_time
+                usage = response.usage
+                output_tokens = getattr(usage, 'output_tokens', 0)
+                print(f"[스탠다드 {step_name}] 완료 {elapsed:.1f}초 / {output_tokens}tok")
+
+                # 사용량 로그
+                try:
+                    from app.models.api_usage_log import ApiUsageLog
+                    input_tok = getattr(usage, 'input_tokens', 0)
+                    cache_read = getattr(usage, 'cache_read_input_tokens', 0)
+                    cache_write = getattr(usage, 'cache_creation_input_tokens', 0)
+                    cost = ApiUsageLog.calc_claude_cost(input_tok, output_tokens, cache_read, cache_write)
+                    log = ApiUsageLog(
+                        user_id=user_id,
+                        api_type='claude',
+                        model_name='claude-sonnet-4-6',
+                        usage_type=f'standard_{step_name}',
+                        essay_id=essay_id,
+                        input_tokens=input_tok,
+                        output_tokens=output_tokens,
+                        cache_read_tokens=cache_read,
+                        cache_write_tokens=cache_write,
+                        cost_usd=cost,
+                    )
+                    db.session.add(log)
+                    db.session.commit()
+                except Exception as log_err:
+                    print(f"[사용량 로그 저장 실패] {log_err}")
+
+                return response.content[0].text
+
+            except anthropic.RateLimitError:
+                if attempt < max_retries:
+                    time.sleep(retry_delays[attempt])
+                    continue
+                raise
+            except anthropic.APIStatusError as e:
+                if e.status_code >= 500 and attempt < max_retries:
+                    time.sleep(retry_delays[attempt])
+                    continue
+                raise
+
+    def analyze_essay_standard(self, student_name: str, grade: str, essay_text: str,
+                                notes: Optional[str] = None,
+                                teacher_name: Optional[str] = None,
+                                user_id: Optional[str] = None,
+                                essay_id: Optional[str] = None) -> str:
+        """
+        스탠다드 모델: 3단계 체인 API 호출 후 HTML 결합
+
+        Returns:
+            합쳐진 완성 HTML 문서
+        """
+        standard_system = self._load_standard_document()
+
+        # 1차 프롬프트 구성
+        step1_content = f"[학생 원문]\n{essay_text}"
+        if notes:
+            step1_content += f"\n\n[교사 지시]\n{notes}"
+        step1_content += "\n\n1차 작업을 수행하세요."
+
+        with _api_semaphore:
+            # 1차 호출
+            step1_resp = self._call_standard_step(
+                standard_system,
+                [{"role": "user", "content": step1_content}],
+                "1차", student_name, user_id=user_id, essay_id=essay_id,
+            )
+
+            # 2차 호출
+            step2_resp = self._call_standard_step(
+                standard_system,
+                [
+                    {"role": "user", "content": step1_content},
+                    {"role": "assistant", "content": step1_resp},
+                    {"role": "user", "content": "계속"},
+                ],
+                "2차", student_name, user_id=user_id, essay_id=essay_id,
+            )
+
+            # 3차 호출
+            step3_resp = self._call_standard_step(
+                standard_system,
+                [
+                    {"role": "user", "content": step1_content},
+                    {"role": "assistant", "content": step1_resp},
+                    {"role": "user", "content": "계속"},
+                    {"role": "assistant", "content": step2_resp},
+                    {"role": "user", "content": "계속"},
+                ],
+                "3차", student_name, user_id=user_id, essay_id=essay_id,
+            )
+
+        # HTML 블록 추출 후 결합
+        html1 = self._extract_html_block(step1_resp)
+        html2 = self._extract_html_block(step2_resp)
+        html3 = self._extract_html_block(step3_resp)
+        combined = html1 + "\n" + html2 + "\n" + html3
+
+        # 강사 사인 삽입
+        if teacher_name and '</body>' in combined:
+            sign = (
+                f'\n<div style="text-align:right;margin-top:50px;padding:20px;'
+                f'color:#666;font-style:italic;">첨삭: {teacher_name}</div>\n'
+            )
+            combined = combined.replace('</body>', sign + '</body>', 1)
+
+        return combined
+
     def save_html(self, html_content: str, filename: str) -> str:
         """
         HTML 파일 저장
@@ -362,17 +526,30 @@ v3.3.0 필수 포함 사항:
             if essay.notes:
                 notes = '\n'.join([note.content for note in essay.notes])
 
-            # 첨삭 수행
-            html_content = self.analyze_essay(
-                student_name=student_name,
-                grade=essay.grade,
-                essay_text=essay.original_text,
-                notes=notes,
-                teacher_name=teacher_name,
-                user_id=essay.user_id,
-                essay_id=essay.essay_id,
-                usage_type='correction',
-            )
+            # 모델에 따라 첨삭 수행
+            model = getattr(essay, 'correction_model', 'standard') or 'standard'
+
+            if model == 'harkness':
+                html_content = self.analyze_essay(
+                    student_name=student_name,
+                    grade=essay.grade,
+                    essay_text=essay.original_text,
+                    notes=notes,
+                    teacher_name=teacher_name,
+                    user_id=essay.user_id,
+                    essay_id=essay.essay_id,
+                    usage_type='correction',
+                )
+            else:  # standard
+                html_content = self.analyze_essay_standard(
+                    student_name=student_name,
+                    grade=essay.grade,
+                    essay_text=essay.original_text,
+                    notes=notes,
+                    teacher_name=teacher_name,
+                    user_id=essay.user_id,
+                    essay_id=essay.essay_id,
+                )
 
             # HTML 저장
             filename = self.generate_filename(

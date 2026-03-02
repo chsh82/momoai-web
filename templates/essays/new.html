@@ -121,6 +121,38 @@
                 </div>
             </div>
 
+            <!-- 첨삭 모델 선택 -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-3">첨삭 모델</label>
+                <div class="grid grid-cols-1 gap-3" id="model-selector">
+
+                    <!-- 스탠다드 모델 (기본값, 항상 표시) -->
+                    <label class="flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition model-option"
+                           id="label-standard">
+                        <input type="radio" name="correction_model" value="standard"
+                               class="mt-1 accent-blue-600" checked>
+                        <div>
+                            <div class="font-semibold text-gray-800">📝 스탠다드 모델 <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">기본값</span></div>
+                            <div class="text-sm text-gray-500 mt-1">3단계 체인 방식 · 첨삭 밀도 강화 · 해요체 친절한 피드백</div>
+                        </div>
+                    </label>
+
+                    <!-- 하크니스 모델 (하크니스 수강생만 활성화) -->
+                    <label class="flex items-start gap-4 p-4 border-2 rounded-lg transition model-option"
+                           id="label-harkness">
+                        <input type="radio" name="correction_model" value="harkness"
+                               class="mt-1 accent-indigo-600" id="radio-harkness" disabled>
+                        <div>
+                            <div class="font-semibold text-gray-800" id="harkness-label-text">
+                                🔷 하크니스 모델
+                                <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full ml-1" id="harkness-badge">하크니스 수업 수강생 전용</span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1">하크니스 토론 중심 첨삭 · 단일 대용량 API 호출</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <!-- Info Box -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div class="flex items-start">
@@ -149,6 +181,65 @@
 </div>
 
 <script>
+// 하크니스 수강 학생 ID 목록
+const harknessStudentIds = new Set({{ harkness_student_ids | tojson }});
+
+function updateModelSelector(studentId) {
+    const radioHarkness = document.getElementById('radio-harkness');
+    const labelHarkness = document.getElementById('label-harkness');
+    const badge = document.getElementById('harkness-badge');
+
+    const isHarkness = harknessStudentIds.has(studentId);
+
+    if (isHarkness) {
+        radioHarkness.disabled = false;
+        labelHarkness.classList.remove('opacity-40', 'cursor-not-allowed');
+        labelHarkness.classList.add('cursor-pointer');
+        badge.textContent = '선택 가능';
+        badge.className = 'text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-1';
+    } else {
+        radioHarkness.disabled = true;
+        // 하크니스 선택돼 있었으면 스탠다드로 초기화
+        if (radioHarkness.checked) {
+            document.querySelector('input[name="correction_model"][value="standard"]').checked = true;
+            updateModelOptionStyle();
+        }
+        labelHarkness.classList.add('opacity-40', 'cursor-not-allowed');
+        labelHarkness.classList.remove('cursor-pointer');
+        badge.textContent = '하크니스 수업 수강생 전용';
+        badge.className = 'text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full ml-1';
+    }
+}
+
+function updateModelOptionStyle() {
+    document.querySelectorAll('.model-option').forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.checked) {
+            label.classList.add('border-blue-500', 'bg-blue-50');
+            label.classList.remove('border-gray-200');
+        } else {
+            label.classList.remove('border-blue-500', 'bg-blue-50');
+            label.classList.add('border-gray-200');
+        }
+    });
+}
+
+// 학생 선택 변경 시 하크니스 모델 활성화 여부 업데이트
+const studentSelect = document.querySelector('#student_id');
+if (studentSelect) {
+    studentSelect.addEventListener('change', function() {
+        updateModelSelector(this.value);
+    });
+    // 초기 상태 적용
+    updateModelSelector(studentSelect.value);
+}
+
+// 모델 선택 시 스타일 업데이트
+document.querySelectorAll('input[name="correction_model"]').forEach(radio => {
+    radio.addEventListener('change', updateModelOptionStyle);
+});
+updateModelOptionStyle();
+
 // Character counter
 const essayTextarea = document.querySelector('#essay_text');
 const charCount = document.querySelector('#charCount');
