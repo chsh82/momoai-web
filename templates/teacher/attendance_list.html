@@ -76,6 +76,15 @@
                 </a>
             </div>
 
+            <!-- 학생 이름 검색 (JS DOM 필터) -->
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">학생 이름</label>
+                <input type="text" id="studentNameFilter"
+                       placeholder="이름 입력..."
+                       oninput="filterByStudentName(this.value)"
+                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32">
+            </div>
+
             <!-- 미완료만 보기 (JS DOM 필터) -->
             <div class="flex items-end pb-1">
                 <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-700">
@@ -179,9 +188,10 @@
             {% if attendances %}
             <div class="px-4 py-2 divide-y divide-gray-50">
                 {% for att in attendances %}
-                <div class="flex flex-wrap items-center gap-3 py-2"
+                <div class="flex flex-wrap items-center gap-3 py-2 student-row"
                      data-att-id="{{ att.attendance_id }}"
-                     data-current-status="{{ att.status }}">
+                     data-current-status="{{ att.status }}"
+                     data-student-name="{{ att.student.name }}">
                     <!-- 학생 이름 -->
                     <span class="text-sm font-medium text-gray-800 min-w-16 w-16">{{ att.student.name }}</span>
 
@@ -442,6 +452,29 @@ function toggleIncompleteFilter(checked) {
             row.style.display = 'none';
         } else {
             row.style.display = '';
+        }
+    });
+}
+
+function filterByStudentName(keyword) {
+    const q = keyword.trim().toLowerCase();
+    document.querySelectorAll('.session-row').forEach(sessionRow => {
+        const studentRows = sessionRow.querySelectorAll('.student-row');
+        let visibleCount = 0;
+        studentRows.forEach(row => {
+            const name = (row.dataset.studentName || '').toLowerCase();
+            if (!q || name.includes(q)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        // 매칭 학생이 없으면 세션 행 숨김, 있으면 표시
+        if (studentRows.length > 0 && visibleCount === 0) {
+            sessionRow.style.display = 'none';
+        } else {
+            sessionRow.style.display = '';
         }
     });
 }
