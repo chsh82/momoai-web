@@ -132,12 +132,13 @@
                         {% endif %}
                     </div>
                     {% set file_url = url_for('essays.download_attachment', essay_id=essay.essay_id) + ('?file_index=' + file_index|string if file_index is not none else '') %}
+                    {% set inline_url = file_url + ('&' if file_index is not none else '?') + 'inline=1' %}
                     {% if filename.lower().endswith('.pdf') %}
-                    <embed src="{{ file_url }}"
+                    <embed src="{{ inline_url }}"
                            type="application/pdf" width="100%" height="600px"
                            class="rounded border border-blue-200 mt-2">
                     {% elif filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif')) %}
-                    <img src="{{ file_url }}"
+                    <img src="{{ inline_url }}"
                          alt="{{ filename }}"
                          class="w-full rounded-lg mt-2 border border-blue-200 max-h-[700px] object-contain bg-gray-50">
                     {% endif %}

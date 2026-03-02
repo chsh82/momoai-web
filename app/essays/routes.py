@@ -1016,10 +1016,11 @@ def download_attachment(essay_id):
         file_directory = os.path.dirname(os.path.join(upload_folder, file_path))
         file_name = os.path.basename(file_path)
 
+        inline = request.args.get('inline') == '1'
         return send_from_directory(
             file_directory,
             file_name,
-            as_attachment=True,
+            as_attachment=not inline,
             download_name=filename
         )
     except Exception as e:
