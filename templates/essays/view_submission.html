@@ -77,16 +77,26 @@
 
     <!-- 본문 카드 -->
     <div class="bg-white rounded-lg shadow mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-lg font-bold text-gray-800">본문 내용</h3>
+            {% if current_user.role in ('teacher', 'admin') or current_user.user_id == essay.user_id %}
+            <button onclick="toggleTextEditor()"
+                    id="edit-text-btn"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition">
+                ✏️ 수정
+            </button>
+            {% endif %}
         </div>
-        <div class="p-6">
+
+        <!-- 읽기 모드 -->
+        <div class="p-6" id="text-view-mode">
             {% if essay.original_text %}
             <div class="prose max-w-none">
-                <div class="whitespace-pre-wrap text-gray-700 leading-relaxed font-['Noto_Sans_KR']">{{ essay.original_text }}</div>
+                <div id="original-text-display"
+                     class="whitespace-pre-wrap text-gray-700 leading-relaxed font-['Noto_Sans_KR']">{{ essay.original_text }}</div>
             </div>
             {% else %}
-            <div class="text-center py-12 text-gray-500">
+            <div class="text-center py-12 text-gray-500" id="no-text-placeholder">
                 <div class="text-4xl mb-3">📭</div>
                 <p>본문 내용이 없습니다.</p>
                 {% if attachments %}
@@ -95,7 +105,118 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- 편집 모드 (숨김) -->
+        <div class="p-6 hidden" id="text-edit-mode">
+            <p class="text-sm text-gray-500 mb-3">
+                💡 첨부 파일을 보면서 텍스트를 직접 입력하세요. 저장 후 AI 첨삭을 진행할 수 있습니다.
+            </p>
+            <textarea id="text-editor"
+                      rows="14"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-800 leading-relaxed font-['Noto_Sans_KR'] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                      placeholder="학생 글을 여기에 입력하세요...">{{ essay.original_text or '' }}</textarea>
+            <div class="flex items-center justify-between mt-3">
+                <span class="text-xs text-gray-400" id="char-count">0자</span>
+                <div class="flex gap-2">
+                    <button onclick="toggleTextEditor()"
+                            class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                        취소
+                    </button>
+                    <button onclick="saveOriginalText()"
+                            id="save-text-btn"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                        💾 저장
+                    </button>
+                    <a href="{{ url_for('essays.manual_correction', essay_id=essay.essay_id) }}"
+                       id="ai-correction-btn"
+                       class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition hidden">
+                        ✨ 저장 후 AI 첨삭
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+    const ESSAY_ID = '{{ essay.essay_id }}';
+
+    function toggleTextEditor() {
+        const viewMode = document.getElementById('text-view-mode');
+        const editMode = document.getElementById('text-edit-mode');
+        const btn = document.getElementById('edit-text-btn');
+        const isEditing = !editMode.classList.contains('hidden');
+
+        if (isEditing) {
+            editMode.classList.add('hidden');
+            viewMode.classList.remove('hidden');
+            btn.textContent = '✏️ 수정';
+        } else {
+            viewMode.classList.add('hidden');
+            editMode.classList.remove('hidden');
+            btn.textContent = '✕ 닫기';
+            updateCharCount();
+        }
+    }
+
+    function updateCharCount() {
+        const ta = document.getElementById('text-editor');
+        document.getElementById('char-count').textContent = (ta.value.length).toLocaleString() + '자';
+    }
+
+    document.getElementById('text-editor')?.addEventListener('input', updateCharCount);
+
+    async function saveOriginalText() {
+        const text = document.getElementById('text-editor').value;
+        const btn = document.getElementById('save-text-btn');
+        const aiBtn = document.getElementById('ai-correction-btn');
+
+        btn.disabled = true;
+        btn.textContent = '저장 중...';
+
+        try {
+            const res = await fetch(`/essays/${ESSAY_ID}/update-original-text`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text})
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // 읽기 모드 텍스트 업데이트
+                const display = document.getElementById('original-text-display');
+                const placeholder = document.getElementById('no-text-placeholder');
+
+                if (text.trim()) {
+                    if (display) {
+                        display.textContent = text;
+                    } else if (placeholder) {
+                        placeholder.outerHTML = `<div class="prose max-w-none"><div id="original-text-display" class="whitespace-pre-wrap text-gray-700 leading-relaxed">${text}</div></div>`;
+                    }
+                    // AI 첨삭 버튼 표시
+                    aiBtn.classList.remove('hidden');
+                }
+
+                btn.textContent = '✅ 저장됨';
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = '💾 저장';
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }, 2000);
+            } else {
+                alert('저장 실패: ' + (data.message || '오류'));
+                btn.disabled = false;
+                btn.textContent = '💾 저장';
+            }
+        } catch (e) {
+            alert('저장 중 오류가 발생했습니다.');
+            btn.disabled = false;
+            btn.textContent = '💾 저장';
+        }
+    }
+    </script>
 
     <!-- 메모 카드 -->
     {% if essay.notes %}

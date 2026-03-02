@@ -1452,3 +1452,26 @@ def add_ocr_to_essay(ocr_id):
     })
 
 
+@essays_bp.route('/<essay_id>/update-original-text', methods=['PATCH'])
+@login_required
+def update_original_text(essay_id):
+    """강사가 학생 원문을 직접 수정 (OCR 실패 시)"""
+    essay = Essay.query.get_or_404(essay_id)
+
+    # 강사/관리자만 가능
+    if current_user.role not in ('teacher', 'admin') and current_user.user_id != essay.user_id:
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+
+    data = request.json or {}
+    new_text = data.get('text', '').strip()
+
+    essay.original_text = new_text
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': '본문이 저장되었습니다.',
+        'has_text': bool(new_text)
+    })
+
+
