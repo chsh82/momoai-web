@@ -5359,6 +5359,102 @@ def help_page():
     return render_template('admin/help.html')
 
 
+@admin_bp.route('/teacher-hours')
+@login_required
+@requires_permission_level(2)
+def teacher_hours():
+    """강사 월별 시수 계산표"""
+    from collections import defaultdict
+    from app.utils.hours_calculator import build_teacher_monthly_data
+    from app.models.teacher_hours import TeacherHoursCorrection
+
+    year  = request.args.get('year',  date.today().year,  type=int)
+    month = request.args.get('month', date.today().month, type=int)
+
+    teachers = User.query.filter(
+        User.role == 'teacher',
+        User.is_active == True
+    ).order_by(User.name).all()
+
+    data = {t.user_id: build_teacher_monthly_data(t.user_id, year, month) for t in teachers}
+
+    corrections = TeacherHoursCorrection.query.filter_by(year=year, month=month).all()
+    corrections_map = defaultdict(list)
+    for c in corrections:
+        corrections_map[c.teacher_id].append(c)
+
+    return render_template(
+        'admin/teacher_hours.html',
+        teachers=teachers,
+        data=data,
+        corrections=corrections_map,
+        year=year,
+        month=month,
+    )
+
+
+@admin_bp.route('/teacher-hours/correction', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def add_hours_correction():
+    """시수 수동 보정 추가 (AJAX)"""
+    from app.models.teacher_hours import TeacherHoursCorrection
+
+    teacher_id = request.form.get('teacher_id', '').strip()
+    year       = request.form.get('year',  type=int)
+    month      = request.form.get('month', type=int)
+    hours_delta = request.form.get('hours_delta', type=float)
+    note        = request.form.get('note', '').strip()
+    date_str    = request.form.get('correction_date', '').strip()
+    course_type = request.form.get('course_type', '').strip() or None
+
+    if not teacher_id or year is None or month is None or hours_delta is None:
+        return jsonify({'success': False, 'error': '필수 값이 누락되었습니다.'}), 400
+
+    correction_date = None
+    if date_str:
+        try:
+            from datetime import date as _date
+            correction_date = _date.fromisoformat(date_str)
+        except ValueError:
+            return jsonify({'success': False, 'error': '날짜 형식이 올바르지 않습니다.'}), 400
+
+    correction = TeacherHoursCorrection(
+        teacher_id=teacher_id,
+        year=year,
+        month=month,
+        correction_date=correction_date,
+        course_type=course_type,
+        hours_delta=hours_delta,
+        note=note or None,
+        created_by=current_user.user_id,
+    )
+    db.session.add(correction)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'id': correction.id,
+        'hours_delta': correction.hours_delta,
+        'note': correction.note or '',
+        'correction_date': correction.correction_date.isoformat() if correction.correction_date else '',
+        'course_type': correction.course_type or '',
+    })
+
+
+@admin_bp.route('/teacher-hours/correction/<int:cid>', methods=['DELETE'])
+@login_required
+@requires_permission_level(2)
+def delete_hours_correction(cid):
+    """시수 수동 보정 삭제 (AJAX)"""
+    from app.models.teacher_hours import TeacherHoursCorrection
+
+    correction = TeacherHoursCorrection.query.get_or_404(cid)
+    db.session.delete(correction)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @admin_bp.route('/help/pdf')
 @login_required
 @requires_permission_level(2)

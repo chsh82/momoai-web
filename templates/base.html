@@ -252,6 +252,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.makeup' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 보강수업 관리
                             </a>
+                            <a href="{{ url_for('admin.teacher_hours') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.teacher_hours' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                📊 강사 시수 계산
+                            </a>
                         </div>
                     </div>
 
@@ -682,6 +686,13 @@
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'teacher.material' in request.endpoint %}active{% endif %} mt-2">
                         <span class="text-xl">📁</span>
                         <span>학습 자료</span>
+                    </a>
+
+                    <!-- 5-1. 내 시수 확인 -->
+                    <a href="{{ url_for('teacher.my_hours') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.my_hours' %}active{% endif %} mt-2">
+                        <span class="text-xl">📊</span>
+                        <span>내 시수 확인</span>
                     </a>
 
                     <!-- 6. 게시판 -->

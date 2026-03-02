@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}강사 시수 계산 - {{ year }}년 {{ month }}월{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- 헤더 + 월 네비게이션 -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">📊 강사 시수 계산</h1>
+
+        <div class="flex items-center gap-2">
+            {% set prev_year = year if month > 1 else year - 1 %}
+            {% set prev_month = month - 1 if month > 1 else 12 %}
+            {% set next_year = year if month < 12 else year + 1 %}
+            {% set next_month = month + 1 if month < 12 else 1 %}
+
+            <a href="{{ url_for('admin.teacher_hours', year=prev_year, month=prev_month) }}"
+               class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium">
+                ←
+            </a>
+            <span class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold text-sm">
+                {{ year }}년 {{ month }}월
+            </span>
+            <a href="{{ url_for('admin.teacher_hours', year=next_year, month=next_month) }}"
+               class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium">
+                →
+            </a>
+            <button onclick="window.print()"
+                    class="ml-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 text-gray-700 text-sm font-medium">
+                🖨 인쇄
+            </button>
+        </div>
+    </div>
+
+    {% if not teachers %}
+    <div class="bg-white rounded-xl shadow p-10 text-center text-gray-500">
+        등록된 강사가 없습니다.
+    </div>
+    {% endif %}
+
+    <!-- 강사 카드 목록 -->
+    {% for teacher in teachers %}
+    {% set d = data[teacher.user_id] %}
+    {% set corr_list = corrections.get(teacher.user_id, []) %}
+    {% set corr_total = corr_list | sum(attribute='hours_delta') %}
+    {% set final_total = d.auto_total + corr_total %}
+
+    <div class="bg-white rounded-xl shadow mb-8 overflow-hidden" id="card-{{ teacher.user_id }}">
+
+        <!-- 카드 헤더 -->
+        <div class="bg-indigo-700 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">👤</span>
+                <div>
+                    <div class="font-bold text-lg">{{ teacher.name }}</div>
+                    <div class="text-indigo-200 text-sm">{{ year }}년 {{ month }}월</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-indigo-200 text-xs">월 시수 합계</div>
+                <div class="text-3xl font-bold">{{ "%.1f"|format(final_total) }}</div>
+            </div>
+        </div>
+
+        <div class="p-6">
+
+            <!-- 시수 요약 표 -->
+            {% if d.by_type %}
+            <div class="overflow-x-auto mb-4">
+                <table class="w-full text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border border-gray-200 px-3 py-2 text-left font-medium text-gray-700">수업유형</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center font-medium text-gray-700">1주</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center font-medium text-gray-700">2주</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center font-medium text-gray-700">3주</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center font-medium text-gray-700">4주</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center font-medium text-gray-700">5주</th>
+                            <th class="border border-gray-200 px-3 py-2 text-center font-medium text-gray-800 bg-gray-200">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set SPECIAL = ['시그니처', '특강', '모의고사'] %}
+                        {% for ctype, row in d.by_type.items() %}
+                        {% if ctype not in SPECIAL %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-200 px-3 py-2 font-medium text-gray-700">{{ ctype }}</td>
+                            {% for w in [1,2,3,4,5] %}
+                            <td class="border border-gray-200 px-3 py-2 text-center text-gray-600">
+                                {% if row[w] %}{{ "%.1f"|format(row[w]) }}{% else %}-{% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="border border-gray-200 px-3 py-2 text-center font-semibold text-indigo-700 bg-indigo-50">
+                                {{ "%.1f"|format(row.total) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-100 font-bold">
+                            <td class="border border-gray-200 px-3 py-2 text-gray-700">주간합계</td>
+                            {% for w in [1,2,3,4,5] %}
+                            <td class="border border-gray-200 px-3 py-2 text-center text-gray-800">
+                                {% if d.weekly_totals[w] %}{{ "%.1f"|format(d.weekly_totals[w]) }}{% else %}-{% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="border border-gray-300 px-3 py-2 text-center text-indigo-800 bg-indigo-100">
+                                {{ "%.1f"|format(d.auto_total) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-gray-400 text-sm italic mb-4">이번 달 완료된 수업 세션이 없습니다.</div>
+            {% endif %}
+
+            <!-- 별도 수당 안내 -->
+            {% if d.special %}
+            <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-sm text-amber-800">
+                ⚠️ <strong>시수 외 (별도 수당):</strong>
+                {% set special_counts = {} %}
+                {% for row in d.special %}
+                    {% set ct = row.course.course_type %}
+                    {% if ct in special_counts %}
+                        {% set _ = special_counts.update({ct: special_counts[ct] + 1}) %}
+                    {% else %}
+                        {% set _ = special_counts.update({ct: 1}) %}
+                    {% endif %}
+                {% endfor %}
+                {% for ct, cnt in special_counts.items() %}
+                <span class="inline-block bg-amber-200 rounded px-2 py-0.5 mr-1">{{ ct }} {{ cnt }}회</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- 수동 보정 섹션 -->
+            <div class="border border-gray-200 rounded-lg p-4 mb-4" id="corrections-{{ teacher.user_id }}">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-medium text-gray-700">🔧 수동 보정</h3>
+                    <button onclick="showCorrectionForm('{{ teacher.user_id }}')"
+                            class="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">
+                        + 추가
+                    </button>
+                </div>
+
+                <!-- 보정 추가 폼 (기본 숨김) -->
+                <div id="correction-form-{{ teacher.user_id }}" class="hidden mb-3 bg-gray-50 rounded-lg p-3">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                        <div>
+                            <label class="text-xs text-gray-500">날짜 (선택)</label>
+                            <input type="date" id="cf-date-{{ teacher.user_id }}"
+                                   class="w-full text-sm border border-gray-300 rounded px-2 py-1">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">수업유형 (선택)</label>
+                            <select id="cf-type-{{ teacher.user_id }}"
+                                    class="w-full text-sm border border-gray-300 rounded px-2 py-1">
+                                <option value="">-</option>
+                                <option>베이직</option>
+                                <option>프리미엄</option>
+                                <option>정규반</option>
+                                <option>하크니스</option>
+                                <option>체험단</option>
+                                <option>보강수업</option>
+                                <option>시그니처</option>
+                                <option>특강</option>
+                                <option>모의고사</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">시수 (+/-) *</label>
+                            <input type="number" step="0.5" id="cf-delta-{{ teacher.user_id }}"
+                                   class="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                                   placeholder="예: +1.0 또는 -0.5">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">메모</label>
+                            <input type="text" id="cf-note-{{ teacher.user_id }}"
+                                   class="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                                   placeholder="사유 입력">
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="submitCorrection('{{ teacher.user_id }}', {{ year }}, {{ month }})"
+                                class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+                            저장
+                        </button>
+                        <button onclick="hideCorrectionForm('{{ teacher.user_id }}')"
+                                class="text-xs bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">
+                            취소
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 보정 목록 -->
+                <div id="correction-list-{{ teacher.user_id }}">
+                    {% if not corr_list %}
+                    <div id="no-corrections-{{ teacher.user_id }}" class="text-gray-400 text-sm italic">보정 내역 없음</div>
+                    {% else %}
+                    <div id="no-corrections-{{ teacher.user_id }}" class="hidden text-gray-400 text-sm italic">보정 내역 없음</div>
+                    {% endif %}
+
+                    {% for c in corr_list %}
+                    <div class="flex items-center justify-between py-1.5 border-b border-gray-100 text-sm"
+                         id="corr-row-{{ c.id }}">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-gray-500">{{ c.correction_date.strftime('%m/%d') if c.correction_date else '-' }}</span>
+                            {% if c.course_type %}
+                            <span class="bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 text-xs">{{ c.course_type }}</span>
+                            {% endif %}
+                            <span class="font-semibold {{ 'text-green-600' if c.hours_delta > 0 else 'text-red-600' }}">
+                                {{ '%+.1f'|format(c.hours_delta) }}
+                            </span>
+                            {% if c.note %}
+                            <span class="text-gray-500 italic">{{ c.note }}</span>
+                            {% endif %}
+                        </div>
+                        <button onclick="deleteCorrection({{ c.id }}, '{{ teacher.user_id }}')"
+                                class="text-red-400 hover:text-red-600 text-xs px-2">✕</button>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 보정 후 최종 시수 -->
+                <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                    <span class="text-sm text-gray-600">보정 후 최종 시수</span>
+                    <span class="text-xl font-bold text-indigo-700" id="final-total-{{ teacher.user_id }}">
+                        {{ "%.1f"|format(final_total) }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 세션 상세 (접기/펼치기) -->
+            {% if d.sessions %}
+            <div x-data="{ open: false }">
+                <button @click="open = !open"
+                        class="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium mb-2">
+                    <span x-text="open ? '▲ 세션 상세 접기' : '▼ 세션 상세 펼치기'"></span>
+                </button>
+                <div x-show="open" x-collapse>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="border border-gray-200 px-3 py-2 text-left text-gray-600 font-medium">날짜</th>
+                                    <th class="border border-gray-200 px-3 py-2 text-left text-gray-600 font-medium">수업명</th>
+                                    <th class="border border-gray-200 px-3 py-2 text-center text-gray-600 font-medium">유형</th>
+                                    <th class="border border-gray-200 px-3 py-2 text-center text-gray-600 font-medium">학년</th>
+                                    <th class="border border-gray-200 px-3 py-2 text-center text-gray-600 font-medium">출석</th>
+                                    <th class="border border-gray-200 px-3 py-2 text-center text-gray-600 font-medium">시수</th>
+                                    <th class="border border-gray-200 px-3 py-2 text-center text-gray-600 font-medium">주</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in d.sessions %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="border border-gray-200 px-3 py-2 text-gray-700">
+                                        {{ row.session.session_date.strftime('%m/%d') }}
+                                    </td>
+                                    <td class="border border-gray-200 px-3 py-2 text-gray-700">{{ row.course.course_name }}</td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center">
+                                        <span class="bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 text-xs">
+                                            {{ row.course.course_type or '-' }}
+                                        </span>
+                                    </td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center text-gray-600 text-xs">
+                                        {{ row.course.grade or '-' }}
+                                    </td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center text-gray-700">{{ row.attended }}명</td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center font-semibold text-indigo-700">
+                                        {{ "%.1f"|format(row.hours) }}
+                                    </td>
+                                    <td class="border border-gray-200 px-3 py-2 text-center text-gray-500 text-xs">{{ row.week }}주</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div><!-- /p-6 -->
+    </div><!-- /card -->
+    {% endfor %}
+
+</div>
+
+<script>
+// teacher_id → auto_total 맵 (보정 계산용)
+const autoTotals = {
+    {% for teacher in teachers %}
+    '{{ teacher.user_id }}': {{ data[teacher.user_id].auto_total }},
+    {% endfor %}
+};
+// teacher_id → 현재 보정 합계
+const correctionTotals = {
+    {% for teacher in teachers %}
+    {% set corr_list = corrections.get(teacher.user_id, []) %}
+    '{{ teacher.user_id }}': {{ corr_list | sum(attribute='hours_delta') }},
+    {% endfor %}
+};
+
+function showCorrectionForm(tid) {
+    document.getElementById('correction-form-' + tid).classList.remove('hidden');
+}
+function hideCorrectionForm(tid) {
+    document.getElementById('correction-form-' + tid).classList.add('hidden');
+}
+
+function submitCorrection(tid, year, month) {
+    const deltaInput = document.getElementById('cf-delta-' + tid);
+    const delta = parseFloat(deltaInput.value);
+    if (isNaN(delta)) {
+        alert('시수 값을 입력해주세요.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('teacher_id', tid);
+    formData.append('year', year);
+    formData.append('month', month);
+    formData.append('hours_delta', delta);
+    formData.append('correction_date', document.getElementById('cf-date-' + tid).value);
+    formData.append('course_type', document.getElementById('cf-type-' + tid).value);
+    formData.append('note', document.getElementById('cf-note-' + tid).value);
+
+    fetch('{{ url_for("admin.add_hours_correction") }}', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert('오류: ' + data.error); return; }
+
+        // 보정 목록에 행 추가
+        const list = document.getElementById('correction-list-' + tid);
+        const noCorr = document.getElementById('no-corrections-' + tid);
+        if (noCorr) noCorr.classList.add('hidden');
+
+        const sign = data.hours_delta >= 0 ? '+' : '';
+        const colorClass = data.hours_delta >= 0 ? 'text-green-600' : 'text-red-600';
+        const dateStr = data.correction_date || '-';
+        const typeStr = data.course_type ? `<span class="bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 text-xs">${data.course_type}</span>` : '';
+        const noteStr = data.note ? `<span class="text-gray-500 italic">${data.note}</span>` : '';
+
+        const row = document.createElement('div');
+        row.id = 'corr-row-' + data.id;
+        row.className = 'flex items-center justify-between py-1.5 border-b border-gray-100 text-sm';
+        row.innerHTML = `
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-gray-500">${dateStr}</span>
+                ${typeStr}
+                <span class="font-semibold ${colorClass}">${sign}${parseFloat(data.hours_delta).toFixed(1)}</span>
+                ${noteStr}
+            </div>
+            <button onclick="deleteCorrection(${data.id}, '${tid}')"
+                    class="text-red-400 hover:text-red-600 text-xs px-2">✕</button>
+        `;
+        list.appendChild(row);
+
+        // 보정 합계 업데이트
+        correctionTotals[tid] = (correctionTotals[tid] || 0) + data.hours_delta;
+        updateFinalTotal(tid);
+
+        // 폼 초기화 & 숨김
+        deltaInput.value = '';
+        document.getElementById('cf-date-' + tid).value = '';
+        document.getElementById('cf-type-' + tid).value = '';
+        document.getElementById('cf-note-' + tid).value = '';
+        hideCorrectionForm(tid);
+    })
+    .catch(() => alert('서버 오류가 발생했습니다.'));
+}
+
+function deleteCorrection(cid, tid) {
+    if (!confirm('이 보정 내역을 삭제하시겠습니까?')) return;
+
+    fetch(`{{ url_for("admin.delete_hours_correction", cid=0) }}`.replace('/0', '/' + cid), {
+        method: 'DELETE',
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert('삭제 실패'); return; }
+
+        const row = document.getElementById('corr-row-' + cid);
+        if (row) {
+            // 삭제 전 delta 값 추출
+            const deltaEl = row.querySelector('.font-semibold');
+            if (deltaEl) {
+                const val = parseFloat(deltaEl.textContent.replace('+', ''));
+                if (!isNaN(val)) {
+                    correctionTotals[tid] = (correctionTotals[tid] || 0) - val;
+                }
+            }
+            row.remove();
+        }
+
+        // 남은 보정 행 체크
+        const list = document.getElementById('correction-list-' + tid);
+        const remaining = list.querySelectorAll('[id^="corr-row-"]');
+        if (remaining.length === 0) {
+            document.getElementById('no-corrections-' + tid).classList.remove('hidden');
+        }
+
+        updateFinalTotal(tid);
+    })
+    .catch(() => alert('서버 오류가 발생했습니다.'));
+}
+
+function updateFinalTotal(tid) {
+    const auto = autoTotals[tid] || 0;
+    const corr = correctionTotals[tid] || 0;
+    const total = auto + corr;
+    const el = document.getElementById('final-total-' + tid);
+    if (el) el.textContent = total.toFixed(1);
+
+    // 카드 헤더의 월 시수 합계도 업데이트
+    const card = document.getElementById('card-' + tid);
+    if (card) {
+        const headerTotal = card.querySelector('.text-3xl.font-bold');
+        if (headerTotal) headerTotal.textContent = total.toFixed(1);
+    }
+}
+</script>
+
+<style>
+@media print {
+    .sidebar, nav, button, #correction-form-*, [x-data] button { display: none !important; }
+    .bg-white { box-shadow: none !important; }
+    body { font-size: 12px; }
+}
+</style>
+{% endblock %}

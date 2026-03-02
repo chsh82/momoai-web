@@ -3440,6 +3440,32 @@ def help_page():
     return render_template('teacher/help.html')
 
 
+@teacher_bp.route('/my-hours')
+@login_required
+@requires_role('teacher', 'admin')
+def my_hours():
+    """강사 본인 월별 시수 확인"""
+    from datetime import date
+    from app.utils.hours_calculator import build_teacher_monthly_data
+    from app.models.teacher_hours import TeacherHoursCorrection
+
+    year  = request.args.get('year',  date.today().year,  type=int)
+    month = request.args.get('month', date.today().month, type=int)
+
+    data = build_teacher_monthly_data(current_user.user_id, year, month)
+    corrections = TeacherHoursCorrection.query.filter_by(
+        teacher_id=current_user.user_id, year=year, month=month
+    ).order_by(TeacherHoursCorrection.created_at).all()
+
+    return render_template(
+        'teacher/my_hours.html',
+        data=data,
+        corrections=corrections,
+        year=year,
+        month=month,
+    )
+
+
 @teacher_bp.route('/help/pdf')
 @login_required
 @requires_role('teacher', 'admin')
