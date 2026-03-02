@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """알림 라우트"""
-from flask import render_template, redirect, url_for, jsonify, request
+from flask import render_template, redirect, url_for, jsonify, request, current_app
 from flask_login import login_required, current_user
 
 from app.notifications import notifications_bp
 from app.models import db, Notification
+from app.models.push_subscription import PushSubscription
 
 
 @notifications_bp.route('/')
@@ -94,3 +95,60 @@ def delete(notification_id):
         'success': True,
         'unread_count': Notification.get_unread_count(current_user.user_id)
     })
+
+
+# ── Web Push API ──────────────────────────────────────────────────
+
+@notifications_bp.route('/push/vapid-public-key')
+def vapid_public_key():
+    """브라우저에 VAPID 공개키 제공"""
+    key = current_app.config.get('VAPID_PUBLIC_KEY', '')
+    return jsonify({'public_key': key})
+
+
+@notifications_bp.route('/push/subscribe', methods=['POST'])
+@login_required
+def push_subscribe():
+    """Push 구독 정보 저장"""
+    data = request.json or {}
+    endpoint = data.get('endpoint')
+    p256dh = data.get('p256dh')
+    auth = data.get('auth')
+
+    if not all([endpoint, p256dh, auth]):
+        return jsonify({'success': False, 'message': '구독 정보가 부족합니다.'}), 400
+
+    # 이미 존재하면 업데이트, 없으면 생성
+    sub = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if sub:
+        sub.user_id = current_user.user_id
+        sub.p256dh = p256dh
+        sub.auth = auth
+    else:
+        sub = PushSubscription(
+            user_id=current_user.user_id,
+            endpoint=endpoint,
+            p256dh=p256dh,
+            auth=auth
+        )
+        db.session.add(sub)
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@notifications_bp.route('/push/unsubscribe', methods=['POST'])
+@login_required
+def push_unsubscribe():
+    """Push 구독 해제"""
+    data = request.json or {}
+    endpoint = data.get('endpoint')
+
+    if endpoint:
+        PushSubscription.query.filter_by(
+            endpoint=endpoint,
+            user_id=current_user.user_id
+        ).delete()
+        db.session.commit()
+
+    return jsonify({'success': True})

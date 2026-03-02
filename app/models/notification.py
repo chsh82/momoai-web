@@ -63,6 +63,19 @@ class Notification(db.Model):
         )
         db.session.add(notification)
         db.session.commit()
+
+        # Web Push 알림 발송 (구독자에게만, 실패해도 무시)
+        try:
+            from app.utils.push_utils import send_push_to_user
+            send_push_to_user(
+                user_id=user_id,
+                title=title,
+                body=message,
+                url=link_url or '/notifications'
+            )
+        except Exception:
+            pass
+
         return notification
 
     @staticmethod

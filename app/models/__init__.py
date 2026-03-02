@@ -48,6 +48,7 @@ from app.models.site_content import SiteContent
 from app.models.ace_evaluation import WeeklyEvaluation, AceEvaluation, ACE_AXES, ACE_ALL_ITEMS
 from app.models.notification_reply import NotificationReply
 from app.models.api_usage_log import ApiUsageLog
+from app.models.push_subscription import PushSubscription
 
 __all__ = [
     'db',
@@ -113,4 +114,5 @@ __all__ = [
     'ACE_AXES',
     'ACE_ALL_ITEMS',
     'NotificationReply',
+    'PushSubscription',
 ]
