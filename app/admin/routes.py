@@ -556,6 +556,31 @@ def remove_student(enrollment_id):
     return redirect(url_for('admin.manage_students', course_id=course_id))
 
 
+@admin_bp.route('/api/students/<student_id>/grade', methods=['PATCH'])
+@login_required
+@requires_permission_level(2)
+def update_student_grade(student_id):
+    """학생 학년 변경 API"""
+    student = Student.query.get_or_404(student_id)
+    data = request.json or {}
+    new_grade = data.get('grade', '').strip()
+
+    valid_grades = [
+        '초1', '초2', '초3', '초4', '초5', '초6',
+        '중1', '중2', '중3',
+        '고1', '고2', '고3',
+        '무학년제', '기타'
+    ]
+    if new_grade not in valid_grades:
+        return jsonify({'success': False, 'message': '유효하지 않은 학년입니다.'}), 400
+
+    old_grade = student.grade
+    student.grade = new_grade
+    db.session.commit()
+
+    return jsonify({'success': True, 'old_grade': old_grade, 'new_grade': new_grade})
+
+
 # ==================== 세션 관리 ====================
 
 @admin_bp.route('/courses/<course_id>/sessions')

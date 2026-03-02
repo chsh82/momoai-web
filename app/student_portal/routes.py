@@ -308,6 +308,10 @@ def submit_essay():
         db.session.add(essay)
         db.session.flush()  # essay_id 생성을 위해 flush
 
+        # 수업-세션 자동 배정
+        from app.utils.essay_utils import auto_assign_essay_session
+        auto_assign_essay_session(essay)
+
         # 다중 파일 첨부 처리
         if 'attachments' in request.files:
             import json

@@ -70,6 +70,14 @@
                                         {% elif enrollment.status == 'completed' %}완료
                                         {% else %}중도 포기{% endif %}
                                     </span>
+                                    <!-- 학년 변경 셀렉터 -->
+                                    <select onchange="changeGrade('{{ enrollment.student.student_id }}', this)"
+                                            class="text-xs border border-gray-300 rounded px-1.5 py-0.5 text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer"
+                                            title="학년 변경">
+                                        {% for g in ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3','무학년제','기타'] %}
+                                        <option value="{{ g }}" {% if enrollment.student.grade == g %}selected{% endif %}>{{ g }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                                 <p class="text-sm text-gray-600">
                                     등록일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }} |
@@ -272,6 +280,38 @@ document.addEventListener('DOMContentLoaded', function() {
     if (gradeFilter.value) {
         applyFilters();
     }
+});
+
+// ── 학년 변경 ──────────────────────────────────────────────────
+async function changeGrade(studentId, selectEl) {
+    const newGrade = selectEl.value;
+    const originalGrade = selectEl.dataset.original || selectEl.value;
+
+    try {
+        const res = await fetch(`/admin/api/students/${studentId}/grade`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({grade: newGrade})
+        });
+        const data = await res.json();
+        if (data.success) {
+            selectEl.dataset.original = newGrade;
+            // 시각적 피드백
+            selectEl.classList.add('ring-2', 'ring-green-400');
+            setTimeout(() => selectEl.classList.remove('ring-2', 'ring-green-400'), 1200);
+        } else {
+            alert(data.message || '학년 변경에 실패했습니다.');
+            selectEl.value = originalGrade;
+        }
+    } catch (e) {
+        alert('오류가 발생했습니다.');
+        selectEl.value = originalGrade;
+    }
+}
+
+// 초기 original 값 저장
+document.querySelectorAll('select[onchange^="changeGrade"]').forEach(sel => {
+    sel.dataset.original = sel.value;
 });
 </script>
 

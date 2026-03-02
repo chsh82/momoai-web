@@ -74,6 +74,35 @@
         </svg>
     </button>
 
+    <!-- Push Notification Permission Banner -->
+    {% if current_user.is_authenticated and config.VAPID_PUBLIC_KEY %}
+    <div id="push-banner"
+         style="display: none; z-index: 9990;"
+         class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <span class="text-2xl flex-shrink-0">🔔</span>
+                    <div>
+                        <p class="font-semibold text-sm">실시간 알림 받기</p>
+                        <p class="text-xs text-white text-opacity-80">첨삭 완료, 공지, 문자 등 알림을 스마트폰에서 바로 받아보세요.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button id="push-allow-btn"
+                            class="bg-white text-blue-600 px-4 py-1.5 rounded-lg font-semibold text-sm hover:bg-opacity-90 transition shadow">
+                        허용
+                    </button>
+                    <button id="push-dismiss-btn"
+                            class="text-white text-opacity-70 hover:text-opacity-100 text-sm px-3 py-1.5 transition">
+                        나중에
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- PWA Install Banner -->
     <div id="pwa-install-banner"
          style="display: none; z-index: 9980;"
@@ -1490,16 +1519,93 @@
         console.log('[PWA] App installed successfully');
         deferredPrompt = null;
 
-        // 배너 숨김
         if (installBanner) {
             installBanner.style.display = 'none';
         }
 
-        // 설치 완료 알림
         if (typeof showNotification === 'function') {
             showNotification('success', '앱 설치 완료!', '이제 홈 화면에서 MOMOAI를 사용할 수 있습니다.');
         }
     });
+
+    // ── Web Push 알림 ──────────────────────────────────────────────
+    {% if current_user.is_authenticated and config.VAPID_PUBLIC_KEY %}
+    (function() {
+        const VAPID_PUBLIC_KEY = '{{ config.VAPID_PUBLIC_KEY }}';
+        const pushBanner = document.getElementById('push-banner');
+        const allowBtn = document.getElementById('push-allow-btn');
+        const dismissBtn = document.getElementById('push-dismiss-btn');
+
+        // base64url → Uint8Array 변환
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        }
+
+        async function subscribeAndSave() {
+            try {
+                const sw = await navigator.serviceWorker.ready;
+                const sub = await sw.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+                const json = sub.toJSON();
+                await fetch('/notifications/push/subscribe', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        endpoint: json.endpoint,
+                        p256dh: json.keys.p256dh,
+                        auth: json.keys.auth
+                    })
+                });
+                console.log('[Push] Subscribed');
+                if (pushBanner) pushBanner.style.display = 'none';
+                localStorage.setItem('push-subscribed', 'true');
+            } catch (e) {
+                console.warn('[Push] Subscribe failed:', e);
+                if (pushBanner) pushBanner.style.display = 'none';
+            }
+        }
+
+        async function checkAndShowBanner() {
+            if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+            if (Notification.permission === 'granted') {
+                // 이미 허용 — 구독 확인 후 저장 (갱신)
+                if (!localStorage.getItem('push-subscribed')) subscribeAndSave();
+                return;
+            }
+            if (Notification.permission === 'denied') return;
+            if (localStorage.getItem('push-dismissed')) return;
+
+            // 5초 후 배너 표시
+            setTimeout(() => {
+                if (pushBanner) pushBanner.style.display = 'block';
+            }, 5000);
+        }
+
+        if (allowBtn) {
+            allowBtn.addEventListener('click', async () => {
+                if (pushBanner) pushBanner.style.display = 'none';
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    await subscribeAndSave();
+                }
+            });
+        }
+
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                if (pushBanner) pushBanner.style.display = 'none';
+                localStorage.setItem('push-dismissed', 'true');
+            });
+        }
+
+        navigator.serviceWorker.ready.then(() => checkAndShowBanner());
+    })();
+    {% endif %}
     </script>
 </body>
 </html>

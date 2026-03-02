@@ -17,6 +17,13 @@ class Essay(db.Model):
     original_text = db.Column(db.Text, nullable=False)
     grade = db.Column(db.String(20), nullable=False)
     status = db.Column(db.String(20), nullable=False, default='draft', index=True)
+
+    # 수업-세션 연결 (자동 배정 또는 수동 설정)
+    course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id', ondelete='SET NULL'),
+                         nullable=True, index=True)
+    session_id = db.Column(db.String(36), db.ForeignKey('course_sessions.session_id', ondelete='SET NULL'),
+                          nullable=True, index=True)
+    session_assigned_auto = db.Column(db.Boolean, default=True, nullable=False)
     # status: draft, processing, reviewing, completed, failed
     current_version = db.Column(db.Integer, default=1)
     is_finalized = db.Column(db.Boolean, default=False)
@@ -32,6 +39,8 @@ class Essay(db.Model):
     # Relationships
     student = db.relationship('Student', back_populates='essays')
     user = db.relationship('User', back_populates='essays')
+    course = db.relationship('Course', foreign_keys=[course_id])
+    session = db.relationship('CourseSession', foreign_keys=[session_id])
     versions = db.relationship('EssayVersion', back_populates='essay',
                               cascade='all, delete-orphan',
                               order_by='EssayVersion.version_number')
