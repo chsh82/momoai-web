@@ -1475,3 +1475,20 @@ def update_original_text(essay_id):
     })
 
 
+@essays_bp.route('/<essay_id>/delete', methods=['DELETE'])
+@login_required
+def delete_essay(essay_id):
+    """관리자 전용 — 과제 영구 삭제"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': '관리자만 삭제할 수 있습니다.'}), 403
+
+    essay = Essay.query.get_or_404(essay_id)
+    student_name = essay.student.name if essay.student else '알 수 없음'
+    title = essay.title or f'{student_name}의 논술'
+
+    db.session.delete(essay)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'"{title}" 과제가 영구 삭제되었습니다.'})
+
+
