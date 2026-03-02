@@ -157,11 +157,17 @@
                     <span class="text-xs text-gray-400">👥 {{ attendances|length }}명</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    {% if session.attendance_checked %}
-                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">✅ 출석완료</span>
-                    {% else %}
-                    <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded font-medium">⚠️ 출석체크 필요</span>
-                    {% endif %}
+                    <span class="session-badge-{{ session.session_id }} px-2 py-0.5 text-xs rounded font-medium
+                                 {% if session.attendance_checked %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                        {% if session.attendance_checked %}✅ 출석완료{% else %}⚠️ 출석체크 필요{% endif %}
+                    </span>
+                    <button onclick="completeSession('{{ session.session_id }}', this)"
+                            data-session-id="{{ session.session_id }}"
+                            data-checked="{{ session.attendance_checked|lower }}"
+                            class="complete-btn px-2 py-0.5 text-xs rounded font-medium transition
+                                   {% if session.attendance_checked %}bg-gray-100 text-gray-500 hover:bg-gray-200{% else %}bg-green-600 text-white hover:bg-green-700{% endif %}">
+                        {% if session.attendance_checked %}완료 취소{% else %}✓ 완료{% endif %}
+                    </button>
                     <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
                        class="text-blue-600 hover:text-blue-800 text-xs font-medium whitespace-nowrap">
                         상세보기 →
@@ -234,6 +240,29 @@
                             {% if att.comprehension_score %}{{ att.comprehension_score }}{% else %}-{% endif %}
                         </span>
                     </div>
+
+                    <!-- 글쓰기 점수 배지 -->
+                    {% set essay = essay_map.get((session.session_id, att.student_id)) %}
+                    {% set eresult = result_map.get(essay.essay_id) if essay else none %}
+                    <div class="flex items-center gap-1">
+                        {% if essay %}
+                            {% if eresult and eresult.total_score %}
+                            <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium whitespace-nowrap">
+                                📝 {{ eresult.total_score }}점{% if eresult.final_grade %} ({{ eresult.final_grade }}){% endif %}
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded whitespace-nowrap">
+                                ⏳ 채점 전
+                            </span>
+                            {% endif %}
+                            <button onclick="openAssignModal('{{ att.student_id }}', '{{ att.student.name }}', '{{ session.course_id }}', '{{ session.session_id }}', '{{ essay.essay_id }}')"
+                                    class="text-xs text-gray-400 hover:text-gray-600 underline">변경</button>
+                        {% else %}
+                            <span class="text-xs text-gray-400 whitespace-nowrap">❌ 미제출</span>
+                            <button onclick="openAssignModal('{{ att.student_id }}', '{{ att.student.name }}', '{{ session.course_id }}', '{{ session.session_id }}', '')"
+                                    class="text-xs text-blue-400 hover:text-blue-600 underline">배정</button>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -256,6 +285,39 @@
         <p class="text-gray-400 text-sm mt-2">수업이 등록되고 날짜가 오늘 이전인 세션이 표시됩니다.</p>
     </div>
     {% endif %}
+
+    <!-- 글쓰기 수동 배정 모달 -->
+    <div id="assignModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-800">📝 글쓰기 세션 배정</h3>
+                <button onclick="closeAssignModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">
+                    <span class="font-medium" id="modalStudentName"></span> 학생의 글쓰기를 이 세션에 배정합니다.
+                </p>
+
+                <!-- 글쓰기 목록 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">배정할 글쓰기 선택</label>
+                    <div id="essayListLoading" class="text-sm text-gray-400 text-center py-4">불러오는 중...</div>
+                    <div id="essayList" class="space-y-2 hidden max-h-64 overflow-y-auto"></div>
+                    <div id="essayListEmpty" class="hidden text-sm text-gray-400 text-center py-4">
+                        이 학생의 글쓰기가 없습니다.
+                    </div>
+                </div>
+
+                <!-- 배정 해제 -->
+                <div class="pt-3 border-t border-gray-100">
+                    <button onclick="clearAssignment()"
+                            class="text-sm text-red-500 hover:text-red-700">
+                        🗑 현재 배정 해제
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 범례 -->
     <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -297,7 +359,7 @@ const STATUS_INACTIVE_CLASS = {
 };
 
 async function setStatus(attendanceId, status, event) {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
     try {
         const res = await fetch(`/teacher/api/attendance/${attendanceId}`, {
             method: 'PATCH',
@@ -307,12 +369,14 @@ async function setStatus(attendanceId, status, event) {
         const data = await res.json();
         if (data.success) {
             updateStatusButtons(attendanceId, status);
-            // data-current-status 업데이트
             const row = document.querySelector(`[data-att-id="${attendanceId}"]`);
             if (row) row.dataset.currentStatus = status;
+        } else {
+            alert('저장 실패: ' + (data.message || '알 수 없는 오류'));
         }
     } catch (e) {
-        console.error('출석 상태 저장 실패:', e);
+        alert('출석 상태 저장 중 오류가 발생했습니다.');
+        console.error(e);
     }
 }
 
@@ -327,9 +391,7 @@ function updateStatusButtons(attendanceId, newStatus) {
 }
 
 async function setScore(attendanceId, score, type) {
-    const row = document.querySelector(`[data-att-id="${attendanceId}"]`);
-    const status = row ? row.dataset.currentStatus : 'present';
-    const payload = {status: status};
+    const payload = {};
     if (type === 'participation') payload.participation_score = score;
     else payload.comprehension_score = score;
     try {
@@ -342,9 +404,12 @@ async function setScore(attendanceId, score, type) {
         if (data.success) {
             if (type === 'participation') updateStarUI(attendanceId, score, 'p');
             else updateStarUI(attendanceId, score, 'c');
+        } else {
+            alert('별점 저장 실패: ' + (data.message || '알 수 없는 오류'));
         }
     } catch (e) {
-        console.error('별점 저장 실패:', e);
+        alert('별점 저장 중 오류가 발생했습니다.');
+        console.error(e);
     }
 }
 
@@ -379,6 +444,181 @@ function toggleIncompleteFilter(checked) {
             row.style.display = '';
         }
     });
+}
+
+// ── 글쓰기 수동 배정 모달 ──────────────────────────────────────
+let _assignContext = {};  // {studentId, sessionId}
+
+async function openAssignModal(studentId, studentName, courseId, sessionId, currentEssayId) {
+    _assignContext = {studentId, sessionId, currentEssayId};
+    document.getElementById('modalStudentName').textContent = studentName;
+    document.getElementById('essayListLoading').classList.remove('hidden');
+    document.getElementById('essayList').classList.add('hidden');
+    document.getElementById('essayListEmpty').classList.add('hidden');
+    document.getElementById('assignModal').classList.remove('hidden');
+
+    try {
+        const res = await fetch(`/teacher/api/student-essays?student_id=${studentId}&course_id=${courseId}`);
+        const data = await res.json();
+        renderEssayList(data.essays, currentEssayId);
+    } catch (e) {
+        document.getElementById('essayListLoading').textContent = '불러오기 실패';
+    }
+}
+
+function renderEssayList(essays, currentEssayId) {
+    document.getElementById('essayListLoading').classList.add('hidden');
+    const list = document.getElementById('essayList');
+    const empty = document.getElementById('essayListEmpty');
+
+    if (!essays.length) {
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    list.innerHTML = '';
+    essays.forEach(e => {
+        const isCurrent = e.essay_id === currentEssayId;
+        const scoreText = e.total_score != null
+            ? `${e.total_score}점${e.final_grade ? ' (' + e.final_grade + ')' : ''}`
+            : (e.status === 'completed' ? '점수 없음' : '채점 전');
+        const autoTag = e.session_assigned_auto ? '자동' : '수동';
+        const assignedTag = e.session_id
+            ? `<span class="text-gray-400 text-xs">[${autoTag} 배정됨]</span>`
+            : '';
+
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-lg border cursor-pointer transition ${
+            isCurrent ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+        }`;
+        div.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+                <div>
+                    <p class="text-sm font-medium text-gray-800">${e.title}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">${e.created_at} ${assignedTag}</p>
+                </div>
+                <span class="text-xs font-medium px-2 py-0.5 rounded ${
+                    e.total_score != null ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                } whitespace-nowrap">${scoreText}</span>
+            </div>
+            ${isCurrent ? '<p class="text-xs text-purple-600 mt-1 font-medium">✓ 현재 배정됨</p>' : ''}
+        `;
+        div.onclick = () => assignEssayToSession(e.essay_id);
+        list.appendChild(div);
+    });
+    list.classList.remove('hidden');
+}
+
+async function assignEssayToSession(essayId) {
+    const {sessionId} = _assignContext;
+    try {
+        const res = await fetch(`/teacher/api/essay/${essayId}/assign-session`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({session_id: sessionId})
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeAssignModal();
+            location.reload();
+        }
+    } catch (e) {
+        alert('배정 실패. 다시 시도해주세요.');
+    }
+}
+
+async function clearAssignment() {
+    const {currentEssayId} = _assignContext;
+    if (!currentEssayId) { closeAssignModal(); return; }
+    if (!confirm('현재 글쓰기 배정을 해제하시겠습니까?')) return;
+
+    try {
+        const res = await fetch(`/teacher/api/essay/${currentEssayId}/assign-session`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({session_id: null})
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeAssignModal();
+            location.reload();
+        }
+    } catch (e) {
+        alert('해제 실패. 다시 시도해주세요.');
+    }
+}
+
+function closeAssignModal() {
+    document.getElementById('assignModal').classList.add('hidden');
+    _assignContext = {};
+}
+
+// ── 세션 완료 토글 ──────────────────────────────────────────────
+async function completeSession(sessionId, btn) {
+    const isChecked = btn.dataset.checked === 'true';
+    const newChecked = !isChecked;
+
+    try {
+        const res = await fetch(`/teacher/api/sessions/${sessionId}/complete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({checked: newChecked})
+        });
+        const data = await res.json();
+        if (!data.success) {
+            alert('처리 실패: ' + (data.message || '알 수 없는 오류'));
+            return;
+        }
+
+        // 버튼 텍스트·색상 업데이트
+        btn.dataset.checked = String(newChecked);
+        if (newChecked) {
+            btn.textContent = '완료 취소';
+            btn.className = 'complete-btn px-2 py-0.5 text-xs rounded font-medium transition bg-gray-100 text-gray-500 hover:bg-gray-200';
+        } else {
+            btn.textContent = '✓ 완료';
+            btn.className = 'complete-btn px-2 py-0.5 text-xs rounded font-medium transition bg-green-600 text-white hover:bg-green-700';
+        }
+
+        // 배지 업데이트
+        const badge = btn.parentElement.querySelector('[class*="session-badge"]');
+        if (badge) {
+            if (newChecked) {
+                badge.textContent = '✅ 출석완료';
+                badge.className = badge.className.replace('bg-red-100 text-red-700', 'bg-green-100 text-green-700');
+            } else {
+                badge.textContent = '⚠️ 출석체크 필요';
+                badge.className = badge.className.replace('bg-green-100 text-green-700', 'bg-red-100 text-red-700');
+            }
+        }
+
+        // 세션 행 색상 업데이트
+        const row = btn.closest('.session-row');
+        if (row) {
+            if (newChecked) {
+                row.classList.remove('border-red-400', 'incomplete-session');
+                row.classList.add('border-green-400');
+                row.dataset.checked = 'true';
+                const header = row.querySelector('[class*="bg-red-50"]');
+                if (header) {
+                    header.classList.remove('bg-red-50');
+                    header.classList.add('bg-green-50');
+                }
+            } else {
+                row.classList.remove('border-green-400');
+                row.classList.add('border-red-400', 'incomplete-session');
+                row.dataset.checked = 'false';
+                const header = row.querySelector('[class*="bg-green-50"]');
+                if (header) {
+                    header.classList.remove('bg-green-50');
+                    header.classList.add('bg-red-50');
+                }
+            }
+        }
+    } catch (e) {
+        alert('완료 처리 중 오류가 발생했습니다.');
+        console.error(e);
+    }
 }
 </script>
 {% endblock %}

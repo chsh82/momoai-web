@@ -421,6 +421,9 @@ def attendance_list():
     # 각 세션의 출결 레코드를 딕셔너리로 미리 로드 {session_id: [attendance, ...]}
     from collections import defaultdict
     attendance_map = defaultdict(list)
+    essay_map = {}    # {(session_id, student_id): essay}
+    result_map = {}   # {essay_id: EssayResult}
+
     if past_sessions:
         session_ids = [s.session_id for s in past_sessions]
         all_attendances = Attendance.query.filter(
@@ -429,12 +432,29 @@ def attendance_list():
         for a in all_attendances:
             attendance_map[a.session_id].append(a)
 
+        # 해당 세션에 배정된 글쓰기와 점수 로드
+        from app.models.essay import Essay, EssayResult
+        essays_in_sessions = Essay.query.filter(
+            Essay.session_id.in_(session_ids)
+        ).all()
+        for e in essays_in_sessions:
+            essay_map[(e.session_id, e.student_id)] = e
+
+        essay_ids = [e.essay_id for e in essays_in_sessions]
+        if essay_ids:
+            results = EssayResult.query.filter(
+                EssayResult.essay_id.in_(essay_ids)
+            ).all()
+            result_map = {r.essay_id: r for r in results}
+
     return render_template('teacher/attendance_list.html',
                          courses=courses,
                          teachers=teachers,
                          today=today,
                          past_sessions=past_sessions,
                          attendance_map=attendance_map,
+                         essay_map=essay_map,
+                         result_map=result_map,
                          makeup_sessions=makeup_sessions,
                          course_filter=course_filter,
                          teacher_filter=teacher_filter,
@@ -489,31 +509,129 @@ def update_attendance(attendance_id):
     participation_score = data.get('participation_score')
     comprehension_score = data.get('comprehension_score')
 
-    if new_status not in ['present', 'absent', 'late', 'excused']:
-        return jsonify({'success': False, 'message': '잘못된 상태값입니다.'}), 400
+    # status는 선택적 — 없으면 기존 값 유지
+    if new_status is not None:
+        if new_status not in ['present', 'absent', 'late', 'excused']:
+            return jsonify({'success': False, 'message': '잘못된 상태값입니다.'}), 400
+        attendance.status = new_status
 
-    # 출석 상태 업데이트
-    attendance.status = new_status
     if notes is not None:
         attendance.notes = notes
-    attendance.checked_at = datetime.utcnow()
-    attendance.checked_by = current_user.user_id
     if participation_score is not None:
         attendance.participation_score = int(participation_score)
     if comprehension_score is not None:
         attendance.comprehension_score = int(comprehension_score)
 
+    # 점수나 상태 변경이 있을 때만 checked_at 업데이트
+    if new_status is not None or participation_score is not None or comprehension_score is not None:
+        attendance.checked_at = datetime.utcnow()
+        attendance.checked_by = current_user.user_id
+
     db.session.commit()
 
-    # 수강 신청의 출석 통계 업데이트
+    # 출석 통계 업데이트
     update_enrollment_attendance_stats(attendance.enrollment_id)
     db.session.commit()
 
     return jsonify({
         'success': True,
         'attendance_id': attendance_id,
-        'status': new_status
+        'status': attendance.status
     })
+
+
+@teacher_bp.route('/api/essay/<essay_id>/assign-session', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def assign_essay_session(essay_id):
+    """Essay를 특정 세션에 수동 배정 (또는 배정 해제)"""
+    from app.models.essay import Essay
+    essay = Essay.query.get_or_404(essay_id)
+    data = request.json or {}
+    session_id = data.get('session_id')  # None이면 배정 해제
+
+    if session_id:
+        session = CourseSession.query.get_or_404(session_id)
+        if session.course.teacher_id != current_user.user_id and not current_user.is_admin:
+            return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+        essay.session_id = session_id
+        essay.course_id = session.course_id
+        essay.session_assigned_auto = False
+    else:
+        essay.session_id = None
+        essay.session_assigned_auto = False
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@teacher_bp.route('/api/student-essays')
+@login_required
+@requires_role('teacher', 'admin')
+def get_student_essays_for_assign():
+    """특정 학생의 글쓰기 목록 반환 (세션 배정용)"""
+    from app.models.essay import Essay, EssayResult
+    student_id = request.args.get('student_id')
+    course_id = request.args.get('course_id')
+
+    if not student_id:
+        return jsonify({'essays': []})
+
+    query = Essay.query.filter_by(student_id=student_id)
+    if course_id:
+        # 해당 수업 글 또는 아직 배정 안 된 글
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(Essay.course_id == course_id, Essay.course_id.is_(None))
+        )
+
+    essays = query.order_by(Essay.created_at.desc()).limit(30).all()
+
+    result_ids = [e.essay_id for e in essays]
+    results = {}
+    if result_ids:
+        for r in EssayResult.query.filter(EssayResult.essay_id.in_(result_ids)).all():
+            results[r.essay_id] = r
+
+    data = []
+    for e in essays:
+        r = results.get(e.essay_id)
+        data.append({
+            'essay_id': e.essay_id,
+            'title': e.title or '(제목 없음)',
+            'created_at': e.created_at.strftime('%Y-%m-%d') if e.created_at else '-',
+            'status': e.status,
+            'total_score': float(r.total_score) if r and r.total_score else None,
+            'final_grade': r.final_grade if r else None,
+            'session_id': e.session_id,
+            'session_assigned_auto': e.session_assigned_auto,
+        })
+    return jsonify({'essays': data})
+
+
+@teacher_bp.route('/api/sessions/<session_id>/complete', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def api_complete_session(session_id):
+    """세션 출석 완료 토글 (AJAX용, JSON 반환)"""
+    session = CourseSession.query.get_or_404(session_id)
+
+    if session.course.teacher_id != current_user.user_id and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+
+    data = request.json or {}
+    checked = data.get('checked', True)
+
+    session.attendance_checked = checked
+    if checked:
+        session.attendance_checked_at = datetime.utcnow()
+        session.attendance_checked_by = current_user.user_id
+        session.status = 'completed'
+    else:
+        session.status = 'scheduled'
+
+    db.session.commit()
+    return jsonify({'success': True, 'session_id': session_id, 'checked': checked})
 
 
 @teacher_bp.route('/sessions/<session_id>/complete', methods=['POST'])
