@@ -13,17 +13,17 @@ def get_grade_level(course_grade):
 def calculate_session_hours(course_type, grade_level, attended_count):
     """
     수업 유형 + 학년 구분 + 출석 학생 수 → 시수(float)
+    26-03월 이후 기준:
 
-    공식:
-    - 베이직:           0.5
-    - 프리미엄:         1.0
+    - 베이직:             0.5 (고정)
+    - 프리미엄:           1.0 (고정)
     - 시그니처/특강/모의고사: 0.0 (별도 수당)
-    - 보강수업:         1명=1.0 / 2명 이상=0.5
-    - 정규반(초등):     1명=1.0 / 2명=2.0 / n>=3: 2.0+(n-2)*0.5
-    - 정규반(중등/고등): 1명=1.0 / 2명=2.0 / 3명=3.0 / n>=4: 3.0+(n-3)*0.5
-    - 하크니스(초등):   n<=3=3.0 / n>=4: 3.0+(n-3)*0.5
-    - 하크니스(중등/고등): n<=3=3.5 / n>=4: 3.5+(n-3)*0.5
-    - 체험단:           1명=1.0 / n>=2: 정규반 공식 동일
+    - 보강수업:           1:1=1.0 / 그룹=0.5
+    - 정규반(초등):       1명=1.0 / 2명=2.0 / n>=3: 2.0+(n-2)*0.5
+    - 정규반(중등/고등):  1명=1.0 / 2명=2.5 / n>=3: 2.5+(n-2)*0.5
+    - 하크니스(초등):     1명=1.0 / 2명=2.5 / n>=3: 2.5+(n-2)*0.5
+    - 하크니스(중등/고등): 1명=1.0 / 2명=3.0 / n>=3: 3.0+(n-2)*0.5
+    - 체험단:             1명=1.0 / n>=2: 정규반 공식 동일
     """
     n = max(0, attended_count or 0)
 
@@ -44,16 +44,23 @@ def calculate_session_hours(course_type, grade_level, attended_count):
         if n == 1:
             return 1.0
         if is_elem:
-            return 2.0 + max(0, n - 2) * 0.5
+            # 초등: 2명=2.0, 3명부터 +0.5
+            return 2.0 + (n - 2) * 0.5
         else:
-            return 3.0 + max(0, n - 3) * 0.5
+            # 중등: 2명=2.5, 3명부터 +0.5
+            return 2.5 + (n - 2) * 0.5
 
     if course_type == '정규반':
         return regular(n)
 
     if course_type == '하크니스':
-        base = 3.0 if is_elem else 3.5
-        return base if n <= 3 else base + (n - 3) * 0.5
+        if n == 0:
+            return 0.0
+        if n == 1:
+            return 1.0
+        # 초등: 2명=2.5, 3명부터 +0.5 / 중등: 2명=3.0, 3명부터 +0.5
+        base = 2.5 if is_elem else 3.0
+        return base + (n - 2) * 0.5
 
     if course_type == '체험단':
         return 1.0 if n <= 1 else regular(n)
