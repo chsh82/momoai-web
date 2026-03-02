@@ -540,7 +540,7 @@
                 {% endif %}
 
                 {% if current_user.role in ['teacher', 'admin'] %}
-                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
+                <div class="pt-3 pb-3 border-t border-white border-opacity-20" x-data="{
                     courses: true,
                     students: true,
                     assignments: true,
@@ -1124,11 +1124,13 @@
                         <span>새 첨삭 시작</span>
                     </a>
 
+                    {% if current_user.is_admin %}
                     <a href="{{ url_for('students.new') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent">
                         <span class="text-xl">➕</span>
                         <span>학생 추가</span>
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
