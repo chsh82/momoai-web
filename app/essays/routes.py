@@ -212,19 +212,14 @@ def new():
     """새 첨삭 시작"""
     from app.models import Book, EssayBook
 
+    VALID_GRADES = ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3']
     form = NewEssayForm()
 
     # 학생 목록 로드 (임시 학생 제외)
     students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
         .order_by(Student.name).all()
-
-    if not students:
-        flash('먼저 학생을 등록해주세요.', 'warning')
-        return redirect(url_for('students.new'))
-
-    # 학생 선택 옵션 설정
-    form.student_id.choices = [
-        (s.student_id, f"{s.name} ({s.grade})")
+    students_data = [
+        {'student_id': s.student_id, 'name': s.name, 'grade': s.grade}
         for s in students
     ]
 
@@ -245,11 +240,42 @@ def new():
     ]
 
     if form.validate_on_submit():
-        student = Student.query.get(form.student_id.data)
+        student_mode = request.form.get('student_mode', 'existing')
 
-        if not student or student.teacher_id != current_user.user_id:
-            flash('잘못된 학생 선택입니다.', 'error')
-            return redirect(url_for('essays.new'))
+        if student_mode == 'new':
+            new_name = request.form.get('new_student_name', '').strip()
+            new_grade = request.form.get('new_student_grade', '').strip()
+            if not new_name:
+                flash('학생 이름을 입력해주세요.', 'error')
+                return render_template('essays/new.html', form=form,
+                                       students_data=students_data,
+                                       harkness_student_ids=list(harkness_student_ids))
+            if new_grade not in VALID_GRADES:
+                flash('학년을 선택해주세요.', 'error')
+                return render_template('essays/new.html', form=form,
+                                       students_data=students_data,
+                                       harkness_student_ids=list(harkness_student_ids))
+            student = Student(
+                teacher_id=current_user.user_id,
+                name=new_name,
+                grade=new_grade,
+                is_temp=False
+            )
+            db.session.add(student)
+            db.session.flush()
+        else:
+            student_id_val = request.form.get('student_id', '').strip()
+            if not student_id_val:
+                flash('학생을 선택해주세요.', 'error')
+                return render_template('essays/new.html', form=form,
+                                       students_data=students_data,
+                                       harkness_student_ids=list(harkness_student_ids))
+            student = Student.query.get(student_id_val)
+            if not student or student.teacher_id != current_user.user_id:
+                flash('잘못된 학생 선택입니다.', 'error')
+                return render_template('essays/new.html', form=form,
+                                       students_data=students_data,
+                                       harkness_student_ids=list(harkness_student_ids))
 
         # 첨삭 모델 결정
         from app.models import CourseEnrollment, Course as _Course
@@ -345,6 +371,7 @@ def new():
         return redirect(url_for('essays.processing', essay_id=essay_id_val))
 
     return render_template('essays/new.html', form=form,
+                           students_data=students_data,
                            harkness_student_ids=list(harkness_student_ids))
 
 

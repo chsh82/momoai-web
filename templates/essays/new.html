@@ -26,20 +26,110 @@
 
     <!-- Form -->
     <div class="bg-white rounded-lg shadow-lg p-8">
-        <form method="POST" action="{{ url_for('essays.new') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('essays.new') }}" enctype="multipart/form-data" id="mainForm">
             {{ form.hidden_tag() }}
 
-            <!-- Student Selection -->
+            <!-- ===== 학생 선택 섹션 ===== -->
             <div class="mb-6">
-                {{ form.student_id.label(class="block text-gray-700 font-medium mb-2") }}
-                {{ form.student_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
-                {% if form.student_id.errors %}
-                    <div class="text-red-600 text-sm mt-1">
-                        {% for error in form.student_id.errors %}
-                            {{ error }}
-                        {% endfor %}
+                <label class="block text-gray-700 font-medium mb-3">학생</label>
+
+                <!-- 모드 탭 -->
+                <div class="flex gap-2 mb-4">
+                    <button type="button" id="btn-existing" onclick="switchMode('existing')"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition bg-blue-600 text-white">
+                        기존 학생 선택
+                    </button>
+                    <button type="button" id="btn-new" onclick="switchMode('new')"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition bg-gray-100 text-gray-600 hover:bg-gray-200">
+                        + 새 학생 추가
+                    </button>
+                </div>
+
+                <!-- 기존 학생 선택 패널 -->
+                <div id="panel-existing">
+                    <!-- 검색 + 학년 필터 -->
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="student-search"
+                            placeholder="🔍 이름 검색..."
+                            oninput="filterStudents()"
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="grade-filter" onchange="filterStudents()"
+                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">학년 전체</option>
+                            <option value="초">초등 (초1~초6)</option>
+                            <option value="중">중등 (중1~중3)</option>
+                            <option value="고">고등 (고1~고3)</option>
+                            <optgroup label="초등">
+                                <option value="초1">초1</option>
+                                <option value="초2">초2</option>
+                                <option value="초3">초3</option>
+                                <option value="초4">초4</option>
+                                <option value="초5">초5</option>
+                                <option value="초6">초6</option>
+                            </optgroup>
+                            <optgroup label="중등">
+                                <option value="중1">중1</option>
+                                <option value="중2">중2</option>
+                                <option value="중3">중3</option>
+                            </optgroup>
+                            <optgroup label="고등">
+                                <option value="고1">고1</option>
+                                <option value="고2">고2</option>
+                                <option value="고3">고3</option>
+                            </optgroup>
+                        </select>
                     </div>
-                {% endif %}
+
+                    <!-- 학생 목록 -->
+                    <div id="student-list"
+                        class="border border-gray-300 rounded-lg overflow-y-auto bg-white"
+                        style="max-height: 200px; min-height: 56px;">
+                        <!-- JS로 렌더링 -->
+                    </div>
+
+                    <!-- 선택된 학생 표시 -->
+                    <div id="selected-display" class="hidden mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span>선택됨: <strong id="selected-name"></strong></span>
+                    </div>
+
+                    <!-- 학생이 없을 때 안내 -->
+                    <div id="no-students-notice" class="hidden mt-2 text-sm text-gray-500">
+                        등록된 학생이 없습니다. <button type="button" onclick="switchMode('new')" class="text-blue-600 hover:underline">새 학생을 추가</button>해보세요.
+                    </div>
+                </div>
+
+                <!-- 새 학생 추가 패널 -->
+                <div id="panel-new" class="hidden">
+                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p class="text-sm text-amber-700 mb-3">이름과 학년을 입력하면 학생 등록과 동시에 첨삭이 시작됩니다.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">이름 <span class="text-red-500">*</span></label>
+                                <input type="text" name="new_student_name" id="new_student_name"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="학생 이름 입력">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">학년 <span class="text-red-500">*</span></label>
+                                <select name="new_student_grade" id="new_student_grade"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="">학년 선택</option>
+                                    <option>초1</option><option>초2</option><option>초3</option>
+                                    <option>초4</option><option>초5</option><option>초6</option>
+                                    <option>중1</option><option>중2</option><option>중3</option>
+                                    <option>고1</option><option>고2</option><option>고3</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden inputs -->
+                <input type="hidden" name="student_id" id="student_id_input">
+                <input type="hidden" name="student_mode" id="student_mode_input" value="existing">
             </div>
 
             <!-- Title (Optional) -->
@@ -181,14 +271,99 @@
 </div>
 
 <script>
-// 하크니스 수강 학생 ID 목록
+// ===== 학생 데이터 =====
+const allStudents = {{ students_data | tojson }};
 const harknessStudentIds = new Set({{ harkness_student_ids | tojson }});
+let selectedStudentId = '';
+let currentMode = 'existing';
 
+// ===== 학생 목록 필터링 =====
+function getCurrentFilteredStudents() {
+    const search = (document.getElementById('student-search').value || '').toLowerCase();
+    const grade = document.getElementById('grade-filter').value;
+    return allStudents.filter(s => {
+        const nameMatch = !search || s.name.toLowerCase().includes(search);
+        // 'value가 2글자 이상(초1~고3)이면 exact match, 1글자(초/중/고)이면 startsWith
+        const gradeMatch = !grade || (grade.length === 1
+            ? s.grade.startsWith(grade)
+            : s.grade === grade);
+        return nameMatch && gradeMatch;
+    });
+}
+
+function filterStudents() {
+    renderStudentList(getCurrentFilteredStudents());
+}
+
+function renderStudentList(students) {
+    const container = document.getElementById('student-list');
+    const noNotice = document.getElementById('no-students-notice');
+
+    if (allStudents.length === 0) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        noNotice.classList.remove('hidden');
+        return;
+    }
+    noNotice.classList.add('hidden');
+    container.style.display = '';
+
+    if (students.length === 0) {
+        container.innerHTML = '<div class="px-4 py-3 text-sm text-gray-400 text-center">검색 결과가 없습니다.</div>';
+        return;
+    }
+    container.innerHTML = students.map(s => {
+        const isSelected = s.student_id === selectedStudentId;
+        return `<div class="student-item flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition ${isSelected ? 'bg-blue-100 border-l-4 border-l-blue-500' : ''}"
+                     onclick="selectStudent('${s.student_id}', '${s.name}', '${s.grade}')">
+                    <span class="font-medium text-gray-800">${s.name}</span>
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">${s.grade}</span>
+                </div>`;
+    }).join('');
+}
+
+function selectStudent(id, name, grade) {
+    selectedStudentId = id;
+    document.getElementById('student_id_input').value = id;
+    const display = document.getElementById('selected-display');
+    display.classList.remove('hidden');
+    document.getElementById('selected-name').textContent = `${name} (${grade})`;
+    updateModelSelector(id);
+    renderStudentList(getCurrentFilteredStudents());
+}
+
+// ===== 모드 전환 =====
+function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('student_mode_input').value = mode;
+
+    const btnExisting = document.getElementById('btn-existing');
+    const btnNew = document.getElementById('btn-new');
+    const panelExisting = document.getElementById('panel-existing');
+    const panelNew = document.getElementById('panel-new');
+
+    if (mode === 'existing') {
+        panelExisting.classList.remove('hidden');
+        panelNew.classList.add('hidden');
+        btnExisting.className = 'px-4 py-2 rounded-lg text-sm font-medium transition bg-blue-600 text-white';
+        btnNew.className = 'px-4 py-2 rounded-lg text-sm font-medium transition bg-gray-100 text-gray-600 hover:bg-gray-200';
+        // 선택된 학생의 하크니스 상태 복원
+        updateModelSelector(selectedStudentId);
+    } else {
+        panelNew.classList.remove('hidden');
+        panelExisting.classList.add('hidden');
+        btnNew.className = 'px-4 py-2 rounded-lg text-sm font-medium transition bg-blue-600 text-white';
+        btnExisting.className = 'px-4 py-2 rounded-lg text-sm font-medium transition bg-gray-100 text-gray-600 hover:bg-gray-200';
+        // 새 학생은 하크니스 비활성화
+        updateModelSelector('');
+    }
+}
+
+// ===== 하크니스 모델 활성화 =====
 function updateModelSelector(studentId) {
     const radioHarkness = document.getElementById('radio-harkness');
     const labelHarkness = document.getElementById('label-harkness');
     const badge = document.getElementById('harkness-badge');
-
     const isHarkness = harknessStudentIds.has(studentId);
 
     if (isHarkness) {
@@ -199,7 +374,6 @@ function updateModelSelector(studentId) {
         badge.className = 'text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-1';
     } else {
         radioHarkness.disabled = true;
-        // 하크니스 선택돼 있었으면 스탠다드로 초기화
         if (radioHarkness.checked) {
             document.querySelector('input[name="correction_model"][value="standard"]').checked = true;
             updateModelOptionStyle();
@@ -224,54 +398,37 @@ function updateModelOptionStyle() {
     });
 }
 
-// 학생 선택 변경 시 하크니스 모델 활성화 여부 업데이트
-const studentSelect = document.querySelector('#student_id');
-if (studentSelect) {
-    studentSelect.addEventListener('change', function() {
-        updateModelSelector(this.value);
-    });
-    // 초기 상태 적용
-    updateModelSelector(studentSelect.value);
-}
-
-// 모델 선택 시 스타일 업데이트
 document.querySelectorAll('input[name="correction_model"]').forEach(radio => {
     radio.addEventListener('change', updateModelOptionStyle);
 });
 updateModelOptionStyle();
 
-// Character counter
+// ===== Character counter =====
 const essayTextarea = document.querySelector('#essay_text');
 const charCount = document.querySelector('#charCount');
-
 if (essayTextarea && charCount) {
     essayTextarea.addEventListener('input', function() {
         const count = this.value.length;
         charCount.textContent = count + '자';
-        if (count < 50) {
-            charCount.classList.add('text-red-600');
-            charCount.classList.remove('text-gray-500');
-        } else {
-            charCount.classList.remove('text-red-600');
-            charCount.classList.add('text-gray-500');
-        }
+        charCount.classList.toggle('text-red-600', count < 50);
+        charCount.classList.toggle('text-gray-500', count >= 50);
     });
-
-    // Initial count
-    const initialCount = essayTextarea.value.length;
-    charCount.textContent = initialCount + '자';
+    charCount.textContent = essayTextarea.value.length + '자';
 }
 
-// Prevent double submission
-const form = document.querySelector('form');
-const submitBtn = document.querySelector('#submitBtn');
-
-if (form && submitBtn) {
-    form.addEventListener('submit', function() {
+// ===== Prevent double submission =====
+const mainForm = document.getElementById('mainForm');
+const submitBtn = document.getElementById('submitBtn');
+if (mainForm && submitBtn) {
+    mainForm.addEventListener('submit', function() {
         submitBtn.disabled = true;
         submitBtn.textContent = '첨삭 시작 중...';
         submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
     });
 }
+
+// ===== 초기화 =====
+renderStudentList(allStudents);
+updateModelSelector('');
 </script>
 {% endblock %}

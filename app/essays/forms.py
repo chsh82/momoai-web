@@ -8,11 +8,6 @@ from wtforms.validators import DataRequired, Optional, Length
 
 class NewEssayForm(FlaskForm):
     """새 첨삭 시작 폼"""
-    student_id = SelectField('학생 선택',
-        validators=[DataRequired(message='학생을 선택해주세요.')],
-        coerce=str
-    )
-
     title = StringField('제목 (선택사항)', validators=[
         Optional(),
         Length(max=255, message='제목은 255자 이내여야 합니다.')
