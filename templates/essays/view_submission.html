@@ -365,6 +365,11 @@
     <!-- 액션 버튼 -->
     <div class="bg-white rounded-lg shadow p-6">
 
+        <!-- 강사 가이드 (AI 첨삭 가능 상태일 때만 표시) -->
+        {% if essay.status in ['draft', 'processing', 'failed'] %}
+        {% include 'essays/_teacher_guide.html' %}
+        {% endif %}
+
         <!-- API 제공자 및 모델 선택 (AI 첨삭 가능 상태일 때만 표시) -->
         {% if essay.status in ['draft', 'processing', 'failed'] %}
         <div class="mb-4 pb-4 border-b border-gray-200">

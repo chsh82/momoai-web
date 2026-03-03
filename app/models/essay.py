@@ -28,6 +28,8 @@ class Essay(db.Model):
     correction_model = db.Column(db.String(20), nullable=False, default='standard')
     # AI API 제공자: claude / gemini
     api_provider = db.Column(db.String(20), nullable=False, default='claude')
+    # 강사 사전 가이드 (첨삭 프롬프트에 포함됨)
+    teacher_guide = db.Column(db.Text, nullable=True)
 
     # status: draft, processing, reviewing, completed, failed
     current_version = db.Column(db.Integer, default=1)

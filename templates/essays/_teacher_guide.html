@@ -1,0 +1,203 @@
+{# 강사 가이드 섹션 + 프롬프트 템플릿 저장/불러오기 #}
+<div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+    <div class="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+        <label class="text-sm font-semibold text-gray-700">
+            📋 강사 가이드
+            <span class="text-gray-400 font-normal text-xs ml-1">(선택 · AI 첨삭 프롬프트에 직접 반영)</span>
+        </label>
+        <div class="flex items-center gap-2">
+            <select id="templateSelect" onchange="guideLoadTemplate(this.value)"
+                    class="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[180px]">
+                <option value="">저장된 프롬프트 불러오기...</option>
+            </select>
+            <button type="button" onclick="guideOpenSaveModal()"
+                    class="text-xs bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded transition whitespace-nowrap">
+                💾 저장
+            </button>
+            <button type="button" onclick="guideOpenManageModal()"
+                    class="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-1 rounded transition whitespace-nowrap">
+                관리
+            </button>
+        </div>
+    </div>
+    <div class="p-4">
+        <textarea name="teacher_guide" id="teacherGuide" rows="4"
+                  placeholder="예) 이 학생은 논거의 구체성이 부족합니다. 특히 통계나 사례 제시를 강조해주세요. 문장 호응 관계도 집중적으로 첨삭 부탁드립니다."
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+        <p class="text-xs text-gray-400 mt-1">입력한 내용은 <strong>[강사 가이드]</strong> 섹션으로 AI 첨삭 프롬프트에 포함됩니다.</p>
+    </div>
+</div>
+
+<!-- 저장 모달 -->
+<div id="guideSaveModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+        <h3 class="text-base font-bold text-gray-800 mb-1">프롬프트 저장</h3>
+        <p class="text-xs text-gray-500 mb-4">자주 사용하는 가이드를 저장해두세요.</p>
+        <input type="text" id="guideTitleInput"
+               placeholder="프롬프트 이름 (예: 논거 보완 가이드)"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="flex gap-2">
+            <button onclick="guideConfirmSave()"
+                    class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                저장
+            </button>
+            <button onclick="guideCloseSaveModal()"
+                    class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition">
+                취소
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 관리 모달 -->
+<div id="guideManageModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-800">저장된 프롬프트 관리</h3>
+            <button onclick="guideCloseManageModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+        <div class="p-6 max-h-[60vh] overflow-y-auto" id="guideTemplateList">
+            <p class="text-sm text-gray-400 text-center py-4">저장된 프롬프트가 없습니다.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== 강사 가이드 템플릿 관리 =====
+async function guideLoadTemplates() {
+    try {
+        const res = await fetch('/essays/prompt-templates');
+        if (!res.ok) return;
+        const data = await res.json();
+        const select = document.getElementById('templateSelect');
+        select.innerHTML = '<option value="">저장된 프롬프트 불러오기...</option>';
+        (data.templates || []).forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.title;
+            opt.dataset.content = t.content;
+            select.appendChild(opt);
+        });
+    } catch(e) {}
+}
+
+function guideLoadTemplate(val) {
+    if (!val) return;
+    const opt = document.querySelector(`#templateSelect option[value="${val}"]`);
+    if (opt && opt.dataset.content) {
+        document.getElementById('teacherGuide').value = opt.dataset.content;
+    }
+    document.getElementById('templateSelect').value = '';
+}
+
+function guideOpenSaveModal() {
+    const content = (document.getElementById('teacherGuide').value || '').trim();
+    if (!content) { alert('저장할 가이드 내용을 먼저 입력해주세요.'); return; }
+    document.getElementById('guideTitleInput').value = '';
+    document.getElementById('guideSaveModal').classList.remove('hidden');
+    document.getElementById('guideTitleInput').focus();
+}
+
+function guideCloseSaveModal() {
+    document.getElementById('guideSaveModal').classList.add('hidden');
+}
+
+async function guideConfirmSave() {
+    const title   = (document.getElementById('guideTitleInput').value || '').trim();
+    const content = (document.getElementById('teacherGuide').value || '').trim();
+    if (!title)   { alert('프롬프트 이름을 입력해주세요.'); return; }
+    if (!content) { alert('저장할 내용이 없습니다.'); return; }
+    try {
+        const res = await fetch('/essays/prompt-templates', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, content})
+        });
+        const data = await res.json();
+        if (data.success) {
+            guideCloseSaveModal();
+            guideLoadTemplates();
+        } else {
+            alert(data.message || '저장에 실패했습니다.');
+        }
+    } catch(e) { alert('오류가 발생했습니다.'); }
+}
+
+function guideOpenManageModal() {
+    guideRenderManageList();
+    document.getElementById('guideManageModal').classList.remove('hidden');
+}
+
+function guideCloseManageModal() {
+    document.getElementById('guideManageModal').classList.add('hidden');
+}
+
+async function guideRenderManageList() {
+    const container = document.getElementById('guideTemplateList');
+    try {
+        const res = await fetch('/essays/prompt-templates');
+        const data = await res.json();
+        const templates = data.templates || [];
+        if (templates.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">저장된 프롬프트가 없습니다.</p>';
+            return;
+        }
+        container.innerHTML = templates.map(t => `
+            <div class="border border-gray-200 rounded-lg p-3 mb-3">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="font-medium text-sm text-gray-800">${t.title}</span>
+                    <div class="flex gap-1 flex-shrink-0">
+                        <button onclick="guideLoadAndClose(${t.id})"
+                                class="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded transition">
+                            불러오기
+                        </button>
+                        <button onclick="guideDeleteTemplate(${t.id}, this)"
+                                class="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded transition">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 line-clamp-2">${t.content.substring(0, 120)}${t.content.length > 120 ? '...' : ''}</p>
+                <p class="text-xs text-gray-400 mt-1">${t.created_at}</p>
+            </div>
+        `).join('');
+    } catch(e) {
+        container.innerHTML = '<p class="text-sm text-red-400 text-center py-4">불러오기 실패</p>';
+    }
+}
+
+function guideLoadAndClose(id) {
+    const opt = document.querySelector(`#templateSelect option[value="${id}"]`);
+    if (opt && opt.dataset.content) {
+        document.getElementById('teacherGuide').value = opt.dataset.content;
+    }
+    guideCloseManageModal();
+}
+
+async function guideDeleteTemplate(id, btn) {
+    if (!confirm('이 프롬프트를 삭제하시겠습니까?')) return;
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/essays/prompt-templates/${id}`, {method: 'DELETE'});
+        const data = await res.json();
+        if (data.success) {
+            guideLoadTemplates();
+            guideRenderManageList();
+        } else {
+            alert(data.message || '삭제 실패');
+            btn.disabled = false;
+        }
+    } catch(e) {
+        alert('오류가 발생했습니다.');
+        btn.disabled = false;
+    }
+}
+
+// 저장 모달 Enter키
+document.getElementById('guideTitleInput')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') guideConfirmSave();
+});
+
+// 초기화
+guideLoadTemplates();
+</script>

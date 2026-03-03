@@ -50,6 +50,7 @@ from app.models.notification_reply import NotificationReply
 from app.models.api_usage_log import ApiUsageLog
 from app.models.push_subscription import PushSubscription
 from app.models.teacher_hours import TeacherHoursCorrection
+from app.models.teacher_prompt import TeacherPromptTemplate
 
 __all__ = [
     'db',

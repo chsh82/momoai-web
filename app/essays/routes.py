@@ -307,9 +307,11 @@ def new():
             notes=form.notes.data
         )
 
-        # 첨삭 모델 및 API 제공자 저장
+        # 첨삭 모델, API 제공자, 강사 가이드 저장
         essay.correction_model = correction_model
         essay.api_provider = api_provider
+        teacher_guide = request.form.get('teacher_guide', '').strip() or None
+        essay.teacher_guide = teacher_guide
         db.session.commit()
 
         # 파일 첨부 처리
@@ -462,6 +464,7 @@ def quick():
             essay.attachment_path = attachment_path
 
         essay.api_provider = api_provider
+        essay.teacher_guide = request.form.get('teacher_guide', '').strip() or None
         db.session.commit()
 
         # 백그라운드 스레드로 첨삭 처리
@@ -896,6 +899,9 @@ def start_correction(essay_id):
     # API 제공자 선택 반영 (claude / gemini)
     requested_provider = request.form.get('api_provider', 'claude')
     essay.api_provider = requested_provider if requested_provider in ('claude', 'gemini') else 'claude'
+
+    # 강사 가이드
+    essay.teacher_guide = request.form.get('teacher_guide', '').strip() or None
 
     # 백그라운드 스레드로 처리 시작
     essay.status = 'processing'
@@ -1606,5 +1612,53 @@ def delete_essay(essay_id):
     db.session.commit()
 
     return jsonify({'success': True, 'message': f'"{title}" 과제가 영구 삭제되었습니다.'})
+
+
+# ─── 강사 프롬프트 템플릿 CRUD ────────────────────────────────────────────
+
+@essays_bp.route('/prompt-templates', methods=['GET'])
+@login_required
+def get_prompt_templates():
+    """강사 프롬프트 템플릿 목록"""
+    from app.models.teacher_prompt import TeacherPromptTemplate
+    templates = TeacherPromptTemplate.query.filter_by(
+        teacher_id=current_user.user_id
+    ).order_by(TeacherPromptTemplate.updated_at.desc()).all()
+    return jsonify({'templates': [t.to_dict() for t in templates]})
+
+
+@essays_bp.route('/prompt-templates', methods=['POST'])
+@login_required
+def create_prompt_template():
+    """강사 프롬프트 템플릿 저장"""
+    from app.models.teacher_prompt import TeacherPromptTemplate
+    data = request.get_json() or {}
+    title   = (data.get('title') or '').strip()
+    content = (data.get('content') or '').strip()
+    if not title:
+        return jsonify({'success': False, 'message': '프롬프트 이름을 입력해주세요.'}), 400
+    if not content:
+        return jsonify({'success': False, 'message': '내용을 입력해주세요.'}), 400
+    tpl = TeacherPromptTemplate(
+        teacher_id=current_user.user_id,
+        title=title,
+        content=content,
+    )
+    db.session.add(tpl)
+    db.session.commit()
+    return jsonify({'success': True, 'template': tpl.to_dict()})
+
+
+@essays_bp.route('/prompt-templates/<int:tpl_id>', methods=['DELETE'])
+@login_required
+def delete_prompt_template(tpl_id):
+    """강사 프롬프트 템플릿 삭제"""
+    from app.models.teacher_prompt import TeacherPromptTemplate
+    tpl = TeacherPromptTemplate.query.get_or_404(tpl_id)
+    if tpl.teacher_id != current_user.user_id and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+    db.session.delete(tpl)
+    db.session.commit()
+    return jsonify({'success': True})
 
 

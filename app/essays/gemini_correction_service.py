@@ -145,9 +145,12 @@ v3.3.0 필수 포함 사항:
         db.session.commit()
 
         try:
-            notes = None
+            parts = []
             if essay.notes:
-                notes = '\n'.join([note.content for note in essay.notes])
+                parts.append('\n'.join([note.content for note in essay.notes]))
+            if getattr(essay, 'teacher_guide', None):
+                parts.append(f'[강사 가이드]\n{essay.teacher_guide}')
+            notes = '\n\n'.join(parts) if parts else None
 
             correction_model = getattr(essay, 'correction_model', 'standard') or 'standard'
             system_prompt = self._load_system_prompt(correction_model)
