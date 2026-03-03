@@ -67,7 +67,13 @@
             <a href="{{ url_for('library.book_detail', book_id=book.book_id) }}"
                class="block group">
                 <div class="bg-gray-100 rounded-lg overflow-hidden aspect-[3/4] flex items-center justify-center relative">
+                    {% if book.cover_image_url %}
+                    <img src="{{ book.cover_image_url }}" alt="{{ book.title }}"
+                         class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                         referrerpolicy="no-referrer">
+                    {% else %}
                     <span class="text-6xl">📕</span>
+                    {% endif %}
                     {% if book.is_curriculum or book.is_recommended %}
                     <div class="absolute top-2 left-2 flex flex-col gap-1">
                         {% if book.is_curriculum %}
