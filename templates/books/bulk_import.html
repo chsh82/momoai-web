@@ -9,36 +9,56 @@
   <div class="flex items-center justify-between mb-6">
     <div>
       <h2 class="text-3xl font-bold text-gray-800">📋 ISBN 일괄 등록</h2>
-      <p class="text-gray-500 mt-1 text-sm">엑셀 또는 텍스트 파일로 여러 도서를 한번에 등록합니다.</p>
+      <p class="text-gray-500 mt-1 text-sm">ISBN으로 여러 도서를 한번에 조회하고 등록합니다.</p>
     </div>
     <a href="{{ url_for('books.index') }}" class="text-gray-600 hover:text-gray-800 text-sm font-medium">
       ← 도서 목록
     </a>
   </div>
 
-  <!-- Step 1: 파일 업로드 -->
+  <!-- Step 1: 입력 -->
   <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-    <h3 class="text-lg font-bold text-gray-800 mb-4">1단계: 파일 업로드</h3>
+    <h3 class="text-lg font-bold text-gray-800 mb-4">1단계: ISBN 입력</h3>
 
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-sm text-blue-800">
-      <strong>파일 형식 안내</strong><br>
-      • <strong>엑셀 (.xlsx)</strong>: 셀에 ISBN 숫자(10자리 or 13자리)가 포함된 파일<br>
-      • <strong>텍스트 (.txt) / CSV (.csv)</strong>: 한 줄에 ISBN 하나씩 입력<br>
-      • 하이픈(-)이 포함된 ISBN도 자동으로 인식합니다. 최대 50개까지 처리 가능합니다.
+    <!-- 탭 -->
+    <div class="flex border-b border-gray-200 mb-5">
+      <button id="tabPaste" onclick="switchTab('paste')"
+              class="tab-btn px-5 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600 -mb-px">
+        ✏️ 직접 붙여넣기
+      </button>
+      <button id="tabFile" onclick="switchTab('file')"
+              class="tab-btn px-5 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px">
+        📂 파일 업로드
+      </button>
     </div>
 
-    <!-- 드래그 앤 드롭 영역 -->
-    <div id="dropZone"
-         class="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition duration-200"
-         onclick="document.getElementById('fileInput').click()">
-      <div class="text-4xl mb-3">📂</div>
-      <p class="text-gray-600 font-medium">파일을 드래그하거나 클릭하여 선택</p>
-      <p class="text-gray-400 text-sm mt-1">.xlsx / .txt / .csv 지원</p>
-      <p id="fileNameDisplay" class="text-blue-700 font-semibold mt-3 hidden"></p>
+    <!-- 탭: 직접 붙여넣기 -->
+    <div id="panePaste">
+      <p class="text-sm text-gray-500 mb-2">ISBN을 한 줄에 하나씩 붙여넣으세요. 하이픈(-)이 있어도 자동으로 인식합니다.</p>
+      <textarea id="isbnTextarea" rows="8"
+                placeholder="9788937460111&#10;9788936434120&#10;978-89-6435-069-0&#10;..."
+                oninput="onTextareaInput()"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+      <p id="textareaHint" class="text-xs text-gray-400 mt-1">감지된 ISBN: <span id="detectedCount">0</span>개</p>
     </div>
-    <input type="file" id="fileInput" accept=".xlsx,.xls,.txt,.csv" class="hidden">
 
-    <div class="mt-4 flex gap-3">
+    <!-- 탭: 파일 업로드 -->
+    <div id="paneFile" class="hidden">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
+        <strong>지원 형식</strong>: 엑셀 (.xlsx) — 셀에 ISBN 숫자 포함 &nbsp;|&nbsp; 텍스트 (.txt) / CSV (.csv) — 한 줄에 ISBN 하나씩
+      </div>
+      <div id="dropZone"
+           class="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition duration-200"
+           onclick="document.getElementById('fileInput').click()">
+        <div class="text-4xl mb-3">📂</div>
+        <p class="text-gray-600 font-medium">파일을 드래그하거나 클릭하여 선택</p>
+        <p class="text-gray-400 text-sm mt-1">.xlsx / .txt / .csv 지원</p>
+        <p id="fileNameDisplay" class="text-blue-700 font-semibold mt-3 hidden"></p>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.txt,.csv" class="hidden">
+    </div>
+
+    <div class="mt-5 flex gap-3">
       <button id="lookupBtn" onclick="startLookup()"
               class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               disabled>
@@ -56,10 +76,9 @@
     <div class="text-4xl mb-3 animate-bounce">🔍</div>
     <p class="text-gray-700 font-medium text-lg">ISBN 조회 중...</p>
     <p class="text-gray-500 text-sm mt-1">네이버 도서 API를 통해 정보를 가져오고 있습니다.</p>
-    <div id="progressText" class="text-blue-600 font-semibold mt-3"></div>
   </div>
 
-  <!-- Step 2: 결과 미리보기 -->
+  <!-- Step 2: 결과 -->
   <div id="resultSection" class="hidden">
     <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
       <div class="flex items-center justify-between mb-4">
@@ -67,7 +86,6 @@
         <div class="text-sm text-gray-500" id="resultSummary"></div>
       </div>
 
-      <!-- 일괄 선택 -->
       <div class="flex items-center gap-4 mb-4 pb-4 border-b border-gray-200">
         <label class="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" id="selectAll" class="w-4 h-4" onchange="toggleAll(this)">
@@ -76,7 +94,6 @@
         <span id="selectedCount" class="text-sm text-blue-700 font-semibold">0개 선택됨</span>
       </div>
 
-      <!-- 결과 테이블 -->
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
@@ -91,13 +108,11 @@
               <th class="px-3 py-2 w-20">상태</th>
             </tr>
           </thead>
-          <tbody id="resultTableBody">
-          </tbody>
+          <tbody id="resultTableBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- 등록 버튼 -->
     <div class="flex items-center justify-between bg-white rounded-lg shadow-lg p-4">
       <p class="text-sm text-gray-500">선택한 도서만 등록됩니다. 이미 등록된 도서는 자동으로 건너뜁니다.</p>
       <button id="saveBtn" onclick="saveBulk()"
@@ -108,7 +123,7 @@
     </div>
   </div>
 
-  <!-- 완료 메시지 -->
+  <!-- 완료 -->
   <div id="doneBox" class="hidden bg-green-50 border border-green-300 rounded-lg p-6 text-center">
     <div class="text-4xl mb-2">🎉</div>
     <p id="doneMessage" class="text-green-800 font-bold text-lg"></p>
@@ -125,153 +140,192 @@
 </div>
 
 <script>
+let currentTab   = 'paste';  // 'paste' | 'file'
 let selectedFile = null;
 let lookupResults = [];
 
-// ── 파일 선택 ──────────────────────────────────
+// ── 탭 전환 ──────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('panePaste').classList.toggle('hidden', tab !== 'paste');
+  document.getElementById('paneFile').classList.toggle('hidden',  tab !== 'file');
+  document.getElementById('tabPaste').className = tab === 'paste'
+    ? 'tab-btn px-5 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600 -mb-px'
+    : 'tab-btn px-5 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px';
+  document.getElementById('tabFile').className  = tab === 'file'
+    ? 'tab-btn px-5 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600 -mb-px'
+    : 'tab-btn px-5 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px';
+  updateLookupBtn();
+}
+
+// ── 붙여넣기 탭 ────────────────────────────────
+function extractIsbnsFromText(text) {
+  const tokens = text.match(/[\d\-]{10,17}/g) || [];
+  const found = [];
+  tokens.forEach(t => {
+    const v = t.replace(/[\-\s]/g, '');
+    if (/^\d{10}$|^\d{13}$/.test(v)) found.push(v);
+  });
+  return [...new Set(found)];
+}
+
+function onTextareaInput() {
+  const isbns = extractIsbnsFromText(document.getElementById('isbnTextarea').value);
+  document.getElementById('detectedCount').textContent = isbns.length;
+  updateLookupBtn();
+}
+
+// ── 파일 탭 ────────────────────────────────────
 const fileInput = document.getElementById('fileInput');
 const dropZone  = document.getElementById('dropZone');
 
 fileInput.addEventListener('change', e => setFile(e.target.files[0]));
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-blue-500','bg-blue-50'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-500','bg-blue-50'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('border-blue-500','bg-blue-50');
-  const f = e.dataTransfer.files[0];
-  if (f) setFile(f);
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
 });
 
 function setFile(file) {
   selectedFile = file;
-  const display = document.getElementById('fileNameDisplay');
-  display.textContent = `📄 ${file.name}`;
-  display.classList.remove('hidden');
-  document.getElementById('lookupBtn').disabled = false;
+  const d = document.getElementById('fileNameDisplay');
+  d.textContent = `📄 ${file.name}`;
+  d.classList.remove('hidden');
+  updateLookupBtn();
 }
 
-// ── ISBN 조회 ──────────────────────────────────
-function startLookup() {
-  if (!selectedFile) return;
+// ── 조회 버튼 활성화 ───────────────────────────
+function updateLookupBtn() {
+  let enabled = false;
+  if (currentTab === 'paste') {
+    enabled = extractIsbnsFromText(document.getElementById('isbnTextarea').value).length > 0;
+  } else {
+    enabled = !!selectedFile;
+  }
+  document.getElementById('lookupBtn').disabled = !enabled;
+}
 
+// ── ISBN 조회 시작 ─────────────────────────────
+function startLookup() {
   document.getElementById('loadingBox').classList.remove('hidden');
   document.getElementById('resultSection').classList.add('hidden');
   document.getElementById('doneBox').classList.add('hidden');
   document.getElementById('lookupBtn').disabled = true;
 
-  const fd = new FormData();
-  fd.append('file', selectedFile);
-
-  fetch('{{ url_for("books.bulk_import_lookup") }}', {
-    method: 'POST',
-    body: fd
-  })
-  .then(r => r.json())
-  .then(data => {
+  const onDone = data => {
     document.getElementById('loadingBox').classList.add('hidden');
-    document.getElementById('lookupBtn').disabled = false;
+    updateLookupBtn();
     if (!data.success) { alert(data.message); return; }
     lookupResults = data.results;
     renderResults(data.results);
-  })
-  .catch(err => {
+  };
+  const onErr = err => {
     document.getElementById('loadingBox').classList.add('hidden');
-    document.getElementById('lookupBtn').disabled = false;
-    alert('조회 중 오류가 발생했습니다: ' + err);
-  });
+    updateLookupBtn();
+    alert('조회 중 오류: ' + err);
+  };
+
+  if (currentTab === 'paste') {
+    const text = document.getElementById('isbnTextarea').value;
+    fetch('{{ url_for("books.bulk_import_lookup_text") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text})
+    }).then(r => r.json()).then(onDone).catch(onErr);
+  } else {
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    fetch('{{ url_for("books.bulk_import_lookup") }}', {
+      method: 'POST',
+      body: fd
+    }).then(r => r.json()).then(onDone).catch(onErr);
+  }
 }
 
 // ── 결과 렌더링 ────────────────────────────────
 function renderResults(results) {
   const tbody = document.getElementById('resultTableBody');
   tbody.innerHTML = '';
-
-  let foundCount = 0, notFoundCount = 0, existsCount = 0;
+  let found = 0, notFound = 0, exists = 0;
 
   results.forEach((r, idx) => {
     const tr = document.createElement('tr');
     tr.className = 'border-b border-gray-100 hover:bg-gray-50';
 
     if (!r.found) {
-      notFoundCount++;
+      notFound++;
       tr.innerHTML = `
-        <td class="px-3 py-3 text-center"><span class="text-gray-300">—</span></td>
-        <td class="px-3 py-3 text-center text-2xl text-gray-300">❌</td>
-        <td class="px-3 py-3 text-gray-400 italic" colspan="5">검색 결과 없음</td>
-        <td class="px-3 py-3 text-center"><span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">미발견</span></td>
-      `;
-      // ISBN 표시
-      tr.querySelector('td:nth-child(3)').textContent = r.isbn + ' — 검색 결과 없음';
+        <td class="px-3 py-3 text-center text-gray-300">—</td>
+        <td class="px-3 py-3 text-center text-xl text-gray-300">❌</td>
+        <td class="px-3 py-3 text-gray-400 italic" colspan="5">${escHtml(r.isbn)} — 검색 결과 없음</td>
+        <td class="px-3 py-3 text-center"><span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">미발견</span></td>`;
     } else if (r.data.already_exists) {
-      existsCount++;
+      exists++;
       const d = r.data;
       tr.innerHTML = `
-        <td class="px-3 py-3 text-center"><input type="checkbox" class="row-check w-4 h-4 opacity-40 cursor-not-allowed" data-idx="${idx}" disabled></td>
-        <td class="px-3 py-3">${d.cover_image_url ? `<img src="${d.cover_image_url}" class="w-10 h-14 object-cover rounded opacity-50">` : '<div class="w-10 h-14 bg-gray-100 rounded flex items-center justify-center text-gray-300 text-lg">📖</div>'}</td>
+        <td class="px-3 py-3 text-center"><input type="checkbox" class="row-check w-4 h-4 opacity-40 cursor-not-allowed" disabled></td>
+        <td class="px-3 py-3">${coverImg(d.cover_image_url, true)}</td>
         <td class="px-3 py-3 font-medium text-gray-400">${escHtml(d.title)}</td>
         <td class="px-3 py-3 text-gray-400">${escHtml(d.author||'')}</td>
         <td class="px-3 py-3 text-gray-400">${escHtml(d.publisher||'')}</td>
         <td class="px-3 py-3 text-gray-400">${d.publication_year||''}</td>
         <td class="px-3 py-3 text-gray-400 text-xs">${escHtml(d.isbn)}</td>
-        <td class="px-3 py-3 text-center"><span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">이미 등록</span></td>
-      `;
+        <td class="px-3 py-3 text-center"><span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">이미 등록</span></td>`;
     } else {
-      foundCount++;
+      found++;
       const d = r.data;
       tr.innerHTML = `
         <td class="px-3 py-3 text-center"><input type="checkbox" class="row-check w-4 h-4 cursor-pointer" data-idx="${idx}" onchange="updateSelectedCount()"></td>
-        <td class="px-3 py-3">${d.cover_image_url ? `<img src="${d.cover_image_url}" class="w-10 h-14 object-cover rounded shadow">` : '<div class="w-10 h-14 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-lg">📖</div>'}</td>
+        <td class="px-3 py-3">${coverImg(d.cover_image_url, false)}</td>
         <td class="px-3 py-3 font-semibold text-gray-800">${escHtml(d.title)}</td>
         <td class="px-3 py-3 text-gray-600">${escHtml(d.author||'')}</td>
         <td class="px-3 py-3 text-gray-600">${escHtml(d.publisher||'')}</td>
         <td class="px-3 py-3 text-gray-600">${d.publication_year||''}</td>
         <td class="px-3 py-3 text-gray-500 text-xs">${escHtml(d.isbn)}</td>
-        <td class="px-3 py-3 text-center"><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">조회됨</span></td>
-      `;
+        <td class="px-3 py-3 text-center"><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">조회됨</span></td>`;
     }
-
     tbody.appendChild(tr);
   });
 
-  // 요약
-  const total = results.length;
   document.getElementById('resultSummary').textContent =
-    `총 ${total}개 | 조회됨 ${foundCount}개 | 이미 등록 ${existsCount}개 | 미발견 ${notFoundCount}개`;
-
+    `총 ${results.length}개 | 조회됨 ${found}개 | 이미 등록 ${exists}개 | 미발견 ${notFound}개`;
   document.getElementById('resultSection').classList.remove('hidden');
   updateSelectedCount();
 }
 
-function toggleAll(masterCb) {
-  document.querySelectorAll('.row-check:not(:disabled)').forEach(cb => {
-    cb.checked = masterCb.checked;
-  });
+function coverImg(url, dim) {
+  const cls = dim ? 'w-10 h-14 object-cover rounded opacity-50' : 'w-10 h-14 object-cover rounded shadow';
+  return url
+    ? `<img src="${escHtml(url)}" class="${cls}">`
+    : `<div class="w-10 h-14 bg-gray-100 rounded flex items-center justify-center text-gray-300 text-lg">📖</div>`;
+}
+
+function toggleAll(cb) {
+  document.querySelectorAll('.row-check:not(:disabled)').forEach(c => c.checked = cb.checked);
   updateSelectedCount();
 }
 
 function updateSelectedCount() {
-  const checked = document.querySelectorAll('.row-check:not(:disabled):checked').length;
-  document.getElementById('selectedCount').textContent = `${checked}개 선택됨`;
-  document.getElementById('saveBtn').disabled = checked === 0;
+  const n = document.querySelectorAll('.row-check:not(:disabled):checked').length;
+  document.getElementById('selectedCount').textContent = `${n}개 선택됨`;
+  document.getElementById('saveBtn').disabled = n === 0;
 }
 
 // ── 일괄 저장 ──────────────────────────────────
 function saveBulk() {
-  const checkedBoxes = document.querySelectorAll('.row-check:not(:disabled):checked');
-  if (!checkedBoxes.length) { alert('등록할 도서를 선택하세요.'); return; }
+  const boxes = document.querySelectorAll('.row-check:not(:disabled):checked');
+  if (!boxes.length) { alert('등록할 도서를 선택하세요.'); return; }
 
   const toSave = [];
-  checkedBoxes.forEach(cb => {
-    const idx = parseInt(cb.dataset.idx);
-    const r = lookupResults[idx];
-    if (r && r.found && r.data && !r.data.already_exists) {
-      toSave.push(r.data);
-    }
+  boxes.forEach(cb => {
+    const r = lookupResults[parseInt(cb.dataset.idx)];
+    if (r?.found && r.data && !r.data.already_exists) toSave.push(r.data);
   });
 
-  document.getElementById('saveBtn').disabled = true;
-  document.getElementById('saveBtn').textContent = '등록 중...';
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = '등록 중...';
 
   fetch('{{ url_for("books.bulk_save") }}', {
     method: 'POST',
@@ -280,23 +334,23 @@ function saveBulk() {
   })
   .then(r => r.json())
   .then(data => {
-    if (!data.success) { alert(data.message); document.getElementById('saveBtn').disabled = false; document.getElementById('saveBtn').textContent = '✅ 선택 도서 등록'; return; }
+    if (!data.success) { alert(data.message); btn.disabled = false; btn.textContent = '✅ 선택 도서 등록'; return; }
     document.getElementById('resultSection').classList.add('hidden');
     document.getElementById('doneMessage').textContent = data.message;
     document.getElementById('doneBox').classList.remove('hidden');
   })
   .catch(err => {
     alert('저장 중 오류: ' + err);
-    document.getElementById('saveBtn').disabled = false;
-    document.getElementById('saveBtn').textContent = '✅ 선택 도서 등록';
+    btn.disabled = false; btn.textContent = '✅ 선택 도서 등록';
   });
 }
 
 // ── 초기화 ─────────────────────────────────────
 function resetPage() {
-  selectedFile = null;
-  lookupResults = [];
+  selectedFile = null; lookupResults = [];
   fileInput.value = '';
+  document.getElementById('isbnTextarea').value = '';
+  document.getElementById('detectedCount').textContent = '0';
   document.getElementById('fileNameDisplay').classList.add('hidden');
   document.getElementById('lookupBtn').disabled = true;
   document.getElementById('resultSection').classList.add('hidden');
@@ -304,11 +358,8 @@ function resetPage() {
   document.getElementById('loadingBox').classList.add('hidden');
 }
 
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 {% endblock %}

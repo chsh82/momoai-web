@@ -189,6 +189,37 @@ def bulk_import():
     return render_template('books/bulk_import.html')
 
 
+def _run_bulk_lookup(isbns):
+    """ISBN 리스트 → 병렬 조회 결과 반환 (공용 헬퍼)"""
+    isbns = list(dict.fromkeys(isbns))  # 중복 제거 (순서 유지)
+
+    if not isbns:
+        return None, 'ISBN을 찾을 수 없습니다. (10자리 또는 13자리 숫자)'
+    if len(isbns) > 50:
+        return None, f'한번에 최대 50개까지 처리 가능합니다. (감지된 ISBN: {len(isbns)}개)'
+
+    existing_isbns = {b.isbn for b in Book.query.filter(Book.isbn.in_(isbns)).all()}
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _lookup(isbn):
+        info = ISBNService.lookup_isbn(isbn)
+        if info:
+            info['already_exists'] = isbn in existing_isbns
+            return {'isbn': isbn, 'found': True, 'data': info}
+        return {'isbn': isbn, 'found': False, 'data': None}
+
+    results = []
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(_lookup, isbn): isbn for isbn in isbns}
+        for future in as_completed(futures):
+            results.append(future.result())
+
+    order_map = {isbn: i for i, isbn in enumerate(isbns)}
+    results.sort(key=lambda x: order_map.get(x['isbn'], 999))
+    return results, None
+
+
 @books_bp.route('/bulk-import/lookup', methods=['POST'])
 @login_required
 def bulk_import_lookup():
@@ -223,39 +254,33 @@ def bulk_import_lookup():
     except Exception as e:
         return jsonify({'success': False, 'message': f'파일 파싱 오류: {e}'}), 400
 
-    # 중복 제거 (순서 유지)
-    isbns = list(dict.fromkeys(isbns))
+    results, err = _run_bulk_lookup(isbns)
+    if err:
+        return jsonify({'success': False, 'message': err}), 400
+    return jsonify({'success': True, 'results': results, 'total': len(results)})
 
-    if not isbns:
-        return jsonify({'success': False, 'message': 'ISBN을 찾을 수 없습니다. (10자리 또는 13자리 숫자)'}), 400
 
-    if len(isbns) > 50:
-        return jsonify({'success': False, 'message': f'한번에 최대 50개까지 처리 가능합니다. (감지된 ISBN: {len(isbns)}개)'}), 400
+@books_bp.route('/bulk-import/lookup-text', methods=['POST'])
+@login_required
+def bulk_import_lookup_text():
+    """직접 입력한 텍스트에서 ISBN 추출 후 병렬 조회 (AJAX)"""
+    data = request.get_json(silent=True) or {}
+    text = data.get('text', '')
+    if not text.strip():
+        return jsonify({'success': False, 'message': 'ISBN을 입력하세요.'}), 400
 
-    # 이미 등록된 ISBN
-    existing_isbns = {b.isbn for b in Book.query.filter(Book.isbn.in_(isbns)).all()}
+    # 텍스트에서 ISBN 후보 추출 (하이픈 포함 형태 포함)
+    raw_tokens = re.findall(r'[\d\-]{10,17}', text)
+    isbns = []
+    for token in raw_tokens:
+        val = re.sub(r'[\-\s]', '', token)
+        if re.fullmatch(r'\d{10}|\d{13}', val):
+            isbns.append(val)
 
-    # 병렬 조회
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    def _lookup(isbn):
-        info = ISBNService.lookup_isbn(isbn)
-        if info:
-            info['already_exists'] = isbn in existing_isbns
-            return {'isbn': isbn, 'found': True, 'data': info}
-        return {'isbn': isbn, 'found': False, 'data': None}
-
-    results = []
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {executor.submit(_lookup, isbn): isbn for isbn in isbns}
-        for future in as_completed(futures):
-            results.append(future.result())
-
-    # 원래 순서 복원
-    order_map = {isbn: i for i, isbn in enumerate(isbns)}
-    results.sort(key=lambda x: order_map.get(x['isbn'], 999))
-
-    return jsonify({'success': True, 'results': results, 'total': len(isbns)})
+    results, err = _run_bulk_lookup(isbns)
+    if err:
+        return jsonify({'success': False, 'message': err}), 400
+    return jsonify({'success': True, 'results': results, 'total': len(results)})
 
 
 @books_bp.route('/bulk-save', methods=['POST'])
