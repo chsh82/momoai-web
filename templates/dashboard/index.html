@@ -292,7 +292,7 @@
                 <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-blue-400 transition duration-200">
                     <div class="flex-shrink-0 w-12 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded flex items-center justify-center">
                         {% if book.cover_image_url %}
-                        <img src="{{ book.cover_image_url }}" alt="{{ book.title }}" class="h-full w-full object-cover rounded">
+                        <img src="{{ book.cover_image_url }}" alt="{{ book.title }}" class="h-full w-full object-cover rounded" referrerpolicy="no-referrer">
                         {% else %}
                         📖
                         {% endif %}

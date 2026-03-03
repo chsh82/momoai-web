@@ -94,7 +94,7 @@
             <!-- 표지 이미지 -->
             <div class="h-48 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
                 {% if book.cover_image_url %}
-                <img src="{{ book.cover_image_url }}" alt="{{ book.title }}" class="h-full w-full object-cover">
+                <img src="{{ book.cover_image_url }}" alt="{{ book.title }}" class="h-full w-full object-cover" referrerpolicy="no-referrer">
                 {% else %}
                 <div class="text-6xl">📖</div>
                 {% endif %}
