@@ -393,11 +393,13 @@ def quick():
               '중1', '중2', '중3', '고1', '고2', '고3']
 
     if request.method == 'POST':
-        student_name = request.form.get('student_name', '').strip()
-        grade        = request.form.get('grade', '').strip()
-        title        = request.form.get('title', '').strip() or None
-        essay_text   = request.form.get('essay_text', '').strip()
-        notes        = request.form.get('notes', '').strip() or None
+        student_name   = request.form.get('student_name', '').strip()
+        grade          = request.form.get('grade', '').strip()
+        title          = request.form.get('title', '').strip() or None
+        essay_text     = request.form.get('essay_text', '').strip()
+        notes          = request.form.get('notes', '').strip() or None
+        requested_prov = request.form.get('api_provider', 'claude')
+        api_provider   = requested_prov if requested_prov in ('claude', 'gemini') else 'claude'
 
         # 유효성 검사
         if not student_name:
@@ -459,23 +461,30 @@ def quick():
             essay.attachment_filename = attachment_filename
             essay.attachment_path = attachment_path
 
+        essay.api_provider = api_provider
         db.session.commit()
 
         # 백그라운드 스레드로 첨삭 처리
-        essay_id_val = essay.essay_id
-        api_key = Config.ANTHROPIC_API_KEY
+        essay_id_val   = essay.essay_id
+        api_key        = Config.ANTHROPIC_API_KEY
+        chosen_prov    = api_provider
+        teacher_name_q = current_user.name
         app = current_app._get_current_object()
 
         def do_quick_correction():
             with app.app_context():
                 from app.models import db as _db, Essay as _Essay
-                from app.essays.momoai_service import MOMOAIService as _Service
                 essay_obj = _Essay.query.get(essay_id_val)
                 if not essay_obj:
                     return
                 try:
-                    service = _Service(api_key)
-                    service.process_essay(essay_obj, student_name, current_user.name)
+                    if chosen_prov == 'gemini':
+                        from app.essays.gemini_correction_service import GeminiCorrectionService
+                        service = GeminiCorrectionService()
+                    else:
+                        from app.essays.momoai_service import MOMOAIService as _Service
+                        service = _Service(api_key)
+                    service.process_essay(essay_obj, student_name, teacher_name_q)
                 except Exception as e:
                     print(f'[임시 첨삭 오류] {e}')
                     essay_obj.status = 'failed'
