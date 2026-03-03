@@ -311,7 +311,7 @@ class VideoForm(FlaskForm):
                            ('고2', '고등 2학년'),
                            ('고3', '고등 3학년'),
                        ],
-                       validators=[DataRequired(message='학년을 선택하세요.')])
+                       validators=[Optional()])  # 라우트에서 target_type으로 자동 설정
 
     youtube_url = StringField('YouTube URL',
                              validators=[

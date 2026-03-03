@@ -66,13 +66,17 @@ class ISBNService:
                 if p.strip()
             )
 
+            cover = item.get('image', '') or None
+            if cover and cover.startswith('http://'):
+                cover = cover.replace('http://', 'https://')
+
             result = {
                 'title':            _strip_html(item.get('title', '')),
                 'author':           author,
                 'publisher':        _strip_html(item.get('publisher', '')),
                 'publication_year': pub_year,
                 'description':      _strip_html(item.get('description', '')),
-                'cover_image_url':  item.get('image', '') or None,
+                'cover_image_url':  cover,
                 'isbn':             isbn_clean,
             }
             print(f'[Naver Books] 조회 성공: {result["title"]}')
