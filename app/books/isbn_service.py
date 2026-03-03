@@ -12,7 +12,7 @@ def _strip_html(text: str) -> str:
 
 class ISBNService:
 
-    NAVER_API  = 'https://openapi.naver.com/v1/search/book.json'
+    NAVER_API  = 'https://openapi.naver.com/v1/search/book_adv.json'  # ISBN 전용 고급 검색
     GOOGLE_API = 'https://www.googleapis.com/books/v1/volumes'
 
     # ------------------------------------------------------------------ #
@@ -31,7 +31,7 @@ class ISBNService:
         try:
             resp = requests.get(
                 ISBNService.NAVER_API,
-                params={'query': isbn_clean, 'display': 1},
+                params={'d_isbn': isbn_clean, 'display': 1},
                 headers={
                     'X-Naver-Client-Id':     client_id,
                     'X-Naver-Client-Secret': client_secret,
