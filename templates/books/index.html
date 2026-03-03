@@ -7,9 +7,14 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-3xl font-bold text-gray-800">📚 도서 관리</h2>
-        <a href="{{ url_for('books.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-            + 새 도서 추가
-        </a>
+        <div class="flex gap-2">
+            <a href="{{ url_for('books.bulk_import') }}" class="bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-3 rounded-lg transition duration-200">
+                📋 일괄 등록
+            </a>
+            <a href="{{ url_for('books.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                + 새 도서 추가
+            </a>
+        </div>
     </div>
 
     <!-- Flash messages -->

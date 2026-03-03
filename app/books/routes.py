@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """도서 관리 라우트"""
+import re
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app.books import books_bp
@@ -175,3 +176,121 @@ def isbn_lookup():
         'success': True,
         'book': book_info
     })
+
+
+# ─────────────────────────────────────────────
+# 일괄 ISBN 등록
+# ─────────────────────────────────────────────
+
+@books_bp.route('/bulk-import', methods=['GET'])
+@login_required
+def bulk_import():
+    """일괄 ISBN 등록 페이지"""
+    return render_template('books/bulk_import.html')
+
+
+@books_bp.route('/bulk-import/lookup', methods=['POST'])
+@login_required
+def bulk_import_lookup():
+    """파일에서 ISBN 추출 후 병렬 조회 (AJAX)"""
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '파일을 선택하세요.'}), 400
+
+    filename = file.filename.lower()
+    isbns = []
+
+    try:
+        if filename.endswith('.xlsx') or filename.endswith('.xls'):
+            from openpyxl import load_workbook
+            import io
+            wb = load_workbook(io.BytesIO(file.read()), read_only=True, data_only=True)
+            ws = wb.active
+            for row in ws.iter_rows(values_only=True):
+                for cell in row:
+                    if cell is not None:
+                        val = re.sub(r'[\-\s]', '', str(cell).strip())
+                        if re.fullmatch(r'\d{10}|\d{13}', val):
+                            isbns.append(val)
+        elif filename.endswith('.txt') or filename.endswith('.csv'):
+            content = file.read().decode('utf-8-sig', errors='replace')
+            for line in content.splitlines():
+                val = re.sub(r'[\-\s]', '', line.strip())
+                if re.fullmatch(r'\d{10}|\d{13}', val):
+                    isbns.append(val)
+        else:
+            return jsonify({'success': False, 'message': '.xlsx, .txt, .csv 파일만 지원합니다.'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'파일 파싱 오류: {e}'}), 400
+
+    # 중복 제거 (순서 유지)
+    isbns = list(dict.fromkeys(isbns))
+
+    if not isbns:
+        return jsonify({'success': False, 'message': 'ISBN을 찾을 수 없습니다. (10자리 또는 13자리 숫자)'}), 400
+
+    if len(isbns) > 50:
+        return jsonify({'success': False, 'message': f'한번에 최대 50개까지 처리 가능합니다. (감지된 ISBN: {len(isbns)}개)'}), 400
+
+    # 이미 등록된 ISBN
+    existing_isbns = {b.isbn for b in Book.query.filter(Book.isbn.in_(isbns)).all()}
+
+    # 병렬 조회
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _lookup(isbn):
+        info = ISBNService.lookup_isbn(isbn)
+        if info:
+            info['already_exists'] = isbn in existing_isbns
+            return {'isbn': isbn, 'found': True, 'data': info}
+        return {'isbn': isbn, 'found': False, 'data': None}
+
+    results = []
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(_lookup, isbn): isbn for isbn in isbns}
+        for future in as_completed(futures):
+            results.append(future.result())
+
+    # 원래 순서 복원
+    order_map = {isbn: i for i, isbn in enumerate(isbns)}
+    results.sort(key=lambda x: order_map.get(x['isbn'], 999))
+
+    return jsonify({'success': True, 'results': results, 'total': len(isbns)})
+
+
+@books_bp.route('/bulk-save', methods=['POST'])
+@login_required
+def bulk_save():
+    """선택한 도서 일괄 저장 (AJAX)"""
+    books_data = request.get_json(silent=True) or []
+    if not books_data:
+        return jsonify({'success': False, 'message': '저장할 도서를 선택하세요.'}), 400
+
+    saved = skipped = 0
+    for item in books_data:
+        isbn  = (item.get('isbn') or '').strip()
+        title = (item.get('title') or '').strip()
+        if not title:
+            skipped += 1
+            continue
+        if isbn and Book.query.filter_by(isbn=isbn).first():
+            skipped += 1
+            continue
+        book = Book(
+            user_id=current_user.user_id,
+            title=title,
+            author=item.get('author') or None,
+            publisher=item.get('publisher') or None,
+            isbn=isbn or None,
+            publication_year=item.get('publication_year') or None,
+            description=item.get('description') or None,
+            cover_image_url=item.get('cover_image_url') or None,
+        )
+        db.session.add(book)
+        saved += 1
+
+    db.session.commit()
+    msg = f'{saved}권 등록 완료'
+    if skipped:
+        msg += f', {skipped}권 건너뜀 (중복 또는 제목 없음)'
+    return jsonify({'success': True, 'message': msg, 'saved': saved, 'skipped': skipped})
