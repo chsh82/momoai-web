@@ -23,8 +23,8 @@
         <div class="md:col-span-1">
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <div class="bg-gray-100 aspect-[3/4] flex items-center justify-center">
-                    {% if book.cover_image %}
-                    <img src="{{ book.cover_image }}"
+                    {% if book.cover_image_url %}
+                    <img src="{{ book.cover_image_url }}" referrerpolicy="no-referrer"
                          alt="{{ book.title }}"
                          class="w-full h-full object-cover">
                     {% else %}

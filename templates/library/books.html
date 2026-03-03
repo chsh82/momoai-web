@@ -27,8 +27,8 @@
            class="block group">
             <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition duration-300">
                 <div class="bg-gray-100 overflow-hidden aspect-[3/4] flex items-center justify-center relative">
-                    {% if book.cover_image %}
-                    <img src="{{ book.cover_image }}"
+                    {% if book.cover_image_url %}
+                    <img src="{{ book.cover_image_url }}" referrerpolicy="no-referrer"
                          alt="{{ book.title }}"
                          class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                     {% else %}
