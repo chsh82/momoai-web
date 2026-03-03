@@ -214,6 +214,29 @@
             <!-- 첨삭 모델 선택 -->
             <div class="mb-6">
                 <label class="block text-gray-700 font-medium mb-3">첨삭 모델</label>
+
+                <!-- API 제공자 선택 -->
+                <p class="text-sm text-gray-600 mb-2">AI API</p>
+                <div class="grid grid-cols-2 gap-2 mb-4" id="provider-selector">
+                    <label class="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition provider-option" id="label-claude">
+                        <input type="radio" name="api_provider" value="claude" class="accent-blue-600" checked>
+                        <div>
+                            <span class="font-medium text-gray-800 text-sm">🤖 Claude</span>
+                            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">기본값</span>
+                            <p class="text-xs text-gray-500 mt-0.5">Anthropic API</p>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition provider-option" id="label-gemini">
+                        <input type="radio" name="api_provider" value="gemini" class="accent-purple-600">
+                        <div>
+                            <span class="font-medium text-gray-800 text-sm">✨ Gemini</span>
+                            <p class="text-xs text-gray-500 mt-0.5">Google Gemini API</p>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- 스탠다드/하크니스 선택 -->
+                <p class="text-sm text-gray-600 mb-2">첨삭 방식</p>
                 <div class="grid grid-cols-1 gap-3" id="model-selector">
 
                     <!-- 스탠다드 모델 (기본값, 항상 표시) -->
@@ -398,10 +421,27 @@ function updateModelOptionStyle() {
     });
 }
 
+function updateProviderOptionStyle() {
+    document.querySelectorAll('.provider-option').forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.checked) {
+            label.classList.add('border-purple-500', 'bg-purple-50');
+            label.classList.remove('border-gray-200');
+        } else {
+            label.classList.remove('border-purple-500', 'bg-purple-50');
+            label.classList.add('border-gray-200');
+        }
+    });
+}
+
 document.querySelectorAll('input[name="correction_model"]').forEach(radio => {
     radio.addEventListener('change', updateModelOptionStyle);
 });
+document.querySelectorAll('input[name="api_provider"]').forEach(radio => {
+    radio.addEventListener('change', updateProviderOptionStyle);
+});
 updateModelOptionStyle();
+updateProviderOptionStyle();
 
 // ===== Character counter =====
 const essayTextarea = document.querySelector('#essay_text');

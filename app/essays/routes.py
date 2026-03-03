@@ -290,7 +290,11 @@ def new():
         else:
             correction_model = 'standard'
 
-        # MOMOAI 서비스 초기화
+        # API 제공자 결정
+        requested_provider = request.form.get('api_provider', 'claude')
+        api_provider = requested_provider if requested_provider in ('claude', 'gemini') else 'claude'
+
+        # MOMOAI 서비스 초기화 (essay 생성용)
         service = MOMOAIService(Config.ANTHROPIC_API_KEY)
 
         # Essay 생성
@@ -303,8 +307,9 @@ def new():
             notes=form.notes.data
         )
 
-        # 첨삭 모델 저장
+        # 첨삭 모델 및 API 제공자 저장
         essay.correction_model = correction_model
+        essay.api_provider = api_provider
         db.session.commit()
 
         # 파일 첨부 처리
@@ -345,6 +350,7 @@ def new():
         student_name = student.name
         teacher_name = current_user.name
         api_key = Config.ANTHROPIC_API_KEY
+        chosen_provider = api_provider
         app = current_app._get_current_object()
 
         essay.status = 'processing'
@@ -353,12 +359,16 @@ def new():
         def do_correction():
             with app.app_context():
                 from app.models import db as _db, Essay as _Essay
-                from app.essays.momoai_service import MOMOAIService as _Service
                 essay_obj = _Essay.query.get(essay_id_val)
                 if not essay_obj:
                     return
                 try:
-                    svc = _Service(api_key)
+                    if chosen_provider == 'gemini':
+                        from app.essays.gemini_correction_service import GeminiCorrectionService
+                        svc = GeminiCorrectionService()
+                    else:
+                        from app.essays.momoai_service import MOMOAIService as _Service
+                        svc = _Service(api_key)
                     svc.process_essay(essay_obj, student_name, teacher_name)
                 except Exception as e:
                     print(f'[첨삭 오류] {e}')
