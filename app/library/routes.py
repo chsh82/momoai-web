@@ -111,15 +111,41 @@ def video_detail(video_id):
 @login_required
 def books():
     """추천도서 목록"""
+    import json
     page = request.args.get('page', 1, type=int)
+    current_grade = request.args.get('grade', '')
+    current_domain = request.args.get('domain', '')
+    current_subject = request.args.get('subject', '')
     per_page = 12
 
-    books = Book.query.order_by(Book.created_at.desc()).paginate(
+    query = Book.query
+    if current_grade:
+        query = query.filter(Book.grade_tags.like(f'%"{current_grade}"%'))
+    if current_domain:
+        query = query.filter(Book.domain_tags.like(f'%"{current_domain}"%'))
+    if current_subject:
+        query = query.filter(Book.subject_tags.like(f'%"{current_subject}"%'))
+
+    books = query.order_by(Book.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
+    # 전체 주제 태그 목록 (필터 바용)
+    all_subjects = set()
+    for (tags_json,) in db.session.query(Book.subject_tags).filter(Book.subject_tags != None).all():
+        try:
+            for t in json.loads(tags_json or '[]'):
+                if t:
+                    all_subjects.add(t)
+        except Exception:
+            pass
+
     return render_template('library/books.html',
-                         books=books)
+                         books=books,
+                         current_grade=current_grade,
+                         current_domain=current_domain,
+                         current_subject=current_subject,
+                         all_subjects=sorted(all_subjects))
 
 
 @library_bp.route('/books/<book_id>')
@@ -403,8 +429,14 @@ def delete_video(video_id):
 @requires_permission_level(2)
 def create_book():
     """도서 등록"""
+    import json as _json
     if request.method == 'POST':
         try:
+            grade_tags = request.form.getlist('grade_tags')
+            domain_tags = request.form.getlist('domain_tags')
+            subject_raw = request.form.get('subject_tags', '')
+            subject_tags = [t.strip() for t in subject_raw.replace('，', ',').split(',') if t.strip()]
+
             book = Book(
                 book_id=str(uuid.uuid4()),
                 user_id=current_user.user_id,
@@ -418,7 +450,10 @@ def create_book():
                 recommendation_reason=request.form.get('recommendation_reason') or None,
                 cover_image_url=request.form.get('cover_image_url') or None,
                 is_curriculum=bool(request.form.get('is_curriculum')),
-                is_recommended=bool(request.form.get('is_recommended'))
+                is_recommended=bool(request.form.get('is_recommended')),
+                grade_tags=_json.dumps(grade_tags, ensure_ascii=False) if grade_tags else None,
+                domain_tags=_json.dumps(domain_tags, ensure_ascii=False) if domain_tags else None,
+                subject_tags=_json.dumps(subject_tags, ensure_ascii=False) if subject_tags else None,
             )
 
             db.session.add(book)
@@ -438,10 +473,16 @@ def create_book():
 @requires_permission_level(2)
 def edit_book(book_id):
     """도서 수정"""
+    import json as _json
     book = Book.query.get_or_404(book_id)
 
     if request.method == 'POST':
         try:
+            grade_tags = request.form.getlist('grade_tags')
+            domain_tags = request.form.getlist('domain_tags')
+            subject_raw = request.form.get('subject_tags', '')
+            subject_tags = [t.strip() for t in subject_raw.replace('，', ',').split(',') if t.strip()]
+
             book.title = request.form.get('title')
             book.author = request.form.get('author')
             book.publisher = request.form.get('publisher') or None
@@ -453,6 +494,9 @@ def edit_book(book_id):
             book.cover_image_url = request.form.get('cover_image_url') or None
             book.is_curriculum = bool(request.form.get('is_curriculum'))
             book.is_recommended = bool(request.form.get('is_recommended'))
+            book.grade_tags = _json.dumps(grade_tags, ensure_ascii=False) if grade_tags else None
+            book.domain_tags = _json.dumps(domain_tags, ensure_ascii=False) if domain_tags else None
+            book.subject_tags = _json.dumps(subject_tags, ensure_ascii=False) if subject_tags else None
 
             db.session.commit()
 

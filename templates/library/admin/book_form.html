@@ -131,6 +131,78 @@
             <p class="text-xs text-gray-500 mt-1">책 표지 이미지 URL을 입력하세요 (선택사항)</p>
         </div>
 
+        <!-- 학년 태그 -->
+        <div class="mb-6 bg-blue-50 rounded-lg p-5 border border-blue-200">
+            <p class="text-sm font-semibold text-gray-700 mb-3">학년 태그</p>
+            <div class="grid grid-cols-3 gap-y-2 gap-x-4">
+                <div class="col-span-3">
+                    <p class="text-xs text-gray-500 mb-1">초등</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for g in ['초1','초2','초3','초4','초5','초6'] %}
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" name="grade_tags" value="{{ g }}"
+                                   {% if book and g in book.grade_tags_list %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                            <span class="text-sm text-gray-700">{{ g }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-span-3 mt-1">
+                    <p class="text-xs text-gray-500 mb-1">중등</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for g in ['중1','중2','중3'] %}
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" name="grade_tags" value="{{ g }}"
+                                   {% if book and g in book.grade_tags_list %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                            <span class="text-sm text-gray-700">{{ g }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-span-3 mt-1">
+                    <p class="text-xs text-gray-500 mb-1">고등</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for g in ['고1','고2','고3'] %}
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" name="grade_tags" value="{{ g }}"
+                                   {% if book and g in book.grade_tags_list %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                            <span class="text-sm text-gray-700">{{ g }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 도서 영역 태그 -->
+        <div class="mb-6 bg-green-50 rounded-lg p-5 border border-green-200">
+            <p class="text-sm font-semibold text-gray-700 mb-3">도서 영역 태그</p>
+            <div class="flex flex-wrap gap-3">
+                {% for d in ['문학','비문학','철학','역사','과학','사회','예술','언어','경제','기타'] %}
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" name="domain_tags" value="{{ d }}"
+                           {% if book and d in book.domain_tags_list %}checked{% endif %}
+                           class="w-4 h-4 text-green-600 rounded border-gray-300">
+                    <span class="text-sm text-gray-700">{{ d }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 주제 태그 -->
+        <div class="mb-6 bg-purple-50 rounded-lg p-5 border border-purple-200">
+            <p class="text-sm font-semibold text-gray-700 mb-1">주제 태그</p>
+            <p class="text-xs text-gray-500 mb-3">쉼표(,)로 구분하여 입력하세요. 예: 우정, 성장, 가족, 용기</p>
+            <input type="text"
+                   name="subject_tags"
+                   value="{% if book %}{{ book.subject_tags_list | join(', ') }}{% endif %}"
+                   class="w-full px-4 py-2 border border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                   placeholder="우정, 성장, 가족, 용기, 환경 ...">
+        </div>
+
         <!-- 도서 뱃지 -->
         <div class="mb-6 bg-gray-50 rounded-lg p-5 border border-gray-200">
             <p class="text-sm font-semibold text-gray-700 mb-3">도서 뱃지</p>

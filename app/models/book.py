@@ -22,6 +22,9 @@ class Book(db.Model):
     cover_image_url = db.Column(db.String(500), nullable=True)
     is_curriculum = db.Column(db.Boolean, default=False, nullable=False)   # 수업도서 뱃지
     is_recommended = db.Column(db.Boolean, default=False, nullable=False)  # 추천도서 뱃지
+    grade_tags = db.Column(db.Text, nullable=True)    # JSON: ["초1","중2","고1"]
+    domain_tags = db.Column(db.Text, nullable=True)   # JSON: ["문학","과학"]
+    subject_tags = db.Column(db.Text, nullable=True)  # JSON: ["우정","성장"]
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -72,6 +75,30 @@ class Book(db.Model):
     def rating_count(self):
         """평점 참여 학생 수"""
         return len(self.ratings)
+
+    @property
+    def grade_tags_list(self):
+        import json
+        try:
+            return json.loads(self.grade_tags or '[]')
+        except Exception:
+            return []
+
+    @property
+    def domain_tags_list(self):
+        import json
+        try:
+            return json.loads(self.domain_tags or '[]')
+        except Exception:
+            return []
+
+    @property
+    def subject_tags_list(self):
+        import json
+        try:
+            return json.loads(self.subject_tags or '[]')
+        except Exception:
+            return []
 
 
 class BookRating(db.Model):
