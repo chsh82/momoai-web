@@ -631,17 +631,23 @@ def api_regenerate(essay_id):
     teacher_name = current_user.name
     essay_id_val = essay.essay_id
     api_key = Config.ANTHROPIC_API_KEY
+    chosen_provider = getattr(essay, 'api_provider', 'claude') or 'claude'
     app = current_app._get_current_object()
 
     def do_regenerate():
         with app.app_context():
             from app.models import db as _db, Essay as _Essay
-            from app.essays.momoai_service import MOMOAIService as _Service
             essay_obj = _Essay.query.get(essay_id_val)
             if not essay_obj:
                 return
             try:
-                service = _Service(api_key)
+                provider = getattr(essay_obj, 'api_provider', 'claude') or 'claude'
+                if chosen_provider == 'gemini' or provider == 'gemini':
+                    from app.essays.gemini_correction_service import GeminiCorrectionService
+                    service = GeminiCorrectionService()
+                else:
+                    from app.essays.momoai_service import MOMOAIService as _Service
+                    service = _Service(api_key)
                 service.regenerate_essay(essay_obj, student_name, revision_note, teacher_name)
             except Exception as e:
                 print(f'[재생성 오류] {e}')
@@ -868,6 +874,10 @@ def start_correction(essay_id):
     else:
         essay.correction_model = 'standard'
 
+    # API 제공자 선택 반영 (claude / gemini)
+    requested_provider = request.form.get('api_provider', 'claude')
+    essay.api_provider = requested_provider if requested_provider in ('claude', 'gemini') else 'claude'
+
     # 백그라운드 스레드로 처리 시작
     essay.status = 'processing'
     db.session.commit()
@@ -876,17 +886,22 @@ def start_correction(essay_id):
     teacher_name = current_user.name
     essay_id_val = essay.essay_id
     api_key = Config.ANTHROPIC_API_KEY
+    chosen_provider = essay.api_provider
     app = current_app._get_current_object()
 
     def do_correction():
         with app.app_context():
             from app.models import db as _db, Essay as _Essay
-            from app.essays.momoai_service import MOMOAIService as _Service
             essay_obj = _Essay.query.get(essay_id_val)
             if not essay_obj:
                 return
             try:
-                service = _Service(api_key)
+                if chosen_provider == 'gemini':
+                    from app.essays.gemini_correction_service import GeminiCorrectionService
+                    service = GeminiCorrectionService()
+                else:
+                    from app.essays.momoai_service import MOMOAIService as _Service
+                    service = _Service(api_key)
                 service.process_essay(essay_obj, student_name, teacher_name)
             except Exception as e:
                 print(f'[첨삭 오류] {e}')

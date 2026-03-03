@@ -26,6 +26,8 @@ class Essay(db.Model):
     session_assigned_auto = db.Column(db.Boolean, default=True, nullable=False)
     # 첨삭 모델: standard(스탠다드) / harkness(하크니스)
     correction_model = db.Column(db.String(20), nullable=False, default='standard')
+    # AI API 제공자: claude / gemini
+    api_provider = db.Column(db.String(20), nullable=False, default='claude')
 
     # status: draft, processing, reviewing, completed, failed
     current_version = db.Column(db.Integer, default=1)
