@@ -143,7 +143,7 @@
     {% if books.items %}
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
         {% for book in books.items %}
-        <a href="{{ url_for('library.book_detail', book_id=book.book_id) }}"
+        <a href="{{ url_for('library.book_detail', book_id=book.book_id, page=books.page, grade=current_grade, domain=current_domain, subject=current_subject, badge=current_badge) }}"
            class="block group">
             <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition duration-300">
                 <div class="bg-gray-100 overflow-hidden aspect-[3/4] flex items-center justify-center relative">

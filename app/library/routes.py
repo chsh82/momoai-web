@@ -172,9 +172,21 @@ def book_detail(book_id):
             book_id=book_id, user_id=current_user.user_id
         ).first()
 
+    # 목록 복귀용 파라미터
+    back_page = request.args.get('page', 1, type=int)
+    back_grade = request.args.get('grade', '')
+    back_domain = request.args.get('domain', '')
+    back_subject = request.args.get('subject', '')
+    back_badge = request.args.get('badge', '')
+
     return render_template('library/book_detail.html',
                          book=book,
-                         my_rating=my_rating)
+                         my_rating=my_rating,
+                         back_page=back_page,
+                         back_grade=back_grade,
+                         back_domain=back_domain,
+                         back_subject=back_subject,
+                         back_badge=back_badge)
 
 
 @library_bp.route('/books/<book_id>/rate', methods=['POST'])
