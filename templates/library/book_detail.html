@@ -275,7 +275,12 @@
 
     <!-- Action Buttons -->
     <div class="flex justify-center space-x-4">
-        <a href="{{ url_for('library.books', page=back_page, grade=back_grade or None, domain=back_domain or None, subject=back_subject or None, badge=back_badge or None) }}"
+        {% set back_url = '/library/books?page=' ~ back_page %}
+        {% if back_badge %}{% set back_url = back_url ~ '&badge=' ~ back_badge %}{% endif %}
+        {% if back_grade %}{% set back_url = back_url ~ '&grade=' ~ back_grade %}{% endif %}
+        {% if back_domain %}{% set back_url = back_url ~ '&domain=' ~ back_domain %}{% endif %}
+        {% if back_subject %}{% set back_url = back_url ~ '&subject=' ~ back_subject %}{% endif %}
+        <a href="{{ back_url }}"
            class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
             ← 목록으로
         </a>
