@@ -280,6 +280,10 @@
                         </div>
                         <div>
                             <span class="font-medium">📄 버전:</span> v{{ essay.current_version }}
+                            {% if essay.user %}
+                            <span class="text-gray-300 mx-1">|</span>
+                            <span class="font-medium">✍️</span> {{ essay.user.name }}
+                            {% endif %}
                         </div>
                     </div>
 
