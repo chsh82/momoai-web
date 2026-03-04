@@ -90,7 +90,12 @@ def index():
     if grade_filter:
         query = query.join(EssayResult).filter(EssayResult.final_grade == grade_filter)
 
-    # 4. 검색 (제목 또는 원문)
+    # 4. 강사별 필터 (관리자/매니저 전용)
+    teacher_filter = request.args.get('teacher_id', '').strip()
+    if teacher_filter:
+        query = query.filter(Essay.user_id == teacher_filter)
+
+    # 5. 검색 (제목 또는 원문)
     search = request.args.get('search', '').strip()
     if search:
         query = query.filter(
@@ -119,12 +124,15 @@ def index():
     essays = query.all()
 
     # 필터 옵션용 데이터 - 관리자/매니저는 모든 학생, 강사는 본인 학생만
+    from app.models.user import User
     if current_user.role in ('admin', 'manager') or (
             current_user.role_level and current_user.role_level <= 2):
         students = Student.query.filter_by(is_temp=False).order_by(Student.name).all()
+        teachers = User.query.filter_by(role='teacher', is_active=True).order_by(User.name).all()
     else:
         students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
             .order_by(Student.name).all()
+        teachers = []
 
     # 대시보드 통계 (관리자/매니저 전용)
     dashboard_stats = None
@@ -198,7 +206,9 @@ def index():
     return render_template('essays/index.html',
                          essays=essays,
                          students=students,
+                         teachers=teachers,
                          student_filter=student_filter,
+                         teacher_filter=teacher_filter,
                          status_filter=status_filter,
                          grade_filter=grade_filter,
                          search=search,

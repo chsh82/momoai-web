@@ -162,7 +162,7 @@
             </div>
 
             <!-- 두 번째 행: 필터들 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">학생</label>
                     <select name="student_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -174,6 +174,20 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% if teachers %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">강사</label>
+                    <select name="teacher_id" id="teacherSelect"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
+                            {{ teacher.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">상태</label>
                     <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -198,12 +212,26 @@
                 </div>
             </div>
 
+            <!-- 강사 이름 검색 (텍스트) -->
+            {% if teachers %}
+            <div id="teacherSearchBox" class="{% if not teacher_filter %}hidden{% endif %}">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2">
+                    <span class="text-sm text-blue-700 font-medium">선택된 강사:</span>
+                    <span class="text-sm text-blue-900 font-bold" id="selectedTeacherName">
+                        {% if teacher_filter %}
+                            {% for t in teachers %}{% if t.user_id == teacher_filter %}{{ t.name }}{% endif %}{% endfor %}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- 버튼 -->
             <div class="flex gap-2">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
                     🔍 검색
                 </button>
-                {% if search or student_filter or status_filter or grade_filter or sort_by != 'date_desc' %}
+                {% if search or student_filter or teacher_filter or status_filter or grade_filter or sort_by != 'date_desc' %}
                 <a href="{{ url_for('essays.index') }}" class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
                     초기화
                 </a>
@@ -215,8 +243,13 @@
     <!-- Essays Count -->
     <div class="mb-4 text-gray-600">
         총 <strong class="text-gray-800">{{ essays|length }}</strong>건의 첨삭
-        {% if search or student_filter or status_filter or grade_filter %}
+        {% if search or student_filter or teacher_filter or status_filter or grade_filter %}
         <span class="text-sm text-blue-600">(필터 적용됨)</span>
+        {% if teacher_filter %}
+            {% for t in teachers %}{% if t.user_id == teacher_filter %}
+            <span class="text-sm text-gray-500">— 강사: <strong>{{ t.name }}</strong></span>
+            {% endif %}{% endfor %}
+        {% endif %}
         {% endif %}
     </div>
 
@@ -382,4 +415,39 @@
     </div>
     {% endif %}
 </div>
+
+{% if teachers %}
+<script>
+(function() {
+    const select = document.getElementById('teacherSelect');
+    if (!select) return;
+
+    // select 위에 검색 input 삽입
+    const wrapper = select.parentElement;
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = '강사 이름 검색...';
+    searchInput.className = 'w-full px-4 py-2 mb-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm';
+    wrapper.insertBefore(searchInput, select);
+
+    // 옵션 원본 저장
+    const allOptions = Array.from(select.options).map(o => ({ value: o.value, text: o.text }));
+
+    searchInput.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        const current = select.value;
+
+        // 옵션 재구성
+        select.innerHTML = '';
+        allOptions.forEach(opt => {
+            if (!q || opt.value === '' || opt.text.toLowerCase().includes(q)) {
+                const o = new Option(opt.text, opt.value);
+                if (opt.value === current) o.selected = true;
+                select.appendChild(o);
+            }
+        });
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}
