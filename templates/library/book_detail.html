@@ -195,7 +195,7 @@
                     {% endif %}
                     {% if book.grade_tags_list %}
                     <div class="flex items-start">
-                        <label class="font-semibold text-gray-700 w-24 pt-0.5">학년:</label>
+                        <label class="font-semibold text-gray-700 w-24 pt-0.5">레벨:</label>
                         <div class="flex flex-wrap gap-1.5">
                             {% for tag in book.grade_tags_list %}
                             <a href="{{ url_for('library.books', grade=tag) }}"

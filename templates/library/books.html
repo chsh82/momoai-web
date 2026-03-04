@@ -53,29 +53,21 @@
             </div>
         </div>
 
-        <!-- 학년 태그 -->
+        <!-- 레벨 태그 -->
         <div class="mb-4">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">학년</p>
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">레벨</p>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ url_for('library.books', domain=current_domain, subject=current_subject) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
                           {% if not current_grade %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                     전체
                 </a>
-                {% set grade_groups = [
-                    ('초등', ['초1','초2','초3','초4','초5','초6']),
-                    ('중등', ['중1','중2','중3']),
-                    ('고등', ['고1','고2','고3'])
-                ] %}
-                {% for group_name, grades in grade_groups %}
-                <span class="text-xs text-gray-400 self-center">|</span>
-                {% for g in grades %}
-                <a href="{{ url_for('library.books', grade=g, domain=current_domain, subject=current_subject) }}"
+                {% for lv in ['LV1','LV2','LV3','LV4','LV5','LV6','LV7','LV8','LV9','LV10'] %}
+                <a href="{{ url_for('library.books', grade=lv, domain=current_domain, subject=current_subject) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
-                          {% if current_grade == g %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    {{ g }}
+                          {% if current_grade == lv %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    {{ lv }}
                 </a>
-                {% endfor %}
                 {% endfor %}
             </div>
         </div>

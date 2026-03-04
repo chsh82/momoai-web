@@ -131,49 +131,18 @@
             <p class="text-xs text-gray-500 mt-1">책 표지 이미지 URL을 입력하세요 (선택사항)</p>
         </div>
 
-        <!-- 학년 태그 -->
+        <!-- 레벨 태그 -->
         <div class="mb-6 bg-blue-50 rounded-lg p-5 border border-blue-200">
-            <p class="text-sm font-semibold text-gray-700 mb-3">학년 태그</p>
-            <div class="grid grid-cols-3 gap-y-2 gap-x-4">
-                <div class="col-span-3">
-                    <p class="text-xs text-gray-500 mb-1">초등</p>
-                    <div class="flex flex-wrap gap-2">
-                        {% for g in ['초1','초2','초3','초4','초5','초6'] %}
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" name="grade_tags" value="{{ g }}"
-                                   {% if book and g in book.grade_tags_list %}checked{% endif %}
-                                   class="w-4 h-4 text-blue-600 rounded border-gray-300">
-                            <span class="text-sm text-gray-700">{{ g }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="col-span-3 mt-1">
-                    <p class="text-xs text-gray-500 mb-1">중등</p>
-                    <div class="flex flex-wrap gap-2">
-                        {% for g in ['중1','중2','중3'] %}
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" name="grade_tags" value="{{ g }}"
-                                   {% if book and g in book.grade_tags_list %}checked{% endif %}
-                                   class="w-4 h-4 text-blue-600 rounded border-gray-300">
-                            <span class="text-sm text-gray-700">{{ g }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="col-span-3 mt-1">
-                    <p class="text-xs text-gray-500 mb-1">고등</p>
-                    <div class="flex flex-wrap gap-2">
-                        {% for g in ['고1','고2','고3'] %}
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" name="grade_tags" value="{{ g }}"
-                                   {% if book and g in book.grade_tags_list %}checked{% endif %}
-                                   class="w-4 h-4 text-blue-600 rounded border-gray-300">
-                            <span class="text-sm text-gray-700">{{ g }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
+            <p class="text-sm font-semibold text-gray-700 mb-3">레벨 태그</p>
+            <div class="flex flex-wrap gap-3">
+                {% for lv in ['LV1','LV2','LV3','LV4','LV5','LV6','LV7','LV8','LV9','LV10'] %}
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" name="grade_tags" value="{{ lv }}"
+                           {% if book and lv in book.grade_tags_list %}checked{% endif %}
+                           class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                    <span class="text-sm text-gray-700">{{ lv }}</span>
+                </label>
+                {% endfor %}
             </div>
         </div>
 
