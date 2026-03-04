@@ -274,16 +274,45 @@
     {% endif %}
 
     <!-- Action Buttons -->
-    <div class="flex justify-center space-x-4">
-        {% set back_url = '/library/books?page=' ~ back_page %}
-        {% if back_badge %}{% set back_url = back_url ~ '&badge=' ~ back_badge %}{% endif %}
-        {% if back_grade %}{% set back_url = back_url ~ '&grade=' ~ back_grade %}{% endif %}
-        {% if back_domain %}{% set back_url = back_url ~ '&domain=' ~ back_domain %}{% endif %}
-        {% if back_subject %}{% set back_url = back_url ~ '&subject=' ~ back_subject %}{% endif %}
-        <a href="{{ back_url }}"
-           class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-200">
-            ← 목록으로
+    {% set back_url = '/library/books?page=' ~ back_page %}
+    {% if back_badge %}{% set back_url = back_url ~ '&badge=' ~ back_badge %}{% endif %}
+    {% if back_grade %}{% set back_url = back_url ~ '&grade=' ~ back_grade %}{% endif %}
+    {% if back_domain %}{% set back_url = back_url ~ '&domain=' ~ back_domain %}{% endif %}
+    {% if back_subject %}{% set back_url = back_url ~ '&subject=' ~ back_subject %}{% endif %}
+
+    {% macro nav_params(pg) %}?page={{ pg }}{% if back_badge %}&badge={{ back_badge }}{% endif %}{% if back_grade %}&grade={{ back_grade }}{% endif %}{% if back_domain %}&domain={{ back_domain }}{% endif %}{% if back_subject %}&subject={{ back_subject }}{% endif %}{% endmacro %}
+
+    <div class="flex justify-center items-center gap-3 mt-8">
+        {% if prev_book_id %}
+        <a href="/library/books/{{ prev_book_id }}{{ nav_params(prev_page) }}"
+           class="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition duration-200 shadow-sm">
+            <span class="text-lg">‹</span>
+            <span class="text-sm font-medium">이전 책</span>
         </a>
+        {% else %}
+        <span class="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed">
+            <span class="text-lg">‹</span>
+            <span class="text-sm font-medium">이전 책</span>
+        </span>
+        {% endif %}
+
+        <a href="{{ back_url }}"
+           class="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200 text-sm font-medium shadow-sm">
+            목록으로
+        </a>
+
+        {% if next_book_id %}
+        <a href="/library/books/{{ next_book_id }}{{ nav_params(next_page) }}"
+           class="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition duration-200 shadow-sm">
+            <span class="text-sm font-medium">다음 책</span>
+            <span class="text-lg">›</span>
+        </a>
+        {% else %}
+        <span class="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed">
+            <span class="text-sm font-medium">다음 책</span>
+            <span class="text-lg">›</span>
+        </span>
+        {% endif %}
     </div>
 </div>
 

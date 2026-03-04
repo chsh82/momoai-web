@@ -179,6 +179,36 @@ def book_detail(book_id):
     back_subject = request.args.get('subject', '')
     back_badge = request.args.get('badge', '')
 
+    # 이전/다음 책 계산 (동일 필터 기준)
+    per_page = 12
+    nav_query = Book.query
+    if back_grade:
+        nav_query = nav_query.filter(Book.grade_tags.like(f'%"{back_grade}"%'))
+    if back_domain:
+        nav_query = nav_query.filter(Book.domain_tags.like(f'%"{back_domain}"%'))
+    if back_subject:
+        nav_query = nav_query.filter(Book.subject_tags.like(f'%"{back_subject}"%'))
+    if back_badge == 'curriculum':
+        nav_query = nav_query.filter(Book.is_curriculum == True)
+    elif back_badge == 'recommended':
+        nav_query = nav_query.filter(Book.is_recommended == True)
+    elif back_badge == 'textbook':
+        nav_query = nav_query.filter(Book.is_textbook_work == True)
+    elif back_badge == 'snu':
+        nav_query = nav_query.filter(Book.is_snu_classic == True)
+
+    all_ids = [row[0] for row in nav_query.order_by(Book.created_at.desc()).with_entities(Book.book_id).all()]
+    try:
+        cur_idx = all_ids.index(book_id)
+    except ValueError:
+        cur_idx = -1
+
+    prev_book_id = all_ids[cur_idx - 1] if cur_idx > 0 else None
+    prev_page = ((cur_idx - 1) // per_page) + 1 if prev_book_id else 1
+
+    next_book_id = all_ids[cur_idx + 1] if 0 <= cur_idx < len(all_ids) - 1 else None
+    next_page = ((cur_idx + 1) // per_page) + 1 if next_book_id else 1
+
     return render_template('library/book_detail.html',
                          book=book,
                          my_rating=my_rating,
@@ -186,7 +216,11 @@ def book_detail(book_id):
                          back_grade=back_grade,
                          back_domain=back_domain,
                          back_subject=back_subject,
-                         back_badge=back_badge)
+                         back_badge=back_badge,
+                         prev_book_id=prev_book_id,
+                         prev_page=prev_page,
+                         next_book_id=next_book_id,
+                         next_page=next_page)
 
 
 @library_bp.route('/books/<book_id>/rate', methods=['POST'])
