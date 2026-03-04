@@ -16,6 +16,7 @@ MATERIALS_FOLDER = UPLOAD_FOLDER / 'materials'
 CORRECTION_ATTACHMENTS_FOLDER = UPLOAD_FOLDER / 'correction_attachments'
 MOMOAI_DOC_PATH = Path(os.environ.get('MOMOAI_DOC_PATH') or str(BASE_DIR / 'docs' / 'MOMOAI_v3_3_0_final.md'))
 MOMOAI_STANDARD_DOC_PATH = Path(os.environ.get('MOMOAI_STANDARD_DOC_PATH') or str(BASE_DIR / 'docs' / 'MOMOAI_v3_3_basic.md'))
+MOMOAI_ELEM_DOC_PATH = Path(os.environ.get('MOMOAI_ELEM_DOC_PATH') or str(BASE_DIR / 'docs' / 'MOMOAI_elem.md'))
 
 # API 키 - 환경 변수에서만 로드 (보안)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
@@ -72,6 +73,7 @@ class Config:
     GEMINI_API_KEY = GEMINI_API_KEY
     MOMOAI_DOC_PATH = str(MOMOAI_DOC_PATH)
     MOMOAI_STANDARD_DOC_PATH = str(MOMOAI_STANDARD_DOC_PATH)
+    MOMOAI_ELEM_DOC_PATH = str(MOMOAI_ELEM_DOC_PATH)
 
     # SMS/카카오톡 API 설정
     SMS_API_KEY = SMS_API_KEY

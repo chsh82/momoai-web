@@ -297,6 +297,8 @@ def new():
                 _Course.course_type == '하크니스'
             ).count() > 0
             correction_model = 'harkness' if is_harkness else 'standard'
+        elif requested_model == 'elementary':
+            correction_model = 'elementary'
         else:
             correction_model = 'standard'
 
@@ -410,8 +412,10 @@ def quick():
         title          = request.form.get('title', '').strip() or None
         essay_text     = request.form.get('essay_text', '').strip()
         notes          = request.form.get('notes', '').strip() or None
-        requested_prov = request.form.get('api_provider', 'claude')
-        api_provider   = requested_prov if requested_prov in ('claude', 'gemini') else 'claude'
+        requested_prov  = request.form.get('api_provider', 'claude')
+        api_provider    = requested_prov if requested_prov in ('claude', 'gemini') else 'claude'
+        requested_model = request.form.get('correction_model', 'standard')
+        correction_model = 'elementary' if requested_model == 'elementary' else 'standard'
 
         # 유효성 검사
         if not student_name:
@@ -474,6 +478,7 @@ def quick():
             essay.attachment_path = attachment_path
 
         essay.api_provider = api_provider
+        essay.correction_model = correction_model
         essay.teacher_guide = request.form.get('teacher_guide', '').strip() or None
         db.session.commit()
 
@@ -903,6 +908,8 @@ def start_correction(essay_id):
             _Course.course_type == '하크니스'
         ).count() > 0
         essay.correction_model = 'harkness' if is_harkness else 'standard'
+    elif requested_model == 'elementary':
+        essay.correction_model = 'elementary'
     else:
         essay.correction_model = 'standard'
 
