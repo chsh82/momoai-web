@@ -14,200 +14,262 @@
     </div>
 
     <!-- Form -->
-    <div class="bg-white rounded-lg shadow-lg p-8">
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
         <form method="POST" action="">
             {{ form.hidden_tag() }}
 
-            <div class="space-y-6">
-                <!-- 도서 제목 -->
-                <div>
-                    {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                    {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else ""), id="titleInput") }}
-                    {% if form.title.errors %}
-                        {% for error in form.title.errors %}
-                        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
-                        {% endfor %}
-                    {% endif %}
-                </div>
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 bg-gray-50">
+                <nav class="flex">
+                    <button type="button" onclick="switchTab('basic')" id="tab-basic"
+                            class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-blue-600 text-blue-600 transition">
+                        📋 기본 정보
+                    </button>
+                    <button type="button" onclick="switchTab('tags')" id="tab-tags"
+                            class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition">
+                        🏷️ 태그 &amp; 분류
+                    </button>
+                </nav>
+            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- 저자 -->
+            <!-- Panel 1: Basic Info -->
+            <div id="panel-basic" class="tab-panel p-8">
+                <div class="space-y-6">
+                    <!-- 도서 제목 -->
                     <div>
-                        {{ form.author.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                        {{ form.author(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="authorInput") }}
-                    </div>
-
-                    <!-- 출판사 -->
-                    <div>
-                        {{ form.publisher.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                        {{ form.publisher(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="publisherInput") }}
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- ISBN -->
-                    <div>
-                        {{ form.isbn.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                        <div class="flex gap-2">
-                            {{ form.isbn(class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="978-89-xxxxx-xx-x", id="isbnInput") }}
-                            <button type="button" onclick="lookupISBN()" id="isbnLookupBtn"
-                                    class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
-                                조회
-                            </button>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-1">ISBN을 입력하고 조회 버튼을 누르면 자동으로 정보가 입력됩니다</p>
-                    </div>
-
-                    <!-- 출판년도 -->
-                    <div>
-                        {{ form.publication_year.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                        {{ form.publication_year(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="2024", id="publicationYearInput") }}
-                        {% if form.publication_year.errors %}
-                            {% for error in form.publication_year.errors %}
+                        {{ form.title.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" + (" border-red-500" if form.title.errors else ""), id="titleInput") }}
+                        {% if form.title.errors %}
+                            {% for error in form.title.errors %}
                             <p class="text-red-500 text-sm mt-1">{{ error }}</p>
                             {% endfor %}
                         {% endif %}
                     </div>
-                </div>
 
-                <!-- 카테고리 -->
-                <div>
-                    {{ form.category.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                    {{ form.category(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
-                </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 저자 -->
+                        <div>
+                            {{ form.author.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.author(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="authorInput") }}
+                        </div>
 
-                <!-- 표지 이미지 URL -->
-                <div>
-                    {{ form.cover_image_url.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                    {{ form.cover_image_url(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="https://example.com/cover.jpg", id="coverImageUrlInput") }}
-                    <p class="text-sm text-gray-500 mt-1">표지 이미지 URL을 입력하세요 (선택사항)</p>
-                </div>
+                        <!-- 출판사 -->
+                        <div>
+                            {{ form.publisher.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.publisher(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", id="publisherInput") }}
+                        </div>
+                    </div>
 
-                <!-- 도서 설명 -->
-                <div>
-                    {{ form.description.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                    {{ form.description(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=6, placeholder="도서에 대한 설명을 입력하세요...", id="descriptionInput") }}
-                </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- ISBN -->
+                        <div>
+                            {{ form.isbn.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            <div class="flex gap-2">
+                                {{ form.isbn(class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="978-89-xxxxx-xx-x", id="isbnInput") }}
+                                <button type="button" onclick="lookupISBN()" id="isbnLookupBtn"
+                                        class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
+                                    조회
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-1">ISBN을 입력하고 조회 버튼을 누르면 자동으로 정보가 입력됩니다</p>
+                        </div>
 
-                <!-- 버튼 -->
-                <div class="flex gap-3 pt-4">
-                    <button type="submit"
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
-                        {% if is_edit %}수정 완료{% else %}도서 추가{% endif %}
-                    </button>
-                    <a href="{% if is_edit %}{{ url_for('books.detail', book_id=book.book_id) }}{% else %}{{ url_for('books.index') }}{% endif %}"
-                       class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
-                        취소
-                    </a>
+                        <!-- 출판년도 -->
+                        <div>
+                            {{ form.publication_year.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                            {{ form.publication_year(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="2024", id="publicationYearInput") }}
+                            {% if form.publication_year.errors %}
+                                {% for error in form.publication_year.errors %}
+                                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 카테고리 -->
+                    <div>
+                        {{ form.category.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.category(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
+                    </div>
+
+                    <!-- 표지 이미지 URL -->
+                    <div>
+                        {{ form.cover_image_url.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.cover_image_url(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="https://example.com/cover.jpg", id="coverImageUrlInput") }}
+                        <p class="text-sm text-gray-500 mt-1">표지 이미지 URL을 입력하세요 (선택사항)</p>
+                    </div>
+
+                    <!-- 도서 설명 -->
+                    <div>
+                        {{ form.description.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                        {{ form.description(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", rows=5, placeholder="도서에 대한 설명을 입력하세요...", id="descriptionInput") }}
+                    </div>
+
+                    <!-- 추천 이유 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">추천 이유</label>
+                        <textarea name="recommendation_reason" rows="4"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="학생들에게 이 책을 추천하는 이유를 입력하세요">{% if is_edit and book.recommendation_reason %}{{ book.recommendation_reason }}{% endif %}</textarea>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Panel 2: Tags & Classification -->
+            <div id="panel-tags" class="tab-panel p-8 hidden">
+                <div class="space-y-6">
+                    <!-- 레벨 태그 -->
+                    <div class="bg-blue-50 rounded-lg p-5 border border-blue-200">
+                        <p class="text-sm font-semibold text-gray-700 mb-3">레벨 태그</p>
+                        <div class="flex flex-wrap gap-3">
+                            {% for lv in ['LV1','LV2','LV3','LV4','LV5','LV6','LV7','LV8','LV9','LV10'] %}
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" name="grade_tags" value="{{ lv }}"
+                                       {% if is_edit and lv in book.grade_tags_list %}checked{% endif %}
+                                       class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                                <span class="text-sm text-gray-700">{{ lv }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- 도서 영역 태그 -->
+                    <div class="bg-green-50 rounded-lg p-5 border border-green-200">
+                        <p class="text-sm font-semibold text-gray-700 mb-3">도서 영역 태그</p>
+                        <div class="flex flex-wrap gap-3">
+                            {% for d in ['문학','비문학','철학','역사','과학','사회','예술','언어','경제','기타'] %}
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" name="domain_tags" value="{{ d }}"
+                                       {% if is_edit and d in book.domain_tags_list %}checked{% endif %}
+                                       class="w-4 h-4 text-green-600 rounded border-gray-300">
+                                <span class="text-sm text-gray-700">{{ d }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- 주제 태그 -->
+                    <div class="bg-purple-50 rounded-lg p-5 border border-purple-200">
+                        <p class="text-sm font-semibold text-gray-700 mb-1">주제 태그</p>
+                        <p class="text-xs text-gray-500 mb-3">쉼표(,)로 구분하여 입력하세요. 예: 우정, 성장, 가족, 용기</p>
+                        <input type="text" name="subject_tags"
+                               value="{% if is_edit %}{{ book.subject_tags_list | join(', ') }}{% endif %}"
+                               class="w-full px-4 py-2 border border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                               placeholder="우정, 성장, 가족, 용기, 환경 ...">
+                    </div>
+
+                    <!-- 도서 뱃지 -->
+                    <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                        <p class="text-sm font-semibold text-gray-700 mb-3">도서 기준 뱃지</p>
+                        <div class="flex flex-col gap-4">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="is_curriculum" value="1"
+                                       {% if is_edit and book.is_curriculum %}checked{% endif %}
+                                       class="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 bg-blue-600 text-white text-xs font-bold rounded mr-2">수업도서</span>
+                                    <span class="text-sm text-gray-700">실제 커리큘럼에 반영되어 수업을 진행하는 도서입니다.</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="is_recommended" value="1"
+                                       {% if is_edit and book.is_recommended %}checked{% endif %}
+                                       class="mt-0.5 w-4 h-4 text-green-600 rounded border-gray-300">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 bg-green-600 text-white text-xs font-bold rounded mr-2">모모추천도서</span>
+                                    <span class="text-sm text-gray-700">MOMOAI가 별도로 추천하는 도서입니다.</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="is_textbook_work" value="1"
+                                       {% if is_edit and book.is_textbook_work %}checked{% endif %}
+                                       class="mt-0.5 w-4 h-4 text-orange-600 rounded border-gray-300">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 bg-orange-500 text-white text-xs font-bold rounded mr-2">교과서수록작품</span>
+                                    <span class="text-sm text-gray-700">교과서에 수록된 작품입니다.</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="is_snu_classic" value="1"
+                                       {% if is_edit and book.is_snu_classic %}checked{% endif %}
+                                       class="mt-0.5 w-4 h-4 text-red-600 rounded border-gray-300">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 bg-red-600 text-white text-xs font-bold rounded mr-2">서울대고전100선</span>
+                                    <span class="text-sm text-gray-700">서울대학교 권장 고전 도서 100선에 포함된 작품입니다.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons (always visible) -->
+            <div class="px-8 pb-8 pt-6 border-t border-gray-100 flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    {% if is_edit %}수정 완료{% else %}도서 추가{% endif %}
+                </button>
+                <a href="{% if is_edit %}{{ url_for('books.detail', book_id=book.book_id) }}{% else %}{{ url_for('books.index') }}{% endif %}"
+                   class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
+                    취소
+                </a>
             </div>
         </form>
     </div>
 </div>
 
 <script>
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.add('hidden');
+    });
+    document.getElementById('tab-' + tab).classList.remove('border-transparent', 'text-gray-500');
+    document.getElementById('tab-' + tab).classList.add('border-blue-600', 'text-blue-600');
+    document.getElementById('panel-' + tab).classList.remove('hidden');
+}
+
 // ISBN 조회
 function lookupISBN() {
-    console.log('[ISBN 조회] 함수 시작');
-
     const isbn = document.getElementById('isbnInput').value.trim();
     const btn = document.getElementById('isbnLookupBtn');
 
-    console.log('[ISBN 조회] 입력된 ISBN:', isbn);
-
     if (!isbn) {
         alert('ISBN을 입력하세요.');
-        console.log('[ISBN 조회] ISBN이 입력되지 않음');
         return;
     }
 
-    // 버튼 비활성화
     btn.disabled = true;
     btn.textContent = '조회 중...';
-    console.log('[ISBN 조회] 버튼 비활성화, API 호출 시작');
 
-    // CSRF 토큰 가져오기
-    const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
-    const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
-
-    console.log('[ISBN 조회] CSRF 토큰:', csrfToken ? '존재함' : '없음');
+    const csrfToken = (document.querySelector('input[name="csrf_token"]') || {}).value || '';
 
     fetch('/books/api/isbn-lookup', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         body: JSON.stringify({ isbn: isbn })
     })
-    .then(response => {
-        console.log('[ISBN 조회] 응답 상태:', response.status);
-        return response.json();
-    })
+    .then(r => r.json())
     .then(data => {
-        console.log('[ISBN 조회] 응답 데이터:', data);
-
         if (data.success) {
-            // 도서 정보 자동 입력
-            const book = data.book;
-            let fieldsUpdated = 0;
-
-            if (book.title) {
-                document.getElementById('titleInput').value = book.title;
-                fieldsUpdated++;
-                console.log('[ISBN 조회] 제목 입력:', book.title);
-            }
-            if (book.author) {
-                document.getElementById('authorInput').value = book.author;
-                fieldsUpdated++;
-                console.log('[ISBN 조회] 저자 입력:', book.author);
-            }
-            if (book.publisher) {
-                document.getElementById('publisherInput').value = book.publisher;
-                fieldsUpdated++;
-                console.log('[ISBN 조회] 출판사 입력:', book.publisher);
-            }
-            if (book.publication_year) {
-                document.getElementById('publicationYearInput').value = book.publication_year;
-                fieldsUpdated++;
-                console.log('[ISBN 조회] 출판년도 입력:', book.publication_year);
-            }
-            if (book.cover_image_url) {
-                document.getElementById('coverImageUrlInput').value = book.cover_image_url;
-                fieldsUpdated++;
-                console.log('[ISBN 조회] 표지 이미지 입력:', book.cover_image_url);
-            }
-            if (book.description) {
-                document.getElementById('descriptionInput').value = book.description;
-                fieldsUpdated++;
-                console.log('[ISBN 조회] 설명 입력:', book.description.substring(0, 50) + '...');
-            }
-
-            console.log('[ISBN 조회] 총 ' + fieldsUpdated + '개 필드 업데이트 완료');
-            alert('✅ 도서 정보를 불러왔습니다!\n업데이트된 필드: ' + fieldsUpdated + '개');
+            const b = data.book;
+            let updated = 0;
+            if (b.title)             { document.getElementById('titleInput').value = b.title; updated++; }
+            if (b.author)            { document.getElementById('authorInput').value = b.author; updated++; }
+            if (b.publisher)         { document.getElementById('publisherInput').value = b.publisher; updated++; }
+            if (b.publication_year)  { document.getElementById('publicationYearInput').value = b.publication_year; updated++; }
+            if (b.cover_image_url)   { document.getElementById('coverImageUrlInput').value = b.cover_image_url; updated++; }
+            if (b.description)       { document.getElementById('descriptionInput').value = b.description; updated++; }
+            alert('✅ 도서 정보를 불러왔습니다!\n업데이트된 필드: ' + updated + '개');
         } else {
-            console.log('[ISBN 조회] 실패:', data.message);
             alert('❌ ' + (data.message || 'ISBN으로 도서 정보를 찾을 수 없습니다.'));
         }
     })
-    .catch(error => {
-        console.error('[ISBN 조회] 오류:', error);
-        alert('❌ ISBN 조회 중 오류가 발생했습니다.\n브라우저 콘솔(F12)을 확인하세요.');
-    })
-    .finally(() => {
-        // 버튼 활성화
-        btn.disabled = false;
-        btn.textContent = '조회';
-        console.log('[ISBN 조회] 함수 종료');
-    });
+    .catch(() => alert('❌ ISBN 조회 중 오류가 발생했습니다.'))
+    .finally(() => { btn.disabled = false; btn.textContent = '조회'; });
 }
-
-// 페이지 로드 시 확인
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('[ISBN] 페이지 로드 완료');
-    console.log('[ISBN] ISBN 입력 필드:', document.getElementById('isbnInput') ? '존재' : '없음');
-    console.log('[ISBN] 조회 버튼:', document.getElementById('isbnLookupBtn') ? '존재' : '없음');
-    console.log('[ISBN] CSRF 토큰:', document.querySelector('input[name="csrf_token"]') ? '존재' : '없음');
-});
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """도서 관리 라우트"""
 import re
+import json
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app.books import books_bp
@@ -61,6 +62,11 @@ def new():
     form = BookForm()
 
     if form.validate_on_submit():
+        grade_tags_list = request.form.getlist('grade_tags')
+        domain_tags_list = request.form.getlist('domain_tags')
+        subject_tags_raw = request.form.get('subject_tags', '').strip()
+        subject_tags_list = [t.strip() for t in subject_tags_raw.split(',') if t.strip()] if subject_tags_raw else []
+
         book = Book(
             user_id=current_user.user_id,
             title=form.title.data,
@@ -70,7 +76,15 @@ def new():
             publication_year=form.publication_year.data if form.publication_year.data else None,
             category=form.category.data if form.category.data else None,
             description=form.description.data if form.description.data else None,
-            cover_image_url=form.cover_image_url.data if form.cover_image_url.data else None
+            cover_image_url=form.cover_image_url.data if form.cover_image_url.data else None,
+            recommendation_reason=request.form.get('recommendation_reason', '').strip() or None,
+            grade_tags=json.dumps(grade_tags_list, ensure_ascii=False) if grade_tags_list else None,
+            domain_tags=json.dumps(domain_tags_list, ensure_ascii=False) if domain_tags_list else None,
+            subject_tags=json.dumps(subject_tags_list, ensure_ascii=False) if subject_tags_list else None,
+            is_curriculum=bool(request.form.get('is_curriculum')),
+            is_recommended=bool(request.form.get('is_recommended')),
+            is_textbook_work=bool(request.form.get('is_textbook_work')),
+            is_snu_classic=bool(request.form.get('is_snu_classic')),
         )
 
         db.session.add(book)
@@ -114,6 +128,11 @@ def edit(book_id):
     form = BookForm(obj=book)
 
     if form.validate_on_submit():
+        grade_tags_list = request.form.getlist('grade_tags')
+        domain_tags_list = request.form.getlist('domain_tags')
+        subject_tags_raw = request.form.get('subject_tags', '').strip()
+        subject_tags_list = [t.strip() for t in subject_tags_raw.split(',') if t.strip()] if subject_tags_raw else []
+
         book.title = form.title.data
         book.author = form.author.data if form.author.data else None
         book.publisher = form.publisher.data if form.publisher.data else None
@@ -122,6 +141,14 @@ def edit(book_id):
         book.category = form.category.data if form.category.data else None
         book.description = form.description.data if form.description.data else None
         book.cover_image_url = form.cover_image_url.data if form.cover_image_url.data else None
+        book.recommendation_reason = request.form.get('recommendation_reason', '').strip() or None
+        book.grade_tags = json.dumps(grade_tags_list, ensure_ascii=False) if grade_tags_list else None
+        book.domain_tags = json.dumps(domain_tags_list, ensure_ascii=False) if domain_tags_list else None
+        book.subject_tags = json.dumps(subject_tags_list, ensure_ascii=False) if subject_tags_list else None
+        book.is_curriculum = bool(request.form.get('is_curriculum'))
+        book.is_recommended = bool(request.form.get('is_recommended'))
+        book.is_textbook_work = bool(request.form.get('is_textbook_work'))
+        book.is_snu_classic = bool(request.form.get('is_snu_classic'))
 
         db.session.commit()
 

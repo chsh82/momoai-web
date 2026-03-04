@@ -493,7 +493,7 @@
                         <div x-show="content" x-collapse class="ml-8 mt-1 space-y-1">
                             <a href="{{ url_for('books.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'books' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
-                                도서 정보
+                                도서 관리
                             </a>
                             <a href="{{ url_for('library.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.index' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
