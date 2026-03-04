@@ -95,15 +95,19 @@ def index():
     if teacher_filter:
         query = query.filter(Essay.user_id == teacher_filter)
 
-    # 5. 검색 (제목 또는 원문)
+    # 5. 통합 검색 (학생명 / 강사명 / 제목)
     search = request.args.get('search', '').strip()
     if search:
-        query = query.filter(
-            db.or_(
-                Essay.title.contains(search),
-                Essay.original_text.contains(search)
-            )
-        )
+        from app.models.user import User as UserModel
+        student_ids_sub = db.session.query(Student.student_id)\
+            .filter(Student.name.contains(search)).subquery()
+        teacher_ids_sub = db.session.query(UserModel.user_id)\
+            .filter(UserModel.name.contains(search)).subquery()
+        query = query.filter(db.or_(
+            Essay.title.contains(search),
+            Essay.student_id.in_(student_ids_sub),
+            Essay.user_id.in_(teacher_ids_sub),
+        ))
 
     # Phase 2: 정렬
     sort_by = request.args.get('sort', 'date_desc')

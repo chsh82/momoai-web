@@ -80,13 +80,13 @@
         <h3 class="text-base font-bold text-gray-700 mb-4">👩‍🏫 강사별 첨삭 현황</h3>
         <!-- 강사 선택 탭 -->
         <div class="flex flex-wrap gap-2 mb-5">
-            <a href="{{ url_for('essays.index', dashboard_teacher_id='', student_id=student_filter, status=status_filter, grade=grade_filter, search=search, sort=sort_by) }}"
+            <a href="{{ url_for('essays.index', dashboard_teacher_id='', status=status_filter, grade=grade_filter, search=search, sort=sort_by) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if not dashboard_stats.selected_teacher_id %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 전체
             </a>
             {% for teacher in dashboard_stats.teachers %}
-            <a href="{{ url_for('essays.index', dashboard_teacher_id=teacher.user_id, student_id=student_filter, status=status_filter, grade=grade_filter, search=search, sort=sort_by) }}"
+            <a href="{{ url_for('essays.index', dashboard_teacher_id=teacher.user_id, status=status_filter, grade=grade_filter, search=search, sort=sort_by) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if dashboard_stats.selected_teacher_id == teacher.user_id %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 {{ teacher.name }}
@@ -138,104 +138,68 @@
     </div>
     {% endif %}
 
-    <!-- Phase 2: 필터/검색 폼 -->
+    <!-- 검색/필터 -->
     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <form method="GET" action="{{ url_for('essays.index') }}" class="space-y-4">
-            <!-- 첫 번째 행: 검색 + 정렬 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">검색</label>
+        <form id="filterForm" method="GET" action="{{ url_for('essays.index') }}">
+            <!-- 상태·등급 숨김 필드 (탭·버튼 클릭 시 JS 세팅) -->
+            <input type="hidden" name="status" id="statusInput" value="{{ status_filter }}">
+            <input type="hidden" name="grade"  id="gradeInput"  value="{{ grade_filter }}">
+
+            <!-- ① 통합 검색창 -->
+            <div class="flex gap-2 mb-5">
+                <div class="relative flex-1">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none">🔍</span>
                     <input type="text" name="search" value="{{ search }}"
-                           placeholder="제목 또는 내용 검색..."
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           placeholder="학생명, 강사명, 제목으로 검색..."
+                           autocomplete="off"
+                           class="w-full pl-12 pr-4 py-4 text-base border-2 border-gray-200 rounded-xl
+                                  focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50
+                                  transition placeholder-gray-400">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">정렬</label>
-                    <select name="sort" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>최신순</option>
-                        <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>오래된순</option>
-                        <option value="score_desc" {% if sort_by == 'score_desc' %}selected{% endif %}>점수 높은순</option>
-                        <option value="score_asc" {% if sort_by == 'score_asc' %}selected{% endif %}>점수 낮은순</option>
-                        <option value="student" {% if sort_by == 'student' %}selected{% endif %}>학생 이름순</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 두 번째 행: 필터들 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">학생</label>
-                    <select name="student_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">전체</option>
-                        {% for student in students %}
-                        <option value="{{ student.student_id }}" {% if student_filter == student.student_id %}selected{% endif %}>
-                            {{ student.name }} ({{ student.grade }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% if teachers %}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">강사</label>
-                    <select name="teacher_id" id="teacherSelect"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">전체</option>
-                        {% for teacher in teachers %}
-                        <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
-                            {{ teacher.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">상태</label>
-                    <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">전체</option>
-                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
-                        <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>처리 중</option>
-                        <option value="reviewing" {% if status_filter == 'reviewing' %}selected{% endif %}>검토 중</option>
-                        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>실패</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">등급</label>
-                    <select name="grade" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">전체</option>
-                        <option value="A+" {% if grade_filter == 'A+' %}selected{% endif %}>A+</option>
-                        <option value="A" {% if grade_filter == 'A' %}selected{% endif %}>A</option>
-                        <option value="B+" {% if grade_filter == 'B+' %}selected{% endif %}>B+</option>
-                        <option value="B" {% if grade_filter == 'B' %}selected{% endif %}>B</option>
-                        <option value="C+" {% if grade_filter == 'C+' %}selected{% endif %}>C+</option>
-                        <option value="C" {% if grade_filter == 'C' %}selected{% endif %}>C</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 강사 이름 검색 (텍스트) -->
-            {% if teachers %}
-            <div id="teacherSearchBox" class="{% if not teacher_filter %}hidden{% endif %}">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2">
-                    <span class="text-sm text-blue-700 font-medium">선택된 강사:</span>
-                    <span class="text-sm text-blue-900 font-bold" id="selectedTeacherName">
-                        {% if teacher_filter %}
-                            {% for t in teachers %}{% if t.user_id == teacher_filter %}{{ t.name }}{% endif %}{% endfor %}
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- 버튼 -->
-            <div class="flex gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                    🔍 검색
+                <button type="submit"
+                        class="px-7 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition whitespace-nowrap">
+                    검색
                 </button>
-                {% if search or student_filter or teacher_filter or status_filter or grade_filter or sort_by != 'date_desc' %}
-                <a href="{{ url_for('essays.index') }}" class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                {% if search or status_filter or grade_filter or sort_by != 'date_desc' %}
+                <a href="{{ url_for('essays.index') }}"
+                   class="px-5 py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium rounded-xl transition whitespace-nowrap">
                     초기화
                 </a>
                 {% endif %}
+            </div>
+
+            <!-- ② 상태 탭 -->
+            <div class="flex flex-wrap border-b border-gray-200 mb-4">
+                {% for val, label in [('','전체'),('draft','미첨삭'),('processing','처리 중'),('reviewing','검토 중'),('completed','완료'),('failed','실패')] %}
+                <button type="button" onclick="applyTab('status','{{ val }}')"
+                        class="px-5 py-2.5 text-sm font-medium border-b-2 transition -mb-px whitespace-nowrap
+                               {% if status_filter == val %}border-blue-600 text-blue-700{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                    {{ label }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- ③ 등급 필터 + 정렬 -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs text-gray-400 font-medium mr-1">등급</span>
+                {% for g, label in [('','전체'),('A+','A+'),('A','A'),('B+','B+'),('B','B'),('C+','C+'),('C','C')] %}
+                <button type="button" onclick="applyTab('grade','{{ g }}')"
+                        class="px-3 py-1 text-xs font-semibold rounded-full transition
+                               {% if grade_filter == g %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                    {{ label }}
+                </button>
+                {% endfor %}
+                <div class="ml-auto flex items-center gap-2">
+                    <span class="text-xs text-gray-400">정렬</span>
+                    <select name="sort" onchange="document.getElementById('filterForm').submit()"
+                            class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white">
+                        <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>최신순</option>
+                        <option value="date_asc"  {% if sort_by == 'date_asc'  %}selected{% endif %}>오래된순</option>
+                        <option value="score_desc"{% if sort_by == 'score_desc'%}selected{% endif %}>점수 높은순</option>
+                        <option value="score_asc" {% if sort_by == 'score_asc' %}selected{% endif %}>점수 낮은순</option>
+                        <option value="student"   {% if sort_by == 'student'   %}selected{% endif %}>학생 이름순</option>
+                    </select>
+                </div>
             </div>
         </form>
     </div>
@@ -243,12 +207,10 @@
     <!-- Essays Count -->
     <div class="mb-4 text-gray-600">
         총 <strong class="text-gray-800">{{ essays|length }}</strong>건의 첨삭
-        {% if search or student_filter or teacher_filter or status_filter or grade_filter %}
+        {% if search or status_filter or grade_filter %}
         <span class="text-sm text-blue-600">(필터 적용됨)</span>
-        {% if teacher_filter %}
-            {% for t in teachers %}{% if t.user_id == teacher_filter %}
-            <span class="text-sm text-gray-500">— 강사: <strong>{{ t.name }}</strong></span>
-            {% endif %}{% endfor %}
+        {% if search %}
+        <span class="text-sm text-gray-500">— 검색: <strong>{{ search }}</strong></span>
         {% endif %}
         {% endif %}
     </div>
@@ -416,38 +378,10 @@
     {% endif %}
 </div>
 
-{% if teachers %}
 <script>
-(function() {
-    const select = document.getElementById('teacherSelect');
-    if (!select) return;
-
-    // select 위에 검색 input 삽입
-    const wrapper = select.parentElement;
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = '강사 이름 검색...';
-    searchInput.className = 'w-full px-4 py-2 mb-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm';
-    wrapper.insertBefore(searchInput, select);
-
-    // 옵션 원본 저장
-    const allOptions = Array.from(select.options).map(o => ({ value: o.value, text: o.text }));
-
-    searchInput.addEventListener('input', function() {
-        const q = this.value.trim().toLowerCase();
-        const current = select.value;
-
-        // 옵션 재구성
-        select.innerHTML = '';
-        allOptions.forEach(opt => {
-            if (!q || opt.value === '' || opt.text.toLowerCase().includes(q)) {
-                const o = new Option(opt.text, opt.value);
-                if (opt.value === current) o.selected = true;
-                select.appendChild(o);
-            }
-        });
-    });
-})();
+function applyTab(field, value) {
+    document.getElementById(field + 'Input').value = value;
+    document.getElementById('filterForm').submit();
+}
 </script>
-{% endif %}
 {% endblock %}
