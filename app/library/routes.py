@@ -116,6 +116,7 @@ def books():
     current_grade = request.args.get('grade', '')
     current_domain = request.args.get('domain', '')
     current_subject = request.args.get('subject', '')
+    current_badge = request.args.get('badge', '')
     per_page = 12
 
     query = Book.query
@@ -125,6 +126,14 @@ def books():
         query = query.filter(Book.domain_tags.like(f'%"{current_domain}"%'))
     if current_subject:
         query = query.filter(Book.subject_tags.like(f'%"{current_subject}"%'))
+    if current_badge == 'curriculum':
+        query = query.filter(Book.is_curriculum == True)
+    elif current_badge == 'recommended':
+        query = query.filter(Book.is_recommended == True)
+    elif current_badge == 'textbook':
+        query = query.filter(Book.is_textbook_work == True)
+    elif current_badge == 'snu':
+        query = query.filter(Book.is_snu_classic == True)
 
     books = query.order_by(Book.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
@@ -145,6 +154,7 @@ def books():
                          current_grade=current_grade,
                          current_domain=current_domain,
                          current_subject=current_subject,
+                         current_badge=current_badge,
                          all_subjects=sorted(all_subjects))
 
 
@@ -451,6 +461,8 @@ def create_book():
                 cover_image_url=request.form.get('cover_image_url') or None,
                 is_curriculum=bool(request.form.get('is_curriculum')),
                 is_recommended=bool(request.form.get('is_recommended')),
+                is_textbook_work=bool(request.form.get('is_textbook_work')),
+                is_snu_classic=bool(request.form.get('is_snu_classic')),
                 grade_tags=_json.dumps(grade_tags, ensure_ascii=False) if grade_tags else None,
                 domain_tags=_json.dumps(domain_tags, ensure_ascii=False) if domain_tags else None,
                 subject_tags=_json.dumps(subject_tags, ensure_ascii=False) if subject_tags else None,
@@ -494,6 +506,8 @@ def edit_book(book_id):
             book.cover_image_url = request.form.get('cover_image_url') or None
             book.is_curriculum = bool(request.form.get('is_curriculum'))
             book.is_recommended = bool(request.form.get('is_recommended'))
+            book.is_textbook_work = bool(request.form.get('is_textbook_work'))
+            book.is_snu_classic = bool(request.form.get('is_snu_classic'))
             book.grade_tags = _json.dumps(grade_tags, ensure_ascii=False) if grade_tags else None
             book.domain_tags = _json.dumps(domain_tags, ensure_ascii=False) if domain_tags else None
             book.subject_tags = _json.dumps(subject_tags, ensure_ascii=False) if subject_tags else None

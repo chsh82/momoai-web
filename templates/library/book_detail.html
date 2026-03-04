@@ -7,15 +7,39 @@
     <!-- Header -->
     <div class="mb-8">
         <h2 class="text-3xl font-bold text-gray-800 mb-2">{{ book.title }}</h2>
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
             <p class="text-xl text-gray-600">{{ book.author }}</p>
             {% if book.is_curriculum %}
             <span class="px-3 py-1 bg-blue-600 text-white text-sm font-bold rounded-full shadow-sm">수업도서</span>
             {% endif %}
             {% if book.is_recommended %}
-            <span class="px-3 py-1 bg-green-600 text-white text-sm font-bold rounded-full shadow-sm">추천도서</span>
+            <span class="px-3 py-1 bg-green-600 text-white text-sm font-bold rounded-full shadow-sm">모모추천도서</span>
+            {% endif %}
+            {% if book.is_textbook_work %}
+            <span class="px-3 py-1 bg-orange-500 text-white text-sm font-bold rounded-full shadow-sm">교과서수록작품</span>
+            {% endif %}
+            {% if book.is_snu_classic %}
+            <span class="px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full shadow-sm">서울대고전100선</span>
             {% endif %}
         </div>
+        <!-- 태그 -->
+        {% set all_tags = book.grade_tags_list + book.domain_tags_list + book.subject_tags_list %}
+        {% if all_tags %}
+        <div class="flex flex-wrap gap-1.5 mt-2">
+            {% for tag in book.grade_tags_list %}
+            <a href="{{ url_for('library.books', grade=tag) }}"
+               class="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full hover:bg-blue-200 transition">{{ tag }}</a>
+            {% endfor %}
+            {% for tag in book.domain_tags_list %}
+            <a href="{{ url_for('library.books', domain=tag) }}"
+               class="px-2.5 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full hover:bg-green-200 transition">{{ tag }}</a>
+            {% endfor %}
+            {% for tag in book.subject_tags_list %}
+            <a href="{{ url_for('library.books', subject=tag) }}"
+               class="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full hover:bg-purple-200 transition"># {{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">

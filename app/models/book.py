@@ -20,8 +20,10 @@ class Book(db.Model):
     description = db.Column(db.Text, nullable=True)
     recommendation_reason = db.Column(db.Text, nullable=True)
     cover_image_url = db.Column(db.String(500), nullable=True)
-    is_curriculum = db.Column(db.Boolean, default=False, nullable=False)   # 수업도서 뱃지
-    is_recommended = db.Column(db.Boolean, default=False, nullable=False)  # 추천도서 뱃지
+    is_curriculum = db.Column(db.Boolean, default=False, nullable=False)   # 수업도서
+    is_recommended = db.Column(db.Boolean, default=False, nullable=False)  # 모모추천도서
+    is_textbook_work = db.Column(db.Boolean, default=False, nullable=False)  # 교과서수록작품
+    is_snu_classic = db.Column(db.Boolean, default=False, nullable=False)    # 서울대고전100선
     grade_tags = db.Column(db.Text, nullable=True)    # JSON: ["초1","중2","고1"]
     domain_tags = db.Column(db.Text, nullable=True)   # JSON: ["문학","과학"]
     subject_tags = db.Column(db.Text, nullable=True)  # JSON: ["우정","성장"]
