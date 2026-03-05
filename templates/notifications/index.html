@@ -56,6 +56,11 @@
         </div>
     </div>
 
+    <!-- Push 진단 링크 -->
+    <div class="mb-4 text-right">
+        <a href="{{ url_for('notifications.push_debug') }}" class="text-xs text-gray-400 underline">🔧 Push 진단</a>
+    </div>
+
     <!-- 새 알림 도착 배너 (폴링 시 표시) -->
     <div id="newNotifBanner" class="hidden mb-4 p-4 bg-blue-600 text-white rounded-lg shadow-lg flex items-center justify-between cursor-pointer" onclick="showNewNotifs()">
         <span id="newNotifText" class="font-medium">🔔 새 알림이 도착했습니다</span>
