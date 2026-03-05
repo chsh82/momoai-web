@@ -114,6 +114,63 @@ def push_status():
     return jsonify({'subscribed': count > 0, 'count': count})
 
 
+@notifications_bp.route('/push/test')
+@login_required
+def push_test():
+    """현재 사용자에게 테스트 Push 발송 — 결과를 JSON으로 반환"""
+    import traceback, json as _json
+
+    result = {
+        'vapid_key_set': bool(current_app.config.get('VAPID_PRIVATE_KEY')),
+        'vapid_pub_set': bool(current_app.config.get('VAPID_PUBLIC_KEY')),
+        'subscriptions': [],
+        'send_results': [],
+        'error': None
+    }
+
+    subs = PushSubscription.query.filter_by(user_id=current_user.user_id).all()
+    result['subscriptions'] = [{'id': s.id, 'endpoint_prefix': s.endpoint[:60]} for s in subs]
+
+    if not subs:
+        result['error'] = 'No subscriptions found for this user'
+        return jsonify(result)
+
+    if not result['vapid_key_set']:
+        result['error'] = 'VAPID_PRIVATE_KEY not set in config'
+        return jsonify(result)
+
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError as e:
+        result['error'] = f'pywebpush not installed: {e}'
+        return jsonify(result)
+
+    vapid_private_key = current_app.config.get('VAPID_PRIVATE_KEY')
+    vapid_claims_sub = current_app.config.get('VAPID_CLAIMS_SUB', 'mailto:contact@momoai.kr')
+
+    for sub in subs:
+        sub_result = {'id': sub.id, 'ok': False, 'error': None}
+        try:
+            webpush(
+                subscription_info={
+                    'endpoint': sub.endpoint,
+                    'keys': {'p256dh': sub.p256dh, 'auth': sub.auth}
+                },
+                data=_json.dumps({'title': '🔔 테스트 알림', 'body': 'Push 알림이 정상 동작합니다!', 'url': '/notifications'}),
+                vapid_private_key=vapid_private_key,
+                vapid_claims={'sub': vapid_claims_sub}
+            )
+            sub_result['ok'] = True
+        except WebPushException as e:
+            status = e.response.status_code if e.response else 'no-response'
+            sub_result['error'] = f'WebPushException status={status}: {str(e)}'
+        except Exception as e:
+            sub_result['error'] = f'{type(e).__name__}: {str(e)}\n{traceback.format_exc()}'
+        result['send_results'].append(sub_result)
+
+    return jsonify(result)
+
+
 @notifications_bp.route('/push/subscribe', methods=['POST'])
 @login_required
 def push_subscribe():
