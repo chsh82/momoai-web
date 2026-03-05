@@ -308,6 +308,11 @@ function updateUnreadCount(count) {
         if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
         else { badge.classList.add('hidden'); }
     }
+    // 홈 화면 앱 아이콘 뱃지
+    if ('setAppBadge' in navigator) {
+        if (count > 0) { navigator.setAppBadge(count).catch(() => {}); }
+        else { navigator.clearAppBadge().catch(() => {}); }
+    }
 }
 </script>
 {% endblock %}

@@ -1344,13 +1344,22 @@
         fetch('/notifications/api/unread-count')
             .then(response => response.json())
             .then(data => {
+                const count = data.unread_count || 0;
                 const badge = document.getElementById('notificationBadge');
                 if (badge) {
-                    if (data.unread_count > 0) {
-                        badge.textContent = data.unread_count;
+                    if (count > 0) {
+                        badge.textContent = count;
                         badge.classList.remove('hidden');
                     } else {
                         badge.classList.add('hidden');
+                    }
+                }
+                // 홈 화면 앱 아이콘 뱃지 (iOS 16.4+ PWA, Android Chrome 81+)
+                if ('setAppBadge' in navigator) {
+                    if (count > 0) {
+                        navigator.setAppBadge(count).catch(() => {});
+                    } else {
+                        navigator.clearAppBadge().catch(() => {});
                     }
                 }
             })

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'momoai-v4.2.0';
+const CACHE_NAME = 'momoai-v4.3.0';
 const urlsToCache = [
   '/',
   '/static/manifest.json',
@@ -310,7 +310,18 @@ self.addEventListener('push', event => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(title, options).then(() => {
+      // 앱 아이콘 뱃지: 미읽 알림 수로 업데이트
+      if ('setAppBadge' in self.registration) {
+        return fetch('/notifications/api/unread-count', { credentials: 'include' })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            const count = (data && data.unread_count) ? data.unread_count : 1;
+            return self.registration.setAppBadge(count);
+          })
+          .catch(() => self.registration.setAppBadge(1));
+      }
+    })
   );
 });
 
