@@ -1,4 +1,4 @@
-const CACHE_NAME = 'momoai-v4.1.0-optimized';
+const CACHE_NAME = 'momoai-v4.2.0';
 const urlsToCache = [
   '/',
   '/static/manifest.json',
