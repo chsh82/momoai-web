@@ -85,10 +85,10 @@ class Config:
     NAVER_CLIENT_ID = NAVER_CLIENT_ID
     NAVER_CLIENT_SECRET = NAVER_CLIENT_SECRET
 
-    # 푸시 알림 (PWA)
-    VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
+    # 푸시 알림 (PWA) — env var에서 \n을 실제 줄바꿈으로 복원
+    VAPID_PRIVATE_KEY = (os.environ.get('VAPID_PRIVATE_KEY') or '').replace('\\n', '\n') or None
     VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
-    VAPID_CLAIMS_SUB = os.environ.get('VAPID_CLAIMS_SUB') or 'mailto:contact@momoai.com'
+    VAPID_CLAIMS_SUB = os.environ.get('VAPID_CLAIMS_SUB') or 'mailto:contact@momoai.kr'
 
     # 이메일 설정 (Gmail SMTP 예시)
     # .env에 아래 항목 추가 시 이메일 인증 활성화됨
