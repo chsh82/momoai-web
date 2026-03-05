@@ -56,9 +56,15 @@
         </div>
     </div>
 
+    <!-- 새 알림 도착 배너 (폴링 시 표시) -->
+    <div id="newNotifBanner" class="hidden mb-4 p-4 bg-blue-600 text-white rounded-lg shadow-lg flex items-center justify-between cursor-pointer" onclick="showNewNotifs()">
+        <span id="newNotifText" class="font-medium">🔔 새 알림이 도착했습니다</span>
+        <span class="text-sm underline">확인하기</span>
+    </div>
+
     <!-- 알림 목록 -->
+    <div id="notificationList" class="space-y-3">
     {% if notifications %}
-    <div class="space-y-3">
         {% for notification in notifications %}
         <div id="notification-{{ notification.notification_id }}"
              class="bg-white rounded-lg shadow hover:shadow-md transition duration-200 {% if not notification.is_read %}border-l-4 border-blue-500{% endif %}">
@@ -118,9 +124,8 @@
             </div>
         </div>
         {% endfor %}
-    </div>
     {% else %}
-    <div class="bg-white rounded-lg shadow p-12 text-center">
+    <div id="emptyState" class="bg-white rounded-lg shadow p-12 text-center">
         <div class="text-6xl mb-4">🔔</div>
         <h3 class="text-xl font-bold text-gray-800 mb-2">알림이 없습니다</h3>
         <p class="text-gray-600">
@@ -132,87 +137,176 @@
         </p>
     </div>
     {% endif %}
+    </div>
 </div>
 
 <script>
-// 알림을 읽음으로 표시
+// ── 폴링 상태 ──────────────────────────────────────────────
+const FILTER_TYPE = '{{ filter_type }}';
+// 서버 렌더링 시각 기준: 가장 최신 알림의 created_at (UTC Unix timestamp)
+let latestTs = {{ notifications[0].created_at.timestamp() if notifications else 0 }};
+let pendingNotifs = [];  // 배너 클릭 전까지 대기
+const POLL_INTERVAL = 7000;  // 7초 (iPhone Safari 배터리 고려)
+
+// ── 알림 HTML 생성 ─────────────────────────────────────────
+function typeIcon(type) {
+    const icons = { comment: '💬', like: '❤️', essay_complete: '✅', class_board: '📋' };
+    return icons[type] || '🔔';
+}
+function typeBg(type) {
+    const bgs = { comment: 'bg-blue-100', like: 'bg-red-100', essay_complete: 'bg-green-100' };
+    return bgs[type] || 'bg-gray-100';
+}
+
+function buildNotifHtml(n) {
+    const borderClass = n.is_read ? '' : 'border-l-4 border-blue-500';
+    const titleClass  = n.is_read ? 'text-gray-800' : 'text-blue-700';
+    const newBadge    = n.is_read ? '' : '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">NEW</span>';
+    const viewBtn     = n.link_url
+        ? `<a href="${n.link_url}" onclick="markAsRead('${n.id}')" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">보기</a>`
+        : '';
+    const readBtn     = n.is_read ? '' : `<button onclick="markAsRead('${n.id}')" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">읽음</button>`;
+    return `
+    <div id="notification-${n.id}" class="bg-white rounded-lg shadow hover:shadow-md transition duration-200 ${borderClass}">
+      <div class="p-6">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xl ${typeBg(n.type)}">${typeIcon(n.type)}</div>
+              <div class="flex-1">
+                <h3 class="font-bold ${titleClass}">${n.title}</h3>
+                <p class="text-gray-600 text-sm mt-1">${n.message}</p>
+                <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                  <span>${n.created_at}</span>${newBadge}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2 ml-4">
+            ${viewBtn}${readBtn}
+            <button onclick="deleteNotification('${n.id}')" class="text-gray-400 hover:text-red-600 transition duration-200">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── 새 알림 배너 표시 ──────────────────────────────────────
+function showNewNotifBanner(count) {
+    const banner = document.getElementById('newNotifBanner');
+    const text   = document.getElementById('newNotifText');
+    text.textContent = `🔔 새 알림 ${count}개가 도착했습니다`;
+    banner.classList.remove('hidden');
+}
+
+// 배너 클릭 → 알림을 목록 맨 위에 삽입
+function showNewNotifs() {
+    const banner = document.getElementById('newNotifBanner');
+    banner.classList.add('hidden');
+
+    const list = document.getElementById('notificationList');
+    const empty = document.getElementById('emptyState');
+    if (empty) empty.remove();
+
+    pendingNotifs.forEach(n => {
+        list.insertAdjacentHTML('afterbegin', buildNotifHtml(n));
+    });
+    pendingNotifs = [];
+    // 맨 위로 스크롤
+    list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 폴링 함수 ──────────────────────────────────────────────
+function pollNotifications() {
+    fetch(`/notifications/api/latest?since=${latestTs}&type=${FILTER_TYPE}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data) return;
+            // 미읽 카운트 항상 갱신
+            updateUnreadCount(data.unread_count);
+            // 새 알림이 있으면 대기열에 쌓고 배너 표시
+            if (data.notifications.length > 0) {
+                data.notifications.forEach(n => {
+                    if (!document.getElementById(`notification-${n.id}`)) {
+                        pendingNotifs.push(n);
+                        latestTs = Math.max(latestTs, n.created_ts);
+                    }
+                });
+                if (pendingNotifs.length > 0) {
+                    showNewNotifBanner(pendingNotifs.length);
+                }
+            }
+        })
+        .catch(() => {});
+}
+
+// 7초마다 폴링 (페이지가 hidden 상태일 때는 스킵 — iPhone 배터리 절약)
+setInterval(() => {
+    if (!document.hidden) pollNotifications();
+}, POLL_INTERVAL);
+
+// 탭/앱이 다시 foreground로 오면 즉시 폴링
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) pollNotifications();
+});
+
+// ── 기존 함수들 ────────────────────────────────────────────
 function markAsRead(notificationId) {
     fetch(`/notifications/${notificationId}/read`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const notificationElement = document.getElementById(`notification-${notificationId}`);
-            if (notificationElement) {
-                notificationElement.classList.remove('border-l-4', 'border-blue-500');
-                const newBadge = notificationElement.querySelector('.bg-blue-100.text-blue-700');
-                if (newBadge) {
-                    newBadge.remove();
-                }
+            const el = document.getElementById(`notification-${notificationId}`);
+            if (el) {
+                el.classList.remove('border-l-4', 'border-blue-500');
+                const badge = el.querySelector('.bg-blue-100.text-blue-700.rounded-full');
+                if (badge) badge.remove();
+                const h3 = el.querySelector('h3');
+                if (h3) { h3.classList.remove('text-blue-700'); h3.classList.add('text-gray-800'); }
             }
             updateUnreadCount(data.unread_count);
         }
     });
 }
 
-// 모든 알림을 읽음으로 표시
 function markAllAsRead() {
-    if (!confirm('모든 알림을 읽음으로 표시하시겠습니까?')) {
-        return;
-    }
-
+    if (!confirm('모든 알림을 읽음으로 표시하시겠습니까?')) return;
     fetch('/notifications/mark-all-read', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
-    });
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); });
 }
 
-// 알림 삭제
 function deleteNotification(notificationId) {
-    if (!confirm('이 알림을 삭제하시겠습니까?')) {
-        return;
-    }
-
+    if (!confirm('이 알림을 삭제하시겠습니까?')) return;
     fetch(`/notifications/${notificationId}/delete`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const notificationElement = document.getElementById(`notification-${notificationId}`);
-            if (notificationElement) {
-                notificationElement.remove();
-            }
+            const el = document.getElementById(`notification-${notificationId}`);
+            if (el) el.remove();
             updateUnreadCount(data.unread_count);
         }
     });
 }
 
-// 읽지 않은 알림 수 업데이트
 function updateUnreadCount(count) {
+    // 페이지 내 카운트 텍스트
+    const countEl = document.querySelector('p .font-bold.text-blue-600');
+    if (countEl) countEl.textContent = `${count}개`;
+    // 사이드바 배지
     const badge = document.getElementById('notificationBadge');
     if (badge) {
-        if (count > 0) {
-            badge.textContent = count;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
+        if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
+        else { badge.classList.add('hidden'); }
     }
 }
 </script>

@@ -78,6 +78,46 @@ def api_unread_count():
     })
 
 
+@notifications_bp.route('/api/latest')
+@login_required
+def api_latest():
+    """새 알림 폴링 API — since: Unix timestamp(float)"""
+    from datetime import datetime
+
+    since_ts = request.args.get('since', 0, type=float)
+    filter_type = request.args.get('type', 'all')
+
+    since_dt = datetime.utcfromtimestamp(since_ts) if since_ts else datetime.utcfromtimestamp(0)
+
+    query = Notification.query.filter(
+        Notification.user_id == current_user.user_id,
+        Notification.created_at > since_dt
+    )
+
+    if filter_type != 'all':
+        if filter_type == 'unread':
+            query = query.filter_by(is_read=False)
+        else:
+            query = query.filter_by(notification_type=filter_type)
+
+    notifications = query.order_by(Notification.created_at.desc()).all()
+    unread_count = Notification.get_unread_count(current_user.user_id)
+
+    return jsonify({
+        'notifications': [{
+            'id': n.notification_id,
+            'type': n.notification_type,
+            'title': n.title,
+            'message': n.message,
+            'link_url': n.link_url or '',
+            'is_read': n.is_read,
+            'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+            'created_ts': n.created_at.timestamp()
+        } for n in notifications],
+        'unread_count': unread_count
+    })
+
+
 @notifications_bp.route('/<notification_id>/delete', methods=['POST'])
 @login_required
 def delete(notification_id):
