@@ -118,6 +118,21 @@ def api_latest():
     })
 
 
+@notifications_bp.route('/push/debug')
+@login_required
+def push_debug():
+    """Push 진단 페이지 (모바일에서 시각적으로 확인)"""
+    from app.models.push_subscription import PushSubscription
+    server_subs = PushSubscription.query.filter_by(user_id=current_user.user_id).all()
+    vapid_pub = current_app.config.get('VAPID_PUBLIC_KEY') or ''
+    vapid_priv_set = bool(current_app.config.get('VAPID_PRIVATE_KEY'))
+    return render_template('notifications/push_debug.html',
+                           server_subs=server_subs,
+                           vapid_pub=vapid_pub,
+                           vapid_priv_set=vapid_priv_set,
+                           user=current_user)
+
+
 @notifications_bp.route('/<notification_id>/delete', methods=['POST'])
 @login_required
 def delete(notification_id):

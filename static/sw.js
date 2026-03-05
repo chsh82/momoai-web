@@ -380,4 +380,11 @@ self.addEventListener('periodicsync', event => {
   }
 });
 
-console.log('[SW v4.1.0] Service Worker loaded (Performance Optimized)');
+// 버전 조회 메시지 응답
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage(CACHE_NAME);
+  }
+});
+
+console.log('[SW v4.3.0] Service Worker loaded');

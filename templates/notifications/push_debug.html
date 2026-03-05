@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push 진단 - MOMOAI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, sans-serif; background: #f5f5f5; padding: 16px; }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #1e293b; }
+        h2 { font-size: 15px; font-weight: 600; color: #334155; margin-bottom: 10px; }
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .row:last-child { border-bottom: none; }
+        .label { color: #64748b; }
+        .val { font-weight: 600; font-size: 13px; }
+        .ok  { color: #16a34a; }
+        .warn { color: #d97706; }
+        .err { color: #dc2626; }
+        .pending { color: #2563eb; }
+        .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-danger  { background: #dc2626; color: white; }
+        .btn-gray    { background: #e2e8f0; color: #475569; }
+        .log { background: #1e293b; color: #94a3b8; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; margin-top: 8px; }
+        .sub-item { font-size: 12px; color: #64748b; padding: 4px 0; word-break: break-all; }
+        .notice { font-size: 13px; color: #475569; background: #fef9c3; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<h1>🔔 Push 진단</h1>
+<p class="notice">⚠️ 이 페이지는 <strong>홈 화면에 추가한 앱(PWA)</strong>에서 열어야 정확한 결과가 나옵니다. Safari 브라우저에서는 Push를 지원하지 않습니다.</p>
+
+<!-- 서버 상태 (서버에서 렌더링) -->
+<div class="card">
+    <h2>서버 상태</h2>
+    <div class="row">
+        <span class="label">로그인 유저</span>
+        <span class="val ok">{{ user.name }} ({{ user.role }})</span>
+    </div>
+    <div class="row">
+        <span class="label">VAPID Private Key</span>
+        <span class="val {% if vapid_priv_set %}ok{% else %}err{% endif %}">{% if vapid_priv_set %}✅ 설정됨{% else %}❌ 없음{% endif %}</span>
+    </div>
+    <div class="row">
+        <span class="label">VAPID Public Key</span>
+        <span class="val {% if vapid_pub %}ok{% else %}err{% endif %}">{% if vapid_pub %}✅ {{ vapid_pub[:20] }}…{% else %}❌ 없음{% endif %}</span>
+    </div>
+    <div class="row">
+        <span class="label">DB 구독 수</span>
+        <span class="val {% if server_subs %}ok{% else %}warn{% endif %}">{{ server_subs|length }}개</span>
+    </div>
+    {% for sub in server_subs %}
+    <div class="sub-item">🔗 {{ sub.endpoint[:60] }}…</div>
+    {% endfor %}
+</div>
+
+<!-- 브라우저 상태 (JS에서 채움) -->
+<div class="card">
+    <h2>브라우저 상태 <span id="browserLoading" style="font-size:12px;color:#94a3b8;">(확인 중…)</span></h2>
+    <div class="row">
+        <span class="label">ServiceWorker 지원</span>
+        <span class="val" id="swSupport">-</span>
+    </div>
+    <div class="row">
+        <span class="label">PushManager 지원</span>
+        <span class="val" id="pushSupport">-</span>
+    </div>
+    <div class="row">
+        <span class="label">알림 권한</span>
+        <span class="val" id="notifPermission">-</span>
+    </div>
+    <div class="row">
+        <span class="label">SW 등록 상태</span>
+        <span class="val" id="swState">-</span>
+    </div>
+    <div class="row">
+        <span class="label">SW 캐시 버전</span>
+        <span class="val" id="swVersion">-</span>
+    </div>
+    <div class="row">
+        <span class="label">브라우저 Push 구독</span>
+        <span class="val" id="browserSub">-</span>
+    </div>
+    <div class="row">
+        <span class="label">localStorage 상태</span>
+        <span class="val" id="lsState">-</span>
+    </div>
+</div>
+
+<!-- 액션 -->
+<div class="card">
+    <h2>액션</h2>
+    <button class="btn btn-primary" onclick="forceSubscribe()">🔔 강제 구독 시도</button>
+    <button class="btn btn-gray" onclick="checkStatus()" style="margin-top:8px;">🔄 상태 새로고침</button>
+    <button class="btn btn-danger" onclick="clearAndResub()" style="margin-top:8px;">🗑️ 구독 초기화 후 재구독</button>
+</div>
+
+<!-- 로그 -->
+<div class="card">
+    <h2>실시간 로그</h2>
+    <div class="log" id="logBox">준비 중…</div>
+</div>
+
+<script>
+const VAPID_PUB = '{{ vapid_pub }}';
+let logLines = [];
+
+function log(msg, type) {
+    const prefix = type === 'ok' ? '✅' : type === 'err' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+    logLines.push(`${new Date().toLocaleTimeString()} ${prefix} ${msg}`);
+    document.getElementById('logBox').textContent = logLines.join('\n');
+    const lb = document.getElementById('logBox');
+    lb.scrollTop = lb.scrollHeight;
+}
+
+function set(id, text, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'val ' + (cls || '');
+}
+
+function urlBase64ToUint8Array(b64) {
+    const padding = '='.repeat((4 - b64.length % 4) % 4);
+    const base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function checkStatus() {
+    document.getElementById('browserLoading').textContent = '(확인 중…)';
+    log('상태 확인 시작');
+
+    // SW 지원
+    const swOk = 'serviceWorker' in navigator;
+    set('swSupport', swOk ? '✅ 지원' : '❌ 미지원', swOk ? 'ok' : 'err');
+    log('ServiceWorker: ' + (swOk ? '지원' : '미지원'), swOk ? 'ok' : 'err');
+
+    // PushManager 지원
+    const pmOk = 'PushManager' in window;
+    set('pushSupport', pmOk ? '✅ 지원' : '❌ 미지원 (Safari 브라우저일 수 있음)', pmOk ? 'ok' : 'err');
+    log('PushManager: ' + (pmOk ? '지원' : '미지원 → PWA에서 열어야 함'), pmOk ? 'ok' : 'err');
+
+    // 알림 권한
+    const perm = Notification.permission;
+    const permCls = perm === 'granted' ? 'ok' : perm === 'denied' ? 'err' : 'warn';
+    const permText = perm === 'granted' ? '✅ 허용' : perm === 'denied' ? '❌ 차단됨' : '⚠️ 미결정 (배너에서 허용해야 함)';
+    set('notifPermission', permText, permCls);
+    log('알림 권한: ' + perm, permCls);
+
+    // localStorage
+    const lsSub = localStorage.getItem('push-subscribed');
+    const lsDis = localStorage.getItem('push-dismissed');
+    set('lsState', `subscribed=${lsSub||'없음'} / dismissed=${lsDis ? new Date(parseInt(lsDis)).toLocaleDateString() : '없음'}`, '');
+    log(`localStorage: subscribed=${lsSub} dismissed=${lsDis}`);
+
+    // SW 등록 상태
+    if (swOk) {
+        try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            if (regs.length === 0) {
+                set('swState', '❌ 등록 없음', 'err');
+                set('swVersion', '-', '');
+                log('SW 등록 없음', 'err');
+            } else {
+                const reg = regs[0];
+                const state = reg.active ? reg.active.state : (reg.installing ? 'installing' : 'waiting');
+                set('swState', '✅ ' + state, 'ok');
+                log('SW 상태: ' + state + ' / scope: ' + reg.scope, 'ok');
+
+                // SW에 버전 요청
+                if (reg.active) {
+                    const mc = new MessageChannel();
+                    mc.port1.onmessage = e => {
+                        set('swVersion', e.data || '응답없음', e.data ? 'ok' : 'warn');
+                        log('SW 버전: ' + e.data);
+                    };
+                    reg.active.postMessage({type: 'GET_VERSION'}, [mc.port2]);
+                    setTimeout(() => { if (document.getElementById('swVersion').textContent === '-') set('swVersion', '응답없음', 'warn'); }, 2000);
+                }
+
+                // 브라우저 Push 구독
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    set('browserSub', '✅ 있음: ' + sub.endpoint.slice(-30), 'ok');
+                    log('브라우저 구독 엔드포인트: ' + sub.endpoint, 'ok');
+                } else {
+                    set('browserSub', '❌ 없음', 'err');
+                    log('브라우저 Push 구독 없음', 'err');
+                }
+            }
+        } catch(e) {
+            set('swState', '오류: ' + e.message, 'err');
+            log('SW 오류: ' + e.message, 'err');
+        }
+    }
+
+    document.getElementById('browserLoading').textContent = '(완료)';
+    log('상태 확인 완료');
+}
+
+async function forceSubscribe() {
+    log('강제 구독 시도 시작');
+    if (!('PushManager' in window)) { log('PushManager 미지원 — PWA에서 열어주세요', 'err'); return; }
+    if (!VAPID_PUB) { log('VAPID Public Key 없음', 'err'); return; }
+
+    try {
+        // 권한 요청
+        let perm = Notification.permission;
+        if (perm === 'denied') { log('알림이 차단됨. 설정에서 직접 허용해야 합니다', 'err'); return; }
+        if (perm !== 'granted') {
+            log('알림 권한 요청 중…');
+            perm = await Notification.requestPermission();
+            log('권한 결과: ' + perm, perm === 'granted' ? 'ok' : 'err');
+            if (perm !== 'granted') return;
+        }
+
+        const sw = await navigator.serviceWorker.ready;
+        log('SW ready ✅');
+
+        // 기존 구독 해제
+        const existing = await sw.pushManager.getSubscription();
+        if (existing) {
+            await existing.unsubscribe();
+            log('기존 브라우저 구독 해제', 'warn');
+        }
+
+        // 새 구독
+        log('새 Push 구독 생성 중…');
+        const sub = await sw.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUB)
+        });
+        log('브라우저 구독 성공: ' + sub.endpoint, 'ok');
+
+        // 서버에 저장
+        const json = sub.toJSON();
+        log('서버 저장 시도…');
+        const res = await fetch('/notifications/push/subscribe', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth })
+        });
+        const body = await res.text();
+        if (res.ok) {
+            log('서버 저장 성공 (HTTP ' + res.status + ')', 'ok');
+            localStorage.setItem('push-subscribed', '1');
+            alert('✅ 구독 성공! 페이지를 새로고침하면 서버 구독 수가 증가합니다.');
+        } else {
+            log('서버 저장 실패 (HTTP ' + res.status + '): ' + body, 'err');
+        }
+    } catch(e) {
+        log('오류: ' + e.name + ' — ' + e.message, 'err');
+        if (e.name === 'NotAllowedError') log('→ 알림 권한 거부됨', 'err');
+        if (e.name === 'InvalidStateError') log('→ VAPID 키 형식 오류일 수 있음', 'err');
+    }
+    await checkStatus();
+}
+
+async function clearAndResub() {
+    log('초기화 시작');
+    localStorage.removeItem('push-subscribed');
+    localStorage.removeItem('push-dismissed');
+    // 서버 구독 삭제
+    try {
+        const sw = await navigator.serviceWorker.ready;
+        const sub = await sw.pushManager.getSubscription();
+        if (sub) {
+            await fetch('/notifications/push/unsubscribe', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({endpoint: sub.endpoint})
+            });
+            await sub.unsubscribe();
+            log('기존 구독 삭제 완료', 'warn');
+        }
+    } catch(e) { log('해제 중 오류: ' + e.message, 'warn'); }
+    log('재구독 시도');
+    await forceSubscribe();
+}
+
+// 페이지 로드 시 자동 실행
+window.addEventListener('load', checkStatus);
+</script>
+</body>
+</html>
