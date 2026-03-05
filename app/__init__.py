@@ -106,6 +106,16 @@ def create_app(config_name='default'):
             attrs.append(f'height="{height}"')
         return f'<img {" ".join(attrs)}>'
 
+    # Service Worker를 루트(/) scope로 제공
+    @app.route('/sw.js')
+    def service_worker():
+        from flask import send_from_directory, make_response
+        response = make_response(send_from_directory(static_dir, 'sw.js'))
+        response.headers['Content-Type'] = 'application/javascript'
+        response.headers['Service-Worker-Allowed'] = '/'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+
     # 정적 파일 캐싱 설정
     @app.after_request
     def add_header(response):
