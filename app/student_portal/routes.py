@@ -361,6 +361,19 @@ def submit_essay():
 
         db.session.commit()
 
+        # Web Push 알림 (강사에게)
+        if selected_teacher_id:
+            try:
+                from app.utils.push_utils import send_push_to_user
+                send_push_to_user(
+                    user_id=selected_teacher_id,
+                    title='📝 새 글쓰기 제출',
+                    body=f'{student.name} 학생이 "{title}" 글쓰기를 제출했습니다.',
+                    url=url_for('essays.index')
+                )
+            except Exception:
+                pass
+
         flash('첨삭이 성공적으로 제출되었습니다. 담당 강사에게 알림이 전송되었습니다.', 'success')
         return redirect(url_for('student.my_essays'))
 

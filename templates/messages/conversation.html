@@ -64,11 +64,59 @@
 </div>
 
 <script>
-// 페이지 로드 시 메시지 목록 맨 아래로 스크롤
-document.addEventListener('DOMContentLoaded', function() {
+const POLL_URL = "{{ url_for('messages.poll', conv_id=conv.conversation_id) }}";
+const CSRF_TOKEN = "{{ csrf_token() }}";
+
+// 현재 마지막 메시지 ID 추적
+let lastMsgId = {% if messages %}{{ messages[-1].message_id }}{% else %}0{% endif %};
+let isTyping = false;
+
+// 페이지 로드 시 스크롤 맨 아래로
+function scrollBottom(force) {
     var list = document.getElementById('msg-list');
-    if (list) list.scrollTop = list.scrollHeight;
+    if (!list) return;
+    var atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    if (force || atBottom) list.scrollTop = list.scrollHeight;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    scrollBottom(true);
 });
+
+// 새 메시지 HTML 생성
+function buildMsgHtml(msg) {
+    var align = msg.is_mine ? 'justify-end' : 'justify-start';
+    var bubbleCls = msg.is_mine
+        ? 'bg-blue-600 text-white rounded-br-sm'
+        : 'bg-white shadow text-gray-800 rounded-bl-sm';
+    var readText = msg.is_mine
+        ? ' · <span class="' + (msg.is_read ? 'text-blue-400' : '') + '">' + (msg.is_read ? '읽음' : '미읽음') + '</span>'
+        : '';
+    var body = msg.body.replace(/\n/g, '<br>');
+    return '<div class="flex ' + align + '">'
+        + '<div class="max-w-xs lg:max-w-md flex flex-col ' + (msg.is_mine ? 'items-end' : 'items-start') + '">'
+        + '<div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed ' + bubbleCls + '">' + body + '</div>'
+        + '<span class="text-xs text-gray-400 mt-1 px-1">' + msg.created_at + readText + '</span>'
+        + '</div></div>';
+}
+
+// 폴링: 5초마다 새 메시지 확인
+function pollMessages() {
+    fetch(POLL_URL + '?since=' + lastMsgId)
+        .then(function(r) { return r.json(); })
+        .then(function(msgs) {
+            if (msgs.length === 0) return;
+            var list = document.getElementById('msg-list');
+            msgs.forEach(function(msg) {
+                list.insertAdjacentHTML('beforeend', buildMsgHtml(msg));
+                lastMsgId = Math.max(lastMsgId, msg.id);
+            });
+            scrollBottom(false);
+        })
+        .catch(function() {}); // 오프라인 등 에러 무시
+}
+
+setInterval(pollMessages, 5000);
 
 // Ctrl+Enter 전송
 document.getElementById('reply-body').addEventListener('keydown', function(e) {
@@ -77,5 +125,9 @@ document.getElementById('reply-body').addEventListener('keydown', function(e) {
         document.getElementById('reply-form').submit();
     }
 });
+
+// 타이핑 중 자동스크롤 억제
+document.getElementById('reply-body').addEventListener('focus', function() { isTyping = true; });
+document.getElementById('reply-body').addEventListener('blur', function() { isTyping = false; });
 </script>
 {% endblock %}

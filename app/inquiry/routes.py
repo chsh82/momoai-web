@@ -128,6 +128,7 @@ def new_inquiry():
         notif_message = f'{author_name}님이 문의를 등록했습니다.'
         notif_link = url_for('inquiry.detail', inquiry_id=post.inquiry_id)
 
+        push_recipients = []
         if recipient_id:
             # 특정 강사에게 알림
             db.session.add(Notification(
@@ -139,6 +140,7 @@ def new_inquiry():
                 related_entity_id=post.inquiry_id,
                 link_url=notif_link
             ))
+            push_recipients.append(recipient_id)
         else:
             # 관리자 전체에게 알림
             admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
@@ -152,6 +154,7 @@ def new_inquiry():
                     related_entity_id=post.inquiry_id,
                     link_url=notif_link
                 ))
+                push_recipients.append(admin.user_id)
 
         # 이미지 업로드 처리 (최대 10장)
         from app.utils.image_utils import save_post_images
@@ -160,6 +163,14 @@ def new_inquiry():
             db.session.add(img)
 
         db.session.commit()
+
+        # Web Push 알림
+        try:
+            from app.utils.push_utils import send_push_to_user
+            for uid in push_recipients:
+                send_push_to_user(uid, '📬 ' + notif_title, notif_message, notif_link)
+        except Exception:
+            pass
 
         flash('문의가 등록되었습니다. 빠른 시일 내에 답변드리겠습니다.', 'success')
         return redirect(url_for('inquiry.detail', inquiry_id=post.inquiry_id))
@@ -219,6 +230,7 @@ def reply(inquiry_id):
     post.status = 'answered'
 
     # 문의 작성자(학부모/학생)에게 답변 알림
+    reply_link = url_for('inquiry.detail', inquiry_id=inquiry_id)
     db.session.add(Notification(
         user_id=post.author_id,
         notification_type='inquiry',
@@ -226,10 +238,22 @@ def reply(inquiry_id):
         message=f'{current_user.name}님이 문의에 답변했습니다.',
         related_entity_type='inquiry',
         related_entity_id=inquiry_id,
-        link_url=url_for('inquiry.detail', inquiry_id=inquiry_id)
+        link_url=reply_link
     ))
 
     db.session.commit()
+
+    # Web Push 알림 (작성자에게)
+    try:
+        from app.utils.push_utils import send_push_to_user
+        send_push_to_user(
+            user_id=post.author_id,
+            title=f'💬 문의 답변: {post.title}',
+            body=f'{current_user.name}님이 답변했습니다.',
+            url=reply_link
+        )
+    except Exception:
+        pass
 
     flash('답변이 등록되었습니다.', 'success')
     return redirect(url_for('inquiry.detail', inquiry_id=inquiry_id))

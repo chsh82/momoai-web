@@ -165,6 +165,40 @@ def reply(conv_id):
     return redirect(url_for('messages.conversation', conv_id=conv_id))
 
 
+@messages_bp.route('/<int:conv_id>/poll')
+@login_required
+def poll(conv_id):
+    """AJAX 폴링: since_id 이후의 새 메시지 반환"""
+    _require_teacher_or_admin()
+    uid = current_user.user_id
+
+    conv = Conversation.query.get_or_404(conv_id)
+    if conv.user1_id != uid and conv.user2_id != uid:
+        abort(403)
+
+    since_id = request.args.get('since', 0, type=int)
+    new_msgs = ConversationMessage.query.filter(
+        ConversationMessage.conversation_id == conv_id,
+        ConversationMessage.message_id > since_id
+    ).order_by(ConversationMessage.created_at).all()
+
+    # 상대방 메시지 읽음 처리
+    for m in new_msgs:
+        if m.sender_id != uid and not m.is_read:
+            m.mark_read()
+    if any(m.sender_id != uid for m in new_msgs):
+        db.session.commit()
+
+    return jsonify([{
+        'id': m.message_id,
+        'body': m.body,
+        'is_mine': m.sender_id == uid,
+        'sender_name': m.sender.name if m.sender else '',
+        'created_at': m.created_at.strftime('%m/%d %H:%M'),
+        'is_read': m.is_read,
+    } for m in new_msgs])
+
+
 @messages_bp.route('/unread-count')
 @login_required
 def unread_count():
