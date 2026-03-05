@@ -1584,7 +1584,7 @@
                     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
                 });
                 const json = sub.toJSON();
-                await fetch('/notifications/push/subscribe', {
+                const res = await fetch('/notifications/push/subscribe', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -1593,24 +1593,53 @@
                         auth: json.keys.auth
                     })
                 });
-                console.log('[Push] Subscribed');
+                if (res.ok) {
+                    console.log('[Push] Subscribed OK');
+                    localStorage.setItem('push-subscribed', '1');
+                    localStorage.removeItem('push-dismissed');
+                } else {
+                    console.warn('[Push] Server error:', res.status);
+                    localStorage.removeItem('push-subscribed'); // 실패 시 플래그 삭제 → 재시도 가능
+                }
                 if (pushBanner) pushBanner.style.display = 'none';
-                localStorage.setItem('push-subscribed', 'true');
             } catch (e) {
                 console.warn('[Push] Subscribe failed:', e);
+                localStorage.removeItem('push-subscribed');
                 if (pushBanner) pushBanner.style.display = 'none';
             }
         }
 
         async function checkAndShowBanner() {
             if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+            if (Notification.permission === 'denied') return;
+
             if (Notification.permission === 'granted') {
-                // 이미 허용 — 구독 확인 후 저장 (갱신)
-                if (!localStorage.getItem('push-subscribed')) subscribeAndSave();
+                // 이미 허용됨 — 서버에 구독 확인 후 없으면 재등록
+                try {
+                    const statusRes = await fetch('/notifications/push/status');
+                    const status = await statusRes.json();
+                    if (!status.subscribed) {
+                        console.log('[Push] No subscription on server, re-subscribing...');
+                        localStorage.removeItem('push-subscribed');
+                        await subscribeAndSave();
+                    } else {
+                        localStorage.setItem('push-subscribed', '1');
+                    }
+                } catch(e) {
+                    // 네트워크 오류 시 localStorage 기반으로 fallback
+                    if (!localStorage.getItem('push-subscribed')) await subscribeAndSave();
+                }
                 return;
             }
-            if (Notification.permission === 'denied') return;
-            if (localStorage.getItem('push-dismissed')) return;
+
+            // 권한 미결정 상태 — 배너 표시
+            const dismissed = localStorage.getItem('push-dismissed');
+            if (dismissed) {
+                // 7일 후 재표시
+                const dismissedAt = parseInt(dismissed, 10);
+                if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return;
+                localStorage.removeItem('push-dismissed');
+            }
 
             // 5초 후 배너 표시
             setTimeout(() => {
@@ -1631,7 +1660,7 @@
         if (dismissBtn) {
             dismissBtn.addEventListener('click', () => {
                 if (pushBanner) pushBanner.style.display = 'none';
-                localStorage.setItem('push-dismissed', 'true');
+                localStorage.setItem('push-dismissed', String(Date.now())); // 타임스탬프 저장
             });
         }
 

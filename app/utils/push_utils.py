@@ -10,17 +10,24 @@ def send_push_to_user(user_id, title, body, url='/notifications'):
     from app.models import db
 
     vapid_private_key = current_app.config.get('VAPID_PRIVATE_KEY')
-    vapid_claims_sub = current_app.config.get('VAPID_CLAIMS_SUB', 'mailto:contact@momoai.com')
+    vapid_claims_sub = current_app.config.get('VAPID_CLAIMS_SUB', 'mailto:contact@momoai.kr')
 
     if not vapid_private_key:
-        return  # VAPID 키 미설정 시 무시
+        current_app.logger.warning('[Push] VAPID_PRIVATE_KEY not set — skipping push')
+        return
 
     try:
         from pywebpush import webpush, WebPushException
     except ImportError:
-        return  # pywebpush 미설치 시 무시
+        current_app.logger.warning('[Push] pywebpush not installed — skipping push')
+        return
 
     subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
+    if not subscriptions:
+        current_app.logger.info(f'[Push] No subscriptions for user {user_id}')
+        return
+
+    current_app.logger.info(f'[Push] Sending to user {user_id}: {len(subscriptions)} subscription(s)')
     expired_ids = []
 
     for sub in subscriptions:
@@ -34,15 +41,16 @@ def send_push_to_user(user_id, title, body, url='/notifications'):
                 vapid_private_key=vapid_private_key,
                 vapid_claims={'sub': vapid_claims_sub}
             )
+            current_app.logger.info(f'[Push] Sent OK to sub #{sub.id}')
         except WebPushException as e:
-            # 410 Gone / 404 = 구독 만료 → 삭제
+            status = e.response.status_code if e.response else 'no-response'
+            current_app.logger.warning(f'[Push] WebPushException sub#{sub.id} status={status}: {e}')
             if e.response and e.response.status_code in (404, 410):
                 expired_ids.append(sub.id)
-            else:
-                current_app.logger.warning(f'[Push] send failed: {e}')
         except Exception as e:
-            current_app.logger.warning(f'[Push] error: {e}')
+            current_app.logger.warning(f'[Push] Unexpected error sub#{sub.id}: {e}')
 
     if expired_ids:
+        current_app.logger.info(f'[Push] Removing {len(expired_ids)} expired subscription(s)')
         PushSubscription.query.filter(PushSubscription.id.in_(expired_ids)).delete()
         db.session.commit()

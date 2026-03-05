@@ -106,6 +106,14 @@ def vapid_public_key():
     return jsonify({'public_key': key})
 
 
+@notifications_bp.route('/push/status')
+@login_required
+def push_status():
+    """현재 사용자의 Push 구독 존재 여부 반환"""
+    count = PushSubscription.query.filter_by(user_id=current_user.user_id).count()
+    return jsonify({'subscribed': count > 0, 'count': count})
+
+
 @notifications_bp.route('/push/subscribe', methods=['POST'])
 @login_required
 def push_subscribe():
