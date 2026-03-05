@@ -1615,6 +1615,23 @@ def create_class_board_post(course_id):
 
         db.session.commit()
 
+        # 담당 강사에게 알림 발송
+        teacher_id = course.teacher_id
+        if teacher_id and teacher_id != current_user.user_id:
+            try:
+                post_url = url_for('teacher.class_board_post_detail',
+                                   course_id=course_id, post_id=post.post_id)
+                Notification.create_notification(
+                    user_id=teacher_id,
+                    notification_type='class_board',
+                    title=f'📋 새 게시글: {post.title}',
+                    message=f'{current_user.name} 학생이 "{course.name}" 게시판에 글을 작성했습니다.',
+                    link_url=post_url,
+                    related_user_id=current_user.user_id
+                )
+            except Exception:
+                pass
+
         flash('게시글이 등록되었습니다.', 'success')
         return redirect(url_for('student.class_board_post_detail',
                               course_id=course_id,
@@ -1812,6 +1829,23 @@ def add_class_board_comment(course_id, post_id):
     # 댓글 수 증가
     post.comment_count += 1
     db.session.commit()
+
+    # 담당 강사에게 알림 발송
+    teacher_id = post.course.teacher_id
+    if teacher_id and teacher_id != current_user.user_id:
+        try:
+            post_url = url_for('teacher.class_board_post_detail',
+                               course_id=course_id, post_id=post_id)
+            Notification.create_notification(
+                user_id=teacher_id,
+                notification_type='class_board',
+                title=f'💬 새 댓글: {post.title}',
+                message=f'{current_user.name} 학생이 "{post.course.name}" 게시판 글에 댓글을 달았습니다.',
+                link_url=post_url,
+                related_user_id=current_user.user_id
+            )
+        except Exception:
+            pass
 
     flash('댓글이 등록되었습니다.', 'success')
     return redirect(url_for('student.class_board_post_detail',
