@@ -11,11 +11,16 @@
                 <h2 class="text-3xl font-bold text-gray-800">🔔 알림 센터</h2>
                 <p class="text-gray-600 mt-1">읽지 않은 알림: <span class="font-bold text-blue-600">{{ unread_count }}개</span></p>
             </div>
-            {% if unread_count > 0 %}
-            <button onclick="markAllAsRead()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                모두 읽음 처리
-            </button>
-            {% endif %}
+            <div class="flex flex-col items-end gap-2">
+                {% if unread_count > 0 %}
+                <button onclick="markAllAsRead()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    모두 읽음 처리
+                </button>
+                {% endif %}
+                <a href="{{ url_for('notifications.push_debug') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
+                    🔧 Push 진단
+                </a>
+            </div>
         </div>
     </div>
 
@@ -54,11 +59,6 @@
                 ✅ 첨삭완료
             </a>
         </div>
-    </div>
-
-    <!-- Push 진단 링크 -->
-    <div class="mb-4 text-right">
-        <a href="{{ url_for('notifications.push_debug') }}" class="text-xs text-gray-400 underline">🔧 Push 진단</a>
     </div>
 
     <!-- 새 알림 도착 배너 (폴링 시 표시) -->
