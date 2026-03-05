@@ -27,7 +27,7 @@ class LoginForm(FlaskForm):
     password = PasswordField('비밀번호', validators=[
         DataRequired(message='비밀번호를 입력해주세요.')
     ])
-    remember_me = BooleanField('로그인 상태 유지')
+    remember_me = BooleanField('로그인 상태 유지', default=True)
     submit = SubmitField('로그인')
 
 

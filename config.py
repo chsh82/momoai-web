@@ -56,7 +56,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Flask-Login 설정
-    REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 7  # 7일
+    REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 30  # 30일
 
     # 파일 업로드 설정
     MAX_CONTENT_LENGTH = MAX_CONTENT_LENGTH

@@ -48,9 +48,11 @@
             </div>
 
             <!-- Remember me -->
-            <div class="mb-6 flex items-center">
-                {{ form.remember_me(class="mr-2") }}
-                {{ form.remember_me.label(class="text-gray-700") }}
+            <div class="mb-6">
+                <label class="flex items-center gap-3 cursor-pointer select-none">
+                    {{ form.remember_me(class="w-5 h-5 rounded border-gray-300 text-blue-600 cursor-pointer", checked=True) }}
+                    <span class="text-gray-700 text-sm">로그인 상태 유지 <span class="text-gray-400">(30일)</span></span>
+                </label>
             </div>
 
             <!-- Submit button -->
