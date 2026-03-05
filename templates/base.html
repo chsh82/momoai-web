@@ -74,8 +74,8 @@
         </svg>
     </button>
 
-    <!-- Push Notification Permission Banner -->
-    {% if current_user.is_authenticated and config.VAPID_PUBLIC_KEY %}
+    <!-- Push Notification Permission Banner (항상 렌더링, JS로 제어) -->
+    {% if current_user.is_authenticated %}
     <div id="push-banner"
          style="display: none; z-index: 9990;"
          class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-2xl">
@@ -1561,12 +1561,13 @@
     });
 
     // ── Web Push 알림 ──────────────────────────────────────────────
-    {% if current_user.is_authenticated and config.VAPID_PUBLIC_KEY %}
+    {% if current_user.is_authenticated %}
     (function() {
-        const VAPID_PUBLIC_KEY = '{{ config.VAPID_PUBLIC_KEY }}';
         const pushBanner = document.getElementById('push-banner');
-        const allowBtn = document.getElementById('push-allow-btn');
+        const allowBtn   = document.getElementById('push-allow-btn');
         const dismissBtn = document.getElementById('push-dismiss-btn');
+
+        if (!pushBanner) return; // 배너 엘리먼트 없으면 종료
 
         // base64url → Uint8Array 변환
         function urlBase64ToUint8Array(base64String) {
@@ -1576,12 +1577,23 @@
             return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
         }
 
-        async function subscribeAndSave() {
+        // VAPID 공개키를 서버 API에서 가져옴 (서버 사이드 조건 불필요)
+        async function getVapidKey() {
+            try {
+                const res = await fetch('/notifications/push/vapid-public-key');
+                const data = await res.json();
+                return data.public_key || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function subscribeAndSave(vapidKey) {
             try {
                 const sw = await navigator.serviceWorker.ready;
                 const sub = await sw.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey)
                 });
                 const json = sub.toJSON();
                 const res = await fetch('/notifications/push/subscribe', {
@@ -1599,72 +1611,86 @@
                     localStorage.removeItem('push-dismissed');
                 } else {
                     console.warn('[Push] Server error:', res.status);
-                    localStorage.removeItem('push-subscribed'); // 실패 시 플래그 삭제 → 재시도 가능
+                    localStorage.removeItem('push-subscribed');
                 }
-                if (pushBanner) pushBanner.style.display = 'none';
             } catch (e) {
                 console.warn('[Push] Subscribe failed:', e);
                 localStorage.removeItem('push-subscribed');
-                if (pushBanner) pushBanner.style.display = 'none';
             }
+            pushBanner.style.display = 'none';
         }
 
-        async function checkAndShowBanner() {
-            if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+        async function initPush() {
+            // 브라우저 지원 확인
+            if (!('PushManager' in window) || !('serviceWorker' in navigator)) {
+                console.log('[Push] Not supported in this browser');
+                return;
+            }
             if (Notification.permission === 'denied') return;
 
+            // VAPID 키 확인
+            const vapidKey = await getVapidKey();
+            if (!vapidKey) {
+                console.warn('[Push] VAPID key not available on server');
+                return;
+            }
+
             if (Notification.permission === 'granted') {
-                // 이미 허용됨 — 서버에 구독 확인 후 없으면 재등록
+                // 이미 허용 — 서버에 구독 여부 확인
                 try {
                     const statusRes = await fetch('/notifications/push/status');
                     const status = await statusRes.json();
                     if (!status.subscribed) {
-                        console.log('[Push] No subscription on server, re-subscribing...');
+                        console.log('[Push] Permission granted but no server subscription — re-subscribing');
                         localStorage.removeItem('push-subscribed');
-                        await subscribeAndSave();
+                        await subscribeAndSave(vapidKey);
                     } else {
                         localStorage.setItem('push-subscribed', '1');
                     }
                 } catch(e) {
-                    // 네트워크 오류 시 localStorage 기반으로 fallback
-                    if (!localStorage.getItem('push-subscribed')) await subscribeAndSave();
+                    if (!localStorage.getItem('push-subscribed')) await subscribeAndSave(vapidKey);
                 }
                 return;
             }
 
-            // 권한 미결정 상태 — 배너 표시
+            // 권한 미결정 — 배너 표시 여부 결정
             const dismissed = localStorage.getItem('push-dismissed');
             if (dismissed) {
-                // 7일 후 재표시
                 const dismissedAt = parseInt(dismissed, 10);
-                if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return;
+                if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return; // 7일 내 dismissed
                 localStorage.removeItem('push-dismissed');
             }
 
-            // 5초 후 배너 표시
-            setTimeout(() => {
-                if (pushBanner) pushBanner.style.display = 'block';
-            }, 5000);
+            // 3초 후 배너 표시
+            setTimeout(() => { pushBanner.style.display = 'block'; }, 3000);
+
+            // 버튼 핸들러 등록
+            if (allowBtn) {
+                allowBtn.addEventListener('click', async () => {
+                    pushBanner.style.display = 'none';
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') await subscribeAndSave(vapidKey);
+                });
+            }
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    pushBanner.style.display = 'none';
+                    localStorage.setItem('push-dismissed', String(Date.now()));
+                });
+            }
         }
 
-        if (allowBtn) {
-            allowBtn.addEventListener('click', async () => {
-                if (pushBanner) pushBanner.style.display = 'none';
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    await subscribeAndSave();
-                }
-            });
+        // SW ready 또는 4초 타임아웃 후 초기화 (SW 설치 대기 방지)
+        let initialized = false;
+        function runOnce() {
+            if (initialized) return;
+            initialized = true;
+            initPush();
         }
-
-        if (dismissBtn) {
-            dismissBtn.addEventListener('click', () => {
-                if (pushBanner) pushBanner.style.display = 'none';
-                localStorage.setItem('push-dismissed', String(Date.now())); // 타임스탬프 저장
-            });
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(runOnce);
         }
-
-        navigator.serviceWorker.ready.then(() => checkAndShowBanner());
+        setTimeout(runOnce, 4000); // fallback: SW가 준비 안 돼도 4초 후 실행
     })();
     {% endif %}
     </script>
