@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# .env 파일 로드
-load_dotenv()
-
 BASE_DIR = Path(__file__).parent
+
+# .env 파일 명시적 경로로 로드 (실행 디렉터리와 무관하게 동작)
+load_dotenv(BASE_DIR / '.env')
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 OUTPUT_FOLDER = BASE_DIR / 'outputs'
 HTML_FOLDER = OUTPUT_FOLDER / 'html'
