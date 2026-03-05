@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}메시지함 - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">💬 메시지함</h2>
+            <p class="text-gray-500 text-sm mt-1">강사 · 관리자 간 내부 메시지</p>
+        </div>
+        <a href="{{ url_for('messages.new_conversation') }}"
+           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+            ✉️ 새 메시지
+        </a>
+    </div>
+
+    {% if conversations %}
+    <div class="bg-white rounded-xl shadow divide-y divide-gray-100">
+        {% for conv in conversations %}
+        {% set other = conv.get_other_user(current_user.user_id) %}
+        {% set unread = unread_map.get(conv.conversation_id, 0) %}
+        {% set last = last_messages.get(conv.conversation_id) %}
+        <a href="{{ url_for('messages.conversation', conv_id=conv.conversation_id) }}"
+           class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition group">
+            <!-- 아바타 -->
+            <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg shrink-0">
+                {{ (other.name or '?')[0] }}
+            </div>
+            <!-- 내용 -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-0.5">
+                    <span class="font-semibold text-gray-800 group-hover:text-blue-600 transition
+                                 {% if unread > 0 %}text-gray-900{% endif %}">
+                        {{ other.name }}
+                        <span class="text-xs font-normal text-gray-400 ml-1">
+                            ({{ '관리자' if other.role == 'admin' else '강사' }})
+                        </span>
+                    </span>
+                    <span class="text-xs text-gray-400 shrink-0 ml-2">
+                        {{ conv.last_message_at.strftime('%m/%d %H:%M') }}
+                    </span>
+                </div>
+                {% if last %}
+                <p class="text-sm text-gray-500 truncate
+                          {% if unread > 0 %}font-medium text-gray-700{% endif %}">
+                    {% if last.sender_id == current_user.user_id %}<span class="text-gray-400">나: </span>{% endif %}
+                    {{ last.body }}
+                </p>
+                {% else %}
+                <p class="text-sm text-gray-400 italic">메시지 없음</p>
+                {% endif %}
+            </div>
+            <!-- 미읽은 배지 -->
+            {% if unread > 0 %}
+            <span class="bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                {{ unread }}
+            </span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-12 text-center">
+        <span class="text-5xl block mb-4">💬</span>
+        <p class="text-gray-500">아직 대화가 없습니다.</p>
+        <a href="{{ url_for('messages.new_conversation') }}"
+           class="mt-4 inline-block px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+            첫 메시지 보내기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

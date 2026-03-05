@@ -191,6 +191,9 @@ def create_app(config_name='default'):
     from app.news import news_bp
     app.register_blueprint(news_bp)
 
+    from app.messages import messages_bp
+    app.register_blueprint(messages_bp)
+
     # Context processor: 미읽은 알림 카운트 주입
     @app.context_processor
     def inject_unread_counts():
@@ -236,6 +239,22 @@ def create_app(config_name='default'):
                     q = q.filter(~_UserModel.user_id.in_(exclude_ids))
                 pending_users = q.count()
 
+            # DM 미읽은 수 (강사/관리자만)
+            dm_unread = 0
+            if current_user.role in ('admin', 'teacher'):
+                from app.models.conversation import Conversation, ConversationMessage
+                dm_unread = ConversationMessage.query.join(
+                    Conversation,
+                    ConversationMessage.conversation_id == Conversation.conversation_id
+                ).filter(
+                    db.or_(
+                        Conversation.user1_id == current_user.user_id,
+                        Conversation.user2_id == current_user.user_id
+                    ),
+                    ConversationMessage.sender_id != current_user.user_id,
+                    ConversationMessage.is_read == False
+                ).count()
+
             counts = {
                 'homework': hw,
                 'announcement': ann,
@@ -244,6 +263,7 @@ def create_app(config_name='default'):
                 'feedback': _count(['teacher_feedback', 'consultation']),
                 'new_submission': _count('essay_submitted'),  # 강사용: 새 제출 건수
                 'pending_users': pending_users,  # 관리자용: 승인 대기
+                'dm': dm_unread,  # DM 미읽은 수
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),
