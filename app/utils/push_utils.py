@@ -45,7 +45,7 @@ def send_push_to_user(user_id, title, body, url='/notifications'):
         except WebPushException as e:
             status = e.response.status_code if e.response else 'no-response'
             current_app.logger.warning(f'[Push] WebPushException sub#{sub.id} status={status}: {e}')
-            if e.response and e.response.status_code in (404, 410):
+            if e.response and e.response.status_code in (400, 403, 404, 410):
                 expired_ids.append(sub.id)
         except Exception as e:
             current_app.logger.warning(f'[Push] Unexpected error sub#{sub.id}: {e}')
