@@ -1488,7 +1488,20 @@
     <!-- PWA Service Worker 등록 -->
     <script>
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
+            // 오래된 SW(scope=/static/ 등) 정리
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                    if (reg.scope && reg.scope.includes('/static')) {
+                        await reg.unregister();
+                        console.log('[PWA] Unregistered stale SW:', reg.scope);
+                    }
+                }
+            } catch(e) {
+                console.warn('[PWA] Failed to clean stale SW:', e);
+            }
+
             navigator.serviceWorker.register('/sw.js', { scope: '/' })
                 .then(registration => {
                     console.log('[PWA] Service Worker registered:', registration.scope);

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <title>Push 진단 - MOMOAI</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,18 +18,21 @@
         .ok  { color: #16a34a; }
         .warn { color: #d97706; }
         .err { color: #dc2626; }
-        .pending { color: #2563eb; }
         .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
         .btn-primary { background: #2563eb; color: white; }
         .btn-danger  { background: #dc2626; color: white; }
+        .btn-purple  { background: #7c3aed; color: white; }
+        .btn-green   { background: #16a34a; color: white; }
         .btn-gray    { background: #e2e8f0; color: #475569; }
         .log { background: #1e293b; color: #94a3b8; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; margin-top: 8px; }
         .sub-item { font-size: 12px; color: #64748b; padding: 4px 0; word-break: break-all; }
         .notice { font-size: 13px; color: #475569; background: #fef9c3; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.6; }
+        .sw-stale { color: #dc2626; font-size: 12px; padding: 3px 0; word-break: break-all; }
+        .sw-ok    { color: #16a34a; font-size: 12px; padding: 3px 0; word-break: break-all; }
     </style>
 </head>
 <body>
-<h1>🔔 Push 진단</h1>
+<h1>🔔 Push 진단 <span style="font-size:12px;color:#94a3b8;font-weight:400;">v2</span></h1>
 <p class="notice">⚠️ 이 페이지는 <strong>홈 화면에 추가한 앱(PWA)</strong>에서 열어야 정확한 결과가 나옵니다. Safari 브라우저에서는 Push를 지원하지 않습니다.</p>
 
 <!-- 서버 상태 (서버에서 렌더링) -->
@@ -71,7 +75,11 @@
         <span class="val" id="notifPermission">-</span>
     </div>
     <div class="row">
-        <span class="label">SW 등록 상태</span>
+        <span class="label">SW 등록 수</span>
+        <span class="val" id="swCount">-</span>
+    </div>
+    <div class="row">
+        <span class="label">SW 등록 상태 (루트)</span>
         <span class="val" id="swState">-</span>
     </div>
     <div class="row">
@@ -86,6 +94,10 @@
         <span class="label">localStorage 상태</span>
         <span class="val" id="lsState">-</span>
     </div>
+    <div id="swListWrap" style="margin-top:8px;display:none;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:4px;font-weight:600;">등록된 SW 목록:</div>
+        <div id="swList"></div>
+    </div>
 </div>
 
 <!-- 액션 -->
@@ -94,6 +106,8 @@
     <button class="btn btn-primary" onclick="forceSubscribe()">🔔 강제 구독 시도</button>
     <button class="btn btn-gray" onclick="checkStatus()" style="margin-top:8px;">🔄 상태 새로고침</button>
     <button class="btn btn-danger" onclick="clearAndResub()" style="margin-top:8px;">🗑️ 구독 초기화 후 재구독</button>
+    <button class="btn btn-purple" onclick="cleanStaleSW()" style="margin-top:8px;">🧹 오래된 SW 정리 후 재등록</button>
+    <button class="btn btn-green" onclick="sendTestPush()" style="margin-top:8px;">📨 서버 테스트 Push 발송</button>
 </div>
 
 <!-- 로그 -->
@@ -105,6 +119,8 @@
 <script>
 const VAPID_PUB = '{{ vapid_pub }}';
 let logLines = [];
+// iOS에서 subscribe 직후 getSubscription()이 null을 반환하는 버그 우회용
+let lastKnownSub = null;
 
 function log(msg, type) {
     const prefix = type === 'ok' ? '✅' : type === 'err' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
@@ -132,62 +148,94 @@ async function checkStatus() {
     document.getElementById('browserLoading').textContent = '(확인 중…)';
     log('상태 확인 시작');
 
-    // SW 지원
     const swOk = 'serviceWorker' in navigator;
     set('swSupport', swOk ? '✅ 지원' : '❌ 미지원', swOk ? 'ok' : 'err');
     log('ServiceWorker: ' + (swOk ? '지원' : '미지원'), swOk ? 'ok' : 'err');
 
-    // PushManager 지원
     const pmOk = 'PushManager' in window;
     set('pushSupport', pmOk ? '✅ 지원' : '❌ 미지원 (Safari 브라우저일 수 있음)', pmOk ? 'ok' : 'err');
     log('PushManager: ' + (pmOk ? '지원' : '미지원 → PWA에서 열어야 함'), pmOk ? 'ok' : 'err');
 
-    // 알림 권한
     const perm = Notification.permission;
     const permCls = perm === 'granted' ? 'ok' : perm === 'denied' ? 'err' : 'warn';
-    const permText = perm === 'granted' ? '✅ 허용' : perm === 'denied' ? '❌ 차단됨' : '⚠️ 미결정 (배너에서 허용해야 함)';
+    const permText = perm === 'granted' ? '✅ 허용' : perm === 'denied' ? '❌ 차단됨' : '⚠️ 미결정';
     set('notifPermission', permText, permCls);
     log('알림 권한: ' + perm, permCls);
 
-    // localStorage
     const lsSub = localStorage.getItem('push-subscribed');
     const lsDis = localStorage.getItem('push-dismissed');
     set('lsState', `subscribed=${lsSub||'없음'} / dismissed=${lsDis ? new Date(parseInt(lsDis)).toLocaleDateString() : '없음'}`, '');
     log(`localStorage: subscribed=${lsSub} dismissed=${lsDis}`);
 
-    // SW 등록 상태
     if (swOk) {
         try {
             const regs = await navigator.serviceWorker.getRegistrations();
+            const staleRegs = regs.filter(r => r.scope.includes('/static'));
+            set('swCount',
+                regs.length + '개' + (staleRegs.length > 0 ? ` (오래된 SW ${staleRegs.length}개 포함)` : ''),
+                regs.length === 0 ? 'err' : staleRegs.length > 0 ? 'warn' : 'ok');
+            log(`SW 등록 수: ${regs.length}개` + (staleRegs.length > 0 ? ` — 오래된 SW 감지! "🧹 오래된 SW 정리" 버튼을 눌러주세요` : ''),
+                staleRegs.length > 0 ? 'warn' : 'ok');
+
+            const swListWrap = document.getElementById('swListWrap');
+            const swListEl = document.getElementById('swList');
+            if (regs.length > 0) {
+                swListWrap.style.display = 'block';
+                swListEl.innerHTML = regs.map((r, i) => {
+                    const state = r.active ? r.active.state : (r.installing ? 'installing' : 'waiting');
+                    const isStale = r.scope.includes('/static');
+                    return `<div class="${isStale ? 'sw-stale' : 'sw-ok'}">[${i}] ${r.scope} | ${state}${isStale ? ' ⚠️ 오래된 SW' : ' ✅'}</div>`;
+                }).join('');
+            }
+
             if (regs.length === 0) {
                 set('swState', '❌ 등록 없음', 'err');
                 set('swVersion', '-', '');
+                set('browserSub', '-', '');
                 log('SW 등록 없음', 'err');
             } else {
-                const reg = regs[0];
-                const state = reg.active ? reg.active.state : (reg.installing ? 'installing' : 'waiting');
-                set('swState', '✅ ' + state, 'ok');
-                log('SW 상태: ' + state + ' / scope: ' + reg.scope, 'ok');
+                const rootReg = regs.find(r => !r.scope.includes('/static')) || regs[0];
+                const state = rootReg.active ? rootReg.active.state : (rootReg.installing ? 'installing' : 'waiting');
+                const isRootScope = !rootReg.scope.includes('/static');
+                set('swState', (isRootScope ? '✅' : '⚠️') + ' ' + state + ' (scope: ' + rootReg.scope + ')', isRootScope ? 'ok' : 'warn');
+                if (!isRootScope) log('scope가 /static/ — "🧹 오래된 SW 정리" 버튼을 눌러주세요', 'warn');
+                log('루트 SW 상태: ' + state + ' / scope: ' + rootReg.scope, isRootScope ? 'ok' : 'warn');
 
-                // SW에 버전 요청
-                if (reg.active) {
+                if (rootReg.active) {
                     const mc = new MessageChannel();
                     mc.port1.onmessage = e => {
                         set('swVersion', e.data || '응답없음', e.data ? 'ok' : 'warn');
                         log('SW 버전: ' + e.data);
                     };
-                    reg.active.postMessage({type: 'GET_VERSION'}, [mc.port2]);
-                    setTimeout(() => { if (document.getElementById('swVersion').textContent === '-') set('swVersion', '응답없음', 'warn'); }, 2000);
+                    rootReg.active.postMessage({type: 'GET_VERSION'}, [mc.port2]);
+                    setTimeout(() => {
+                        if (document.getElementById('swVersion').textContent === '-') {
+                            set('swVersion', '응답없음 (오래된 SW)', 'warn');
+                            log('SW 버전 응답없음 — 오래된 SW라 GET_VERSION 핸들러 없음', 'warn');
+                        }
+                    }, 2000);
                 }
 
-                // 브라우저 Push 구독
-                const sub = await reg.pushManager.getSubscription();
-                if (sub) {
-                    set('browserSub', '✅ 있음: ' + sub.endpoint.slice(-30), 'ok');
-                    log('브라우저 구독 엔드포인트: ' + sub.endpoint, 'ok');
+                // 모든 SW에서 Push 구독 확인 + iOS 버그 우회 (lastKnownSub)
+                let foundSub = null;
+                for (const reg of regs) {
+                    try {
+                        const sub = await reg.pushManager.getSubscription();
+                        if (sub) { foundSub = sub; log('구독 발견 scope: ' + reg.scope, 'ok'); break; }
+                    } catch(e) {}
+                }
+
+                // iOS bug 우회: getSubscription이 null이어도 방금 subscribe 성공했으면 표시
+                if (!foundSub && lastKnownSub) {
+                    set('browserSub', '✅ 있음(iOS캐시): …' + lastKnownSub.endpoint.slice(-40), 'ok');
+                    log('getSubscription()=null (iOS bug) — 직전 구독 성공 기록 사용: ' + lastKnownSub.endpoint, 'warn');
+                } else if (foundSub) {
+                    lastKnownSub = { endpoint: foundSub.endpoint };
+                    set('browserSub', '✅ 있음: …' + foundSub.endpoint.slice(-40), 'ok');
+                    log('브라우저 구독 엔드포인트: ' + foundSub.endpoint, 'ok');
                 } else {
-                    set('browserSub', '❌ 없음', 'err');
-                    log('브라우저 Push 구독 없음', 'err');
+                    set('browserSub', '❌ 없음 (모든 SW 확인)', 'err');
+                    log('브라우저 Push 구독 없음 (모든 SW 확인)', 'err');
                 }
             }
         } catch(e) {
@@ -206,7 +254,6 @@ async function forceSubscribe() {
     if (!VAPID_PUB) { log('VAPID Public Key 없음', 'err'); return; }
 
     try {
-        // 권한 요청
         let perm = Notification.permission;
         if (perm === 'denied') { log('알림이 차단됨. 설정에서 직접 허용해야 합니다', 'err'); return; }
         if (perm !== 'granted') {
@@ -217,16 +264,14 @@ async function forceSubscribe() {
         }
 
         const sw = await navigator.serviceWorker.ready;
-        log('SW ready ✅');
+        log('SW ready ✅ (scope: ' + sw.scope + ')');
 
-        // 기존 구독 해제
         const existing = await sw.pushManager.getSubscription();
         if (existing) {
             await existing.unsubscribe();
             log('기존 브라우저 구독 해제', 'warn');
         }
 
-        // 새 구독
         log('새 Push 구독 생성 중…');
         const sub = await sw.pushManager.subscribe({
             userVisibleOnly: true,
@@ -234,8 +279,10 @@ async function forceSubscribe() {
         });
         log('브라우저 구독 성공: ' + sub.endpoint, 'ok');
 
-        // 서버에 저장
+        // iOS bug 우회: 구독 성공 즉시 기억
         const json = sub.toJSON();
+        lastKnownSub = { endpoint: json.endpoint };
+
         log('서버 저장 시도…');
         const res = await fetch('/notifications/push/subscribe', {
             method: 'POST',
@@ -246,7 +293,7 @@ async function forceSubscribe() {
         if (res.ok) {
             log('서버 저장 성공 (HTTP ' + res.status + ')', 'ok');
             localStorage.setItem('push-subscribed', '1');
-            alert('✅ 구독 성공! 페이지를 새로고침하면 서버 구독 수가 증가합니다.');
+            log('✅ 구독 완료! 이제 "📨 서버 테스트 Push 발송"으로 실제 알림을 확인해보세요', 'ok');
         } else {
             log('서버 저장 실패 (HTTP ' + res.status + '): ' + body, 'err');
         }
@@ -260,26 +307,89 @@ async function forceSubscribe() {
 
 async function clearAndResub() {
     log('초기화 시작');
+    lastKnownSub = null;
     localStorage.removeItem('push-subscribed');
     localStorage.removeItem('push-dismissed');
-    // 서버 구독 삭제
     try {
-        const sw = await navigator.serviceWorker.ready;
-        const sub = await sw.pushManager.getSubscription();
-        if (sub) {
-            await fetch('/notifications/push/unsubscribe', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({endpoint: sub.endpoint})
-            });
-            await sub.unsubscribe();
-            log('기존 구독 삭제 완료', 'warn');
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                await fetch('/notifications/push/unsubscribe', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({endpoint: sub.endpoint})
+                });
+                await sub.unsubscribe();
+                log('구독 삭제 완료 (scope: ' + reg.scope + ')', 'warn');
+            }
         }
     } catch(e) { log('해제 중 오류: ' + e.message, 'warn'); }
     log('재구독 시도');
     await forceSubscribe();
 }
 
-// 페이지 로드 시 자동 실행
+async function cleanStaleSW() {
+    log('오래된 SW 정리 시작');
+    lastKnownSub = null;
+    try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        log('현재 등록된 SW: ' + regs.length + '개');
+        for (const reg of regs) {
+            try {
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    await fetch('/notifications/push/unsubscribe', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({endpoint: sub.endpoint})
+                    });
+                    await sub.unsubscribe();
+                    log('구독 해제: ' + reg.scope, 'warn');
+                }
+            } catch(e) {}
+            await reg.unregister();
+            log('SW 제거: ' + reg.scope, 'warn');
+        }
+        localStorage.removeItem('push-subscribed');
+        localStorage.removeItem('push-dismissed');
+
+        log('새 SW 등록 중… (scope: /)');
+        const newReg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        log('새 SW 등록 완료: scope=' + newReg.scope, 'ok');
+        await navigator.serviceWorker.ready;
+        log('SW 활성화 완료 ✅ — 이제 "🔔 강제 구독 시도"를 눌러주세요', 'ok');
+    } catch(e) {
+        log('SW 정리 오류: ' + e.message, 'err');
+    }
+    await checkStatus();
+}
+
+async function sendTestPush() {
+    log('서버 테스트 Push 발송 요청 중…');
+    try {
+        const res = await fetch('/notifications/push/test');
+        const data = await res.json();
+        log('VAPID Private Key: ' + (data.vapid_key_set ? '✅' : '❌'), data.vapid_key_set ? 'ok' : 'err');
+        log('서버 구독 수: ' + (data.subscriptions ? data.subscriptions.length : 0) + '개');
+        if (data.error) {
+            log('오류: ' + data.error, 'err');
+        }
+        if (data.send_results) {
+            for (const r of data.send_results) {
+                if (r.ok) {
+                    log('발송 성공 (sub #' + r.id + ') — 알림이 도착해야 합니다!', 'ok');
+                } else {
+                    log('발송 실패 (sub #' + r.id + '): ' + r.error, 'err');
+                }
+            }
+        }
+        if (!data.send_results || data.send_results.length === 0) {
+            log('발송할 구독 없음 — 먼저 "🔔 강제 구독 시도"를 해주세요', 'warn');
+        }
+    } catch(e) {
+        log('테스트 Push 요청 오류: ' + e.message, 'err');
+    }
+}
+
 window.addEventListener('load', checkStatus);
 </script>
 </body>

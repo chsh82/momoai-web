@@ -1,4 +1,4 @@
-const CACHE_NAME = 'momoai-v4.3.0';
+const CACHE_NAME = 'momoai-v4.3.1';
 const urlsToCache = [
   '/',
   '/static/manifest.json',
@@ -387,4 +387,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SW v4.3.0] Service Worker loaded');
+console.log('[SW v4.3.1] Service Worker loaded');
