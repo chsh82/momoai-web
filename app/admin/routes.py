@@ -367,6 +367,10 @@ def edit_course(course_id):
     teachers = User.query.filter_by(role='teacher', is_active=True).all()
     form.teacher_id.choices = [('', '-- 강사 선택 --')] + [(t.user_id, t.name) for t in teachers]
 
+    # GET 요청 시 is_terminated Boolean → 'Y'/'N' 변환
+    if request.method == 'GET':
+        form.is_terminated.data = 'Y' if course.is_terminated else 'N'
+
     if form.validate_on_submit():
         old_end_date = course.end_date
         old_schedule_type = course.schedule_type
@@ -388,6 +392,7 @@ def edit_course(course_id):
         course.price_per_session = form.price_per_session.data
         course.status = form.status.data
         course.makeup_class_allowed = form.makeup_class_allowed.data
+        course.is_terminated = (form.is_terminated.data == 'Y')
 
         # 종료일이 연장된 weekly 수업: 새 세션 자동 생성
         if (course.schedule_type == 'weekly' and course.weekday is not None
