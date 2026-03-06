@@ -368,6 +368,10 @@ def edit_course(course_id):
     form.teacher_id.choices = [('', '-- 강사 선택 --')] + [(t.user_id, t.name) for t in teachers]
 
     if form.validate_on_submit():
+        old_end_date = course.end_date
+        old_schedule_type = course.schedule_type
+        old_weekday = course.weekday
+
         course.course_name = form.course_name.data
         course.course_code = form.course_code.data
         course.description = form.description.data
@@ -384,6 +388,50 @@ def edit_course(course_id):
         course.price_per_session = form.price_per_session.data
         course.status = form.status.data
         course.makeup_class_allowed = form.makeup_class_allowed.data
+
+        # 종료일이 연장된 weekly 수업: 새 세션 자동 생성
+        if (course.schedule_type == 'weekly' and course.weekday is not None
+                and course.end_date and old_end_date
+                and course.end_date > old_end_date):
+            from app.utils.course_utils import create_attendance_records_for_session
+            from datetime import timedelta
+
+            # 마지막 기존 세션 날짜 찾기
+            last_session = (CourseSession.query
+                            .filter_by(course_id=course.course_id)
+                            .order_by(CourseSession.session_date.desc())
+                            .first())
+
+            if last_session:
+                next_date = last_session.session_date + timedelta(days=7)
+                next_number = last_session.session_number + 1
+            else:
+                # 세션이 없으면 start_date부터 지정 요일 찾기
+                next_date = course.start_date
+                while next_date.weekday() != course.weekday:
+                    next_date += timedelta(days=1)
+                next_number = 1
+
+            new_sessions = []
+            while next_date <= course.end_date:
+                session = CourseSession(
+                    course_id=course.course_id,
+                    session_number=next_number,
+                    session_date=next_date,
+                    start_time=course.start_time,
+                    end_time=course.end_time,
+                    status='scheduled'
+                )
+                db.session.add(session)
+                db.session.flush()
+                create_attendance_records_for_session(session)
+                new_sessions.append(session)
+                next_date += timedelta(days=7)
+                next_number += 1
+
+            course.total_sessions = (CourseSession.query
+                                     .filter_by(course_id=course.course_id)
+                                     .count())
 
         db.session.commit()
 
