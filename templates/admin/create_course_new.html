@@ -238,14 +238,27 @@ function autoSelectWeekday() {
     generateCourseName();
 }
 
-// 종료일 자동 설정 (시작일과 동일하게)
+// 종료일 자동 설정 (수업 타입에 따라)
+const ONETIME_COURSE_TYPES = ['보강수업', '모의고사', '체험단', '특강'];
+
 function autoSetEndDate() {
     const startDateInput = document.querySelector('input[name="start_date"]');
     const endDateInput = document.querySelector('input[name="end_date"]');
+    const courseTypeSelect = document.querySelector('select[name="course_type"]');
 
-    if (startDateInput && startDateInput.value) {
-        // 종료일을 시작일과 동일하게 설정
+    if (!startDateInput || !startDateInput.value) return;
+
+    const courseType = courseTypeSelect ? courseTypeSelect.value : '';
+
+    if (ONETIME_COURSE_TYPES.includes(courseType)) {
+        // 1회성 수업: 종료일 = 시작일
         endDateInput.value = startDateInput.value;
+    } else {
+        // 반복 수업 (정규반, 시그니처, 베이직, 프리미엄, 하크니스 등): 종료일 = 1년 후
+        const start = new Date(startDateInput.value);
+        const end = new Date(start);
+        end.setFullYear(end.getFullYear() + 1);
+        endDateInput.value = end.toISOString().split('T')[0];
     }
 }
 
@@ -384,9 +397,9 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!startDateInput.value) {
         startDateInput.value = today;
     }
-    // 종료일 기본값: 시작일과 동일
+    // 종료일 기본값: 수업 타입에 따라 자동 설정
     if (!endDateInput.value) {
-        endDateInput.value = startDateInput.value;
+        autoSetEndDate();
     }
     // 시작 시간 기본값: 12:00
     if (!startTimeInput.value) {
@@ -394,7 +407,13 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     autoSelectWeekday();
-    autoSetEndTime();  // 종료 시간 자동 설정 (기본 +60분)
+    autoSetEndTime();
+
+    // 수업 타입 변경 시 종료일 재계산
+    const courseTypeSelect = document.querySelector('select[name="course_type"]');
+    if (courseTypeSelect) {
+        courseTypeSelect.addEventListener('change', autoSetEndDate);
+    }
 });
 </script>
 {% endblock %}
