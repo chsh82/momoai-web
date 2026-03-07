@@ -26,15 +26,16 @@
         <h2 class="text-xl font-bold text-gray-800 mb-4">📋 목차</h2>
         <div class="grid grid-cols-2 gap-2 text-sm">
             <a href="#section-login"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>1.</span> 로그인 및 기본 설정</a>
-            <a href="#section-courses"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>2.</span> 수업 확인</a>
-            <a href="#section-attend"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>3.</span> 출결 현황</a>
-            <a href="#section-essay"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>4.</span> 글쓰기 제출 (에세이)</a>
-            <a href="#section-assign"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>5.</span> 과제 확인 및 제출</a>
-            <a href="#section-material" class="flex items-center gap-2 text-blue-600 hover:underline"><span>6.</span> 학습 교재 및 동영상</a>
-            <a href="#section-makeup"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>7.</span> 보강수업 신청</a>
-            <a href="#section-board"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>8.</span> 게시판</a>
-            <a href="#section-eval"     class="flex items-center gap-2 text-blue-600 hover:underline"><span>9.</span> 평가 및 테스트</a>
-            <a href="#section-faq"      class="flex items-center gap-2 text-blue-600 hover:underline"><span>10.</span> 자주 묻는 질문</a>
+            <a href="#section-notify"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>2.</span> 앱 설치 및 알림</a>
+            <a href="#section-courses"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>3.</span> 수업 확인</a>
+            <a href="#section-attend"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>4.</span> 출결 현황</a>
+            <a href="#section-essay"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>5.</span> 글쓰기 제출 (에세이)</a>
+            <a href="#section-assign"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>6.</span> 과제 확인 및 제출</a>
+            <a href="#section-material" class="flex items-center gap-2 text-blue-600 hover:underline"><span>7.</span> 학습 교재 및 동영상</a>
+            <a href="#section-makeup"   class="flex items-center gap-2 text-blue-600 hover:underline"><span>8.</span> 보강수업 신청</a>
+            <a href="#section-board"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>9.</span> 게시판</a>
+            <a href="#section-eval"     class="flex items-center gap-2 text-blue-600 hover:underline"><span>10.</span> 평가 및 테스트</a>
+            <a href="#section-faq"      class="flex items-center gap-2 text-blue-600 hover:underline"><span>11.</span> 자주 묻는 질문</a>
         </div>
     </div>
 
@@ -63,10 +64,76 @@
         </div>
     </div>
 
-    <!-- 2. 수업 확인 -->
-    <div id="section-courses" class="bg-white rounded-lg shadow p-6 mb-6">
+    <!-- 2. 앱 설치 및 알림 -->
+    <div id="section-notify" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
             <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">2</span>
+            앱 설치 및 알림
+        </h2>
+        <div class="space-y-4 text-gray-700 text-sm leading-relaxed">
+
+            <!-- PWA 설치 -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <p class="font-semibold text-indigo-800 mb-2">📱 홈 화면에 앱 추가하기 (PWA)</p>
+                <p class="text-indigo-700 text-xs mb-3">앱스토어 없이 스마트폰 홈 화면에 아이콘을 추가해 앱처럼 사용할 수 있습니다. <strong>첨삭 완료, 과제, 공지 알림을 Push로 받으려면 앱 설치가 필요합니다.</strong></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="bg-white rounded-lg p-3 border border-indigo-100">
+                        <p class="font-semibold text-gray-800 mb-2">🍎 iPhone (iOS)</p>
+                        <ol class="list-decimal list-inside space-y-1 text-xs text-gray-700">
+                            <li>Safari에서 <strong>momoai.kr</strong> 접속</li>
+                            <li>하단 공유 버튼 <strong>( □↑ )</strong> 탭</li>
+                            <li><strong>"홈 화면에 추가"</strong> 선택 후 추가</li>
+                            <li>홈 화면 아이콘으로 실행 후 알림 허용</li>
+                        </ol>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-indigo-100">
+                        <p class="font-semibold text-gray-800 mb-2">🤖 Android</p>
+                        <ol class="list-decimal list-inside space-y-1 text-xs text-gray-700">
+                            <li>Chrome에서 <strong>momoai.kr</strong> 접속</li>
+                            <li>화면 하단 <strong>"홈 화면에 추가"</strong> 배너 탭</li>
+                            <li>또는 Chrome 메뉴(⋮) → <strong>"앱 설치"</strong></li>
+                            <li>설치 후 알림 허용</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800">
+                    ⚠️ Push 알림은 Safari 브라우저가 아닌 <strong>홈 화면 앱(PWA)</strong>으로 실행할 때만 작동합니다. (iOS 16.4 이상)
+                </div>
+            </div>
+
+            <!-- 알림 유형 -->
+            <div>
+                <p class="font-semibold text-gray-800 mb-2">🔔 받게 되는 알림 종류</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div class="flex items-start gap-2 bg-green-50 rounded-lg p-3">
+                        <span class="text-green-600 text-lg mt-0.5">✓</span>
+                        <div><p class="font-medium text-green-800 text-xs">첨삭 완료 알림</p><p class="text-green-700 text-xs">강사가 내 에세이 첨삭을 완료했을 때</p></div>
+                    </div>
+                    <div class="flex items-start gap-2 bg-blue-50 rounded-lg p-3">
+                        <span class="text-blue-600 text-lg mt-0.5">📋</span>
+                        <div><p class="font-medium text-blue-800 text-xs">과제 등록 알림</p><p class="text-blue-700 text-xs">강사가 새 과제를 출제했을 때</p></div>
+                    </div>
+                    <div class="flex items-start gap-2 bg-purple-50 rounded-lg p-3">
+                        <span class="text-purple-600 text-lg mt-0.5">📢</span>
+                        <div><p class="font-medium text-purple-800 text-xs">수업 공지 알림</p><p class="text-purple-700 text-xs">강사가 수업 공지를 등록했을 때</p></div>
+                    </div>
+                    <div class="flex items-start gap-2 bg-orange-50 rounded-lg p-3">
+                        <span class="text-orange-600 text-lg mt-0.5">🔄</span>
+                        <div><p class="font-medium text-orange-800 text-xs">보강수업 결과 알림</p><p class="text-orange-700 text-xs">보강수업 신청이 승인/거절됐을 때</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border-l-4 border-gray-400 p-3 rounded text-xs text-gray-700">
+                💡 알림은 상단 사이드바의 <strong>🔔 알림</strong> 메뉴에서도 언제든지 확인할 수 있습니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 수업 확인 -->
+    <div id="section-courses" class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">3</span>
             수업 확인
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -94,7 +161,7 @@
     <!-- 3. 출결 현황 -->
     <div id="section-attend" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">3</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
             출결 현황
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -115,7 +182,7 @@
     <!-- 4. 글쓰기 제출 -->
     <div id="section-essay" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">5</span>
             글쓰기 제출 (에세이)
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -135,7 +202,7 @@
     <!-- 5. 과제 -->
     <div id="section-assign" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">5</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
             과제 확인 및 제출
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -155,7 +222,7 @@
     <!-- 6. 학습 교재 및 동영상 -->
     <div id="section-material" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
             학습 교재 및 동영상
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -178,7 +245,7 @@
     <!-- 7. 보강수업 -->
     <div id="section-makeup" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">8</span>
             보강수업 신청
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -195,7 +262,7 @@
     <!-- 8. 게시판 -->
     <div id="section-board" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">8</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">9</span>
             게시판
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -219,7 +286,7 @@
     <!-- 9. 평가 및 테스트 -->
     <div id="section-eval" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">9</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">10</span>
             평가 및 테스트
         </h2>
         <div class="space-y-3 text-sm text-gray-700">
@@ -243,7 +310,7 @@
     <!-- 10. FAQ -->
     <div id="section-faq" class="bg-white rounded-lg shadow p-6 mb-6">
         <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
-            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">10</span>
+            <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">11</span>
             자주 묻는 질문 (FAQ)
         </h2>
         <div class="space-y-3">
