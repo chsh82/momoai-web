@@ -507,7 +507,7 @@ v3.3.0 필수 포함 사항:
     def _call_elem_step(self, elem_system: str, messages: list,
                         step_name: str, student_name: str,
                         user_id=None, essay_id=None) -> str:
-        """초등 모델 단계별 API 호출 (max_tokens=4096, retry 포함)"""
+        """초등 모델 단계별 API 호출 (max_tokens=8192, retry 포함)"""
         import time
         max_retries = 3
         retry_delays = [30, 60, 120]
@@ -520,7 +520,7 @@ v3.3.0 필수 포함 사항:
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=4096,
+                    max_tokens=8192,
                     timeout=300.0,
                     system=[
                         {
@@ -784,32 +784,68 @@ v3.3.0 필수 포함 사항:
         db.session.commit()
 
         try:
-            # 완료된 첨삭의 경우 이전 버전의 HTML 내용을 기반으로 수정
-            if is_finalized and essay.latest_version:
-                essay_text = essay.latest_version.html_content
-                notes = None
-                is_revision_of_completed = True
-            else:
-                # 미완료 첨삭은 원문 기반
-                essay_text = essay.original_text
-                notes = None
-                if essay.notes:
-                    notes = '\n'.join([note.content for note in essay.notes])
-                is_revision_of_completed = False
+            model = getattr(essay, 'correction_model', 'standard') or 'standard'
 
-            # 재생성
-            html_content = self.analyze_essay(
-                student_name=student_name,
-                grade=essay.grade,
-                essay_text=essay_text,
-                notes=notes,
-                revision_note=revision_note,
-                teacher_name=teacher_name,
-                is_revision_of_completed=is_revision_of_completed,
-                user_id=essay.user_id,
-                essay_id=essay.essay_id,
-                usage_type='regeneration',
-            )
+            # 초등 모델은 항상 원문 기반으로 재생성 (HTML 입력 불가)
+            if model == 'elementary':
+                notes_parts = []
+                if essay.notes:
+                    notes_parts.append('\n'.join([note.content for note in essay.notes]))
+                if getattr(essay, 'teacher_guide', None):
+                    notes_parts.append(f'[강사 가이드]\n{essay.teacher_guide}')
+                if revision_note:
+                    notes_parts.append(f'[수정 요청]\n{revision_note}')
+                notes_combined = '\n\n'.join(notes_parts) if notes_parts else None
+
+                html_content = self.analyze_essay_elementary(
+                    student_name=student_name,
+                    grade=essay.grade,
+                    essay_text=essay.original_text,
+                    notes=notes_combined,
+                    teacher_name=teacher_name,
+                    user_id=essay.user_id,
+                    essay_id=essay.essay_id,
+                )
+            else:
+                # 완료된 첨삭의 경우 이전 버전의 HTML 내용을 기반으로 수정
+                if is_finalized and essay.latest_version:
+                    essay_text = essay.latest_version.html_content
+                    notes = None
+                    is_revision_of_completed = True
+                else:
+                    # 미완료 첨삭은 원문 기반
+                    essay_text = essay.original_text
+                    notes = None
+                    if essay.notes:
+                        notes = '\n'.join([note.content for note in essay.notes])
+                    if getattr(essay, 'teacher_guide', None):
+                        teacher_guide_text = f'[강사 가이드]\n{essay.teacher_guide}'
+                        notes = (notes + '\n\n' + teacher_guide_text) if notes else teacher_guide_text
+                    is_revision_of_completed = False
+
+                if model == 'standard':
+                    html_content = self.analyze_essay_standard(
+                        student_name=student_name,
+                        grade=essay.grade,
+                        essay_text=essay_text,
+                        notes=notes,
+                        teacher_name=teacher_name,
+                        user_id=essay.user_id,
+                        essay_id=essay.essay_id,
+                    )
+                else:  # harkness
+                    html_content = self.analyze_essay(
+                        student_name=student_name,
+                        grade=essay.grade,
+                        essay_text=essay_text,
+                        notes=notes,
+                        revision_note=revision_note,
+                        teacher_name=teacher_name,
+                        is_revision_of_completed=is_revision_of_completed,
+                        user_id=essay.user_id,
+                        essay_id=essay.essay_id,
+                        usage_type='regeneration',
+                    )
 
             # HTML 저장
             filename = self.generate_filename(

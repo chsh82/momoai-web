@@ -616,6 +616,13 @@ def regenerate(essay_id):
     if form.validate_on_submit():
         revision_note = form.revision_note.data
 
+        # 모델 및 강사 가이드 업데이트 (재생성 시 변경 가능)
+        new_model = request.form.get('correction_model', '').strip()
+        if new_model in ('standard', 'elementary', 'harkness'):
+            essay.correction_model = new_model
+        new_guide = request.form.get('teacher_guide', '').strip()
+        essay.teacher_guide = new_guide or None
+
         # 세션에 revision_note 저장
         session[f'revision_note_{essay_id}'] = revision_note
 
