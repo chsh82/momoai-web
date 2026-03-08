@@ -103,6 +103,37 @@
     </div>
     {% endif %}
 
+    <!-- iOS Safari Install Guide Banner -->
+    <div id="ios-install-banner"
+         style="display: none; z-index: 9985;"
+         class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <span class="text-2xl flex-shrink-0 mt-0.5">📱</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-sm text-white">앱으로 설치하면 알림을 받을 수 있어요</p>
+                        <p class="text-xs text-gray-300 mt-0.5">아이폰은 앱 설치 후에만 Push 알림이 가능합니다.</p>
+                        <div class="flex items-center gap-1 mt-2 text-xs text-yellow-300 font-medium flex-wrap">
+                            <span>설치 방법:</span>
+                            <span class="bg-white bg-opacity-10 px-2 py-0.5 rounded">Safari 하단</span>
+                            <span>→</span>
+                            <span class="bg-white bg-opacity-10 px-2 py-0.5 rounded">공유 □↑</span>
+                            <span>→</span>
+                            <span class="bg-white bg-opacity-10 px-2 py-0.5 rounded">홈 화면에 추가</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="ios-install-dismiss"
+                        class="flex-shrink-0 text-gray-400 hover:text-white p-1.5 rounded transition mt-0.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- PWA Install Banner -->
     <div id="pwa-install-banner"
          style="display: none; z-index: 9980;"
@@ -1581,6 +1612,37 @@
             showNotification('success', '앱 설치 완료!', '이제 홈 화면에서 MOMOAI를 사용할 수 있습니다.');
         }
     });
+
+    // ── iOS Safari 설치 안내 배너 ────────────────────────────────
+    (function() {
+        const iosBanner = document.getElementById('ios-install-banner');
+        const iosDismiss = document.getElementById('ios-install-dismiss');
+        if (!iosBanner) return;
+
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const isStandalone = (window.navigator.standalone === true);
+        // Chrome on iOS: CriOS, Firefox: FxiOS — push 미지원이므로 동일하게 안내
+        const isSafariBased = !/CriOS|FxiOS|OPiOS/.test(navigator.userAgent);
+
+        // iOS Safari이고 아직 홈 화면 앱으로 실행 중이 아닌 경우
+        if (!isIOS || isStandalone) return;
+
+        // 7일 이내 닫은 경우 표시 안 함
+        const dismissedAt = parseInt(localStorage.getItem('ios-install-dismissed') || '0', 10);
+        if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return;
+
+        // 2초 후 배너 표시
+        setTimeout(() => {
+            iosBanner.style.display = 'block';
+        }, 2000);
+
+        if (iosDismiss) {
+            iosDismiss.addEventListener('click', () => {
+                iosBanner.style.display = 'none';
+                localStorage.setItem('ios-install-dismissed', String(Date.now()));
+            });
+        }
+    })();
 
     // ── Web Push 알림 ──────────────────────────────────────────────
     {% if current_user.is_authenticated %}
