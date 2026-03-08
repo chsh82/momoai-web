@@ -209,14 +209,53 @@
             <span class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
             첨삭 (에세이)
         </h2>
-        <div class="space-y-3 text-sm text-gray-700">
-            <p>학생이 에세이를 제출하면 강사에게 <strong>알림</strong>이 발송됩니다.</p>
-            <ol class="list-decimal list-inside space-y-2 bg-gray-50 rounded-lg p-4">
-                <li>좌측 상단 <strong>🔔 알림</strong>에서 새 제출 알림을 확인합니다.</li>
-                <li>또는 사이드바 <strong>학습 관리 → 에세이 첨삭</strong>에서 목록을 확인합니다.</li>
-                <li>에세이를 열어 내용을 확인하고 <strong>첨삭 및 점수를 입력</strong>합니다.</li>
-                <li>AI 자동 첨삭 기능을 활용하면 초안을 빠르게 생성할 수 있습니다.</li>
-            </ol>
+        <div class="space-y-4 text-sm text-gray-700">
+
+            <!-- 기본 흐름 -->
+            <div>
+                <p class="mb-2">학생(또는 학부모)이 글을 제출하면 강사에게 <strong>알림</strong>이 발송됩니다.</p>
+                <ol class="list-decimal list-inside space-y-2 bg-gray-50 rounded-lg p-4">
+                    <li>좌측 상단 <strong>🔔 알림</strong>에서 새 제출 알림을 확인합니다.</li>
+                    <li>또는 사이드바 <strong>학습 관리 → 에세이 첨삭</strong>에서 전체 목록을 확인합니다.</li>
+                    <li>에세이를 열어 첨삭 모델을 선택하고 <strong>AI 첨삭 시작</strong>을 클릭합니다.</li>
+                    <li>결과를 검토한 뒤 <strong>완료</strong> 버튼으로 최종 처리합니다.</li>
+                </ol>
+            </div>
+
+            <!-- AI 첨삭 모델 -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <p class="font-semibold text-indigo-800 mb-2">AI 첨삭 모델 종류</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                    <div class="bg-white rounded-lg p-2 border border-indigo-100">
+                        <p class="font-semibold text-gray-800 mb-1">스탠다드</p>
+                        <p class="text-gray-600">중·고등학생 일반 논술 첨삭. 기본 모델입니다.</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-2 border border-indigo-100">
+                        <p class="font-semibold text-gray-800 mb-1">🌱 초등</p>
+                        <p class="text-gray-600">초등 1~5학년 전용. 아이 눈높이 어투, 성장 단계 등급으로 결과가 생성됩니다.</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-2 border border-indigo-100">
+                        <p class="font-semibold text-gray-800 mb-1">하크니스</p>
+                        <p class="text-gray-600">토론 수업 전용. 하크니스 토론 방식에 맞춘 첨삭이 생성됩니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 재생성 및 추가 기능 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p class="font-semibold text-yellow-800 mb-1 text-xs">수정 요청 (재생성)</p>
+                    <p class="text-yellow-700 text-xs">첨삭 결과 화면에서 <strong>수정 요청</strong> 버튼을 클릭하면 모델·강사 가이드·수정 요청 사항을 입력해 재생성할 수 있습니다. 버전 이력이 자동 저장됩니다.</p>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p class="font-semibold text-green-800 mb-1 text-xs">강사 첨부파일 추가</p>
+                    <p class="text-green-700 text-xs">첨삭 결과 페이지에서 직접 작성한 파일(이미지, PDF 등)을 추가로 첨부할 수 있습니다. 학부모가 첨삭 결과와 함께 확인합니다.</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded text-xs text-blue-800">
+                💡 학부모가 자녀를 대신해 제출한 글도 동일하게 처리됩니다. 알림 메세지에 <strong>"학부모 대리 제출"</strong>이 표시됩니다.
+            </div>
         </div>
     </div>
 
@@ -336,7 +375,9 @@
                 ('출석을 잘못 체크했어요.', '수업 목록 → 해당 수업 → 세션 클릭 → 출석 현황에서 언제든지 수정 가능합니다.'),
                 ('피드백을 작성했는데 학생이 볼 수 있나요?', '아니요. 피드백은 학부모와 관리자만 열람할 수 있습니다. 학생에게는 표시되지 않습니다.'),
                 ('수업 공지를 보냈는데 학부모한테도 가나요?', '메세지 작성 시 "학부모 포함 발송" 체크박스를 선택한 경우에만 학부모에게도 알림이 발송됩니다.'),
-                ('학생이 에세이를 제출하면 어떻게 알 수 있나요?', '알림(🔔)에 새 제출 알림이 표시됩니다. 알림을 클릭하면 바로 이동됩니다.'),
+                ('학생이 에세이를 제출하면 어떻게 알 수 있나요?', '알림(🔔)에 새 제출 알림이 표시됩니다. 학부모가 대신 제출한 경우도 동일하게 알림이 옵니다.'),
+                ('AI 첨삭 결과가 마음에 들지 않아요.', '첨삭 결과 화면에서 "수정 요청" 버튼을 클릭해 모델·가이드·요청사항을 입력하면 재생성됩니다. 이전 버전은 버전 히스토리에서 확인할 수 있습니다.'),
+                ('초등학생 첨삭은 어떤 모델을 선택해야 하나요?', '"🌱 초등" 모델을 선택하세요. 초등 1~5학년에 맞는 어투와 성장 단계 등급(씨앗/새싹/꽃봉오리/꽃/열매)으로 결과가 생성됩니다.'),
                 ('수업에 학생을 추가하거나 빼고 싶어요.', '수강생 변경은 관리자만 가능합니다. 관리자에게 요청해 주세요.'),
                 ('비밀번호를 변경하고 싶어요.', '좌측 하단 프로필 → 비밀번호 변경에서 직접 변경할 수 있습니다.')
             ] %}
