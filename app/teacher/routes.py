@@ -536,6 +536,36 @@ def update_attendance(attendance_id):
     update_enrollment_attendance_stats(attendance.enrollment_id)
     db.session.commit()
 
+    # 결석/지각 즉시 알림 → 학부모 Push
+    if new_status in ('absent', 'late'):
+        try:
+            from app.models.notification import Notification
+            from app.utils.push_utils import send_push_to_user
+            student = attendance.student
+            status_label = '결석' if new_status == 'absent' else '지각'
+            date_str = session.session_date.strftime('%m/%d')
+            msg = f'{date_str} {course.course_name} 수업에 {status_label} 처리되었습니다.'
+            parents = ParentStudent.query.filter_by(
+                student_id=student.student_id, is_active=True
+            ).all()
+            for ps in parents:
+                db.session.add(Notification(
+                    user_id=ps.parent_id,
+                    notification_type='attendance_absent',
+                    title=f'{student.name} 학생 {status_label} 알림',
+                    message=msg,
+                    link_url='/parent/attendance'
+                ))
+                send_push_to_user(
+                    user_id=ps.parent_id,
+                    title=f'{student.name} 학생 {status_label} 알림',
+                    body=msg,
+                    url='/parent/attendance'
+                )
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f'[Push] 결석 알림 오류: {e}')
+
     return jsonify({
         'success': True,
         'attendance_id': attendance_id,
@@ -3231,6 +3261,35 @@ def ace_weekly():
 
             db.session.add(weekly_eval)
             db.session.commit()
+
+            # 주간 평가 등록 → 학부모 Push
+            try:
+                from app.models.notification import Notification
+                from app.utils.push_utils import send_push_to_user
+                student_obj = Student.query.get(student_id)
+                if student_obj:
+                    grade_label = weekly_eval.grade or ''
+                    msg = f'{student_obj.name} 학생의 {eval_date.strftime("%m/%d")} 주차 평가가 등록되었습니다. (등급: {grade_label})'
+                    parents = ParentStudent.query.filter_by(
+                        student_id=student_id, is_active=True
+                    ).all()
+                    for ps in parents:
+                        db.session.add(Notification(
+                            user_id=ps.parent_id,
+                            notification_type='weekly_eval',
+                            title=f'{student_obj.name} 주간 평가 등록',
+                            message=msg,
+                            link_url='/parent/ace-evaluation'
+                        ))
+                        send_push_to_user(
+                            user_id=ps.parent_id,
+                            title=f'{student_obj.name} 주간 평가 등록',
+                            body=msg,
+                            url='/parent/ace-evaluation'
+                        )
+                    db.session.commit()
+            except Exception as e:
+                current_app.logger.warning(f'[Push] 주간 평가 알림 오류: {e}')
 
             flash('주차 평가가 저장되었습니다.', 'success')
             return redirect(url_for('teacher.ace_weekly'))

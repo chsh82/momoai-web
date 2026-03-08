@@ -412,11 +412,19 @@ def create_app(config_name='default'):
         except Exception as e:
             return str(e), 500
 
-    # 앱 시작 시 누락된 테이블 자동 생성 (api_usage_logs 등)
+    # 앱 시작 시 누락된 테이블 자동 생성
     with app.app_context():
         try:
             db.create_all()
         except Exception:
             pass
+
+    # 수업 리마인더 스케줄러 시작
+    try:
+        from app.utils.scheduler import init_scheduler
+        init_scheduler(app)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f'[Scheduler] 시작 실패: {e}')
 
     return app
