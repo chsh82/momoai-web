@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}글 제출하기 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('parent.essays_index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            &larr; 과제 및 첨삭
+        </a>
+        <h2 class="text-2xl font-bold text-gray-800">글 제출하기</h2>
+        <p class="text-gray-600 mt-1 text-sm">자녀를 선택하고 과제 글을 대신 제출합니다.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <form method="POST" action="{{ url_for('parent.submit_essay') }}" enctype="multipart/form-data" id="submitForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- 자녀 선택 -->
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-2">자녀 선택 <span class="text-red-500">*</span></label>
+                <select name="student_id" id="studentSelect"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        required onchange="onStudentChange(this.value)">
+                    <option value="">-- 자녀를 선택하세요 --</option>
+                    {% for child in children %}
+                    <option value="{{ child.student_id }}"
+                            data-teacher-id="{{ child.teacher_id or '' }}"
+                            {% if child.student_id == selected_student_id %}selected{% endif %}>
+                        {{ child.name }} ({{ child.grade }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 강사 선택 -->
+            <div class="mb-5" id="teacherSection">
+                <label class="block text-sm font-medium text-gray-700 mb-2">담당 강사</label>
+                <select name="teacher_id" id="teacherSelect"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">-- 기본 강사 (학생 배정 강사) --</option>
+                    {% for teacher in enrolled_teachers %}
+                    <option value="{{ teacher.user_id }}"
+                            {% if teacher.user_id == default_teacher_id %}selected{% endif %}>
+                        {{ teacher.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">선택하지 않으면 학생에게 배정된 기본 강사에게 전송됩니다.</p>
+            </div>
+
+            <!-- 제목 -->
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-2">제목 <span class="text-red-500">*</span></label>
+                <input type="text" name="title" id="titleInput"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="글 제목을 입력하세요" required>
+            </div>
+
+            <!-- 본문 -->
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-2">본문</label>
+                <textarea name="content" id="contentArea" rows="12"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm leading-relaxed"
+                          placeholder="글 내용을 입력하세요. 파일을 첨부하는 경우 비워두셔도 됩니다."></textarea>
+                <div class="text-right text-xs text-gray-400 mt-1">
+                    <span id="charCount">0</span>자
+                </div>
+            </div>
+
+            <!-- 파일 첨부 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">파일 첨부 <span class="text-gray-400 font-normal">(선택, 최대 10개)</span></label>
+                <input type="file" name="attachments" id="fileInput" multiple
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-500 mt-1">이미지, PDF, 문서 파일을 첨부할 수 있습니다.</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" id="submitBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-2.5 rounded-lg transition duration-200">
+                    제출하기
+                </button>
+                <a href="{{ url_for('parent.essays_index') }}"
+                   class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-8 py-2.5 rounded-lg transition duration-200">
+                    취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const contentArea = document.getElementById('contentArea');
+const charCount = document.getElementById('charCount');
+
+contentArea.addEventListener('input', function() {
+    charCount.textContent = this.value.length.toLocaleString();
+});
+
+function onStudentChange(studentId) {
+    if (!studentId) return;
+    // Reload page with selected student to get correct teacher list
+    const url = new URL(window.location.href);
+    url.searchParams.set('student_id', studentId);
+    window.location.href = url.toString();
+}
+
+// Preserve form values across student-change reload using sessionStorage
+(function() {
+    const titleInput = document.getElementById('titleInput');
+    const savedTitle = sessionStorage.getItem('essay_submit_title');
+    const savedContent = sessionStorage.getItem('essay_submit_content');
+    if (savedTitle) titleInput.value = savedTitle;
+    if (savedContent) { contentArea.value = savedContent; charCount.textContent = savedContent.length.toLocaleString(); }
+
+    titleInput.addEventListener('input', () => sessionStorage.setItem('essay_submit_title', titleInput.value));
+    contentArea.addEventListener('input', () => sessionStorage.setItem('essay_submit_content', contentArea.value));
+
+    document.getElementById('submitForm').addEventListener('submit', function() {
+        sessionStorage.removeItem('essay_submit_title');
+        sessionStorage.removeItem('essay_submit_content');
+    });
+})();
+</script>
+{% endblock %}

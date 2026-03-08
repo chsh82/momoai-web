@@ -824,6 +824,157 @@ def view_essay(student_id, essay_id):
                          essay=essay)
 
 
+@parent_bp.route('/essays/submit', methods=['GET', 'POST'])
+@login_required
+@requires_role('parent', 'admin')
+def submit_essay():
+    """자녀 대신 글 제출"""
+    import uuid
+    from werkzeug.utils import secure_filename
+    from app.models.course import Course
+
+    # 내 자녀 목록
+    parent_relations = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        is_active=True
+    ).all()
+    children = [pr.student for pr in parent_relations]
+
+    if not children:
+        flash('연결된 자녀가 없습니다. 먼저 자녀를 연결해주세요.', 'error')
+        return redirect(url_for('parent.link_requests'))
+
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        selected_teacher_id = request.form.get('teacher_id', '').strip() or None
+
+        # 권한 확인
+        relation = ParentStudent.query.filter_by(
+            parent_id=current_user.user_id,
+            student_id=student_id,
+            is_active=True
+        ).first()
+        if not relation and current_user.role != 'admin':
+            flash('접근 권한이 없습니다.', 'error')
+            return redirect(url_for('parent.submit_essay'))
+
+        student = Student.query.get_or_404(student_id)
+
+        if not title:
+            flash('제목을 입력해주세요.', 'error')
+            return redirect(url_for('parent.submit_essay'))
+
+        has_attachments = 'attachments' in request.files and any(
+            f.filename for f in request.files.getlist('attachments')
+        )
+        if not content and not has_attachments:
+            flash('본문 내용을 입력하거나 파일을 첨부해주세요.', 'error')
+            return redirect(url_for('parent.submit_essay'))
+
+        # 강사 결정: 선택한 강사 or 학생 기본 강사
+        if not selected_teacher_id:
+            selected_teacher_id = student.teacher_id
+
+        essay = Essay(
+            student_id=student.student_id,
+            user_id=selected_teacher_id,
+            title=title,
+            original_text=content,
+            grade=student.grade
+        )
+        db.session.add(essay)
+        db.session.flush()
+
+        # 수업-세션 자동 배정
+        try:
+            from app.utils.essay_utils import auto_assign_essay_session
+            auto_assign_essay_session(essay)
+        except Exception:
+            pass
+
+        # 다중 파일 첨부 처리
+        if 'attachments' in request.files:
+            import json
+            files = request.files.getlist('attachments')
+            if len(files) > 10:
+                flash('최대 10개의 파일만 업로드할 수 있습니다.', 'error')
+                return redirect(url_for('parent.submit_essay'))
+
+            uploaded_filenames = []
+            uploaded_paths = []
+            for file in files:
+                if file and file.filename:
+                    upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    original_filename = secure_filename(file.filename)
+                    file_ext = os.path.splitext(original_filename)[1]
+                    stored_filename = f"{uuid.uuid4().hex}{file_ext}"
+                    file_path = os.path.join(upload_folder, stored_filename)
+                    file.save(file_path)
+                    uploaded_filenames.append(original_filename)
+                    uploaded_paths.append(os.path.join('essays', stored_filename))
+
+            if uploaded_filenames:
+                import json
+                essay.attachment_filename = json.dumps(uploaded_filenames, ensure_ascii=False)
+                essay.attachment_path = json.dumps(uploaded_paths)
+
+        # 강사에게 알림
+        if selected_teacher_id:
+            notification = Notification(
+                user_id=selected_teacher_id,
+                notification_type='essay_submitted',
+                title='새 글쓰기 제출',
+                message=f'{student.name} 학생이 "{title}" 글쓰기를 제출했습니다. (학부모 대리 제출)',
+                link_url=url_for('essays.index')
+            )
+            db.session.add(notification)
+
+        db.session.commit()
+
+        if selected_teacher_id:
+            try:
+                from app.utils.push_utils import send_push_to_user
+                send_push_to_user(
+                    user_id=selected_teacher_id,
+                    title='새 글쓰기 제출',
+                    body=f'{student.name} 학생이 "{title}" 글쓰기를 제출했습니다.',
+                    url=url_for('essays.index')
+                )
+            except Exception:
+                pass
+
+        flash(f'{student.name} 학생의 글이 성공적으로 제출되었습니다.', 'success')
+        return redirect(url_for('parent.essays', student_id=student.student_id))
+
+    # GET: 첫 번째 자녀 기준으로 강사 목록 초기 로드
+    selected_student_id = request.args.get('student_id') or (children[0].student_id if children else None)
+    enrolled_teachers = []
+    default_teacher_id = None
+    if selected_student_id:
+        selected_student = Student.query.get(selected_student_id)
+        if selected_student:
+            enrolled_teachers = db.session.query(User).join(
+                Course, Course.teacher_id == User.user_id
+            ).join(
+                CourseEnrollment, CourseEnrollment.course_id == Course.course_id
+            ).filter(
+                CourseEnrollment.student_id == selected_student_id,
+                CourseEnrollment.status == 'active'
+            ).distinct().all()
+            default_teacher_id = selected_student.teacher_id
+            if not default_teacher_id and enrolled_teachers:
+                default_teacher_id = enrolled_teachers[0].user_id
+
+    return render_template('parent/essay_submit.html',
+                           children=children,
+                           enrolled_teachers=enrolled_teachers,
+                           default_teacher_id=default_teacher_id,
+                           selected_student_id=selected_student_id)
+
+
 # ==================== 학습 교재 (Teaching Materials) ====================
 
 @parent_bp.route('/materials')

@@ -857,8 +857,12 @@
                                 출결 현황
                             </a>
                             <a href="{{ url_for('parent.essays_index') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.essays' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.essays' in request.endpoint and request.endpoint != 'parent.submit_essay' %}text-green-600 bg-green-50{% endif %}">
                                 과제 및 첨삭
+                            </a>
+                            <a href="{{ url_for('parent.submit_essay') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'parent.submit_essay' %}text-green-600 bg-green-50{% endif %}">
+                                글 제출하기
                             </a>
                             <a href="{{ url_for('parent.materials_list') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.material' in request.endpoint or request.endpoint and 'parent.child_material' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
