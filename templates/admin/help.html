@@ -259,9 +259,9 @@
                 </div>
             </div>
 
-            <!-- 알림 유형 -->
+            <!-- 관리자 수신 알림 -->
             <div>
-                <p class="font-semibold text-gray-800 mb-2">🔔 관리자 알림 유형</p>
+                <p class="font-semibold text-gray-800 mb-2">🔔 관리자 수신 알림 유형</p>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs border border-gray-200 rounded-lg">
                         <thead class="bg-gray-50">
@@ -278,6 +278,29 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- 자동 발송 알림 (NEW) -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="font-semibold text-blue-800 mb-2">🤖 시스템 자동 발송 알림 <span class="bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded text-xs">NEW</span></p>
+                <p class="text-blue-700 text-xs mb-3">관리자 조작 없이 시스템이 자동으로 학생·학부모·강사에게 알림을 발송합니다.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border border-blue-200 rounded-lg bg-white">
+                        <thead class="bg-blue-100">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-semibold text-blue-800">알림 유형</th>
+                                <th class="px-3 py-2 text-left font-semibold text-blue-800">발생 시점</th>
+                                <th class="px-3 py-2 text-left font-semibold text-blue-800">수신 대상</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-blue-100">
+                            <tr><td class="px-3 py-2 font-medium">🚨 결석/지각 즉시 알림</td><td class="px-3 py-2">강사가 출석 체크에서 결석/지각 처리 시</td><td class="px-3 py-2">학부모</td></tr>
+                            <tr class="bg-blue-50"><td class="px-3 py-2 font-medium">⏰ 수업 1시간 전 리마인더</td><td class="px-3 py-2">매 30분마다 자동 확인 후 1시간 전 수업 감지</td><td class="px-3 py-2">학생 + 학부모</td></tr>
+                            <tr><td class="px-3 py-2 font-medium">📊 주간 평가 등록 알림</td><td class="px-3 py-2">강사가 주간 평가를 저장했을 때</td><td class="px-3 py-2">학부모</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-blue-600 text-xs mt-2">💡 리마인더는 수업 세션의 날짜와 시작 시간이 입력된 경우에만 발송됩니다.</p>
             </div>
 
             <!-- 알림 확인 방법 -->
