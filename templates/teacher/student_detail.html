@@ -30,29 +30,29 @@
     <!-- 탭 네비게이션 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="border-b border-gray-200">
-            <nav class="flex -mb-px">
+            <nav class="flex -mb-px overflow-x-auto">
                 <button onclick="showTab('basic')" id="tab-basic"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 whitespace-nowrap flex-shrink-0">
                     📋 기본정보
                 </button>
                 <button onclick="showTab('profile')" id="tab-profile"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex-shrink-0">
                     📝 프로필
                 </button>
                 <button onclick="showTab('mbti')" id="tab-mbti"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex-shrink-0">
                     🧠 MBTI
                 </button>
                 <button onclick="showTab('consultation')" id="tab-consultation"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex-shrink-0">
                     💬 상담이력
                 </button>
                 <button onclick="showTab('insights')" id="tab-insights"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex-shrink-0">
                     🤖 AI 인사이트
                 </button>
                 <button onclick="showTab('caution')" id="tab-caution"
-                        class="tab-button relative px-6 py-4 text-sm font-medium border-b-2 border-transparent
+                        class="tab-button relative px-6 py-4 text-sm font-medium border-b-2 border-transparent whitespace-nowrap flex-shrink-0
                                {% if active_cautions %}text-red-600{% else %}text-gray-500 hover:text-gray-700{% endif %} hover:border-gray-300">
                     ⚠️ 주의사항
                     {% if active_cautions %}
