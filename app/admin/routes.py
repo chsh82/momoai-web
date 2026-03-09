@@ -212,6 +212,10 @@ def create_course():
     teachers = User.query.filter_by(role='teacher', is_active=True).order_by(User.name).all()
     form.teacher_id.choices = [('', '-- 강사 선택 --')] + [(t.user_id, t.name) for t in teachers]
 
+    # GET 요청 시 시작일 기본값: 오늘
+    if request.method == 'GET' and not form.start_date.data:
+        form.start_date.data = datetime.utcnow().date()
+
     if form.validate_on_submit():
         # 강사 정보
         teacher = User.query.get(form.teacher_id.data)
@@ -2440,8 +2444,9 @@ def attendance_status():
 @login_required
 @requires_permission_level(2)  # 매니저 이상
 def all_schedule():
-    """전체 수업현황 - 강사별 시간표"""
+    """수업 현황 - 강사별 시간표 (일간/주간/월간)"""
     from datetime import timedelta
+    import calendar as cal_module
 
     # 전체 강사 목록
     teachers = User.query.filter_by(role='teacher', is_active=True)\
@@ -2456,56 +2461,111 @@ def all_schedule():
     if selected_teacher_id:
         selected_teacher = User.query.get(selected_teacher_id)
 
-    # 현재 주의 월요일 찾기
     today = datetime.utcnow().date()
-    weekday = today.weekday()  # 0=월요일, 6=일요일
-    week_start = today - timedelta(days=weekday)  # 이번 주 월요일
-    week_end = week_start + timedelta(days=6)  # 이번 주 일요일
+    view_mode = request.args.get('view', 'weekly')  # daily, weekly, monthly
 
-    # 주간 이동 (쿼리 파라미터)
-    week_offset = int(request.args.get('week', 0))
-    week_start = week_start + timedelta(weeks=week_offset)
-    week_end = week_start + timedelta(days=6)
-
-    weekly_schedule = {i: [] for i in range(7)}  # 0=월요일 ~ 6=일요일
-    sessions = []
-
+    # ── 공통: 강사 수업 ID 목록 ──
+    teacher_course_ids = []
     if selected_teacher:
-        # 선택된 강사의 수업
         teacher_courses = Course.query.filter_by(
             teacher_id=selected_teacher_id,
             status='active'
         ).all()
         teacher_course_ids = [c.course_id for c in teacher_courses]
 
-        if teacher_course_ids:
-            # 해당 주의 모든 세션
-            sessions = CourseSession.query.filter(
-                CourseSession.course_id.in_(teacher_course_ids),
-                CourseSession.session_date >= week_start,
-                CourseSession.session_date <= week_end
-            ).order_by(CourseSession.session_date, CourseSession.start_time).all()
+    # ── 일간 뷰 ──
+    day_offset = int(request.args.get('day', 0))
+    target_date = today + timedelta(days=day_offset)
+    daily_sessions = []
+    if view_mode == 'daily' and teacher_course_ids:
+        daily_sessions = CourseSession.query.filter(
+            CourseSession.course_id.in_(teacher_course_ids),
+            CourseSession.session_date == target_date
+        ).order_by(CourseSession.start_time).all()
 
-            # 요일별로 그룹화
-            for session in sessions:
-                day_index = session.session_date.weekday()
-                weekly_schedule[day_index].append(session)
+    # ── 주간 뷰 ──
+    weekday = today.weekday()
+    week_start = today - timedelta(days=weekday)
+    week_offset = int(request.args.get('week', 0))
+    week_start = week_start + timedelta(weeks=week_offset)
+    week_end = week_start + timedelta(days=6)
+
+    weekly_schedule = {i: [] for i in range(7)}
+    if view_mode == 'weekly' and teacher_course_ids:
+        sessions = CourseSession.query.filter(
+            CourseSession.course_id.in_(teacher_course_ids),
+            CourseSession.session_date >= week_start,
+            CourseSession.session_date <= week_end
+        ).order_by(CourseSession.session_date, CourseSession.start_time).all()
+        for session in sessions:
+            day_index = session.session_date.weekday()
+            weekly_schedule[day_index].append(session)
+
+    # ── 월간 뷰 ──
+    month_offset = int(request.args.get('month', 0))
+    base_year = today.year
+    base_month = today.month + month_offset
+    while base_month > 12:
+        base_month -= 12
+        base_year += 1
+    while base_month < 1:
+        base_month += 12
+        base_year -= 1
+    from datetime import date as date_cls
+    month_first = date_cls(base_year, base_month, 1)
+    month_last = date_cls(base_year, base_month, cal_module.monthrange(base_year, base_month)[1])
+
+    # 달력 그리드: 월요일 시작, 6주 × 7일
+    cal_grid = cal_module.monthcalendar(base_year, base_month)  # [[0,0,1,2,...], ...]
+
+    monthly_sessions = {}  # {date: [sessions]}
+    m_sessions_flat = []
+    if view_mode == 'monthly' and teacher_course_ids:
+        m_sessions_flat = CourseSession.query.filter(
+            CourseSession.course_id.in_(teacher_course_ids),
+            CourseSession.session_date >= month_first,
+            CourseSession.session_date <= month_last
+        ).order_by(CourseSession.start_time).all()
+        for s in m_sessions_flat:
+            monthly_sessions.setdefault(s.session_date, []).append(s)
+
+    # 뷰별 통계용 flat 세션 목록
+    if view_mode == 'daily':
+        stat_sessions = daily_sessions
+    elif view_mode == 'weekly':
+        stat_sessions = [s for day in weekly_schedule.values() for s in day]
+    else:
+        stat_sessions = m_sessions_flat
 
     # 시간대 범위 (8:00 ~ 22:00)
-    time_slots = []
-    for hour in range(8, 22):
-        time_slots.append(f"{hour:02d}:00")
+    time_slots = [f"{h:02d}:00" for h in range(8, 22)]
 
     return render_template('admin/all_schedule.html',
                          teachers=teachers,
                          selected_teacher=selected_teacher,
                          selected_teacher_id=selected_teacher_id,
+                         view_mode=view_mode,
+                         # daily
+                         target_date=target_date,
+                         day_offset=day_offset,
+                         daily_sessions=daily_sessions,
+                         # weekly
                          week_start=week_start,
                          week_end=week_end,
                          week_offset=week_offset,
                          weekly_schedule=weekly_schedule,
                          time_slots=time_slots,
+                         # monthly
+                         month_offset=month_offset,
+                         month_first=month_first,
+                         month_last=month_last,
+                         cal_grid=cal_grid,
+                         monthly_sessions=monthly_sessions,
+                         base_year=base_year,
+                         base_month=base_month,
+                         stat_sessions=stat_sessions,
                          today=today,
+                         date_cls=date_cls,
                          timedelta=timedelta)
 
 
