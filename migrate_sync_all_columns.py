@@ -5,6 +5,10 @@
 실행: venv/bin/python3 migrate_sync_all_columns.py
 """
 import sys
+import os
+
+# gunicorn과 동일한 DB 사용 (instance/momoai.db)
+os.environ.setdefault('DATABASE_URL', 'sqlite:///momoai.db')
 
 # Flask 앱 초기화
 from app import create_app
