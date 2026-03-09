@@ -1311,6 +1311,175 @@ def create_invoices():
     return redirect(url_for('admin.billing', period_id=period_id))
 
 
+# ────────────────────────────────────────────────────────────────
+# SMS 헬퍼
+# ────────────────────────────────────────────────────────────────
+
+def _build_sms_message(payment):
+    """수강료 안내 문자 내용 생성"""
+    student_name = payment.student.name if payment.student else '학생'
+    course_name = payment.course.course_name if payment.course else '수강 과목'
+
+    period_str = ''
+    if payment.period_start and payment.period_end:
+        period_str = (f"{payment.period_start.strftime('%Y년 %m월')} "
+                      f"({payment.period_start.strftime('%m/%d')}"
+                      f"~{payment.period_end.strftime('%m/%d')})")
+
+    lines = ['[momoAI 수강료 안내]', f'학생: {student_name}']
+    if period_str:
+        lines.append(f'기간: {period_str}')
+    lines.append(f'수업: {course_name}')
+    lines.append(f'청구액: {payment.amount:,}원')
+
+    if payment.discount_amount and payment.discount_amount > 0:
+        disc_labels = {
+            'sibling': '형제자매', 'acquaintance': '지인',
+            'employee': '직원', 'scholarship': '장학'
+        }
+        label = disc_labels.get(payment.discount_type or '', '할인')
+        lines.append(f'({label} {payment.discount_amount:,}원 할인 포함)')
+
+    if (payment.carried_over or 0) + (payment.free_used or 0) > 0:
+        parts = []
+        if payment.carried_over:
+            parts.append(f'이월{payment.carried_over}회')
+        if payment.free_used:
+            parts.append(f'무료{payment.free_used}회')
+        lines.append(f'({" ".join(parts)} 차감 포함)')
+
+    return '\n'.join(lines)
+
+
+def _get_sms_recipient(payment):
+    """수신자 전화번호·이름 반환 (학부모 우선, 없으면 학생)"""
+    from app.models.parent_student import ParentStudent
+    from app.models import User
+
+    relation = ParentStudent.query.filter_by(
+        student_id=payment.student_id,
+        is_active=True
+    ).first()
+    if relation:
+        parent = User.query.get(relation.parent_id)
+        if parent and parent.phone:
+            return parent.phone, parent.name or parent.username
+
+    student = payment.student
+    if student and student.phone:
+        return student.phone, student.name
+
+    return None, None
+
+
+@admin_bp.route('/api/payment/<payment_id>/sms-preview')
+@login_required
+@requires_permission_level(2)
+def payment_sms_preview(payment_id):
+    """SMS 발송 미리보기 API (모달에서 AJAX로 호출)"""
+    payment = Payment.query.get_or_404(payment_id)
+    phone, name = _get_sms_recipient(payment)
+    message = _build_sms_message(payment)
+
+    return jsonify({
+        'payment_id': payment_id,
+        'student_name': payment.student.name if payment.student else '',
+        'course_name': payment.course.course_name if payment.course else '',
+        'amount': payment.amount,
+        'recipient_phone': phone or '',
+        'recipient_name': name or '',
+        'message': message,
+        'already_sent': payment.sms_sent_at is not None,
+        'sent_at': payment.sms_sent_at.strftime('%Y-%m-%d %H:%M') if payment.sms_sent_at else None,
+    })
+
+
+@admin_bp.route('/billing/send-sms', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def send_payment_sms():
+    """청구서 1건 문자 발송 (AJAX)
+    Body: { payment_id, phone (optional override), message (optional override) }
+    """
+    from app.utils.sms import send_sms_message
+
+    data = request.get_json() or {}
+    payment_id = data.get('payment_id', '').strip()
+    if not payment_id:
+        return jsonify({'success': False, 'reason': 'payment_id 필수'}), 400
+
+    payment = Payment.query.get_or_404(payment_id)
+
+    phone = (data.get('phone') or '').strip()
+    if not phone:
+        phone, _ = _get_sms_recipient(payment)
+    if not phone:
+        return jsonify({'success': False, 'reason': '수신자 전화번호 없음. 학부모 또는 학생 연락처를 등록해주세요.'})
+
+    message = (data.get('message') or '').strip() or _build_sms_message(payment)
+
+    success, reason = send_sms_message(phone, message)
+    if success:
+        payment.sms_sent_at = datetime.utcnow()
+        db.session.commit()
+
+    return jsonify({
+        'success': success,
+        'reason': reason,
+        'sent_at': payment.sms_sent_at.strftime('%m/%d %H:%M') if payment.sms_sent_at else None,
+    })
+
+
+@admin_bp.route('/billing/send-sms-batch', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def send_payment_sms_batch():
+    """청구서 일괄 문자 발송 (AJAX)
+    Body: { payment_ids: [...] }
+    """
+    from app.utils.sms import send_sms_message
+
+    data = request.get_json() or {}
+    payment_ids = data.get('payment_ids', [])
+    if not payment_ids:
+        return jsonify({'success': False, 'reason': 'payment_ids 필수'}), 400
+
+    results = []
+    for pid in payment_ids:
+        payment = Payment.query.get(pid)
+        if not payment:
+            results.append({'payment_id': pid, 'success': False, 'reason': '청구서 없음'})
+            continue
+        if payment.sms_sent_at:
+            results.append({'payment_id': pid, 'success': True, 'reason': '이미 발송됨', 'skipped': True})
+            continue
+
+        phone, _ = _get_sms_recipient(payment)
+        if not phone:
+            results.append({'payment_id': pid, 'success': False, 'reason': '수신자 번호 없음'})
+            continue
+
+        message = _build_sms_message(payment)
+        success, reason = send_sms_message(phone, message)
+        if success:
+            payment.sms_sent_at = datetime.utcnow()
+        results.append({'payment_id': pid, 'success': success, 'reason': reason})
+
+    db.session.commit()
+
+    sent = sum(1 for r in results if r.get('success') and not r.get('skipped'))
+    skipped = sum(1 for r in results if r.get('skipped'))
+    failed = sum(1 for r in results if not r.get('success'))
+
+    return jsonify({
+        'success': True,
+        'sent': sent,
+        'skipped': skipped,
+        'failed': failed,
+        'results': results,
+    })
+
+
 @admin_bp.route('/payments')
 @login_required
 @requires_permission_level(2)

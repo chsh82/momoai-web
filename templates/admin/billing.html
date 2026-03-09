@@ -72,7 +72,7 @@
         </div>
         <div class="bg-white rounded-xl shadow p-4 text-center">
             <p class="text-2xl font-bold text-green-600">{{ stats.billed }}</p>
-            <p class="text-sm text-gray-500 mt-1">이미 청구됨</p>
+            <p class="text-sm text-gray-500 mt-1">청구됨</p>
         </div>
         <div class="bg-white rounded-xl shadow p-4 text-center">
             <p class="text-2xl font-bold text-orange-600">{{ "{:,}".format(stats.total_amount) }}</p>
@@ -85,7 +85,7 @@
     <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-5 mb-6">
         <div class="flex items-center gap-2 mb-3">
             <span class="text-yellow-600 font-bold text-sm">⚠️ 결제 설정 필요 {{ stats.setup_needed }}건</span>
-            <span class="text-yellow-600 text-xs">— 아래 수강생들은 결제 주기 또는 주당 수업료가 설정되지 않아 청구서를 생성할 수 없습니다.</span>
+            <span class="text-yellow-600 text-xs">— 결제 주기 또는 주당 수업료가 설정되지 않아 청구서를 생성할 수 없습니다.</span>
         </div>
         <div class="space-y-2">
             {% for enrollment in setup_needed %}
@@ -116,15 +116,24 @@
     </div>
     {% endif %}
 
-    <!-- 청구서 생성 폼 -->
+    <!-- 청구서 생성 + SMS 발송 폼 -->
     {% if billing_rows %}
+
+    {# 청구됨 중 미발송 payment_id 목록 (일괄 발송용) #}
+    {% set unsent_payment_ids = [] %}
+    {% for row in billing_rows %}
+        {% if row.billed and not row.existing_payment.sms_sent_at %}
+            {% if unsent_payment_ids.append(row.existing_payment.payment_id) %}{% endif %}
+        {% endif %}
+    {% endfor %}
+
     <form id="billingForm" method="POST" action="{{ url_for('admin.create_invoices') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="period_id" value="{{ selected_period.period_id }}">
 
         <div class="bg-white rounded-xl shadow overflow-hidden">
             <!-- 테이블 헤더 -->
-            <div class="flex items-center justify-between p-4 border-b border-gray-100">
+            <div class="flex items-center justify-between p-4 border-b border-gray-100 flex-wrap gap-2">
                 <div class="flex items-center gap-3">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="selectAll" onchange="toggleAll(this.checked)"
@@ -133,12 +142,22 @@
                     </label>
                     <span id="selectedCount" class="text-sm text-blue-600 font-medium hidden">0건 선택됨</span>
                 </div>
-                <button type="submit" id="createBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                        disabled>
-                    <span class="text-base">🧾</span>
-                    <span>청구서 생성</span>
-                </button>
+                <div class="flex gap-2">
+                    {% if unsent_payment_ids %}
+                    <button type="button" id="batchSmsBtn"
+                            onclick="sendSmsBatch({{ unsent_payment_ids | tojson }})"
+                            class="border border-green-400 text-green-700 hover:bg-green-50 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm">
+                        <span>📱</span>
+                        <span>일괄 문자 발송 (미발송 {{ unsent_payment_ids|length }}건)</span>
+                    </button>
+                    {% endif %}
+                    <button type="submit" id="createBtn"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                            disabled>
+                        <span class="text-base">🧾</span>
+                        <span>청구서 생성</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 테이블 -->
@@ -146,27 +165,29 @@
                 <table class="w-full text-sm">
                     <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
                         <tr>
-                            <th class="px-4 py-3 text-center w-10"></th>
-                            <th class="px-4 py-3 text-left">학생</th>
-                            <th class="px-4 py-3 text-left">수강 과목</th>
-                            <th class="px-4 py-3 text-center">주기</th>
-                            <th class="px-4 py-3 text-right">주당 수업료</th>
-                            <th class="px-4 py-3 text-center">수업 주차</th>
-                            <th class="px-4 py-3 text-right">기본 금액</th>
-                            <th class="px-4 py-3 text-right">할인</th>
-                            <th class="px-4 py-3 text-right">이월·무료</th>
-                            <th class="px-4 py-3 text-right font-bold text-gray-800">최종 청구액</th>
-                            <th class="px-4 py-3 text-center">상태</th>
-                            <th class="px-4 py-3 text-center">설정</th>
+                            <th class="px-3 py-3 text-center w-10"></th>
+                            <th class="px-3 py-3 text-left">학생</th>
+                            <th class="px-3 py-3 text-left">수강 과목</th>
+                            <th class="px-3 py-3 text-center">주기</th>
+                            <th class="px-3 py-3 text-right">주당 수업료</th>
+                            <th class="px-3 py-3 text-center">수업 주차</th>
+                            <th class="px-3 py-3 text-right">기본 금액</th>
+                            <th class="px-3 py-3 text-right">할인</th>
+                            <th class="px-3 py-3 text-right">이월·무료</th>
+                            <th class="px-3 py-3 text-right font-bold text-gray-800">최종 청구액</th>
+                            <th class="px-3 py-3 text-center">상태</th>
+                            <th class="px-3 py-3 text-center">액션</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         {% for row in billing_rows %}
                         {% set e = row.enrollment %}
                         {% set r = row.result %}
-                        <tr class="hover:bg-gray-50 {% if row.billed %}opacity-60{% endif %}">
+                        {% set p = row.existing_payment %}
+                        <tr class="hover:bg-gray-50 {% if row.billed %}bg-gray-50/50{% endif %}"
+                            {% if row.billed and p %}data-payment-id="{{ p.payment_id }}"{% endif %}>
                             <!-- 체크박스 -->
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-3 py-3 text-center">
                                 {% if not row.billed %}
                                 <input type="checkbox" name="enrollment_ids" value="{{ e.enrollment_id }}"
                                        class="enrollment-cb w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -174,16 +195,16 @@
                                 {% endif %}
                             </td>
                             <!-- 학생 -->
-                            <td class="px-4 py-3">
+                            <td class="px-3 py-3">
                                 <div class="font-medium text-gray-800">{{ e.student.name if e.student else '-' }}</div>
                                 <div class="text-xs text-gray-400">{{ e.student.grade if e.student else '' }}</div>
                             </td>
                             <!-- 수강 과목 -->
-                            <td class="px-4 py-3 text-gray-600 max-w-[160px] truncate">
+                            <td class="px-3 py-3 text-gray-600 max-w-[150px] truncate">
                                 {{ e.course.course_name if e.course else '-' }}
                             </td>
                             <!-- 결제 주기 -->
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-3 py-3 text-center">
                                 {% if e.payment_cycle == 'quarterly' %}
                                 <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">분기</span>
                                 {% elif e.payment_cycle == 'monthly' %}
@@ -193,72 +214,89 @@
                                 {% endif %}
                             </td>
                             <!-- 주당 수업료 -->
-                            <td class="px-4 py-3 text-right text-gray-700">
+                            <td class="px-3 py-3 text-right text-gray-700">
                                 {% if e.weekly_fee %}{{ "{:,}".format(e.weekly_fee) }}원{% else %}<span class="text-gray-400">-</span>{% endif %}
                             </td>
                             <!-- 수업 주차 -->
-                            <td class="px-4 py-3 text-center text-gray-600">
-                                {% if r %}
+                            <td class="px-3 py-3 text-center text-gray-600">
+                                {% if row.billed and p %}
+                                {{ p.weeks_count or '-' }}주
+                                {% elif r %}
                                 {{ r.weeks_charged }}주
                                 {% if r.is_prorated %}<span class="text-xs text-orange-500 ml-1">(중간합류)</span>{% endif %}
                                 {% else %}-{% endif %}
                             </td>
                             <!-- 기본 금액 -->
-                            <td class="px-4 py-3 text-right text-gray-700">
-                                {% if r %}{{ "{:,}".format(r.base_amount) }}원{% else %}-{% endif %}
+                            <td class="px-3 py-3 text-right text-gray-700">
+                                {% if row.billed and p %}{{ "{:,}".format(p.original_amount or p.amount) }}원
+                                {% elif r %}{{ "{:,}".format(r.base_amount) }}원
+                                {% else %}-{% endif %}
                             </td>
                             <!-- 할인 -->
-                            <td class="px-4 py-3 text-right">
-                                {% if r and r.total_discount > 0 %}
-                                <span class="text-red-600">-{{ "{:,}".format(r.total_discount) }}원</span>
-                                <div class="text-xs text-gray-400">
-                                    {% if r.quarterly_discount > 0 %}분기{% endif %}
-                                    {% if r.discount_type %}{{ r.discount_label }}{% endif %}
-                                </div>
-                                {% elif r %}
+                            <td class="px-3 py-3 text-right">
+                                {% set disc = (p.discount_amount if row.billed and p else (r.total_discount if r else 0)) or 0 %}
+                                {% if disc > 0 %}
+                                <span class="text-red-600">-{{ "{:,}".format(disc) }}원</span>
+                                {% else %}
                                 <span class="text-gray-400">-</span>
-                                {% else %}-{% endif %}
+                                {% endif %}
                             </td>
                             <!-- 이월·무료 차감 -->
-                            <td class="px-4 py-3 text-right">
-                                {% if r and r.adjustment_deduction > 0 %}
+                            <td class="px-3 py-3 text-right">
+                                {% if row.billed and p %}
+                                    {% set adj_count = (p.carried_over or 0) + (p.free_used or 0) %}
+                                    {% if adj_count > 0 %}
+                                    <span class="text-orange-600 text-xs">{{ adj_count }}회 차감</span>
+                                    {% else %}<span class="text-gray-400">-</span>{% endif %}
+                                {% elif r and r.adjustment_deduction > 0 %}
                                 <span class="text-orange-600">-{{ "{:,}".format(r.adjustment_deduction) }}원</span>
                                 <div class="text-xs text-gray-400">
-                                    {% if r.rollover_sessions > 0 %}이월{{ r.rollover_sessions }}회{% endif %}
-                                    {% if r.free_sessions > 0 %} 무료{{ r.free_sessions }}회{% endif %}
+                                    {% if r.rollover_sessions > 0 %}이월{{ r.rollover_sessions }}{% endif %}
+                                    {% if r.free_sessions > 0 %} 무료{{ r.free_sessions }}{% endif %}
                                 </div>
-                                {% elif r %}
-                                <span class="text-gray-400">-</span>
-                                {% else %}-{% endif %}
+                                {% else %}<span class="text-gray-400">-</span>{% endif %}
                             </td>
                             <!-- 최종 청구액 -->
-                            <td class="px-4 py-3 text-right font-bold">
-                                {% if row.billed %}
-                                <span class="text-gray-500">{{ "{:,}".format(row.existing_payment.amount) }}원</span>
+                            <td class="px-3 py-3 text-right font-bold">
+                                {% if row.billed and p %}
+                                <span class="text-gray-700">{{ "{:,}".format(p.amount) }}원</span>
                                 {% elif r %}
                                 <span class="text-blue-700 text-base">{{ "{:,}".format(r.final_amount) }}원</span>
                                 {% else %}-{% endif %}
                             </td>
                             <!-- 상태 -->
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-3 py-3 text-center">
                                 {% if row.billed %}
                                 <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">청구됨</span>
                                 {% else %}
                                 <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">생성 예정</span>
                                 {% endif %}
                             </td>
-                            <!-- 설정 -->
-                            <td class="px-4 py-3 text-center">
-                                <button type="button"
-                                        class="settings-btn text-xs px-2 py-1 border border-gray-300 hover:border-blue-400 hover:text-blue-600 rounded-lg transition"
-                                        data-enrollment-id="{{ e.enrollment_id }}"
-                                        data-student-name="{{ e.student.name if e.student else '' }}"
-                                        data-course-name="{{ e.course.course_name if e.course else '' }}"
-                                        data-payment-cycle="{{ e.payment_cycle or '' }}"
-                                        data-weekly-fee="{{ e.weekly_fee or '' }}"
-                                        data-discount-type="{{ e.discount_type or '' }}">
-                                    ✏️
-                                </button>
+                            <!-- 액션: 설정 + SMS -->
+                            <td class="px-3 py-3 text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button type="button"
+                                            class="settings-btn text-xs px-2 py-1 border border-gray-300 hover:border-blue-400 hover:text-blue-600 rounded-lg transition"
+                                            data-enrollment-id="{{ e.enrollment_id }}"
+                                            data-student-name="{{ e.student.name if e.student else '' }}"
+                                            data-course-name="{{ e.course.course_name if e.course else '' }}"
+                                            data-payment-cycle="{{ e.payment_cycle or '' }}"
+                                            data-weekly-fee="{{ e.weekly_fee or '' }}"
+                                            data-discount-type="{{ e.discount_type or '' }}"
+                                            title="설정 편집">✏️</button>
+                                    {% if row.billed and p %}
+                                        {% if p.sms_sent_at %}
+                                        <span class="text-xs text-green-600 whitespace-nowrap" title="발송완료: {{ p.sms_sent_at.strftime('%Y-%m-%d %H:%M') }}">
+                                            ✅ {{ p.sms_sent_at.strftime('%m/%d') }}
+                                        </span>
+                                        {% else %}
+                                        <button type="button"
+                                                class="sms-btn text-xs px-2 py-1 border border-green-400 hover:bg-green-50 text-green-700 rounded-lg transition whitespace-nowrap"
+                                                data-payment-id="{{ p.payment_id }}"
+                                                title="문자 발송">📱</button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -282,7 +320,6 @@
     {% endif %}
 
     {% else %}
-    <!-- 기간 미선택 안내 -->
     <div class="bg-white rounded-xl shadow p-12 text-center text-gray-400">
         <p class="text-4xl mb-3">📅</p>
         <p class="text-lg font-medium">위에서 결제 기간을 선택하면 청구서를 생성할 수 있습니다.</p>
@@ -297,7 +334,9 @@
 
 </div>
 
+<!-- ──────────────────────────────────────────── -->
 <!-- 결제 설정 편집 모달 -->
+<!-- ──────────────────────────────────────────── -->
 <div id="settingsModal" class="fixed inset-0 hidden" style="z-index:99999;">
     <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeSettingsModal()"></div>
     <div class="absolute inset-0 flex items-center justify-center p-4">
@@ -310,11 +349,8 @@
                     </div>
                     <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
-
                 <input type="hidden" id="settingsEnrollmentId">
-
                 <div class="space-y-4">
-                    <!-- 결제 주기 -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">결제 주기</label>
                         <select id="settingsPaymentCycle"
@@ -324,16 +360,11 @@
                             <option value="quarterly">분기별 (주당 -5,000원)</option>
                         </select>
                     </div>
-
-                    <!-- 주당 수업료 -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">주당 수업료 (원)</label>
                         <input type="number" id="settingsWeeklyFee" min="0" step="1000" placeholder="예: 80000"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <p class="text-xs text-gray-400 mt-1">주 1회 수업 기준 1주 수업료</p>
                     </div>
-
-                    <!-- 할인 유형 -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">할인 유형</label>
                         <select id="settingsDiscountType"
@@ -346,17 +377,69 @@
                         </select>
                     </div>
                 </div>
-
                 <div id="settingsError" class="mt-3 p-3 bg-red-50 text-red-700 text-sm rounded-lg hidden"></div>
-
                 <div class="flex gap-3 mt-6">
                     <button onclick="closeSettingsModal()"
-                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                        취소
-                    </button>
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">취소</button>
                     <button onclick="saveSettings()"
-                            class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
-                        저장 후 새로고침
+                            class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">저장 후 새로고침</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ──────────────────────────────────────────── -->
+<!-- SMS 발송 모달 -->
+<!-- ──────────────────────────────────────────── -->
+<div id="smsModal" class="fixed inset-0 hidden" style="z-index:99999;">
+    <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeSmsModal()"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">📱 수강료 안내 문자 발송</h3>
+                        <p id="smsSubtitle" class="text-sm text-gray-500 mt-0.5"></p>
+                    </div>
+                    <button onclick="closeSmsModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+
+                <input type="hidden" id="smsPaymentId">
+
+                <!-- 수신자 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">수신자 번호</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="smsPhone" placeholder="01012345678"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-mono">
+                        <span id="smsRecipientName" class="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 whitespace-nowrap"></span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">학부모 연락처가 자동으로 입력됩니다. 직접 수정할 수 있습니다.</p>
+                </div>
+
+                <!-- 문자 내용 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        문자 내용
+                        <span id="smsCharCount" class="text-gray-400 font-normal ml-2">0자</span>
+                        <span id="smsMsgType" class="text-xs ml-1"></span>
+                    </label>
+                    <textarea id="smsMessage" rows="8"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm resize-none"
+                              oninput="updateSmsCharCount()"></textarea>
+                </div>
+
+                <div id="smsLoading" class="hidden text-center py-2 text-gray-500 text-sm">불러오는 중...</div>
+                <div id="smsError" class="mb-3 p-3 bg-red-50 text-red-700 text-sm rounded-lg hidden"></div>
+                <div id="smsSuccess" class="mb-3 p-3 bg-green-50 text-green-700 text-sm rounded-lg hidden"></div>
+
+                <div class="flex gap-3">
+                    <button onclick="closeSmsModal()"
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">닫기</button>
+                    <button id="smsSendBtn" onclick="sendSms()"
+                            class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition flex items-center justify-center gap-2">
+                        <span>📱</span><span>문자 발송</span>
                     </button>
                 </div>
             </div>
@@ -364,40 +447,69 @@
     </div>
 </div>
 
+<!-- 일괄 발송 진행 모달 -->
+<div id="batchSmsModal" class="fixed inset-0 hidden" style="z-index:99999;">
+    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div id="batchSmsProgress">
+                <div class="text-4xl mb-3">📱</div>
+                <p class="font-bold text-gray-800 text-lg" id="batchSmsTitle">문자 발송 중...</p>
+                <p class="text-gray-500 text-sm mt-2" id="batchSmsStatus"></p>
+                <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div id="batchSmsBar" class="h-full bg-green-500 transition-all duration-300" style="width:0%"></div>
+                </div>
+            </div>
+            <div id="batchSmsDone" class="hidden">
+                <div class="text-4xl mb-3">✅</div>
+                <p class="font-bold text-gray-800 text-lg">발송 완료</p>
+                <p class="text-gray-500 text-sm mt-2" id="batchSmsSummary"></p>
+                <button onclick="closeBatchSmsModal()"
+                        class="mt-5 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                    새로고침
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// 기간 선택
+const CSRF_TOKEN = '{{ csrf_token() }}';
+
+// ── 기간 선택 ──
 function selectPeriod() {
     const pid = document.getElementById('periodSelect').value;
-    if (pid) {
-        window.location.href = '{{ url_for("admin.billing") }}?period_id=' + pid;
-    }
+    if (pid) window.location.href = '{{ url_for("admin.billing") }}?period_id=' + pid;
 }
 
-// 전체 선택/해제
+// ── 전체 선택 ──
 function toggleAll(checked) {
     document.querySelectorAll('.enrollment-cb').forEach(cb => cb.checked = checked);
     updateSelectCount();
 }
 
-// 선택 카운트 업데이트
 function updateSelectCount() {
     const checked = document.querySelectorAll('.enrollment-cb:checked').length;
     const total = document.querySelectorAll('.enrollment-cb').length;
     const countEl = document.getElementById('selectedCount');
     const createBtn = document.getElementById('createBtn');
     const selectAll = document.getElementById('selectAll');
-
     countEl.textContent = checked + '건 선택됨';
     countEl.classList.toggle('hidden', checked === 0);
-    createBtn.disabled = checked === 0;
-
+    if (createBtn) createBtn.disabled = checked === 0;
     if (selectAll) {
         selectAll.indeterminate = checked > 0 && checked < total;
         selectAll.checked = total > 0 && checked === total;
     }
 }
 
-// 설정 모달 열기
+// ── 청구서 생성 확인 ──
+document.getElementById('billingForm')?.addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.enrollment-cb:checked').length;
+    if (!confirm(`${checked}건의 청구서를 생성합니다. 계속하시겠습니까?`)) e.preventDefault();
+});
+
+// ── 설정 모달 ──
 function openSettingsModal(btn) {
     document.getElementById('settingsEnrollmentId').value = btn.dataset.enrollmentId;
     document.getElementById('settingsSubtitle').textContent =
@@ -408,12 +520,9 @@ function openSettingsModal(btn) {
     document.getElementById('settingsError').classList.add('hidden');
     document.getElementById('settingsModal').classList.remove('hidden');
 }
-
 function closeSettingsModal() {
     document.getElementById('settingsModal').classList.add('hidden');
 }
-
-// 설정 저장
 async function saveSettings() {
     const enrollmentId = document.getElementById('settingsEnrollmentId').value;
     const payload = {
@@ -423,46 +532,175 @@ async function saveSettings() {
     };
     const errEl = document.getElementById('settingsError');
     errEl.classList.add('hidden');
-
     try {
         const res = await fetch(`/admin/api/enrollment/${enrollmentId}/update-payment-info`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (data.success) {
-            window.location.reload();
-        } else {
-            errEl.textContent = data.error || '저장 실패';
-            errEl.classList.remove('hidden');
-        }
+        if (data.success) { window.location.reload(); }
+        else { errEl.textContent = data.error || '저장 실패'; errEl.classList.remove('hidden'); }
     } catch (e) {
-        errEl.textContent = '네트워크 오류가 발생했습니다.';
-        errEl.classList.remove('hidden');
+        errEl.textContent = '네트워크 오류'; errEl.classList.remove('hidden');
     }
 }
 
-// 청구서 생성 전 확인
-document.getElementById('billingForm')?.addEventListener('submit', function(e) {
-    const checked = document.querySelectorAll('.enrollment-cb:checked').length;
-    if (!confirm(`${checked}건의 청구서를 생성합니다. 계속하시겠습니까?`)) {
-        e.preventDefault();
-    }
-});
+// ── SMS 단건 모달 ──
+async function openSmsModal(paymentId) {
+    document.getElementById('smsPaymentId').value = paymentId;
+    document.getElementById('smsError').classList.add('hidden');
+    document.getElementById('smsSuccess').classList.add('hidden');
+    document.getElementById('smsLoading').classList.remove('hidden');
+    document.getElementById('smsPhone').value = '';
+    document.getElementById('smsMessage').value = '';
+    document.getElementById('smsRecipientName').textContent = '';
+    document.getElementById('smsSubtitle').textContent = '';
+    document.getElementById('smsSendBtn').disabled = false;
+    document.getElementById('smsModal').classList.remove('hidden');
 
-// 설정 버튼 이벤트
+    try {
+        const res = await fetch(`/admin/api/payment/${paymentId}/sms-preview`);
+        const data = await res.json();
+        document.getElementById('smsSubtitle').textContent =
+            data.student_name + ' · ' + data.course_name + ' · ' + data.amount.toLocaleString() + '원';
+        document.getElementById('smsPhone').value = data.recipient_phone;
+        document.getElementById('smsRecipientName').textContent = data.recipient_name || '번호 없음';
+        document.getElementById('smsMessage').value = data.message;
+        updateSmsCharCount();
+        if (data.already_sent) {
+            document.getElementById('smsSuccess').textContent = `이미 발송된 문자입니다 (${data.sent_at})`;
+            document.getElementById('smsSuccess').classList.remove('hidden');
+        }
+    } catch(e) {
+        document.getElementById('smsError').textContent = '미리보기 로드 실패';
+        document.getElementById('smsError').classList.remove('hidden');
+    } finally {
+        document.getElementById('smsLoading').classList.add('hidden');
+    }
+}
+function closeSmsModal() {
+    document.getElementById('smsModal').classList.add('hidden');
+}
+function updateSmsCharCount() {
+    const len = document.getElementById('smsMessage').value.length;
+    document.getElementById('smsCharCount').textContent = len + '자';
+    const typeEl = document.getElementById('smsMsgType');
+    if (len > 90) {
+        typeEl.textContent = '(LMS)';
+        typeEl.className = 'text-xs ml-1 text-orange-500';
+    } else {
+        typeEl.textContent = '(SMS)';
+        typeEl.className = 'text-xs ml-1 text-blue-500';
+    }
+}
+async function sendSms() {
+    const paymentId = document.getElementById('smsPaymentId').value;
+    const phone = document.getElementById('smsPhone').value.trim();
+    const message = document.getElementById('smsMessage').value.trim();
+    const errEl = document.getElementById('smsError');
+    const sucEl = document.getElementById('smsSuccess');
+    errEl.classList.add('hidden');
+    sucEl.classList.add('hidden');
+
+    if (!phone) { errEl.textContent = '수신자 번호를 입력하세요.'; errEl.classList.remove('hidden'); return; }
+    if (!message) { errEl.textContent = '문자 내용을 입력하세요.'; errEl.classList.remove('hidden'); return; }
+
+    const btn = document.getElementById('smsSendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-spin">⏳</span><span>발송 중...</span>';
+
+    try {
+        const res = await fetch('/admin/billing/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ payment_id: paymentId, phone, message })
+        });
+        const data = await res.json();
+        if (data.success) {
+            sucEl.textContent = `✅ 발송 완료 (${data.sent_at || ''}) — 수신자: ${phone}`;
+            sucEl.classList.remove('hidden');
+            btn.innerHTML = '<span>✅</span><span>발송 완료</span>';
+            // 행의 SMS 버튼을 ✅ 로 교체
+            const row = document.querySelector(`tr[data-payment-id="${paymentId}"]`);
+            if (row) {
+                const smsBtn = row.querySelector('.sms-btn');
+                if (smsBtn) {
+                    const sent_at = data.sent_at ? data.sent_at.substring(0, 5) : '';
+                    smsBtn.outerHTML = `<span class="text-xs text-green-600 whitespace-nowrap">✅ ${sent_at}</span>`;
+                }
+            }
+            // 일괄 발송 버튼 카운트 업데이트 (새로고침 없이)
+            const remaining = document.querySelectorAll('.sms-btn').length;
+            const batchBtn = document.getElementById('batchSmsBtn');
+            if (batchBtn) {
+                if (remaining === 0) batchBtn.style.display = 'none';
+                else batchBtn.querySelector('span:last-child').textContent = `일괄 문자 발송 (미발송 ${remaining}건)`;
+            }
+        } else {
+            errEl.textContent = '발송 실패: ' + (data.reason || '알 수 없는 오류');
+            errEl.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerHTML = '<span>📱</span><span>문자 발송</span>';
+        }
+    } catch(e) {
+        errEl.textContent = '네트워크 오류';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<span>📱</span><span>문자 발송</span>';
+    }
+}
+
+// ── SMS 일괄 발송 ──
+async function sendSmsBatch(paymentIds) {
+    if (!confirm(`미발송 ${paymentIds.length}건에 수강료 안내 문자를 발송합니다.\n계속하시겠습니까?`)) return;
+
+    document.getElementById('batchSmsProgress').classList.remove('hidden');
+    document.getElementById('batchSmsDone').classList.add('hidden');
+    document.getElementById('batchSmsModal').classList.remove('hidden');
+    document.getElementById('batchSmsBar').style.width = '0%';
+    document.getElementById('batchSmsStatus').textContent = `준비 중... (총 ${paymentIds.length}건)`;
+
+    // 진행 애니메이션
+    let progress = 10;
+    document.getElementById('batchSmsBar').style.width = progress + '%';
+
+    try {
+        const res = await fetch('/admin/billing/send-sms-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ payment_ids: paymentIds })
+        });
+        const data = await res.json();
+        document.getElementById('batchSmsBar').style.width = '100%';
+        document.getElementById('batchSmsProgress').classList.add('hidden');
+        document.getElementById('batchSmsDone').classList.remove('hidden');
+        document.getElementById('batchSmsSummary').textContent =
+            `발송 ${data.sent}건 완료` +
+            (data.skipped > 0 ? ` · 이미발송 ${data.skipped}건 제외` : '') +
+            (data.failed > 0 ? ` · 실패 ${data.failed}건` : '');
+    } catch(e) {
+        document.getElementById('batchSmsBar').style.width = '100%';
+        document.getElementById('batchSmsProgress').classList.add('hidden');
+        document.getElementById('batchSmsDone').classList.remove('hidden');
+        document.getElementById('batchSmsSummary').textContent = '네트워크 오류로 실패했습니다.';
+    }
+}
+function closeBatchSmsModal() {
+    document.getElementById('batchSmsModal').classList.add('hidden');
+    window.location.reload();
+}
+
+// ── 이벤트 바인딩 ──
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.settings-btn').forEach(btn => {
         btn.addEventListener('click', function() { openSettingsModal(this); });
     });
-
-    // ESC 키로 모달 닫기
+    document.querySelectorAll('.sms-btn').forEach(btn => {
+        btn.addEventListener('click', function() { openSmsModal(this.dataset.paymentId); });
+    });
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeSettingsModal();
+        if (e.key === 'Escape') { closeSettingsModal(); closeSmsModal(); }
     });
 });
 </script>
