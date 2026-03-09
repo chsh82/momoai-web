@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}SMS 발송 - MOMOAI v4.0{% endblock %}
+{% block page_title %}📱 SMS 발송{% endblock %}
+{% block page_subtitle %}<span class="text-sm text-white text-opacity-70 ml-3">내 수업 학생·학부모에게 문자 발송</span>{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- 발송 폼 -->
+    <div class="bg-white rounded-xl shadow p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-5">✉️ 새 메시지 발송</h3>
+        <form method="POST" action="{{ url_for('teacher.teacher_sms') }}" id="smsForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="recipient_role" id="recipientRole" value="student">
+
+            <!-- SMS / LMS 선택 -->
+            <div class="flex gap-3 mb-5">
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="message_type" value="SMS" class="sr-only" checked>
+                    <div class="type-card border-2 border-blue-500 bg-blue-50 rounded-xl p-4 text-center transition" data-type="SMS">
+                        <p class="text-lg font-bold text-blue-700">SMS</p>
+                        <p class="text-xs text-blue-500 mt-1">한글 약 45자 이내</p>
+                    </div>
+                </label>
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="message_type" value="LMS" class="sr-only">
+                    <div class="type-card border-2 border-gray-200 bg-gray-50 rounded-xl p-4 text-center transition" data-type="LMS">
+                        <p class="text-lg font-bold text-gray-500">LMS</p>
+                        <p class="text-xs text-gray-400 mt-1">한글 약 1000자 이내</p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- LMS 제목 -->
+            <div id="subjectRow" class="hidden mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+                <input type="text" name="subject" id="subject" maxlength="40"
+                       placeholder="LMS 제목을 입력하세요"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <!-- 메시지 내용 -->
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">내용 <span class="text-red-500">*</span></label>
+                <textarea name="content" id="content" rows="5"
+                          placeholder="메시지 내용을 입력하세요..."
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"></textarea>
+                <div class="flex justify-between mt-1">
+                    <span id="byteWarning" class="text-xs text-gray-400"></span>
+                    <span class="text-xs text-gray-400"><span id="byteCount">0</span> / <span id="byteLimit">90</span> bytes</span>
+                </div>
+            </div>
+
+            <!-- 수신자 선택 영역 -->
+            <div class="border border-gray-200 rounded-xl p-4 mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-sm font-semibold text-gray-700">수신자 선택</p>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="selectAll()" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition">전체 선택</button>
+                        <button type="button" onclick="clearAll()" class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition">전체 해제</button>
+                    </div>
+                </div>
+
+                <!-- 필터 컨트롤 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                    <!-- 학생/학부모 토글 -->
+                    <div class="col-span-2 md:col-span-1 flex rounded-lg overflow-hidden border border-gray-300">
+                        <button type="button" id="btnStudent"
+                                onclick="setRecipientMode('student')"
+                                class="flex-1 py-1.5 text-xs font-medium bg-blue-600 text-white transition">학생</button>
+                        <button type="button" id="btnParent"
+                                onclick="setRecipientMode('parent')"
+                                class="flex-1 py-1.5 text-xs font-medium bg-white text-gray-600 transition">학부모</button>
+                    </div>
+                    <!-- 학년 필터 -->
+                    <select id="gradeFilter" onchange="applyFilters()"
+                            class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                        <option value="">전체 학년</option>
+                        {% set grades = students | map(attribute='grade') | select | unique | sort | list %}
+                        {% for g in grades %}
+                        <option value="{{ g }}">{{ g }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- 클래스 필터 -->
+                    <select id="classFilter" onchange="applyFilters()"
+                            class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                        <option value="">전체 클래스</option>
+                        {% for course in courses %}
+                        <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- 이름 검색 -->
+                    <input type="text" id="nameSearch" oninput="applyFilters()" placeholder="이름 검색..."
+                           class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                </div>
+
+                <!-- 선택 카운트 -->
+                <p class="text-xs text-gray-500 mb-2">선택됨: <span id="selectedCount" class="font-semibold text-blue-600">0</span>명</p>
+
+                <!-- 학생 목록 -->
+                <div id="studentList" class="max-h-60 overflow-y-auto space-y-1 pr-1">
+                    {% for student in students %}
+                    <label class="recipient-item student-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                           data-grade="{{ student.grade or '' }}"
+                           data-name="{{ student.name }}"
+                           data-courses="{{ student.enrollments | selectattr('status','equalto','active') | map(attribute='course_id') | join(',') }}">
+                        <input type="checkbox" name="recipients[]" value="{{ student.student_id }}"
+                               class="recipient-checkbox w-4 h-4 text-blue-600 rounded" onchange="updateCount()">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-sm font-medium text-gray-800">{{ student.name }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ student.grade }}</span>
+                            {% if not student.phone %}
+                            <span class="text-xs text-red-400 ml-1">(번호 없음)</span>
+                            {% endif %}
+                        </div>
+                    </label>
+                    {% else %}
+                    <p class="text-sm text-gray-400 text-center py-4">배정된 학생이 없습니다.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- 학부모 목록 -->
+                <div id="parentList" class="hidden max-h-60 overflow-y-auto space-y-1 pr-1">
+                    {% for item in parents_with_children %}
+                    <label class="recipient-item parent-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                           data-grade="{{ item.children | map(attribute='grade') | join(',') }}"
+                           data-name="{{ item.parent.name }}"
+                           data-childnames="{{ item.children | map(attribute='name') | join(',') }}">
+                        <input type="checkbox" name="recipients[]" value="{{ item.parent.user_id }}"
+                               class="recipient-checkbox w-4 h-4 text-blue-600 rounded" onchange="updateCount()">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-sm font-medium text-gray-800">{{ item.parent.name }}</span>
+                            <span class="text-xs text-gray-400 ml-1">학부모</span>
+                            <span class="text-xs text-gray-400">— {{ item.children | map(attribute='name') | join(', ') }}</span>
+                        </div>
+                    </label>
+                    {% else %}
+                    <p class="text-sm text-gray-400 text-center py-4">등록된 학부모가 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 메모 -->
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">메모 (선택)</label>
+                <input type="text" name="notes" placeholder="발송 목적 등 내부 메모"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <button type="submit" onclick="return validateForm()"
+                    class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition text-sm">
+                📱 발송하기
+            </button>
+        </form>
+    </div>
+
+    <!-- 발송 이력 -->
+    <div class="bg-white rounded-xl shadow p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">📋 발송 이력 (최근 30건)</h3>
+        {% if history %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 text-left text-xs text-gray-500">
+                        <th class="pb-2 pr-3">발송일시</th>
+                        <th class="pb-2 pr-3">유형</th>
+                        <th class="pb-2 pr-3">내용</th>
+                        <th class="pb-2 pr-3 text-center">대상</th>
+                        <th class="pb-2 pr-3 text-center">성공</th>
+                        <th class="pb-2 text-center">실패</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for msg in history %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 pr-3 text-gray-500 whitespace-nowrap">
+                            {{ msg.created_at.strftime('%m/%d %H:%M') }}
+                        </td>
+                        <td class="py-2 pr-3">
+                            <span class="px-2 py-0.5 rounded text-xs font-medium
+                                {% if msg.message_type == 'SMS' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">
+                                {{ msg.message_type }}
+                            </span>
+                        </td>
+                        <td class="py-2 pr-3 text-gray-700 max-w-xs">
+                            {% if msg.subject %}<span class="font-medium">[{{ msg.subject }}] </span>{% endif %}
+                            {{ msg.content[:40] }}{% if msg.content|length > 40 %}…{% endif %}
+                        </td>
+                        <td class="py-2 pr-3 text-center text-gray-600">{{ msg.total_recipients }}</td>
+                        <td class="py-2 pr-3 text-center text-green-600 font-medium">{{ msg.success_count }}</td>
+                        <td class="py-2 text-center {% if msg.failed_count > 0 %}text-red-500 font-medium{% else %}text-gray-400{% endif %}">
+                            {{ msg.failed_count }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm text-center py-6">발송 이력이 없습니다.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// 수신자 모드 상태
+var currentMode = 'student';
+
+// 학생-클래스 맵 (필터용)
+var studentCourseMap = {};
+{% for student in students %}
+{% set enrollment_ids = student.enrollments | selectattr('status','equalto','active') | map(attribute='course_id') | list %}
+studentCourseMap['{{ student.student_id }}'] = {{ enrollment_ids | tojson }};
+{% endfor %}
+
+// SMS/LMS 타입 전환
+document.querySelectorAll('input[name="message_type"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        var isLMS = this.value === 'LMS';
+        document.getElementById('subjectRow').classList.toggle('hidden', !isLMS);
+        document.getElementById('byteLimit').textContent = isLMS ? '2000' : '90';
+        document.querySelectorAll('.type-card').forEach(function(card) {
+            var active = card.dataset.type === radio.value;
+            card.classList.toggle('border-blue-500', active);
+            card.classList.toggle('bg-blue-50', active);
+            card.classList.toggle('border-gray-200', !active);
+            card.classList.toggle('bg-gray-50', !active);
+            card.querySelector('p').classList.toggle('text-blue-700', active);
+            card.querySelector('p').classList.toggle('text-gray-500', !active);
+        });
+        updateByteCount();
+    });
+});
+
+// 바이트 카운터
+document.getElementById('content').addEventListener('input', updateByteCount);
+function updateByteCount() {
+    var text = document.getElementById('content').value;
+    var bytes = new TextEncoder().encode(text).length;
+    var limit = document.querySelector('input[name="message_type"]:checked').value === 'LMS' ? 2000 : 90;
+    document.getElementById('byteCount').textContent = bytes;
+    var warn = document.getElementById('byteWarning');
+    if (bytes > limit) {
+        warn.textContent = '글자수 초과!';
+        warn.className = 'text-xs text-red-500';
+    } else if (bytes > limit * 0.9) {
+        warn.textContent = '글자수 제한에 근접합니다';
+        warn.className = 'text-xs text-yellow-500';
+    } else {
+        warn.textContent = '';
+    }
+}
+
+// 학생/학부모 모드 전환
+function setRecipientMode(mode) {
+    currentMode = mode;
+    document.getElementById('recipientRole').value = mode;
+    document.getElementById('studentList').classList.toggle('hidden', mode !== 'student');
+    document.getElementById('parentList').classList.toggle('hidden', mode !== 'parent');
+    document.getElementById('btnStudent').className = 'flex-1 py-1.5 text-xs font-medium transition ' +
+        (mode === 'student' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600');
+    document.getElementById('btnParent').className = 'flex-1 py-1.5 text-xs font-medium transition ' +
+        (mode === 'parent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600');
+    clearAll();
+    applyFilters();
+}
+
+// 필터 적용
+function applyFilters() {
+    var grade = document.getElementById('gradeFilter').value;
+    var courseId = document.getElementById('classFilter').value;
+    var name = document.getElementById('nameSearch').value.toLowerCase();
+    var selector = currentMode === 'student' ? '.student-item' : '.parent-item';
+
+    document.querySelectorAll(selector).forEach(function(item) {
+        var itemGrade = item.dataset.grade || '';
+        var itemName = (item.dataset.name || '').toLowerCase();
+        var childNames = (item.dataset.childnames || '').toLowerCase();
+        var itemCourses = item.dataset.courses || '';
+
+        var gradeOk = !grade || itemGrade.includes(grade);
+        var nameOk = !name || itemName.includes(name) || childNames.includes(name);
+        var courseOk = !courseId || itemCourses.includes(courseId);
+
+        item.style.display = (gradeOk && nameOk && courseOk) ? '' : 'none';
+    });
+    updateCount();
+}
+
+// 전체 선택/해제
+function selectAll() {
+    var selector = currentMode === 'student' ? '.student-item' : '.parent-item';
+    document.querySelectorAll(selector).forEach(function(item) {
+        if (item.style.display !== 'none') {
+            item.querySelector('.recipient-checkbox').checked = true;
+        }
+    });
+    updateCount();
+}
+function clearAll() {
+    document.querySelectorAll('.recipient-checkbox').forEach(function(cb) { cb.checked = false; });
+    updateCount();
+}
+
+// 선택 수 업데이트
+function updateCount() {
+    var count = document.querySelectorAll('.recipient-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = count;
+}
+
+// 폼 검증
+function validateForm() {
+    var content = document.getElementById('content').value.trim();
+    if (!content) { alert('메시지 내용을 입력해주세요.'); return false; }
+    var checked = document.querySelectorAll('.recipient-checkbox:checked').length;
+    if (checked === 0) { alert('수신자를 한 명 이상 선택해주세요.'); return false; }
+    var type = document.querySelector('input[name="message_type"]:checked').value;
+    if (type === 'LMS' && !document.getElementById('subject').value.trim()) {
+        alert('LMS 제목을 입력해주세요.'); return false;
+    }
+    return confirm(type + ' ' + checked + '명에게 발송하시겠습니까?');
+}
+</script>
+{% endblock %}

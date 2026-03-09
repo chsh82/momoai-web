@@ -3938,3 +3938,161 @@ def delete_caution(caution_id):
     db.session.commit()
     flash('주의사항을 삭제했습니다.', 'success')
     return redirect(url_for('teacher.student_detail', student_id=student_id) + '#tab-caution')
+
+
+@teacher_bp.route('/sms', methods=['GET', 'POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def teacher_sms():
+    """강사 SMS/LMS 발송"""
+    from app.models.message import Message, MessageRecipient
+    import json
+
+    # 이 강사의 수업에 등록된 학생 목록 (중복 제거)
+    enrollments = CourseEnrollment.query.join(Course).filter(
+        Course.teacher_id == current_user.user_id,
+        Course.status == 'active',
+        CourseEnrollment.status == 'active'
+    ).all()
+
+    student_ids_seen = set()
+    students = []
+    for enr in enrollments:
+        if enr.student_id not in student_ids_seen:
+            student_ids_seen.add(enr.student_id)
+            if enr.student:
+                students.append(enr.student)
+    students.sort(key=lambda s: (s.grade or '', s.name or ''))
+
+    # 학부모 목록 (위 학생들의 학부모만)
+    parents_with_children = []
+    seen_parent_ids = set()
+    for student in students:
+        relations = ParentStudent.query.filter_by(student_id=student.student_id, is_active=True).all()
+        for rel in relations:
+            if rel.parent and rel.parent_id not in seen_parent_ids and rel.parent.phone:
+                seen_parent_ids.add(rel.parent_id)
+                children = [r.student for r in ParentStudent.query.filter_by(
+                    parent_id=rel.parent_id, is_active=True).all() if r.student]
+                parents_with_children.append({'parent': rel.parent, 'children': children})
+
+    # 강사의 수업 목록 (클래스 필터용)
+    courses = Course.query.filter_by(
+        teacher_id=current_user.user_id, status='active'
+    ).order_by(Course.course_name).all()
+
+    if request.method == 'POST':
+        message_type = request.form.get('message_type', 'SMS')
+        subject = request.form.get('subject', '').strip()
+        content = request.form.get('content', '').strip()
+        recipient_ids = request.form.getlist('recipients[]')
+        recipient_role = request.form.get('recipient_role', 'student')  # student / parent
+        notes = request.form.get('notes', '').strip()
+
+        if not content:
+            flash('메시지 내용을 입력해주세요.', 'error')
+            return redirect(url_for('teacher.teacher_sms'))
+
+        if message_type == 'LMS' and not subject:
+            flash('LMS는 제목이 필요합니다.', 'error')
+            return redirect(url_for('teacher.teacher_sms'))
+
+        content_bytes = len(content.encode('utf-8'))
+        if message_type == 'SMS' and content_bytes > 90:
+            flash('SMS는 90바이트(한글 약 45자)까지 입력 가능합니다.', 'error')
+            return redirect(url_for('teacher.teacher_sms'))
+        elif message_type == 'LMS' and content_bytes > 2000:
+            flash('LMS는 2000바이트(한글 약 1000자)까지 입력 가능합니다.', 'error')
+            return redirect(url_for('teacher.teacher_sms'))
+
+        # 수신자 데이터 수집
+        recipients_data = []
+        if recipient_role == 'parent':
+            for parent_id in recipient_ids:
+                parent = User.query.get(parent_id)
+                if parent and parent.phone:
+                    children = [r.student for r in ParentStudent.query.filter_by(
+                        parent_id=parent_id, is_active=True).all() if r.student]
+                    child_names = ', '.join(s.name for s in children)
+                    recipients_data.append({
+                        'student_id': None,
+                        'name': f'{parent.name}({child_names})',
+                        'phone': parent.phone
+                    })
+        else:
+            for student_id in recipient_ids:
+                student = Student.query.get(student_id)
+                if student and student.phone:
+                    recipients_data.append({
+                        'student_id': student.student_id,
+                        'name': student.name,
+                        'phone': student.phone
+                    })
+
+        if not recipients_data:
+            flash('수신자를 선택하거나 수신자의 전화번호를 확인해주세요.', 'error')
+            return redirect(url_for('teacher.teacher_sms'))
+
+        message = Message(
+            sender_id=current_user.user_id,
+            message_type=message_type,
+            subject=subject if message_type == 'LMS' else None,
+            content=content,
+            recipient_type='group',
+            recipients_json=json.dumps(recipients_data, ensure_ascii=False),
+            total_recipients=len(recipients_data),
+            notes=notes
+        )
+        db.session.add(message)
+        db.session.flush()
+
+        from app.utils.sms import send_sms_message as _send_sms
+        success_count = 0
+        failed_count = 0
+        failed_names = []
+
+        for rd in recipients_data:
+            ok, reason = _send_sms(rd['phone'], content, title=subject if message_type == 'LMS' else None)
+            if ok:
+                success_count += 1
+                r_status = 'sent'
+                r_fail = None
+            else:
+                failed_count += 1
+                r_status = 'failed'
+                r_fail = reason
+                failed_names.append(f"{rd['name']}({reason})")
+
+            db.session.add(MessageRecipient(
+                message_id=message.message_id,
+                student_id=rd.get('student_id'),
+                recipient_name=rd['name'],
+                recipient_phone=rd['phone'],
+                status=r_status,
+                sent_at=datetime.utcnow() if ok else None,
+                error_message=r_fail
+            ))
+
+        message.status = 'completed'
+        message.sent_at = datetime.utcnow()
+        message.success_count = success_count
+        message.failed_count = failed_count
+        db.session.commit()
+
+        if failed_count > 0 and success_count == 0:
+            flash(f'발송 실패: {", ".join(failed_names[:5])}', 'error')
+        elif failed_count > 0:
+            flash(f'{message_type} {success_count}건 발송 완료, {failed_count}건 실패', 'warning')
+        else:
+            flash(f'{message_type} {success_count}건 발송 완료!', 'success')
+        return redirect(url_for('teacher.teacher_sms'))
+
+    # 발송 이력 (최근 30건)
+    history = Message.query.filter_by(sender_id=current_user.user_id)\
+        .order_by(Message.created_at.desc()).limit(30).all()
+
+    return render_template('teacher/send_sms.html',
+                           students=students,
+                           parents_with_children=parents_with_children,
+                           courses=courses,
+                           history=history)
