@@ -72,8 +72,9 @@
                 </form>
             </div>
             {% else %}
+            {% set period_label = '분기별' if period_type == 'quarterly' else '월별' %}
             <form method="POST" action="{{ url_for('admin.generate_payment_periods') }}"
-                  onsubmit="return confirm('{{ selected_year }}년 {{ \"분기별\" if period_type == \"quarterly\" else \"월별\" }} 기간을 자동 생성하시겠습니까?')">
+                  onsubmit="return confirm('{{ selected_year }}년 {{ period_label }} 기간을 자동 생성하시겠습니까?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="year" value="{{ selected_year }}">
                 <input type="hidden" name="period_type" value="{{ period_type }}">
