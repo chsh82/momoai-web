@@ -2468,8 +2468,7 @@ def all_schedule():
     teacher_course_ids = []
     if selected_teacher:
         teacher_courses = Course.query.filter_by(
-            teacher_id=selected_teacher_id,
-            status='active'
+            teacher_id=selected_teacher_id
         ).all()
         teacher_course_ids = [c.course_id for c in teacher_courses]
 
