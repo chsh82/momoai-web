@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Flask 애플리케이션 팩토리"""
-from flask import Flask, send_file, redirect, url_for
+from flask import Flask, send_file, redirect, url_for, render_template
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_required, current_user
 from flask_compress import Compress
@@ -329,7 +329,7 @@ def create_app(config_name='default'):
                 return redirect(url_for('parent.index'))
             else:
                 return redirect(url_for('admin.index'))  # 기본값
-        return redirect(url_for('auth.login'))
+        return render_template('landing.html')
 
     # API: 팝업 공지사항 목록
     @app.route('/api/popup-announcements')
