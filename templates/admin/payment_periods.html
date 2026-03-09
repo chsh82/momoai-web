@@ -62,7 +62,7 @@
                 <span class="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg">✅ 생성됨</span>
                 <form method="POST" action="{{ url_for('admin.generate_payment_periods') }}"
                       onsubmit="return confirm('이미 존재합니다. 덮어쓰려면 먼저 삭제 후 생성해주세요.')">
-                    {{ csrf_field() }}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="year" value="{{ selected_year }}">
                     <input type="hidden" name="period_type" value="{{ period_type }}">
                     <button type="button" disabled
@@ -74,7 +74,7 @@
             {% else %}
             <form method="POST" action="{{ url_for('admin.generate_payment_periods') }}"
                   onsubmit="return confirm('{{ selected_year }}년 {{ \"분기별\" if period_type == \"quarterly\" else \"월별\" }} 기간을 자동 생성하시겠습니까?')">
-                {{ csrf_field() }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="year" value="{{ selected_year }}">
                 <input type="hidden" name="period_type" value="{{ period_type }}">
                 <button type="submit"
@@ -104,7 +104,7 @@
                             class="text-xs text-blue-600 hover:text-blue-800 font-medium">수정</button>
                     <form method="POST" action="{{ url_for('admin.delete_payment_period', period_id=period.period_id) }}"
                           onsubmit="return confirm('삭제하시겠습니까? 결제 내역이 있으면 삭제되지 않습니다.')">
-                        {{ csrf_field() }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="text-xs text-red-400 hover:text-red-600 font-medium">삭제</button>
                     </form>
                 </div>
@@ -176,7 +176,7 @@
         <!-- 추가 폼 -->
         <div id="addHolidayForm" class="hidden px-6 py-4 bg-orange-50 border-b border-orange-200">
             <form method="POST" action="{{ url_for('admin.create_holiday_week') }}" class="flex flex-wrap gap-4 items-end">
-                {{ csrf_field() }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">날짜 선택 <span class="text-gray-400">(해당 주 월요일로 자동 조정)</span></label>
                     <input type="date" name="week_start" required
@@ -219,7 +219,7 @@
                     </div>
                     <form method="POST" action="{{ url_for('admin.delete_holiday_week', holiday_id=hw.holiday_id) }}"
                           onsubmit="return confirm('이 휴무 주를 삭제하시겠습니까?')">
-                        {{ csrf_field() }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="text-sm text-red-400 hover:text-red-600 font-medium px-2 py-1">삭제</button>
                     </form>
                 </div>
@@ -240,7 +240,7 @@
             <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
         </div>
         <form method="POST" id="editForm" class="p-6 space-y-4">
-            {{ csrf_field() }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">레이블</label>
                 <input type="text" name="label" id="editLabel"
