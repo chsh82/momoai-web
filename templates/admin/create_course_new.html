@@ -132,7 +132,22 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         8. 시작 시간 <span class="text-red-500">*</span>
                     </label>
-                    {{ form.start_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", onchange="autoSetEndTime(); generateCourseName()", step="300") }}
+                    {{ form.start_time(id="startTimeHidden", style="display:none") }}
+                    <div class="flex items-center gap-2">
+                        <select id="startHourSelect" onchange="syncStartTime(); autoSetEndTime(); generateCourseName()"
+                                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {% for h in range(7, 24) %}
+                            <option value="{{ '%02d' % h }}">{{ '%02d' % h }}시</option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-gray-500 font-semibold">:</span>
+                        <select id="startMinuteSelect" onchange="syncStartTime(); autoSetEndTime(); generateCourseName()"
+                                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {% for m in range(0, 60, 5) %}
+                            <option value="{{ '%02d' % m }}">{{ '%02d' % m }}분</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     {% if form.start_time.errors %}
                     <p class="text-red-600 text-sm mt-1">{{ form.start_time.errors[0] }}</p>
                     {% endif %}
@@ -144,7 +159,22 @@
                         9. 종료 시간 <span class="text-red-500">*</span>
                         <span class="text-gray-500 text-xs">(수업 타입과 학년에 따라 자동 설정, 변경 가능)</span>
                     </label>
-                    {{ form.end_time(class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", step="300") }}
+                    {{ form.end_time(id="endTimeHidden", style="display:none") }}
+                    <div class="flex items-center gap-2">
+                        <select id="endHourSelect" onchange="syncEndTime()"
+                                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {% for h in range(7, 24) %}
+                            <option value="{{ '%02d' % h }}">{{ '%02d' % h }}시</option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-gray-500 font-semibold">:</span>
+                        <select id="endMinuteSelect" onchange="syncEndTime()"
+                                class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {% for m in range(0, 60, 5) %}
+                            <option value="{{ '%02d' % m }}">{{ '%02d' % m }}분</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <p class="text-xs text-gray-500 mt-1">
                         베이직: +30분 | 프리미엄: +60분 | 정규반: 초등 +120분, 중등 +150분 | 하크니스: +150분 | 기타: +60분
                     </p>
@@ -268,10 +298,33 @@ function autoSetEndDate() {
     }
 }
 
+// 시간 select → hidden input 동기화
+function syncStartTime() {
+    const h = document.getElementById('startHourSelect').value;
+    const m = document.getElementById('startMinuteSelect').value;
+    document.getElementById('startTimeHidden').value = h + ':' + m;
+}
+
+function syncEndTime() {
+    const h = document.getElementById('endHourSelect').value;
+    const m = document.getElementById('endMinuteSelect').value;
+    document.getElementById('endTimeHidden').value = h + ':' + m;
+}
+
+function setEndTimeSelects(timeStr) {
+    if (!timeStr) return;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return;
+    const h = parts[0].padStart(2, '0');
+    const m = parts[1].padStart(2, '0');
+    document.getElementById('endHourSelect').value = h;
+    document.getElementById('endMinuteSelect').value = m;
+    document.getElementById('endTimeHidden').value = h + ':' + m;
+}
+
 // 종료 시간 자동 설정 (수업 타입과 학년에 따라)
 function autoSetEndTime() {
-    const startTimeInput = document.querySelector('input[name="start_time"]');
-    const endTimeInput = document.querySelector('input[name="end_time"]');
+    const startTimeInput = document.getElementById('startTimeHidden');
     const courseTypeSelect = document.querySelector('select[name="course_type"]');
     const gradeSelect = document.querySelector('select[name="grade"]');
 
@@ -298,7 +351,7 @@ function autoSetEndTime() {
     const endTotal = startTotalMinutes + minutesToAdd;
     const endHours = Math.floor(endTotal / 60) % 24;
     const endMins = endTotal % 60;
-    endTimeInput.value = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+    setEndTimeSelects(`${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`);
 }
 
 // 수업 타입별 가격 미리보기
@@ -397,7 +450,8 @@ window.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const startDateInput = document.querySelector('input[name="start_date"]');
     const endDateInput = document.querySelector('input[name="end_date"]');
-    const startTimeInput = document.querySelector('input[name="start_time"]');
+    const startTimeHidden = document.getElementById('startTimeHidden');
+    const endTimeHidden = document.getElementById('endTimeHidden');
 
     // 시작일 기본값: 오늘
     if (!startDateInput.value) {
@@ -407,9 +461,17 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!endDateInput.value) {
         autoSetEndDate();
     }
-    // 시작 시간 기본값: 12:00
-    if (!startTimeInput.value) {
-        startTimeInput.value = '12:00';
+
+    // 시작 시간 select 초기화 (기존 값 있으면 반영, 없으면 12:00 기본)
+    const startVal = startTimeHidden.value || '12:00';
+    if (!startTimeHidden.value) startTimeHidden.value = '12:00';
+    const [sh, sm] = startVal.split(':');
+    document.getElementById('startHourSelect').value = sh;
+    document.getElementById('startMinuteSelect').value = sm;
+
+    // 종료 시간 select 초기화 (기존 값 있으면 반영)
+    if (endTimeHidden.value) {
+        setEndTimeSelects(endTimeHidden.value);
     }
 
     autoSelectWeekday();
