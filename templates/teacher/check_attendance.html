@@ -429,10 +429,17 @@ function updateAttendanceUI(attendanceId, status) {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLateModal(); });
+
+// 모달을 body 바로 아래로 이동 (overflow-hidden 컨테이너 탈출)
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('lateSmsModal');
+    if (modal) document.body.appendChild(modal);
+});
 </script>
 
 <!-- 지각 SMS 확인 모달 -->
-<div id="lateSmsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+<div id="lateSmsModal" class="hidden fixed inset-0 flex items-center justify-center px-4"
+     style="z-index: 99999; background: rgba(0,0,0,0.5);">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
         <div class="flex items-center gap-3 mb-4">
             <span class="text-3xl">⏰</span>
