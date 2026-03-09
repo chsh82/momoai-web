@@ -83,6 +83,11 @@ def new_conversation():
             flash('유효하지 않은 수신자입니다.', 'error')
             return redirect(url_for('messages.new_conversation'))
 
+        # 강사는 master_admin(role_level=1)에게만 전송 가능
+        if current_user.role == 'teacher' and other.role_level != 1:
+            flash('강사는 Master 관리자에게만 메시지를 보낼 수 있습니다.', 'error')
+            return redirect(url_for('messages.new_conversation'))
+
         conv = _get_or_create_conversation(other_id)
         msg = ConversationMessage(
             conversation_id=conv.conversation_id,
@@ -98,12 +103,20 @@ def new_conversation():
 
         return redirect(url_for('messages.conversation', conv_id=conv.conversation_id))
 
-    # 대화 상대 목록: 강사/관리자 중 본인 제외
-    peers = User.query.filter(
-        User.role.in_(['admin', 'teacher']),
-        User.user_id != current_user.user_id,
-        User.is_active == True
-    ).order_by(User.name).all()
+    # 대화 상대 목록
+    # 강사: master_admin(role_level=1)만 / 관리자: 강사+관리자 전체(본인 제외)
+    if current_user.role == 'teacher':
+        peers = User.query.filter(
+            User.role_level == 1,
+            User.user_id != current_user.user_id,
+            User.is_active == True
+        ).order_by(User.name).all()
+    else:
+        peers = User.query.filter(
+            User.role.in_(['admin', 'teacher']),
+            User.user_id != current_user.user_id,
+            User.is_active == True
+        ).order_by(User.name).all()
 
     return render_template('messages/new_conversation.html', peers=peers)
 
