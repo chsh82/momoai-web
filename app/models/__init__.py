@@ -53,6 +53,8 @@ from app.models.teacher_hours import TeacherHoursCorrection
 from app.models.teacher_prompt import TeacherPromptTemplate
 from app.models.conversation import Conversation, ConversationMessage
 from app.models.student_caution import StudentCaution
+from app.models.payment_period import PaymentPeriod, HolidayWeek
+from app.models.session_adjustment import SessionAdjustment
 
 __all__ = [
     'db',
@@ -120,4 +122,7 @@ __all__ = [
     'NotificationReply',
     'PushSubscription',
     'TeacherHoursCorrection',
+    'PaymentPeriod',
+    'HolidayWeek',
+    'SessionAdjustment',
 ]

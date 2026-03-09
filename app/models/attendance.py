@@ -31,6 +31,9 @@ class Attendance(db.Model):
     participation_score = db.Column(db.Integer, default=3, nullable=True)  # 참여도
     comprehension_score = db.Column(db.Integer, default=3, nullable=True)  # 이해도
 
+    # 인정결석 조정 생성 여부 (중복 생성 방지)
+    adjustment_created = db.Column(db.Boolean, default=False)
+
     # 비고
     notes = db.Column(db.Text, nullable=True)
 

@@ -35,11 +35,38 @@ class Payment(db.Model):
     from_session = db.Column(db.Integer, nullable=True)  # 시작 회차
     to_session = db.Column(db.Integer, nullable=True)  # 종료 회차
 
+    # 결제 기간 정보
+    period_id = db.Column(db.String(36), db.ForeignKey('payment_periods.period_id', ondelete='SET NULL'),
+                          nullable=True, index=True)
+    period_start = db.Column(db.Date, nullable=True)   # 결제 기간 시작일
+    period_end = db.Column(db.Date, nullable=True)     # 결제 기간 종료일
+
+    # 계산 기준
+    weekly_fee = db.Column(db.Integer, nullable=True)  # 주당 수업료
+    weeks_count = db.Column(db.Integer, nullable=True) # 적용 주차 수
+
+    # 중간 합류 여부
+    is_prorated = db.Column(db.Boolean, default=False) # True: 분기/월 중간 합류 결제
+
+    # 조정 차감 내역
+    carried_over = db.Column(db.Integer, default=0)   # 이월로 차감된 회차 수
+    free_used = db.Column(db.Integer, default=0)      # 무료수업으로 차감된 회차 수
+
+    # 관리자 임의 조정 메모
+    manual_discount_note = db.Column(db.Text, nullable=True)
+
+    # 문자 발송 이력
+    sms_sent_at = db.Column(db.DateTime, nullable=True)
+
     # 결제 방법
     payment_method = db.Column(db.String(50), nullable=True)  # card, cash, transfer, etc
 
     # 결제 상태
-    status = db.Column(db.String(20), default='pending', index=True)  # pending, completed, cancelled, refunded
+    # pending: 청구 완료, 입금 대기
+    # completed: 납부 완료
+    # cancelled: 취소
+    # refunded: 환불
+    status = db.Column(db.String(20), default='pending', index=True)
 
     # 거래 정보
     transaction_id = db.Column(db.String(100), unique=True, nullable=True)  # 외부 결제 시스템 트랜잭션 ID

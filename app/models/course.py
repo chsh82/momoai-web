@@ -116,8 +116,12 @@ class CourseEnrollment(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
 
     # 결제 정보
-    payment_status = db.Column(db.String(20), default='pending')  # pending, partial, paid
+    payment_status = db.Column(db.String(20), default='pending')  # pending, paid
     paid_sessions = db.Column(db.Integer, default=0)  # 결제 완료된 회차 수
+
+    # 결제 주기 (수업별 설정)
+    payment_cycle = db.Column(db.String(20), nullable=True)  # 'monthly', 'quarterly'
+    weekly_fee = db.Column(db.Integer, nullable=True)        # 이 수업의 주당 수업료
 
     # 출석 통계
     attended_sessions = db.Column(db.Integer, default=0)
