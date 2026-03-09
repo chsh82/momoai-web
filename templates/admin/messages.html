@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}문자 발송 내역 - MOMOAI v4.0{% endblock %}
+{% block title %}SMS 발송 내역 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <h2 class="text-3xl font-bold text-gray-800">📱 문자 발송 내역</h2>
+            <h2 class="text-3xl font-bold text-gray-800">📱 SMS 발송 내역</h2>
             <p class="text-gray-600 mt-1">SMS/LMS 발송 내역을 확인할 수 있습니다.</p>
         </div>
         <a href="{{ url_for('admin.send_message') }}"
            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-            + 문자 발송
+            + SMS 발송
         </a>
     </div>
 
@@ -191,7 +191,7 @@
         <p class="text-gray-600 mb-6">첫 번째 문자를 발송해보세요!</p>
         <a href="{{ url_for('admin.send_message') }}"
            class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-            문자 발송하기
+            SMS 발송하기
         </a>
     </div>
     {% endif %}
