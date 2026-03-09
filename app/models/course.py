@@ -55,7 +55,7 @@ class Course(db.Model):
     status = db.Column(db.String(20), default='active', index=True)  # active, completed, cancelled
 
     # 보강수업 신청 가능 여부
-    makeup_class_allowed = db.Column(db.Boolean, default=True)
+    makeup_class_allowed = db.Column(db.Boolean, default=False)
 
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

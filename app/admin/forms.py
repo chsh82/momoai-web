@@ -100,7 +100,7 @@ class CourseForm(FlaskForm):
                                      default='available')
 
     # 10. 보강신청 가능여부
-    makeup_class_allowed = BooleanField('보강신청 가능', default=True)
+    makeup_class_allowed = BooleanField('보강신청 가능', default=False)
 
     # 종료일 (시작일 바로 밑에 위치, 시작일과 동일하게 초기값 설정)
     end_date = DateField('수업 종료일',
