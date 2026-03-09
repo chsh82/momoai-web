@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}학부모 마이 페이지 - MOMOAI v4.0{% endblock %}
+{% block title %}{{ current_user.name }}의 마이 페이지 - MOMOAI v4.0{% endblock %}
 
-{% block page_title %}🏠 학부모 마이 페이지{% endblock %}
+{% block page_title %}🏠 {{ current_user.name }}의 마이 페이지{% endblock %}
 
 {% block page_subtitle %}
 <span class="text-sm text-white text-opacity-70 ml-3">자녀 학습 현황</span>
@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
-    <h2 class="text-3xl font-bold text-gray-800 mb-6">학부모 마이 페이지</h2>
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">{{ current_user.name }}의 마이 페이지</h2>
 
     <!-- 통계 카드 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
