@@ -61,8 +61,8 @@ teacher = User.query.filter_by(role='teacher').first() or admin
 if not admin:
     err('관리자 계정 없음 — DB에 users가 비어 있음'); sys.exit(1)
 
-ok(f'관리자: {admin.username}')
-ok(f'강사: {teacher.username if teacher else "없음(admin 사용)"}')
+ok(f'관리자: {admin.name or admin.email}')
+ok(f'강사: {(teacher.name or teacher.email) if teacher else "없음(admin 사용)"}')
 teacher_id = (teacher or admin).user_id
 
 
