@@ -744,6 +744,189 @@ def register_payment_old():
                          course_id=course_id)
 
 
+@admin_bp.route('/payment-periods')
+@login_required
+@requires_permission_level(2)
+def payment_periods():
+    """결제 기간 캘린더 관리"""
+    from app.models.payment_period import PaymentPeriod, HolidayWeek
+
+    selected_year = request.args.get('year', datetime.now().year, type=int)
+    period_type = request.args.get('type', 'quarterly')  # quarterly or monthly
+
+    periods = PaymentPeriod.query.filter_by(
+        year=selected_year, period_type=period_type
+    ).order_by(PaymentPeriod.period_number).all()
+
+    # 연도 범위: 작년 ~ 내후년
+    current_year = datetime.now().year
+    year_range = list(range(current_year - 1, current_year + 3))
+
+    # 휴무 주 목록 (해당 연도)
+    holiday_weeks = HolidayWeek.query.filter(
+        HolidayWeek.week_start >= date(selected_year, 1, 1),
+        HolidayWeek.week_start <= date(selected_year, 12, 31)
+    ).order_by(HolidayWeek.week_start).all()
+
+    # 기존 생성 여부 확인
+    monthly_exists = PaymentPeriod.query.filter_by(year=selected_year, period_type='monthly').count() > 0
+    quarterly_exists = PaymentPeriod.query.filter_by(year=selected_year, period_type='quarterly').count() > 0
+
+    return render_template('admin/payment_periods.html',
+                           periods=periods,
+                           selected_year=selected_year,
+                           period_type=period_type,
+                           year_range=year_range,
+                           holiday_weeks=holiday_weeks,
+                           monthly_exists=monthly_exists,
+                           quarterly_exists=quarterly_exists)
+
+
+@admin_bp.route('/payment-periods/generate', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def generate_payment_periods():
+    """결제 기간 자동 생성"""
+    from app.models.payment_period import PaymentPeriod
+
+    year = request.form.get('year', type=int)
+    period_type = request.form.get('period_type')
+
+    if not year or period_type not in ('monthly', 'quarterly'):
+        flash('올바른 연도와 유형을 입력해주세요.', 'error')
+        return redirect(url_for('admin.payment_periods'))
+
+    existing = PaymentPeriod.query.filter_by(year=year, period_type=period_type).count()
+    if existing > 0:
+        flash(f'{year}년 {"월별" if period_type == "monthly" else "분기별"} 기간이 이미 존재합니다. 기존 항목을 수정해주세요.', 'warning')
+        return redirect(url_for('admin.payment_periods', year=year, type=period_type))
+
+    if period_type == 'monthly':
+        periods = PaymentPeriod.generate_monthly(year)
+        label = '월별 12개'
+    else:
+        periods = PaymentPeriod.generate_quarterly(year)
+        label = '분기별 4개'
+
+    for p in periods:
+        db.session.add(p)
+    db.session.commit()
+
+    flash(f'{year}년 {label} 결제 기간이 생성되었습니다.', 'success')
+    return redirect(url_for('admin.payment_periods', year=year, type=period_type))
+
+
+@admin_bp.route('/payment-periods/<period_id>/update', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def update_payment_period(period_id):
+    """결제 기간 수정 (날짜, 주차수, 레이블)"""
+    from app.models.payment_period import PaymentPeriod
+
+    period = PaymentPeriod.query.get_or_404(period_id)
+
+    label = request.form.get('label', '').strip()
+    start_date_str = request.form.get('start_date', '').strip()
+    end_date_str = request.form.get('end_date', '').strip()
+    weeks_count = request.form.get('weeks_count', type=int)
+    adjusted_note = request.form.get('adjusted_note', '').strip()
+
+    try:
+        if label:
+            period.label = label
+        if start_date_str:
+            period.start_date = date.fromisoformat(start_date_str)
+        if end_date_str:
+            period.end_date = date.fromisoformat(end_date_str)
+        if weeks_count and weeks_count > 0:
+            period.weeks_count = weeks_count
+        period.is_adjusted = True
+        period.adjusted_note = adjusted_note or None
+        db.session.commit()
+        flash(f'"{period.label}" 기간이 수정되었습니다.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'수정 중 오류가 발생했습니다: {e}', 'error')
+
+    return redirect(url_for('admin.payment_periods', year=period.year, type=period.period_type))
+
+
+@admin_bp.route('/payment-periods/<period_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def delete_payment_period(period_id):
+    """결제 기간 삭제"""
+    from app.models.payment_period import PaymentPeriod
+
+    period = PaymentPeriod.query.get_or_404(period_id)
+    year, ptype = period.year, period.period_type
+
+    if period.payments.count() > 0:
+        flash('이미 결제 내역이 있는 기간은 삭제할 수 없습니다.', 'error')
+        return redirect(url_for('admin.payment_periods', year=year, type=ptype))
+
+    db.session.delete(period)
+    db.session.commit()
+    flash('기간이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.payment_periods', year=year, type=ptype))
+
+
+@admin_bp.route('/holiday-weeks/create', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def create_holiday_week():
+    """휴무 주 등록"""
+    from app.models.payment_period import HolidayWeek
+    from datetime import timedelta
+
+    week_start_str = request.form.get('week_start', '').strip()
+    reason = request.form.get('reason', '').strip()
+
+    if not week_start_str or not reason:
+        flash('날짜와 사유를 모두 입력해주세요.', 'error')
+        return redirect(url_for('admin.payment_periods'))
+
+    try:
+        week_start = date.fromisoformat(week_start_str)
+        # 입력 날짜가 속한 주의 월요일로 조정
+        week_monday = week_start - timedelta(days=week_start.weekday())
+
+        # 중복 확인
+        existing = HolidayWeek.query.filter_by(week_start=week_monday).first()
+        if existing:
+            flash(f'{week_monday.strftime("%Y-%m-%d")} 주차는 이미 휴무 주로 등록되어 있습니다.', 'warning')
+            return redirect(url_for('admin.payment_periods', year=week_monday.year))
+
+        hw = HolidayWeek(
+            week_start=week_monday,
+            week_end=week_monday + timedelta(days=6),
+            reason=reason,
+            created_by=current_user.user_id
+        )
+        db.session.add(hw)
+        db.session.commit()
+        flash(f'{week_monday.strftime("%Y년 %m월 %d일")}주 휴무 주가 등록되었습니다.', 'success')
+        return redirect(url_for('admin.payment_periods', year=week_monday.year))
+    except ValueError:
+        flash('올바른 날짜 형식을 입력해주세요.', 'error')
+        return redirect(url_for('admin.payment_periods'))
+
+
+@admin_bp.route('/holiday-weeks/<holiday_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def delete_holiday_week(holiday_id):
+    """휴무 주 삭제"""
+    from app.models.payment_period import HolidayWeek
+
+    hw = HolidayWeek.query.get_or_404(holiday_id)
+    year = hw.week_start.year
+    db.session.delete(hw)
+    db.session.commit()
+    flash('휴무 주가 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.payment_periods', year=year))
+
+
 @admin_bp.route('/session-adjustments')
 @login_required
 @requires_permission_level(2)

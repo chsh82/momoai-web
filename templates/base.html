@@ -520,6 +520,10 @@
                                 <span class="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">!</span>
                                 {% endif %}
                             </a>
+                            <a href="{{ url_for('admin.payment_periods') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'payment_period' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                결제 기간 관리
+                            </a>
                         </div>
                     </div>
 
