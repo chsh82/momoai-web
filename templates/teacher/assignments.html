@@ -8,10 +8,10 @@
 <div class="max-w-7xl mx-auto">
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">과제 관리</h2>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">과제 관리</h2>
         <a href="{{ url_for('teacher.create_assignment') }}"
-           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 whitespace-nowrap self-start sm:self-auto">
             ➕ 새 과제 등록
         </a>
     </div>
