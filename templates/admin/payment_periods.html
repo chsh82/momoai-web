@@ -101,7 +101,7 @@
                     {% endif %}
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="openEditModal('{{ period.period_id }}', {{ period | tojson }})"
+                    <button onclick="openEditModal('{{ period.period_id }}', {{ {'label': period.label, 'start_date': period.start_date | string, 'end_date': period.end_date | string, 'weeks_count': period.weeks_count, 'adjusted_note': period.adjusted_note or ''} | tojson }})"
                             class="text-xs text-blue-600 hover:text-blue-800 font-medium">수정</button>
                     <form method="POST" action="{{ url_for('admin.delete_payment_period', period_id=period.period_id) }}"
                           onsubmit="return confirm('삭제하시겠습니까? 결제 내역이 있으면 삭제되지 않습니다.')">
