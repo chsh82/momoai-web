@@ -51,6 +51,14 @@
                         class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     🤖 AI 인사이트
                 </button>
+                <button onclick="showTab('caution')" id="tab-caution"
+                        class="tab-button relative px-6 py-4 text-sm font-medium border-b-2 border-transparent
+                               {% if active_cautions %}text-red-600{% else %}text-gray-500 hover:text-gray-700{% endif %} hover:border-gray-300">
+                    ⚠️ 주의사항
+                    {% if active_cautions %}
+                    <span class="absolute top-2 right-1 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">{{ active_cautions|length }}</span>
+                    {% endif %}
+                </button>
             </nav>
         </div>
     </div>
@@ -550,6 +558,124 @@
                     💡 AI 인사이트는 출석률, 상담이력, MBTI, 프로필 데이터를 교차분석하여 자동 생성됩니다.
                     실제 상담 시 참고자료로만 활용해주세요.
                 </p>
+            </div>
+        </div>
+    </div>
+
+        <!-- 주의사항 탭 -->
+        <div id="content-caution" class="tab-content hidden">
+            {% if active_cautions %}
+            <div class="mb-6 space-y-3">
+                {% for c in active_cautions %}
+                <div class="flex items-start gap-3 p-4 rounded-lg border-l-4
+                    {% if c.severity == 'danger' %}bg-red-50 border-red-500
+                    {% elif c.severity == 'warning' %}bg-orange-50 border-orange-500
+                    {% else %}bg-yellow-50 border-yellow-400{% endif %}">
+                    <span class="text-2xl flex-shrink-0">
+                        {% if c.severity == 'danger' %}🚨{% elif c.severity == 'warning' %}🔶{% else %}⚠️{% endif %}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span class="text-sm font-bold
+                                {% if c.severity == 'danger' %}text-red-800
+                                {% elif c.severity == 'warning' %}text-orange-800
+                                {% else %}text-yellow-800{% endif %}">{{ c.title }}</span>
+                            <span class="px-2 py-0.5 text-xs rounded font-medium
+                                {% if c.severity == 'danger' %}bg-red-100 text-red-700
+                                {% elif c.severity == 'warning' %}bg-orange-100 text-orange-700
+                                {% else %}bg-yellow-100 text-yellow-700{% endif %}">{{ c.severity_label }}</span>
+                            <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">{{ c.category_label }}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 whitespace-pre-line">{{ c.content }}</p>
+                        <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
+                            <span>{{ c.author.name if c.author else '(알수없음)' }}</span>
+                            <span>{{ c.created_at.strftime('%Y-%m-%d') }}</span>
+                            {% if c.consultation %}
+                            <a href="{{ url_for('teacher.consultation_detail', consultation_id=c.consultation_id) }}" class="text-blue-600 hover:underline">관련 상담 보기 →</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 flex flex-col gap-1">
+                        <form method="POST" action="{{ url_for('teacher.resolve_caution', caution_id=c.caution_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-xs px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition">✓ 해결</button>
+                        </form>
+                        {% if current_user.role in ['admin', 'master_admin'] %}
+                        <form method="POST" action="{{ url_for('teacher.delete_caution', caution_id=c.caution_id) }}" onsubmit="return confirm('삭제하시겠습니까?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-xs px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded transition">삭제</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% set resolved = cautions | selectattr('is_resolved') | list %}
+            {% if resolved %}
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-500 mb-2">해결된 주의사항 이력</h4>
+                <div class="space-y-2">
+                {% for c in resolved %}
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 opacity-70">
+                    <span class="text-lg flex-shrink-0">✅</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-600 line-through">{{ c.title }}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            해결: {{ c.resolved_by.name if c.resolved_by else '?' }} · {{ c.resolved_at.strftime('%Y-%m-%d') if c.resolved_at else '' }}
+                            {% if c.resolve_note %} — {{ c.resolve_note }}{% endif %}
+                        </p>
+                    </div>
+                    {% if current_user.role in ['admin', 'master_admin'] %}
+                    <form method="POST" action="{{ url_for('teacher.delete_caution', caution_id=c.caution_id) }}" onsubmit="return confirm('삭제하시겠습니까?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="text-xs text-red-500 hover:text-red-700">삭제</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="bg-white rounded-lg shadow p-5">
+                <h4 class="font-semibold text-gray-800 mb-4">⚠️ 주의사항 직접 등록</h4>
+                <form method="POST" action="{{ url_for('teacher.create_caution', student_id=student.student_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">카테고리</label>
+                            <select name="category" class="w-full text-sm border border-gray-300 rounded px-2 py-2">
+                                <option value="consultation_note">상담 유의사항</option>
+                                <option value="parent_request">학부모 요구사항</option>
+                                <option value="behavior">행동 특이사항</option>
+                                <option value="other">기타</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">심각도</label>
+                            <select name="severity" class="w-full text-sm border border-gray-300 rounded px-2 py-2">
+                                <option value="caution">⚠️ 주의</option>
+                                <option value="warning">🔶 경고</option>
+                                <option value="danger">🚨 위험</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">제목 *</label>
+                        <input type="text" name="title" required placeholder="주의사항 제목"
+                               class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">내용 *</label>
+                        <textarea name="content" required rows="4" placeholder="상세 내용을 입력하세요..."
+                                  class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"></textarea>
+                    </div>
+                    <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition">
+                        등록하기
+                    </button>
+                </form>
             </div>
         </div>
     </div>

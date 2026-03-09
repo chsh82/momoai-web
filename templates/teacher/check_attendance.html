@@ -105,6 +105,20 @@
                                     {% endif %}
                                 </div>
                                 <p class="text-sm text-gray-600">{{ attendance.student.grade }}</p>
+                                {% set st_cautions = attendance.student.cautions.filter_by(is_resolved=False).all() %}
+                                {% if st_cautions %}
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    {% for c in st_cautions %}
+                                    <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-medium
+                                        {% if c.severity == 'danger' %}bg-red-100 text-red-700
+                                        {% elif c.severity == 'warning' %}bg-orange-100 text-orange-700
+                                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                                        {% if c.severity == 'danger' %}🚨{% elif c.severity == 'warning' %}🔶{% else %}⚠️{% endif %}
+                                        {{ c.title[:20] }}{% if c.title|length > 20 %}…{% endif %}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
 

@@ -52,6 +52,7 @@ from app.models.push_subscription import PushSubscription
 from app.models.teacher_hours import TeacherHoursCorrection
 from app.models.teacher_prompt import TeacherPromptTemplate
 from app.models.conversation import Conversation, ConversationMessage
+from app.models.student_caution import StudentCaution
 
 __all__ = [
     'db',

@@ -147,6 +147,47 @@
         </a>
     </div>
 
+    <!-- ⚠️ 주의사항 경고 학생 위젯 -->
+    {% if active_caution_students %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-red-700">⚠️ 주의사항 경고 학생</h3>
+                <p class="text-sm text-gray-500 mt-0.5">미해결 주의사항이 있는 담당 학생</p>
+            </div>
+            <span class="bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full">{{ active_caution_students|length }}명</span>
+        </div>
+        <div class="divide-y divide-gray-100">
+            {% for item in active_caution_students %}
+            <a href="{{ url_for('teacher.student_detail', student_id=item.student.student_id) }}"
+               class="flex items-center gap-4 px-6 py-3 hover:bg-gray-50 transition">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0
+                    {% if item.worst.severity == 'danger' %}bg-red-500
+                    {% elif item.worst.severity == 'warning' %}bg-orange-500
+                    {% else %}bg-yellow-500{% endif %}">
+                    {{ item.student.name[0] }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-gray-800">{{ item.student.name }}
+                        <span class="text-xs text-gray-400 ml-1">{{ item.student.grade }}</span>
+                    </p>
+                    <p class="text-xs text-gray-500 truncate">
+                        {% if item.worst.severity == 'danger' %}🚨{% elif item.worst.severity == 'warning' %}🔶{% else %}⚠️{% endif %}
+                        {{ item.worst.title }}
+                    </p>
+                </div>
+                <span class="text-xs px-2 py-1 rounded font-medium flex-shrink-0
+                    {% if item.worst.severity == 'danger' %}bg-red-100 text-red-700
+                    {% elif item.worst.severity == 'warning' %}bg-orange-100 text-orange-700
+                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ item.worst.severity_label }}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 차트 섹션 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- 내 수업별 수강생 분포 -->

@@ -11,6 +11,7 @@ from app.models import (db, Course, CourseSession, Attendance, Student,
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.material import Material, MaterialDownload
 from app.models import Notification
+from app.models.student_caution import StudentCaution, CATEGORY_LABELS, SEVERITY_META
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.class_board import ClassBoardPost, ClassBoardComment
 from app.utils.decorators import requires_role
@@ -188,6 +189,21 @@ def index():
             student_names.append(row.name)
             student_attendance_rates.append(rate)
 
+    # 미해결 주의사항 학생 (내 담당 학생 중)
+    active_caution_students = []
+    if my_student_ids:
+        from sqlalchemy import distinct
+        caution_student_ids = db.session.query(distinct(StudentCaution.student_id)).filter(
+            StudentCaution.student_id.in_(my_student_ids),
+            StudentCaution.is_resolved == False
+        ).all()
+        caution_student_ids = [r[0] for r in caution_student_ids]
+        for sid in caution_student_ids:
+            st = Student.query.get(sid)
+            if st:
+                worst = StudentCaution.query.filter_by(student_id=sid, is_resolved=False)                    .order_by(db.case({'danger':0,'warning':1,'caution':2}, value=StudentCaution.severity)).first()
+                active_caution_students.append({'student': st, 'worst': worst})
+
     return render_template('teacher/index.html',
                          my_courses=my_courses,
                          today_sessions=today_sessions,
@@ -201,7 +217,8 @@ def index():
                          attendance_labels=json.dumps(attendance_labels),
                          attendance_data=json.dumps(attendance_data),
                          student_names=json.dumps(student_names),
-                         student_attendance_rates=json.dumps(student_attendance_rates))
+                         student_attendance_rates=json.dumps(student_attendance_rates),
+                         active_caution_students=active_caution_students)
 
 
 @teacher_bp.route('/courses')
@@ -838,6 +855,10 @@ def student_detail(student_id):
         student, enrollments, profile, mbti_result, mbti_type, consultations, feedbacks
     )
 
+    # 주의사항 이력
+    cautions = StudentCaution.query.filter_by(student_id=student_id)        .order_by(StudentCaution.is_resolved.asc(), StudentCaution.created_at.desc()).all()
+    active_cautions = [c for c in cautions if not c.is_resolved]
+
     return render_template('teacher/student_detail.html',
                          student=student,
                          enrollments=enrollments,
@@ -847,7 +868,11 @@ def student_detail(student_id):
                          mbti_result=mbti_result,
                          mbti_type=mbti_type,
                          consultations=consultations,
-                         insights=insights)
+                         insights=insights,
+                         cautions=cautions,
+                         active_cautions=active_cautions,
+                         category_labels=CATEGORY_LABELS,
+                         severity_meta=SEVERITY_META)
 
 
 @teacher_bp.route('/feedback/new', methods=['GET', 'POST'])
@@ -1133,6 +1158,21 @@ def create_consultation():
                 content=form.content.data
             )
             db.session.add(consultation)
+            db.session.flush()  # consultation_id 확보
+
+            # ⚠️ 주의사항으로 함께 등록
+            if request.form.get('register_caution'):
+                caution = StudentCaution(
+                    student_id=form.student_id.data,
+                    author_id=current_user.user_id,
+                    category=request.form.get('caution_category', 'consultation_note'),
+                    severity=request.form.get('caution_severity', 'caution'),
+                    title=auto_title,
+                    content=form.content.data,
+                    consultation_id=consultation.consultation_id,
+                )
+                db.session.add(caution)
+
             db.session.commit()
 
             flash('상담 기록이 저장되었습니다.', 'success')
@@ -3748,3 +3788,65 @@ def help_pdf():
     """강사 도움말 PDF 다운로드"""
     from app.utils.pdf_utils import generate_teacher_manual_pdf
     return generate_teacher_manual_pdf()
+
+
+# ─────────────────────────────────────────
+# 학생 주의사항(경고) CRUD
+# ─────────────────────────────────────────
+
+@teacher_bp.route('/students/<student_id>/cautions/new', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def create_caution(student_id):
+    """주의사항 등록"""
+    student = Student.query.get_or_404(student_id)
+    title    = request.form.get('title', '').strip()
+    content  = request.form.get('content', '').strip()
+    category = request.form.get('category', 'other')
+    severity = request.form.get('severity', 'caution')
+    if not title or not content:
+        flash('제목과 내용을 모두 입력해주세요.', 'error')
+        return redirect(url_for('teacher.student_detail', student_id=student_id))
+
+    caution = StudentCaution(
+        student_id=student_id,
+        author_id=current_user.user_id,
+        category=category,
+        severity=severity,
+        title=title,
+        content=content,
+    )
+    db.session.add(caution)
+    db.session.commit()
+    flash('주의사항이 등록되었습니다.', 'success')
+    return redirect(url_for('teacher.student_detail', student_id=student_id) + '#tab-caution')
+
+
+@teacher_bp.route('/cautions/<int:caution_id>/resolve', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def resolve_caution(caution_id):
+    """주의사항 해결 처리"""
+    caution = StudentCaution.query.get_or_404(caution_id)
+    note    = request.form.get('resolve_note', '').strip()
+    caution.resolve(current_user.user_id, note)
+    db.session.commit()
+    flash('주의사항을 해결 처리했습니다.', 'success')
+    return redirect(url_for('teacher.student_detail', student_id=caution.student_id) + '#tab-caution')
+
+
+@teacher_bp.route('/cautions/<int:caution_id>/delete', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def delete_caution(caution_id):
+    """주의사항 삭제 (관리자만)"""
+    if current_user.role not in ('admin', 'master_admin'):
+        flash('관리자만 삭제할 수 있습니다.', 'error')
+        caution = StudentCaution.query.get_or_404(caution_id)
+        return redirect(url_for('teacher.student_detail', student_id=caution.student_id) + '#tab-caution')
+    caution    = StudentCaution.query.get_or_404(caution_id)
+    student_id = caution.student_id
+    db.session.delete(caution)
+    db.session.commit()
+    flash('주의사항을 삭제했습니다.', 'success')
+    return redirect(url_for('teacher.student_detail', student_id=student_id) + '#tab-caution')
