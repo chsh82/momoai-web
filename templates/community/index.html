@@ -5,15 +5,15 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">💬 커뮤니티</h2>
-        <div class="flex gap-2">
-            <a href="{{ url_for('community.bookmarks') }}" class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-                🔖 내 북마크
+    <div class="flex items-center justify-between mb-6 gap-2">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">💬 커뮤니티</h2>
+        <div class="flex gap-2 flex-shrink-0">
+            <a href="{{ url_for('community.bookmarks') }}" class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base rounded-lg transition duration-200 whitespace-nowrap">
+                🔖 <span class="hidden sm:inline">내 </span>북마크
             </a>
             {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('community.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-                + 새 글 작성
+            <a href="{{ url_for('community.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 sm:px-6 sm:py-3 text-sm sm:text-base rounded-lg transition duration-200 whitespace-nowrap">
+                + <span class="hidden sm:inline">새 </span>글 작성
             </a>
             {% endif %}
         </div>
@@ -65,25 +65,25 @@
 
     <!-- 카테고리 탭 -->
     <div class="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
-        <div class="flex border-b border-gray-200">
+        <div class="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
             <a href="{{ url_for('community.index') }}"
-               class="flex-1 px-6 py-4 text-center font-medium transition duration-200 {% if not category_filter %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if not category_filter %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 전체
             </a>
             <a href="{{ url_for('community.index', category='notice') }}"
-               class="flex-1 px-6 py-4 text-center font-medium transition duration-200 {% if category_filter == 'notice' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'notice' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 📢 공지
             </a>
             <a href="{{ url_for('community.index', category='question') }}"
-               class="flex-1 px-6 py-4 text-center font-medium transition duration-200 {% if category_filter == 'question' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'question' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 ❓ 질문
             </a>
             <a href="{{ url_for('community.index', category='free') }}"
-               class="flex-1 px-6 py-4 text-center font-medium transition duration-200 {% if category_filter == 'free' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'free' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 💬 자유
             </a>
             <a href="{{ url_for('community.index', category='resource') }}"
-               class="flex-1 px-6 py-4 text-center font-medium transition duration-200 {% if category_filter == 'resource' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'resource' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 📚 자료
             </a>
         </div>
