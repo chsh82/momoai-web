@@ -45,6 +45,23 @@
             </div>
             <p class="font-bold text-gray-900 text-lg mb-2">{{ notification.title }}</p>
             <p class="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{{ notification.message }}</p>
+            {% if notification.attachment_url %}
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                {% set ext = notification.attachment_name.rsplit('.', 1)[-1].lower() if notification.attachment_name else '' %}
+                {% if ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                <a href="{{ url_for('teacher.download_class_message_attachment', notification_id=notification.notification_id) }}" target="_blank">
+                    <img src="{{ url_for('teacher.download_class_message_attachment', notification_id=notification.notification_id) }}"
+                         alt="{{ notification.attachment_name }}"
+                         class="max-w-full rounded-lg border border-gray-200 max-h-64 object-contain">
+                </a>
+                {% else %}
+                <a href="{{ url_for('teacher.download_class_message_attachment', notification_id=notification.notification_id) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition">
+                    📎 {{ notification.attachment_name }}
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 

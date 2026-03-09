@@ -21,6 +21,10 @@ class Notification(db.Model):
     is_read = db.Column(db.Boolean, default=False, index=True)
     read_at = db.Column(db.DateTime, nullable=True)
 
+    # 첨부파일
+    attachment_url = db.Column(db.String(500), nullable=True)   # 저장 경로 (서버 내부)
+    attachment_name = db.Column(db.String(200), nullable=True)  # 원본 파일명
+
     # 알림 관련 엔티티 정보 (선택적)
     related_user_id = db.Column(db.String(36), nullable=True)  # 알림을 발생시킨 사용자
     related_entity_type = db.Column(db.String(50), nullable=True)  # post, comment, essay 등

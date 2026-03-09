@@ -1774,11 +1774,14 @@ def class_messages():
 @requires_role('teacher', 'admin')
 def send_course_message():
     """반 전체에 공지 발송"""
+    from werkzeug.utils import secure_filename
+    import uuid as _uuid
+
     course_id = request.form.get('course_id')
-    message_type = request.form.get('message_type', 'announcement')  # announcement or homework
+    message_type = request.form.get('message_type', 'announcement')
     title = request.form.get('title', '').strip()
     message = request.form.get('message', '').strip()
-    send_to_parents = request.form.get('send_to_parents') == '1'  # 체크박스 값
+    send_to_parents = request.form.get('send_to_parents') == '1'
 
     if not all([course_id, title, message]):
         flash('모든 필드를 입력해주세요.', 'error')
@@ -1786,34 +1789,46 @@ def send_course_message():
 
     course = Course.query.get_or_404(course_id)
 
-    # 권한 확인
     if course.teacher_id != current_user.user_id and not current_user.is_admin:
         flash('권한이 없습니다.', 'error')
         return redirect(url_for('teacher.class_messages'))
 
-    # 해당 수업의 모든 학생에게 알림 발송
-    enrollments = CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
+    # 첨부파일 처리
+    attachment_url = None
+    attachment_name = None
+    upload_file = request.files.get('attachment')
+    if upload_file and upload_file.filename:
+        allowed_ext = {'jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'hwp', 'zip', 'mp4', 'mp3'}
+        ext = os.path.splitext(secure_filename(upload_file.filename))[1].lstrip('.').lower()
+        if ext in allowed_ext:
+            save_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_messages')
+            os.makedirs(save_dir, exist_ok=True)
+            unique_name = f"{_uuid.uuid4().hex}.{ext}"
+            upload_file.save(os.path.join(save_dir, unique_name))
+            attachment_url = f"class_messages/{unique_name}"
+            attachment_name = upload_file.filename
 
+    enrollments = CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
     notification_type = 'class_announcement' if message_type == 'announcement' else 'homework_assignment'
     notification_title = f"[{course.course_name}] {title}"
 
     sent_count = 0
     parent_count = 0
     for enrollment in enrollments:
-        # 학생에게 알림
         student_notification = Notification(
             user_id=enrollment.student.user_id,
             notification_type=notification_type,
             title=notification_title,
             message=message,
-            related_user_id=current_user.user_id,  # 발송자 기록
+            related_user_id=current_user.user_id,
             related_entity_type='course',
-            related_entity_id=course_id
+            related_entity_id=course_id,
+            attachment_url=attachment_url,
+            attachment_name=attachment_name
         )
         db.session.add(student_notification)
         sent_count += 1
 
-        # 학부모에게도 알림 (체크된 경우에만)
         if send_to_parents:
             parent_relations = ParentStudent.query.filter_by(student_id=enrollment.student_id, is_active=True).all()
             for pr in parent_relations:
@@ -1822,9 +1837,11 @@ def send_course_message():
                     notification_type=notification_type,
                     title=f"[{enrollment.student.name}] {notification_title}",
                     message=message,
-                    related_user_id=current_user.user_id,  # 발송자 기록
+                    related_user_id=current_user.user_id,
                     related_entity_type='course',
-                    related_entity_id=course_id
+                    related_entity_id=course_id,
+                    attachment_url=attachment_url,
+                    attachment_name=attachment_name
                 )
                 db.session.add(parent_notification)
                 parent_count += 1
@@ -1844,11 +1861,14 @@ def send_course_message():
 @requires_role('teacher', 'admin')
 def send_student_message():
     """개별 학생에게 과제/메시지 발송"""
+    from werkzeug.utils import secure_filename
+    import uuid as _uuid
+
     student_id = request.form.get('student_id')
     message_type = request.form.get('message_type', 'homework')
     title = request.form.get('title', '').strip()
     message = request.form.get('message', '').strip()
-    send_to_parents = request.form.get('send_to_parents') == '1'  # 체크박스 값
+    send_to_parents = request.form.get('send_to_parents') == '1'
 
     if not all([student_id, title, message]):
         flash('모든 필드를 입력해주세요.', 'error')
@@ -1856,7 +1876,6 @@ def send_student_message():
 
     student = Student.query.get_or_404(student_id)
 
-    # 권한 확인 (내가 담당하는 학생인지)
     enrollments = CourseEnrollment.query.join(Course).filter(
         CourseEnrollment.student_id == student_id,
         Course.teacher_id == current_user.user_id,
@@ -1867,21 +1886,36 @@ def send_student_message():
         flash('이 학생을 담당하고 있지 않습니다.', 'error')
         return redirect(url_for('teacher.class_messages'))
 
+    # 첨부파일 처리
+    attachment_url = None
+    attachment_name = None
+    upload_file = request.files.get('attachment')
+    if upload_file and upload_file.filename:
+        allowed_ext = {'jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'hwp', 'zip', 'mp4', 'mp3'}
+        ext = os.path.splitext(secure_filename(upload_file.filename))[1].lstrip('.').lower()
+        if ext in allowed_ext:
+            save_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_messages')
+            os.makedirs(save_dir, exist_ok=True)
+            unique_name = f"{_uuid.uuid4().hex}.{ext}"
+            upload_file.save(os.path.join(save_dir, unique_name))
+            attachment_url = f"class_messages/{unique_name}"
+            attachment_name = upload_file.filename
+
     notification_type = 'homework_assignment' if message_type == 'homework' else 'class_announcement'
 
-    # 학생에게 알림
     student_notification = Notification(
         user_id=student.user_id,
         notification_type=notification_type,
         title=title,
         message=message,
-        related_user_id=current_user.user_id,  # 발송자 기록
+        related_user_id=current_user.user_id,
         related_entity_type='student',
-        related_entity_id=student_id
+        related_entity_id=student_id,
+        attachment_url=attachment_url,
+        attachment_name=attachment_name
     )
     db.session.add(student_notification)
 
-    # 학부모에게도 알림 (체크된 경우에만)
     parent_count = 0
     if send_to_parents:
         parent_relations = ParentStudent.query.filter_by(student_id=student_id, is_active=True).all()
@@ -1891,9 +1925,11 @@ def send_student_message():
                 notification_type=notification_type,
                 title=f"[{student.name}] {title}",
                 message=message,
-                related_user_id=current_user.user_id,  # 발송자 기록
+                related_user_id=current_user.user_id,
                 related_entity_type='student',
-                related_entity_id=student_id
+                related_entity_id=student_id,
+                attachment_url=attachment_url,
+                attachment_name=attachment_name
             )
             db.session.add(parent_notification)
             parent_count += 1
@@ -2010,6 +2046,22 @@ def class_message_detail(notification_id):
     return render_template('teacher/class_message_detail.html',
                            notification=notification,
                            replies=replies)
+
+
+@teacher_bp.route('/class-messages/attachment/<notification_id>')
+@login_required
+def download_class_message_attachment(notification_id):
+    """수업 메시지 첨부파일 다운로드"""
+    notif = Notification.query.get_or_404(notification_id)
+    if not notif.attachment_url:
+        flash('첨부파일이 없습니다.', 'error')
+        return redirect(url_for('teacher.class_messages'))
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    file_dir = os.path.dirname(os.path.join(upload_folder, notif.attachment_url))
+    file_name = os.path.basename(notif.attachment_url)
+    return send_from_directory(file_dir, file_name, as_attachment=True,
+                               download_name=notif.attachment_name or file_name)
+
 
 
 @teacher_bp.route('/class-messages/<notification_id>/reply', methods=['POST'])
