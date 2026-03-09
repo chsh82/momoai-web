@@ -902,6 +902,50 @@ def download_assignment_file(submission_id):
     )
 
 
+@student_bp.route('/payments')
+@login_required
+@requires_role('student', 'admin')
+def my_payments():
+    """내 결제 현황 (청구서 + 이월/무료 조정 이력)"""
+    from app.models.session_adjustment import SessionAdjustment
+    from app.models import Payment
+
+    if current_user.role == 'student':
+        student = Student.query.filter_by(email=current_user.email).first()
+    else:
+        student = Student.query.first()
+
+    if not student:
+        flash('학생 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('student.index'))
+
+    # 청구서 목록 — 기간 최신순
+    payments = Payment.query.filter_by(
+        student_id=student.student_id,
+        payment_type='tuition'
+    ).order_by(
+        Payment.period_start.desc().nullslast(),
+        Payment.created_at.desc()
+    ).all()
+
+    # 이월/무료수업 조정 이력
+    adjustments = SessionAdjustment.query.filter_by(
+        student_id=student.student_id
+    ).filter(
+        SessionAdjustment.adjustment_type.isnot(None)
+    ).order_by(SessionAdjustment.created_at.desc()).all()
+
+    total_pending = sum(p.amount for p in payments if p.status == 'pending')
+    total_paid = sum(p.amount for p in payments if p.status == 'completed')
+
+    return render_template('student/my_payments.html',
+                           student=student,
+                           payments=payments,
+                           adjustments=adjustments,
+                           total_pending=total_pending,
+                           total_paid=total_paid)
+
+
 @student_bp.route('/progress')
 @login_required
 @requires_role('student', 'admin')

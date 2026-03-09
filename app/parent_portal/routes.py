@@ -348,75 +348,91 @@ def view_feedback(feedback_id):
 @login_required
 @requires_role('parent', 'admin')
 def child_payments(student_id):
-    """자녀 결제 관리"""
-    # 권한 확인
+    """자녀 결제 현황 (청구서 기반)"""
+    from app.models.session_adjustment import SessionAdjustment
+
     relation = ParentStudent.query.filter_by(
         parent_id=current_user.user_id,
         student_id=student_id,
         is_active=True
     ).first()
-
     if not relation and not current_user.is_admin:
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('parent.children'))
 
     student = Student.query.get_or_404(student_id)
 
-    # 수강 중인 수업별 결제 정보
-    enrollments = CourseEnrollment.query.filter_by(
+    # 청구서 (Payment) 목록 — 기간 시작일 최신순
+    payments = Payment.query.filter_by(
         student_id=student_id,
-        status='active'
+        payment_type='tuition'
+    ).order_by(
+        Payment.period_start.desc().nullslast(),
+        Payment.created_at.desc()
     ).all()
 
-    payment_data = []
-    total_paid = 0
-    total_unpaid = 0
+    # 이월/무료수업 조정 이력
+    adjustments = SessionAdjustment.query.filter_by(
+        student_id=student_id
+    ).filter(
+        SessionAdjustment.adjustment_type.isnot(None)
+    ).order_by(SessionAdjustment.created_at.desc()).all()
 
-    for enrollment in enrollments:
-        calc = calculate_tuition_amount(enrollment)
-
-        # 결제 이력
-        payments = Payment.query.filter_by(
-            enrollment_id=enrollment.enrollment_id,
-            status='completed'
-        ).order_by(Payment.paid_at.desc()).all()
-
-        payment_data.append({
-            'enrollment': enrollment,
-            'course': enrollment.course,
-            'calculation': calc,
-            'payments': payments
-        })
-
-        total_paid += calc['paid_amount']
-        total_unpaid += calc['remaining_amount']
+    # 통계
+    total_pending = sum(p.amount for p in payments if p.status == 'pending')
+    total_paid = sum(p.amount for p in payments if p.status == 'completed')
 
     return render_template('parent/child_payments.html',
-                         student=student,
-                         payment_data=payment_data,
-                         total_paid=total_paid,
-                         total_unpaid=total_unpaid)
+                           student=student,
+                           payments=payments,
+                           adjustments=adjustments,
+                           total_pending=total_pending,
+                           total_paid=total_paid)
 
 
 @parent_bp.route('/payments')
 @login_required
 @requires_role('parent', 'admin')
 def all_payments():
-    """전체 결제 내역"""
-    # 내 자녀들의 모든 결제 내역
+    """전체 자녀 결제 내역"""
+    from app.models.session_adjustment import SessionAdjustment
+
     parent_relations = ParentStudent.query.filter_by(
         parent_id=current_user.user_id,
         is_active=True
     ).all()
-
     student_ids = [pr.student_id for pr in parent_relations]
 
+    # 자녀별 미납 통계
+    children = []
+    for rel in parent_relations:
+        st = rel.student
+        if not st:
+            continue
+        pending_payments = Payment.query.filter_by(
+            student_id=st.student_id,
+            payment_type='tuition',
+            status='pending'
+        ).all()
+        pending_total = sum(p.amount for p in pending_payments)
+        children.append({
+            'student': st,
+            'pending_count': len(pending_payments),
+            'pending_total': pending_total,
+        })
+
+    # 전체 청구서
     payments = Payment.query.filter(
-        Payment.student_id.in_(student_ids)
-    ).order_by(Payment.created_at.desc()).all()
+        Payment.student_id.in_(student_ids),
+        Payment.payment_type == 'tuition'
+    ).order_by(
+        Payment.period_start.desc().nullslast(),
+        Payment.created_at.desc()
+    ).all()
 
     return render_template('parent/all_payments.html',
-                         payments=payments)
+                           payments=payments,
+                           children=children)
 
 
 @parent_bp.route('/feedback')

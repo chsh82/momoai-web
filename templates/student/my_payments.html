@@ -1,19 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{{ student.name }} 결제 현황 - MOMOAI v4.0{% endblock %}
-{% block page_title %}💳 결제 현황{% endblock %}
+{% block title %}내 결제 현황 - MOMOAI v4.0{% endblock %}
+{% block page_title %}💳 내 결제 현황{% endblock %}
 {% block page_subtitle %}
-<span class="text-sm text-white text-opacity-70 ml-3">{{ student.name }} 수강료 청구 내역</span>
+<span class="text-sm text-white text-opacity-70 ml-3">수강료 청구서 및 이월·무료 조정 내역</span>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto">
-
-    <!-- 뒤로가기 -->
-    <div class="mb-4">
-        <a href="{{ url_for('parent.child_detail', student_id=student.student_id) }}"
-           class="text-blue-600 hover:text-blue-800 text-sm font-medium">← {{ student.name }} 정보로</a>
-    </div>
+<div class="max-w-4xl mx-auto">
 
     <!-- 통계 카드 -->
     <div class="grid grid-cols-3 gap-4 mb-6">
@@ -22,7 +16,9 @@
             <p class="text-sm text-gray-500 mt-1">총 청구 건수</p>
         </div>
         <div class="bg-white rounded-xl shadow p-5 text-center">
-            <p class="text-2xl font-bold text-red-600">{{ "{:,}".format(total_pending) }}원</p>
+            <p class="text-2xl font-bold {% if total_pending > 0 %}text-red-600{% else %}text-gray-400{% endif %}">
+                {{ "{:,}".format(total_pending) }}원
+            </p>
             <p class="text-sm text-gray-500 mt-1">미납 합계</p>
         </div>
         <div class="bg-white rounded-xl shadow p-5 text-center">
@@ -31,10 +27,21 @@
         </div>
     </div>
 
+    <!-- 미납 안내 -->
+    {% if total_pending > 0 %}
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+        <span class="text-2xl">⚠️</span>
+        <div>
+            <p class="font-medium text-red-700">미납 수강료가 있습니다.</p>
+            <p class="text-sm text-red-500 mt-0.5">총 {{ "{:,}".format(total_pending) }}원이 납부 대기 중입니다. 담당 선생님께 문의해 주세요.</p>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 청구서 목록 -->
     <div class="bg-white rounded-xl shadow overflow-hidden mb-6">
         <div class="p-5 border-b border-gray-100">
-            <h3 class="text-lg font-bold text-gray-800">📋 청구서 내역</h3>
+            <h3 class="text-lg font-bold text-gray-800">📋 수강료 청구서</h3>
         </div>
 
         {% if payments %}
@@ -46,38 +53,33 @@
                         <th class="px-4 py-3 text-left">수강 과목</th>
                         <th class="px-4 py-3 text-center">주기</th>
                         <th class="px-4 py-3 text-right">기본 금액</th>
-                        <th class="px-4 py-3 text-right">할인</th>
-                        <th class="px-4 py-3 text-right">이월·무료</th>
-                        <th class="px-4 py-3 text-right font-medium text-gray-700">최종 금액</th>
+                        <th class="px-4 py-3 text-right">할인·차감</th>
+                        <th class="px-4 py-3 text-right font-medium text-gray-700">청구 금액</th>
                         <th class="px-4 py-3 text-center">상태</th>
-                        <th class="px-4 py-3 text-center">납부일</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for payment in payments %}
                     <tr class="hover:bg-gray-50">
-                        <!-- 결제 기간 -->
                         <td class="px-4 py-3">
                             {% if payment.period_start and payment.period_end %}
                             <div class="font-medium text-gray-700">
-                                {{ payment.period_start.strftime('%Y년 %m월 %d일') }}
+                                {{ payment.period_start.strftime('%Y년 %m월') }}
                             </div>
                             <div class="text-xs text-gray-400">
-                                ~ {{ payment.period_end.strftime('%m월 %d일') }}
-                                {% if payment.weeks_count %}({{ payment.weeks_count }}주){% endif %}
+                                {{ payment.period_start.strftime('%m/%d') }} ~ {{ payment.period_end.strftime('%m/%d') }}
+                                {% if payment.weeks_count %}· {{ payment.weeks_count }}주{% endif %}
                             </div>
                             {% else %}
                             <span class="text-gray-400">-</span>
                             {% endif %}
                         </td>
-                        <!-- 수강 과목 -->
                         <td class="px-4 py-3 text-gray-600">
                             {{ payment.course.course_name if payment.course else '-' }}
                             {% if payment.is_prorated %}
-                            <span class="text-xs text-orange-500 ml-1">(중간합류)</span>
+                            <span class="text-xs text-orange-400 block">중간 합류</span>
                             {% endif %}
                         </td>
-                        <!-- 주기 -->
                         <td class="px-4 py-3 text-center">
                             {% if payment.payment_period == 'quarterly' %}
                             <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">분기</span>
@@ -87,58 +89,40 @@
                             <span class="text-gray-400 text-xs">-</span>
                             {% endif %}
                         </td>
-                        <!-- 기본 금액 -->
                         <td class="px-4 py-3 text-right text-gray-600">
                             {{ "{:,}".format(payment.original_amount) if payment.original_amount else '-' }}원
                         </td>
-                        <!-- 할인 -->
                         <td class="px-4 py-3 text-right">
-                            {% if payment.discount_amount and payment.discount_amount > 0 %}
-                            <span class="text-red-600">-{{ "{:,}".format(payment.discount_amount) }}원</span>
-                            {% if payment.discount_type %}
-                            <div class="text-xs text-gray-400">
-                                {% set dlabels = {'sibling': '형제자매', 'acquaintance': '지인', 'employee': '직원', 'scholarship': '장학'} %}
-                                {{ dlabels.get(payment.discount_type, payment.discount_type) }}
-                            </div>
-                            {% endif %}
-                            {% else %}
-                            <span class="text-gray-400">-</span>
-                            {% endif %}
-                        </td>
-                        <!-- 이월·무료 -->
-                        <td class="px-4 py-3 text-right">
-                            {% set adjust_count = (payment.carried_over or 0) + (payment.free_used or 0) %}
-                            {% if adjust_count > 0 %}
-                            <span class="text-orange-600">차감 {{ adjust_count }}회</span>
-                            <div class="text-xs text-gray-400">
-                                {% if payment.carried_over %}이월{{ payment.carried_over }}{% endif %}
-                                {% if payment.free_used %}무료{{ payment.free_used }}{% endif %}
+                            {% set total_reduce = (payment.discount_amount or 0) + ((payment.carried_over or 0) + (payment.free_used or 0)) * (payment.weekly_fee or 0) %}
+                            {% if (payment.discount_amount or 0) > 0 or (payment.carried_over or 0) > 0 or (payment.free_used or 0) > 0 %}
+                            <div class="text-red-500 text-xs space-y-0.5">
+                                {% if payment.discount_amount and payment.discount_amount > 0 %}
+                                <div>할인 -{{ "{:,}".format(payment.discount_amount) }}원</div>
+                                {% endif %}
+                                {% if (payment.carried_over or 0) + (payment.free_used or 0) > 0 %}
+                                <div>
+                                    {% if payment.carried_over %}이월{{ payment.carried_over }}{% endif %}
+                                    {% if payment.free_used %}무료{{ payment.free_used }}{% endif %}회 차감
+                                </div>
+                                {% endif %}
                             </div>
                             {% else %}
                             <span class="text-gray-400">-</span>
                             {% endif %}
                         </td>
-                        <!-- 최종 금액 -->
                         <td class="px-4 py-3 text-right font-bold text-blue-700 text-base">
                             {{ "{:,}".format(payment.amount) }}원
                         </td>
-                        <!-- 상태 -->
                         <td class="px-4 py-3 text-center">
                             {% if payment.status == 'completed' %}
                             <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">납부완료</span>
                             {% elif payment.status == 'pending' %}
-                            <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full">납부대기</span>
+                            <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full font-medium">납부대기</span>
                             {% elif payment.status == 'cancelled' %}
                             <span class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">취소</span>
                             {% else %}
                             <span class="text-gray-400 text-xs">{{ payment.status }}</span>
                             {% endif %}
-                        </td>
-                        <!-- 납부일 -->
-                        <td class="px-4 py-3 text-center text-xs text-gray-500">
-                            {% if payment.paid_at %}
-                            {{ payment.paid_at.strftime('%m/%d') }}
-                            {% else %}-{% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -148,7 +132,7 @@
         {% else %}
         <div class="py-12 text-center text-gray-400">
             <p class="text-3xl mb-3">📭</p>
-            <p>아직 생성된 청구서가 없습니다.</p>
+            <p>아직 청구된 수강료가 없습니다.</p>
         </div>
         {% endif %}
     </div>
@@ -157,8 +141,8 @@
     {% if adjustments %}
     <div class="bg-white rounded-xl shadow overflow-hidden">
         <div class="p-5 border-b border-gray-100">
-            <h3 class="text-lg font-bold text-gray-800">🔄 이월·무료수업 조정 이력</h3>
-            <p class="text-sm text-gray-500 mt-1">인정결석 및 관리자 조정으로 발생한 이월/무료수업 내역입니다.</p>
+            <h3 class="text-lg font-bold text-gray-800">🔄 이월·무료수업 이력</h3>
+            <p class="text-sm text-gray-500 mt-1">인정결석으로 발생한 이월 및 무료수업 내역입니다.</p>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -175,9 +159,7 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for adj in adjustments %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-gray-500">
-                            {{ adj.created_at.strftime('%Y.%m.%d') }}
-                        </td>
+                        <td class="px-4 py-3 text-gray-500">{{ adj.created_at.strftime('%Y.%m.%d') }}</td>
                         <td class="px-4 py-3 text-gray-700">
                             {{ adj.enrollment.course.course_name if adj.enrollment and adj.enrollment.course else '-' }}
                         </td>
@@ -188,12 +170,8 @@
                             <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">무료수업</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-center font-medium text-gray-700">
-                            {{ adj.sessions_count }}회
-                        </td>
-                        <td class="px-4 py-3 text-gray-500">
-                            {{ adj.reason or '-' }}
-                        </td>
+                        <td class="px-4 py-3 text-center font-medium text-gray-700">{{ adj.sessions_count }}회</td>
+                        <td class="px-4 py-3 text-gray-500 text-xs">{{ adj.reason or '-' }}</td>
                         <td class="px-4 py-3 text-center">
                             {% if adj.status == 'applied' %}
                             <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">반영완료</span>
