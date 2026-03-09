@@ -626,12 +626,9 @@ def send_late_sms(attendance_id):
     date_str = session_obj.session_date.strftime('%Y년 %m월 %d일')
     time_str = session_obj.start_time.strftime('%H:%M') if session_obj.start_time else ''
     msg = (
-        f'[MOMOAI] {student.name} 학생 지각 안내
-'
-        f'{date_str} {time_str} {course.course_name} 수업에
-'
-        f'학생이 지각 처리되었습니다.
-'
+        f'[MOMOAI] {student.name} 학생 지각 안내\n'
+        f'{date_str} {time_str} {course.course_name} 수업에\n'
+        f'학생이 지각 처리되었습니다.\n'
         f'문의: {current_user.name} 강사'
     )
 
