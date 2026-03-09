@@ -20,11 +20,22 @@
                 <select name="other_user_id" required
                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">-- 선택 --</option>
+                    {% if current_user.role == 'admin' %}
+                    <optgroup label="── 전체 발송 ──">
+                        <option value="_all_teachers">📢 전체 강사에게</option>
+                        <option value="_all_admins">📢 전체 관리자에게</option>
+                        <option value="_all">📢 전체 (강사 + 관리자)</option>
+                    </optgroup>
+                    <optgroup label="── 개별 발송 ──">
+                    {% endif %}
                     {% for peer in peers %}
                     <option value="{{ peer.user_id }}">
                         {{ peer.name }} ({{ '관리자' if peer.role == 'admin' else '강사' }})
                     </option>
                     {% endfor %}
+                    {% if current_user.role == 'admin' %}
+                    </optgroup>
+                    {% endif %}
                 </select>
             </div>
 

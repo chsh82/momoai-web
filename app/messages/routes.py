@@ -89,6 +89,12 @@ def new_conversation():
     """새 대화 시작"""
     _require_teacher_or_admin()
 
+    _BROADCAST = {
+        '_all_teachers': ['teacher'],
+        '_all_admins':   ['admin'],
+        '_all':          ['teacher', 'admin'],
+    }
+
     if request.method == 'POST':
         other_id = request.form.get('other_user_id', '').strip()
         body = request.form.get('body', '').strip()
@@ -96,6 +102,41 @@ def new_conversation():
             flash('받는 사람과 메시지 내용을 입력해주세요.', 'error')
             return redirect(url_for('messages.new_conversation'))
 
+        # ── 전체 발송 (관리자 전용) ──
+        if other_id in _BROADCAST:
+            if current_user.role != 'admin':
+                abort(403)
+            roles = _BROADCAST[other_id]
+            recipients = User.query.filter(
+                User.role.in_(roles),
+                User.user_id != current_user.user_id,
+                User.is_active == True
+            ).all()
+            if not recipients:
+                flash('발송 대상이 없습니다.', 'error')
+                return redirect(url_for('messages.new_conversation'))
+
+            att_url, att_name = _save_attachment(request.files.get('attachment'))
+            sent_convs = []
+            for recipient in recipients:
+                conv = _get_or_create_conversation(recipient.user_id)
+                msg = ConversationMessage(
+                    conversation_id=conv.conversation_id,
+                    sender_id=current_user.user_id,
+                    body=body,
+                    attachment_url=att_url,
+                    attachment_name=att_name
+                )
+                conv.last_message_at = datetime.utcnow()
+                db.session.add(msg)
+                sent_convs.append((recipient, conv.conversation_id))
+            db.session.commit()
+            for recipient, conv_id in sent_convs:
+                _send_dm_notification(recipient, conv_id, body)
+            flash(f'{len(recipients)}명에게 메시지를 발송했습니다.', 'success')
+            return redirect(url_for('messages.inbox'))
+
+        # ── 개별 발송 ──
         other = User.query.get(other_id)
         if not other or other.role not in ('admin', 'teacher'):
             flash('유효하지 않은 수신자입니다.', 'error')
