@@ -203,9 +203,11 @@
                                        {% if att.status == 'present' %}bg-green-500 text-white{% else %}bg-green-100 text-green-700 hover:bg-green-200{% endif %}">
                             출석
                         </button>
-                        <button onclick="setStatus('{{ att.attendance_id }}', 'late', event)"
+                        <button type="button"
                                 data-status="late"
-                                class="status-btn px-2 py-1 text-xs rounded font-medium transition
+                                data-att-id="{{ att.attendance_id }}"
+                                data-student-name="{{ att.student.name | e }}"
+                                class="status-btn late-trigger px-2 py-1 text-xs rounded font-medium transition
                                        {% if att.status == 'late' %}bg-yellow-500 text-white{% else %}bg-yellow-100 text-yellow-700 hover:bg-yellow-200{% endif %}">
                             지각
                         </button>
@@ -367,6 +369,100 @@ const STATUS_INACTIVE_CLASS = {
     absent:  'bg-red-100 text-red-700 hover:bg-red-200',
     excused: 'bg-blue-100 text-blue-700 hover:bg-blue-200'
 };
+
+// 학부모 전화번호 맵
+var PARENT_PHONES_LIST = {{ parent_phones | tojson }};
+var _lateAttIdList = null;
+var _csrfTokenList = '{{ csrf_token() }}';
+
+// 지각 버튼 클릭 → 모달
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.late-trigger').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showLateSmsModal(this.dataset.attId, this.dataset.studentName);
+        });
+    });
+});
+
+function showLateSmsModal(attendanceId, studentName) {
+    _lateAttIdList = attendanceId;
+    var phones = PARENT_PHONES_LIST[attendanceId] || [];
+    var old = document.getElementById('_lateModalList');
+    if (old) old.parentNode.removeChild(old);
+
+    var hasPhones = phones.length > 0;
+    var phoneHtml = hasPhones
+        ? '<p style="margin:0;color:#555;">발송 번호: <strong>' + phones.join(', ') + '</strong></p>'
+        : '<p style="margin:0;color:#d97706;">⚠️ 등록된 학부모 전화번호가 없습니다.<br>지각 처리만 진행됩니다.</p>';
+    var smsBtn = hasPhones
+        ? '<button type="button" onclick="doLateList(true)" style="display:block;width:100%;padding:12px;margin-bottom:8px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">📱 지각 처리 + 학부모 SMS 발송</button>'
+        : '';
+
+    var modal = document.createElement('div');
+    modal.id = '_lateModalList';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(0,0,0,0.55);';
+    modal.innerHTML =
+        '<div style="background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);width:100%;max-width:360px;padding:24px;">' +
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+                '<span style="font-size:28px;">⏰</span>' +
+                '<div>' +
+                    '<p style="margin:0;font-size:17px;font-weight:700;color:#111;">지각 처리 확인</p>' +
+                    '<p style="margin:4px 0 0;font-size:13px;color:#666;"><strong>' + studentName + '</strong> 학생을 지각 처리합니다.</p>' +
+                '</div>' +
+            '</div>' +
+            '<div style="background:#f9f9f9;border-radius:8px;padding:12px 16px;margin-bottom:20px;">' + phoneHtml + '</div>' +
+            smsBtn +
+            '<button type="button" onclick="doLateList(false)" style="display:block;width:100%;padding:10px;margin-bottom:8px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:14px;cursor:pointer;">SMS 없이 지각만 처리</button>' +
+            '<button type="button" onclick="closeLateSmsModal()" style="display:block;width:100%;padding:10px;background:#fff;color:#9ca3af;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;cursor:pointer;">취소</button>' +
+        '</div>';
+    document.body.appendChild(modal);
+}
+
+function closeLateSmsModal() {
+    var m = document.getElementById('_lateModalList');
+    if (m) m.parentNode.removeChild(m);
+    _lateAttIdList = null;
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLateSmsModal(); });
+
+async function doLateList(sendSms) {
+    if (!_lateAttIdList) return;
+    var attId = _lateAttIdList;
+    closeLateSmsModal();
+
+    try {
+        const res = await fetch('/teacher/api/attendance/' + attId, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status: 'late'})
+        });
+        const data = await res.json();
+        if (data.success) {
+            updateStatusButtons(attId, 'late');
+            const row = document.querySelector('[data-att-id="' + attId + '"]');
+            if (row) row.dataset.currentStatus = 'late';
+        } else {
+            alert('저장 실패: ' + (data.message || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        alert('출석 상태 저장 중 오류가 발생했습니다.');
+    }
+
+    if (sendSms) {
+        try {
+            const r2 = await fetch('/teacher/api/attendance/' + attId + '/send-late-sms', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': _csrfTokenList}
+            });
+            const d2 = await r2.json();
+            alert(d2.success ? '📱 SMS ' + d2.message : '⚠️ ' + d2.message);
+        } catch (e) {
+            alert('SMS 발송 중 오류가 발생했습니다.');
+        }
+    }
+}
 
 async function setStatus(attendanceId, status, event) {
     if (event) event.stopPropagation();

@@ -449,6 +449,14 @@ def attendance_list():
         for a in all_attendances:
             attendance_map[a.session_id].append(a)
 
+        # 학부모 전화번호 맵 {attendance_id: [phones]}
+        parent_phones = {}
+        for a in all_attendances:
+            parents = ParentStudent.query.filter_by(student_id=a.student.student_id, is_active=True).all()
+            phones = [ps.parent.phone for ps in parents if ps.parent and ps.parent.phone]
+            if phones:
+                parent_phones[str(a.attendance_id)] = phones
+
         # 해당 세션에 배정된 글쓰기와 점수 로드 (컬럼 없으면 무시)
         try:
             from app.models.essay import Essay, EssayResult
@@ -479,7 +487,8 @@ def attendance_list():
                          course_filter=course_filter,
                          teacher_filter=teacher_filter,
                          date_from=date_from,
-                         date_to=date_to)
+                         date_to=date_to,
+                         parent_phones=parent_phones if past_sessions else {})
 
 
 @teacher_bp.route('/sessions/<session_id>/attendance')
