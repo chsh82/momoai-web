@@ -875,38 +875,41 @@ def delete_payment_period(period_id):
 @login_required
 @requires_permission_level(2)
 def create_holiday_week():
-    """휴무 주 등록"""
+    """휴무 기간 등록"""
     from app.models.payment_period import HolidayWeek
-    from datetime import timedelta
 
     week_start_str = request.form.get('week_start', '').strip()
+    week_end_str = request.form.get('week_end', '').strip()
     reason = request.form.get('reason', '').strip()
 
-    if not week_start_str or not reason:
-        flash('날짜와 사유를 모두 입력해주세요.', 'error')
+    if not week_start_str or not week_end_str or not reason:
+        flash('시작일, 종료일, 사유를 모두 입력해주세요.', 'error')
         return redirect(url_for('admin.payment_periods'))
 
     try:
         week_start = date.fromisoformat(week_start_str)
-        # 입력 날짜가 속한 주의 월요일로 조정
-        week_monday = week_start - timedelta(days=week_start.weekday())
+        week_end = date.fromisoformat(week_end_str)
 
-        # 중복 확인
-        existing = HolidayWeek.query.filter_by(week_start=week_monday).first()
+        if week_end < week_start:
+            flash('종료일이 시작일보다 앞설 수 없습니다.', 'error')
+            return redirect(url_for('admin.payment_periods', year=week_start.year))
+
+        # 중복 확인 (시작일 기준)
+        existing = HolidayWeek.query.filter_by(week_start=week_start).first()
         if existing:
-            flash(f'{week_monday.strftime("%Y-%m-%d")} 주차는 이미 휴무 주로 등록되어 있습니다.', 'warning')
-            return redirect(url_for('admin.payment_periods', year=week_monday.year))
+            flash(f'{week_start.strftime("%Y-%m-%d")} 시작 휴무 기간이 이미 등록되어 있습니다.', 'warning')
+            return redirect(url_for('admin.payment_periods', year=week_start.year))
 
         hw = HolidayWeek(
-            week_start=week_monday,
-            week_end=week_monday + timedelta(days=6),
+            week_start=week_start,
+            week_end=week_end,
             reason=reason,
             created_by=current_user.user_id
         )
         db.session.add(hw)
         db.session.commit()
-        flash(f'{week_monday.strftime("%Y년 %m월 %d일")}주 휴무 주가 등록되었습니다.', 'success')
-        return redirect(url_for('admin.payment_periods', year=week_monday.year))
+        flash(f'휴무 기간 {week_start.strftime("%Y.%m.%d")}~{week_end.strftime("%m.%d")}이 등록되었습니다.', 'success')
+        return redirect(url_for('admin.payment_periods', year=week_start.year))
     except ValueError:
         flash('올바른 날짜 형식을 입력해주세요.', 'error')
         return redirect(url_for('admin.payment_periods'))

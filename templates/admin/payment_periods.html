@@ -164,16 +164,16 @@
     </div>
     {% endif %}
 
-    <!-- ── 휴무 주 관리 ─────────────────────────────────────────── -->
+    <!-- ── 휴무 기간 관리 ─────────────────────────────────────────── -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
-                <h3 class="text-lg font-bold text-gray-800">🏖️ 휴무 주 관리</h3>
-                <p class="text-sm text-gray-500 mt-0.5">등록된 휴무 주는 모든 기간 계산에서 자동 제외됩니다</p>
+                <h3 class="text-lg font-bold text-gray-800">🏖️ 휴무 기간 관리</h3>
+                <p class="text-sm text-gray-500 mt-0.5">등록된 휴무 기간은 모든 결제 기간 계산에서 자동 제외됩니다</p>
             </div>
             <button onclick="document.getElementById('addHolidayForm').classList.toggle('hidden')"
                     class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-                ➕ 휴무 주 추가
+                ➕ 휴무 기간 추가
             </button>
         </div>
 
@@ -182,8 +182,14 @@
             <form method="POST" action="{{ url_for('admin.create_holiday_week') }}" class="flex flex-wrap gap-4 items-end">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">날짜 선택 <span class="text-gray-400">(해당 주 월요일로 자동 조정)</span></label>
-                    <input type="date" name="week_start" required
+                    <label class="block text-xs font-medium text-gray-600 mb-1">시작일</label>
+                    <input type="date" name="week_start" id="holidayStart" required
+                           onchange="setMinEnd()"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">종료일</label>
+                    <input type="date" name="week_end" id="holidayEnd" required
                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                 </div>
                 <div class="flex-1 min-w-48">
@@ -200,29 +206,29 @@
             </form>
         </div>
 
-        <!-- 휴무 주 목록 -->
+        <!-- 휴무 기간 목록 -->
         <div class="p-6">
             {% if holiday_weeks %}
             <div class="space-y-2">
                 {% for hw in holiday_weeks %}
                 <div class="flex items-center justify-between py-3 px-4 bg-red-50 rounded-lg border border-red-100">
                     <div class="flex items-center gap-4">
-                        <div class="text-center min-w-20">
+                        <div class="text-center min-w-24">
                             <p class="text-sm font-bold text-red-700">
-                                {{ hw.week_start.strftime('%m월 %d일') }} ~
+                                {{ hw.week_start.strftime('%m/%d') }} ~ {{ hw.week_end.strftime('%m/%d') }}
                             </p>
-                            <p class="text-xs text-red-500">{{ hw.week_end.strftime('%m월 %d일') }}</p>
+                            {% set days = (hw.week_end - hw.week_start).days + 1 %}
+                            <p class="text-xs text-red-400">{{ days }}일간</p>
                         </div>
                         <div>
                             <p class="font-medium text-gray-800 text-sm">{{ hw.reason }}</p>
                             <p class="text-xs text-gray-400">
-                                ({{ ['월','화','수','목','금','토','일'][hw.week_start.weekday()] }}요일 시작)
-                                {% if hw.creator %}· 등록: {{ hw.creator.name }}{% endif %}
+                                {% if hw.creator %}등록: {{ hw.creator.name }}{% endif %}
                             </p>
                         </div>
                     </div>
                     <form method="POST" action="{{ url_for('admin.delete_holiday_week', holiday_id=hw.holiday_id) }}"
-                          onsubmit="return confirm('이 휴무 주를 삭제하시겠습니까?')">
+                          onsubmit="return confirm('이 휴무 기간을 삭제하시겠습니까?')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="text-sm text-red-400 hover:text-red-600 font-medium px-2 py-1">삭제</button>
                     </form>
@@ -230,7 +236,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-center text-gray-400 text-sm py-8">{{ selected_year }}년에 등록된 휴무 주가 없습니다.</p>
+            <p class="text-center text-gray-400 text-sm py-8">{{ selected_year }}년에 등록된 휴무 기간이 없습니다.</p>
             {% endif %}
         </div>
     </div>
@@ -311,5 +317,14 @@ function closeEditModal() {
 document.getElementById('editModal').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
 });
+
+function setMinEnd() {
+    var start = document.getElementById('holidayStart').value;
+    var endInput = document.getElementById('holidayEnd');
+    if (start) {
+        endInput.min = start;
+        if (endInput.value && endInput.value < start) endInput.value = start;
+    }
+}
 </script>
 {% endblock %}
