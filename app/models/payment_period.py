@@ -90,23 +90,22 @@ class PaymentPeriod(db.Model):
 
     @classmethod
     def generate_quarterly(cls, year):
-        """해당 연도 분기별 기간 4개 자동 생성 (기본 12주)"""
-        # 분기 시작: 3월, 6월, 9월, 12월
+        """해당 연도 분기별 기간 4개 자동 생성 (기본 12주)
+        1분기: 12월(전년)~2월, 2분기: 3~5월, 3분기: 6~8월, 4분기: 9~11월
+        """
         quarter_starts = [
-            (1, date(year, 3, 2)),   # 1분기: 3월 첫 번째 월요일 근사값
-            (2, date(year, 6, 1)),   # 2분기: 6월
-            (3, date(year, 9, 1)),   # 3분기: 9월
-            (4, date(year, 12, 1)),  # 4분기: 12월
+            (1, date(year - 1, 12, 1), '(12~2월)'),  # 1분기: 전년 12월 시작
+            (2, date(year, 3, 1),      '(3~5월)'),   # 2분기: 3월
+            (3, date(year, 6, 1),      '(6~8월)'),   # 3분기: 6월
+            (4, date(year, 9, 1),      '(9~11월)'),  # 4분기: 9월
         ]
-        quarter_labels = ['(3~5월)', '(6~8월)', '(9~11월)', '(12~2월)']
 
         periods = []
-        for i, (q_num, start) in enumerate(quarter_starts):
-            # 시작일을 해당 주 월요일로 조정
-            start = cls._get_monday(start)
+        for q_num, start_date, label_suffix in quarter_starts:
+            start = cls._get_monday(start_date)
             end = start + timedelta(weeks=12) - timedelta(days=1)
 
-            label = f'{year}년 {q_num}분기 {quarter_labels[i]}'
+            label = f'{year}년 {q_num}분기 {label_suffix}'
             period = cls(
                 period_type='quarterly',
                 year=year,
