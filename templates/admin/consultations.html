@@ -20,7 +20,7 @@
             </div>
             <a href="{{ url_for('admin.create_consultation') }}"
                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200 flex items-center gap-2">
-                <span>➕ 새 상담 기록 (MBTI 기반)</span>
+                <span>➕ 새 상담 기록</span>
             </a>
         </div>
     </div>
@@ -148,11 +148,6 @@
                             <td class="px-4 py-3 text-sm text-gray-800">
                                 {{ consultation.title }}
                                 <div class="flex items-center gap-2 mt-1">
-                                    {% if consultation.student_mbti_type %}
-                                    <span class="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded">
-                                        🎯 MBTI
-                                    </span>
-                                    {% endif %}
                                     {% if consultation.share_with_parents %}
                                     <span class="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-800 rounded">
                                         ✓ 학부모 공유

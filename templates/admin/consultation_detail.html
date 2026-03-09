@@ -80,25 +80,6 @@
                     </div>
                 </div>
 
-                <!-- MBTI 기반 추천 (있는 경우) -->
-                {% if consultation.teaching_recommendations %}
-                <div class="p-6 border-t border-gray-200">
-                    <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
-                        <h4 class="text-lg font-bold text-purple-900 mb-4">🎯 MBTI 기반 맞춤 수업 추천</h4>
-                        {% if consultation.student_mbti_type %}
-                        <div class="bg-white rounded-lg p-4 mb-4">
-                            <div class="text-center">
-                                <div class="text-xl font-bold text-purple-900">{{ consultation.recommended_teaching_style }}</div>
-                                <div class="text-sm text-purple-700 mt-1">{{ consultation.student_mbti_type }}</div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        <div class="prose max-w-none whitespace-pre-wrap text-gray-700 text-sm">
-                            {{ consultation.teaching_recommendations }}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
 
                 <!-- 학부모 공유 상태 (있는 경우) -->
                 {% if consultation.share_with_parents %}
