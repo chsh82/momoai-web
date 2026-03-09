@@ -217,9 +217,11 @@
                                        {% if att.status == 'absent' %}bg-red-500 text-white{% else %}bg-red-100 text-red-700 hover:bg-red-200{% endif %}">
                             결석
                         </button>
-                        <button onclick="setStatus('{{ att.attendance_id }}', 'excused', event)"
+                        <button type="button"
                                 data-status="excused"
-                                class="status-btn px-2 py-1 text-xs rounded font-medium transition
+                                data-att-id-ex="{{ att.attendance_id }}"
+                                data-student-name-ex="{{ att.student.name | e }}"
+                                class="status-btn excused-trigger px-2 py-1 text-xs rounded font-medium transition
                                        {% if att.status == 'excused' %}bg-blue-500 text-white{% else %}bg-blue-100 text-blue-700 hover:bg-blue-200{% endif %}">
                             인정
                         </button>
@@ -375,7 +377,7 @@ var PARENT_PHONES_LIST = {{ parent_phones | tojson }};
 var _lateAttIdList = null;
 var _csrfTokenList = '{{ csrf_token() }}';
 
-// 지각 버튼 클릭 → 모달
+// 지각 버튼 + 인정결석 버튼 클릭 → 모달
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.late-trigger').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
@@ -383,6 +385,82 @@ document.addEventListener('DOMContentLoaded', function() {
             showLateSmsModal(this.dataset.attId, this.dataset.studentName);
         });
     });
+    document.querySelectorAll('.excused-trigger').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showExcusedModalList(this.getAttribute('data-att-id-ex'), this.getAttribute('data-student-name-ex'));
+        });
+    });
+});
+
+// ── 인정결석 모달 (attendance_list) ──────────────────────────
+var _excusedAttIdList = null;
+
+function showExcusedModalList(attendanceId, studentName) {
+    _excusedAttIdList = attendanceId;
+    var old = document.getElementById('_excusedModalList');
+    if (old) old.parentNode.removeChild(old);
+
+    var modal = document.createElement('div');
+    modal.id = '_excusedModalList';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(0,0,0,0.55);';
+    modal.innerHTML =
+        '<div style="background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);width:100%;max-width:380px;padding:24px;">' +
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+                '<span style="font-size:28px;">📝</span>' +
+                '<div>' +
+                    '<p style="margin:0;font-size:17px;font-weight:700;color:#111;">인정결석 처리</p>' +
+                    '<p style="margin:4px 0 0;font-size:13px;color:#666;"><strong>' + studentName + '</strong> 학생을 인정결석 처리합니다.</p>' +
+                '</div>' +
+            '</div>' +
+            '<div style="margin-bottom:16px;">' +
+                '<label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">사유 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>' +
+                '<input id="_excusedReasonList" type="text" placeholder="예: 병결, 가족 행사 등" ' +
+                       'style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;">' +
+            '</div>' +
+            '<div style="background:#eff6ff;border-radius:8px;padding:10px 14px;margin-bottom:20px;">' +
+                '<p style="margin:0;font-size:12px;color:#1e40af;">ℹ️ 인정결석은 관리자 검토 후 이월 또는 무료수업으로 처리됩니다.</p>' +
+            '</div>' +
+            '<button type="button" onclick="doExcusedList()" style="display:block;width:100%;padding:12px;margin-bottom:8px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">📝 인정결석 처리</button>' +
+            '<button type="button" onclick="closeExcusedModalList()" style="display:block;width:100%;padding:10px;background:#fff;color:#9ca3af;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;cursor:pointer;">취소</button>' +
+        '</div>';
+    document.body.appendChild(modal);
+    setTimeout(function() { document.getElementById('_excusedReasonList').focus(); }, 100);
+}
+
+function closeExcusedModalList() {
+    var modal = document.getElementById('_excusedModalList');
+    if (modal) modal.parentNode.removeChild(modal);
+    _excusedAttIdList = null;
+}
+
+async function doExcusedList() {
+    if (!_excusedAttIdList) return;
+    var attId = _excusedAttIdList;
+    var reason = document.getElementById('_excusedReasonList').value.trim();
+    closeExcusedModalList();
+
+    try {
+        var resp = await fetch('/teacher/api/attendance/' + attId + '/excused', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': _csrfTokenList},
+            body: JSON.stringify({reason: reason})
+        });
+        var data = await resp.json();
+        if (data.success) {
+            updateStatusButtons(attId, 'excused');
+            var row = document.querySelector('[data-att-id="' + attId + '"]');
+            if (row) row.dataset.currentStatus = 'excused';
+        } else {
+            alert('⚠️ ' + (data.message || '인정결석 처리 중 오류가 발생했습니다.'));
+        }
+    } catch (e) {
+        alert('인정결석 처리 중 오류가 발생했습니다.');
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeExcusedModalList(); }
 });
 
 function showLateSmsModal(attendanceId, studentName) {

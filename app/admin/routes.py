@@ -744,6 +744,157 @@ def register_payment_old():
                          course_id=course_id)
 
 
+@admin_bp.route('/session-adjustments')
+@login_required
+@requires_permission_level(2)
+def session_adjustments():
+    """이월 및 차감 관리"""
+    from app.models.session_adjustment import SessionAdjustment
+
+    tab = request.args.get('tab', 'review')  # review, pending, done
+
+    if tab == 'review':
+        items = SessionAdjustment.query.filter_by(status='pending_review')\
+            .order_by(SessionAdjustment.created_at.desc()).all()
+    elif tab == 'pending':
+        items = SessionAdjustment.query.filter_by(status='pending')\
+            .order_by(SessionAdjustment.created_at.desc()).all()
+    else:
+        items = SessionAdjustment.query.filter(
+            SessionAdjustment.status.in_(['applied', 'cancelled'])
+        ).order_by(SessionAdjustment.updated_at.desc()).limit(100).all()
+
+    # 직접 추가용: 학생 목록 (활성 enrollment 있는 학생)
+    students = Student.query.join(
+        CourseEnrollment, CourseEnrollment.student_id == Student.student_id
+    ).filter(CourseEnrollment.status == 'active').distinct().order_by(Student.name).all()
+
+    # 분류 대기 건수 (뱃지용)
+    review_count = SessionAdjustment.query.filter_by(status='pending_review').count()
+    pending_count = SessionAdjustment.query.filter_by(status='pending').count()
+
+    return render_template('admin/session_adjustments.html',
+                           items=items, tab=tab,
+                           students=students,
+                           review_count=review_count,
+                           pending_count=pending_count)
+
+
+@admin_bp.route('/session-adjustments/<adjustment_id>/classify', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def classify_adjustment(adjustment_id):
+    """인정결석 건을 이월/무료수업으로 분류"""
+    from app.models.session_adjustment import SessionAdjustment
+    from app.models.notification import Notification
+
+    adj = SessionAdjustment.query.get_or_404(adjustment_id)
+    adj_type = request.form.get('adjustment_type')  # 'rollover' or 'free_session'
+
+    if adj_type not in ('rollover', 'free_session'):
+        flash('유효하지 않은 유형입니다.', 'error')
+        return redirect(url_for('admin.session_adjustments', tab='review'))
+
+    adj.adjustment_type = adj_type
+    adj.status = 'pending'
+    adj.reviewed_by = current_user.user_id
+    adj.reviewed_at = datetime.utcnow()
+    db.session.commit()
+
+    type_label = '이월' if adj_type == 'rollover' else '무료수업'
+    flash(f'{adj.student.name} 학생 인정결석을 {type_label}로 분류했습니다.', 'success')
+    return redirect(url_for('admin.session_adjustments', tab='review'))
+
+
+@admin_bp.route('/session-adjustments/create', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def create_adjustment():
+    """관리자 직접 이월/무료수업 추가"""
+    from app.models.session_adjustment import SessionAdjustment
+    from app.models.notification import Notification
+
+    student_id = request.form.get('student_id')
+    enrollment_id = request.form.get('enrollment_id')
+    adj_type = request.form.get('adjustment_type')
+    sessions_count = int(request.form.get('sessions_count', 1))
+    reason = request.form.get('reason', '').strip()
+
+    if not all([student_id, enrollment_id, adj_type]) or adj_type not in ('rollover', 'free_session'):
+        flash('필수 항목을 모두 입력해주세요.', 'error')
+        return redirect(url_for('admin.session_adjustments'))
+
+    sessions_count = max(1, min(4, sessions_count))  # 1~4 범위 제한
+
+    adj = SessionAdjustment(
+        student_id=student_id,
+        enrollment_id=enrollment_id,
+        adjustment_type=adj_type,
+        sessions_count=sessions_count,
+        reason=reason or None,
+        source='admin_manual',
+        status='pending',
+        reviewed_by=current_user.user_id,
+        reviewed_at=datetime.utcnow(),
+        created_by=current_user.user_id
+    )
+    db.session.add(adj)
+
+    # 담당 강사에게 알림 발송
+    enrollment = CourseEnrollment.query.get(enrollment_id)
+    student = Student.query.get(student_id)
+    if enrollment and enrollment.course and enrollment.course.teacher_id and student:
+        type_label = '이월' if adj_type == 'rollover' else '무료수업'
+        Notification.create_notification(
+            user_id=enrollment.course.teacher_id,
+            notification_type='session_adjustment',
+            title=f'인정결석 처리 알림',
+            message=f'관리자가 {student.name} 학생의 인정결석을 {type_label} {sessions_count}회로 등록했습니다.'
+                    + (f' (사유: {reason})' if reason else ''),
+            link_url=url_for('teacher.course_detail', course_id=enrollment.course_id)
+        )
+        adj.notified_teacher_at = datetime.utcnow()
+
+    db.session.commit()
+
+    type_label = '이월' if adj_type == 'rollover' else '무료수업'
+    flash(f'{student.name} 학생 {type_label} {sessions_count}회 등록되었습니다.', 'success')
+    return redirect(url_for('admin.session_adjustments', tab='pending'))
+
+
+@admin_bp.route('/session-adjustments/<adjustment_id>/cancel', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def cancel_adjustment(adjustment_id):
+    """조정 건 취소"""
+    from app.models.session_adjustment import SessionAdjustment
+
+    adj = SessionAdjustment.query.get_or_404(adjustment_id)
+    if adj.status == 'applied':
+        flash('이미 결제에 반영된 항목은 취소할 수 없습니다.', 'error')
+        return redirect(url_for('admin.session_adjustments', tab='pending'))
+
+    adj.status = 'cancelled'
+    db.session.commit()
+    flash('취소되었습니다.', 'success')
+    return redirect(url_for('admin.session_adjustments', tab='pending'))
+
+
+@admin_bp.route('/api/student-enrollments/<student_id>')
+@login_required
+@requires_permission_level(2)
+def student_enrollments_api(student_id):
+    """학생의 활성 enrollment 목록 (직접 추가 팝업용 AJAX)"""
+    from flask import jsonify
+    enrollments = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).all()
+    return jsonify([{
+        'enrollment_id': e.enrollment_id,
+        'course_name': e.course.course_name if e.course else '알 수 없음'
+    } for e in enrollments])
+
+
 @admin_bp.route('/payments')
 @login_required
 @requires_permission_level(2)

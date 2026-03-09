@@ -510,8 +510,15 @@
                         </button>
                         <div x-show="finance" x-collapse class="ml-8 mt-1 space-y-1">
                             <a href="{{ url_for('admin.payments') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'admin.payment' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint == 'admin.payments' %}text-orange-600 bg-orange-50{% endif %}">
                                 수납 관리
+                            </a>
+                            <a href="{{ url_for('admin.session_adjustments') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'session_adjustment' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                이월 및 차감
+                                {% if unread_counts.get('session_adjustment_review', 0) > 0 %}
+                                <span class="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">!</span>
+                                {% endif %}
                             </a>
                         </div>
                     </div>

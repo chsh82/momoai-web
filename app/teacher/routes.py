@@ -12,6 +12,7 @@ from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.material import Material, MaterialDownload
 from app.models import Notification
 from app.models.student_caution import StudentCaution, CATEGORY_LABELS, SEVERITY_META
+from app.models.session_adjustment import SessionAdjustment
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.class_board import ClassBoardPost, ClassBoardComment
 from app.utils.decorators import requires_role
@@ -607,6 +608,47 @@ def update_attendance(attendance_id):
         'attendance_id': attendance_id,
         'status': attendance.status
     })
+
+
+@teacher_bp.route('/api/attendance/<attendance_id>/excused', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def mark_excused(attendance_id):
+    """인정결석 처리 + SessionAdjustment 생성"""
+    from flask import jsonify, request
+
+    attendance = Attendance.query.get(attendance_id)
+    if not attendance:
+        return jsonify({'success': False, 'message': '출석 기록을 찾을 수 없습니다.'}), 404
+
+    # 이미 인정결석이고 조정 레코드도 생성된 경우 중복 방지
+    if attendance.status == 'excused' and attendance.adjustment_created:
+        return jsonify({'success': True, 'message': '이미 인정결석 처리되었습니다.'})
+
+    data = request.get_json() or {}
+    reason = data.get('reason', '').strip()
+
+    # 출석 상태 업데이트
+    attendance.status = 'excused'
+
+    # SessionAdjustment 생성 (관리자 분류 대기)
+    if not attendance.adjustment_created:
+        adjustment = SessionAdjustment(
+            student_id=attendance.student_id,
+            enrollment_id=attendance.enrollment_id,
+            attendance_id=attendance_id,
+            adjustment_type=None,         # 관리자가 이월/무료수업 분류 예정
+            sessions_count=1,
+            reason=reason or None,
+            source='teacher_excused',
+            status='pending_review',
+            created_by=current_user.user_id
+        )
+        db.session.add(adjustment)
+        attendance.adjustment_created = True
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': '인정결석으로 처리되었습니다.'})
 
 
 @teacher_bp.route('/api/attendance/<attendance_id>/send-late-sms', methods=['POST'])
