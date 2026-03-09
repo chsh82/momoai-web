@@ -3193,12 +3193,23 @@ def staff_list():
     teacher_count = User.query.filter(User.role == 'teacher').count()
     admin_count = User.query.filter(User.role == 'admin').count()
 
+    # zoom_link 복호화 맵
+    from app.utils.zoom_utils import decrypt_zoom_link
+    zoom_links_decrypted = {}
+    for s in staff_members:
+        if s.zoom_link:
+            try:
+                zoom_links_decrypted[s.user_id] = decrypt_zoom_link(s.zoom_link)
+            except Exception:
+                zoom_links_decrypted[s.user_id] = ''
+
     return render_template('admin/staff_list.html',
                          staff_members=staff_members,
                          role_filter=role_filter,
                          sort=sort,
                          teacher_count=teacher_count,
-                         admin_count=admin_count)
+                         admin_count=admin_count,
+                         zoom_links_decrypted=zoom_links_decrypted)
 
 
 @admin_bp.route('/parent-list')
@@ -3414,7 +3425,7 @@ def edit_staff(staff_id):
     return render_template('admin/edit_staff.html', form=form, staff=staff)
 
 
-@admin_bp.route('/staff/<int:staff_id>/zoom-link', methods=['POST'])
+@admin_bp.route('/staff/<string:staff_id>/zoom-link', methods=['POST'])
 @login_required
 @requires_permission_level(2)
 def update_staff_zoom_link(staff_id):
@@ -3437,13 +3448,6 @@ def update_staff_zoom_link(staff_id):
         return jsonify({
             'success': False,
             'message': '줌 링크를 입력하세요.'
-        }), 400
-
-    # 줌 링크 형식 검증
-    if 'zoom.us' not in zoom_link.lower():
-        return jsonify({
-            'success': False,
-            'message': '올바른 줌 링크를 입력하세요.'
         }), 400
 
     try:

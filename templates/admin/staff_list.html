@@ -125,7 +125,7 @@
                             <td class="px-4 py-3">
                                 {% if staff.role == 'teacher' %}
                                 <div class="flex items-center gap-2">
-                                    <button onclick="editZoomLink({{ staff.user_id }}, '{{ staff.zoom_link if staff.zoom_link else '' }}')"
+                                    <button onclick="editZoomLink('{{ staff.user_id }}', '{{ zoom_links_decrypted.get(staff.user_id, '') }}')"
                                             class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                         {% if staff.zoom_link %}
                                         ✏️ 수정
@@ -268,12 +268,6 @@ async function saveZoomLink() {
 
     if (!zoomLink) {
         alert('줌 링크를 입력하세요.');
-        return;
-    }
-
-    // 줌 링크 형식 검증
-    if (!zoomLink.includes('zoom.us')) {
-        alert('올바른 줌 링크를 입력하세요. (예: https://zoom.us/j/1234567890)');
         return;
     }
 
