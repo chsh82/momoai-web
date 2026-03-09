@@ -130,7 +130,7 @@
                                     data-status="present">
                                 ✓ 출석
                             </button>
-                            <button onclick="updateAttendance('{{ attendance.attendance_id }}', 'late')"
+                            <button onclick="confirmLate('{{ attendance.attendance_id }}', '{{ attendance.student.name }}')"
                                     class="attendance-btn px-4 py-2 rounded font-medium transition duration-200
                                     {% if attendance.status == 'late' %}bg-yellow-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
                                     data-status="late">
@@ -358,5 +358,105 @@ function completeAttendance() {
 
     document.getElementById('completeForm').submit();
 }
+
+// 학부모 전화번호 맵 (attendance_id → [phones])
+const PARENT_PHONES = {{ parent_phones | tojson }};
+
+let _lateAttId = null;
+
+function confirmLate(attendanceId, studentName) {
+    _lateAttId = attendanceId;
+    const phones = PARENT_PHONES[attendanceId] || [];
+
+    document.getElementById('lateModalStudentName').textContent = studentName;
+    const phoneDiv = document.getElementById('lateModalPhones');
+    if (phones.length > 0) {
+        phoneDiv.innerHTML = '<span class="text-gray-600">발송 번호:</span> <span class="font-medium">' + phones.join(', ') + '</span>';
+        document.getElementById('lateSmsBtn').classList.remove('hidden');
+        document.getElementById('lateNoSmsBtn').classList.remove('hidden');
+    } else {
+        phoneDiv.innerHTML = '<span class="text-amber-600">⚠️ 등록된 학부모 전화번호가 없습니다. 지각 처리만 진행됩니다.</span>';
+        document.getElementById('lateSmsBtn').classList.add('hidden');
+        document.getElementById('lateNoSmsBtn').classList.remove('hidden');
+    }
+    document.getElementById('lateSmsModal').classList.remove('hidden');
+}
+
+function closeLateModal() {
+    document.getElementById('lateSmsModal').classList.add('hidden');
+    _lateAttId = null;
+}
+
+async function doLate(sendSms) {
+    if (!_lateAttId) return;
+    const attId = _lateAttId;
+    closeLateModal();
+
+    // 지각 처리
+    const r1 = await fetch('/teacher/api/attendance/' + attId, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status: 'late'})
+    });
+    const d1 = await r1.json();
+    if (d1.success) updateAttendanceUI(attId, 'late');
+
+    // SMS 발송
+    if (sendSms) {
+        const r2 = await fetch('/teacher/api/attendance/' + attId + '/send-late-sms', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}
+        });
+        const d2 = await r2.json();
+        alert(d2.success ? '📱 SMS ' + d2.message : '⚠️ ' + d2.message);
+    }
+}
+
+function updateAttendanceUI(attendanceId, status) {
+    const container = document.getElementById('attendance-' + attendanceId);
+    if (!container) return;
+    container.querySelectorAll('.attendance-btn').forEach(btn => {
+        const s = btn.getAttribute('data-status');
+        btn.classList.remove('bg-green-600','bg-yellow-600','bg-red-600','bg-blue-600','text-white','bg-gray-100','text-gray-700','hover:bg-gray-200');
+        if (s === status) {
+            const m = {present:'bg-green-600', late:'bg-yellow-600', absent:'bg-red-600', excused:'bg-blue-600'};
+            btn.classList.add(m[status] || 'bg-gray-400', 'text-white');
+        } else {
+            btn.classList.add('bg-gray-100','text-gray-700','hover:bg-gray-200');
+        }
+    });
+    updateStatistics();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLateModal(); });
 </script>
+
+<!-- 지각 SMS 확인 모달 -->
+<div id="lateSmsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="text-3xl">⏰</span>
+            <div>
+                <h3 class="text-lg font-bold text-gray-800">지각 처리 확인</h3>
+                <p class="text-sm text-gray-500"><span id="lateModalStudentName" class="font-semibold text-gray-800"></span> 학생을 지각 처리합니다.</p>
+            </div>
+        </div>
+        <div id="lateModalPhones" class="text-sm bg-gray-50 rounded-lg px-4 py-3 mb-5"></div>
+        <div class="flex flex-col gap-2">
+            <button id="lateSmsBtn" onclick="doLate(true)"
+                    class="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition">
+                📱 지각 처리 + 학부모 SMS 발송
+            </button>
+            <button id="lateNoSmsBtn" onclick="doLate(false)"
+                    class="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition text-sm">
+                SMS 없이 지각만 처리
+            </button>
+            <button onclick="closeLateModal()"
+                    class="w-full py-2.5 border border-gray-300 text-gray-500 font-medium rounded-lg transition text-sm hover:bg-gray-50">
+                취소
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

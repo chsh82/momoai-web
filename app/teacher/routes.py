@@ -503,11 +503,21 @@ def check_attendance(session_id):
     # 세션 메모 폼
     note_form = SessionNoteForm(obj=session)
 
+    # 학생별 학부모 전화번호 맵
+    parent_phones = {}
+    for att in attendance_records:
+        sid = att.student.student_id
+        parents = ParentStudent.query.filter_by(student_id=sid, is_active=True).all()
+        phones = [ps.parent.phone for ps in parents if ps.parent and ps.parent.phone]
+        if phones:
+            parent_phones[str(att.attendance_id)] = phones
+
     return render_template('teacher/check_attendance.html',
                          session=session,
                          course=course,
                          attendance_records=attendance_records,
-                         note_form=note_form)
+                         note_form=note_form,
+                         parent_phones=parent_phones)
 
 
 @teacher_bp.route('/api/attendance/<attendance_id>', methods=['PATCH'])
@@ -588,6 +598,78 @@ def update_attendance(attendance_id):
         'attendance_id': attendance_id,
         'status': attendance.status
     })
+
+
+@teacher_bp.route('/api/attendance/<attendance_id>/send-late-sms', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def send_late_sms(attendance_id):
+    """지각 처리 시 학부모 SMS 발송"""
+    from app.utils.sms import send_sms_message
+    from app.models.message import Message, MessageRecipient
+    import uuid as _uuid
+
+    attendance = Attendance.query.get_or_404(attendance_id)
+    session_obj = attendance.session
+    course = session_obj.course
+    student = attendance.student
+
+    if course.teacher_id != current_user.user_id and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+
+    parents = ParentStudent.query.filter_by(student_id=student.student_id, is_active=True).all()
+    parent_users = [ps.parent for ps in parents if ps.parent and ps.parent.phone]
+
+    if not parent_users:
+        return jsonify({'success': False, 'message': '등록된 학부모 전화번호가 없습니다.'})
+
+    date_str = session_obj.session_date.strftime('%Y년 %m월 %d일')
+    time_str = session_obj.start_time.strftime('%H:%M') if session_obj.start_time else ''
+    msg = (
+        f'[MOMOAI] {student.name} 학생 지각 안내
+'
+        f'{date_str} {time_str} {course.course_name} 수업에
+'
+        f'학생이 지각 처리되었습니다.
+'
+        f'문의: {current_user.name} 강사'
+    )
+
+    sent, failed = [], []
+    for parent in parent_users:
+        ok, reason = send_sms_message(parent.phone, msg)
+        if ok:
+            sent.append(parent.name)
+        else:
+            failed.append(f'{parent.name}({reason})')
+
+    # 발송 이력 저장
+    if sent:
+        try:
+            log_msg = Message(
+                message_id=str(_uuid.uuid4()),
+                sender_id=current_user.user_id,
+                content=msg,
+                message_type='SMS',
+                total_recipients=len(sent)
+            )
+            db.session.add(log_msg)
+            for parent in parent_users:
+                if parent.name in sent:
+                    db.session.add(MessageRecipient(
+                        message_id=log_msg.message_id,
+                        recipient_id=parent.user_id,
+                        phone_number=parent.phone
+                    ))
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f'SMS 이력 저장 오류: {e}')
+
+    result_msg = f'{len(sent)}명 발송 완료'
+    if failed:
+        result_msg += f', 실패: {", ".join(failed)}'
+
+    return jsonify({'success': True, 'message': result_msg, 'sent': sent, 'failed': failed})
 
 
 @teacher_bp.route('/api/essay/<essay_id>/assign-session', methods=['POST'])
