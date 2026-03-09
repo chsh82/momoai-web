@@ -208,8 +208,8 @@ def create_course():
     """수업 생성 (새 버전)"""
     form = CourseForm()
 
-    # 강사 목록 로드
-    teachers = User.query.filter_by(role='teacher', is_active=True).all()
+    # 강사 목록 로드 (가나다 순)
+    teachers = User.query.filter_by(role='teacher', is_active=True).order_by(User.name).all()
     form.teacher_id.choices = [('', '-- 강사 선택 --')] + [(t.user_id, t.name) for t in teachers]
 
     if form.validate_on_submit():
@@ -363,8 +363,8 @@ def edit_course(course_id):
     course = Course.query.get_or_404(course_id)
     form = CourseForm(obj=course)
 
-    # 강사 목록 로드
-    teachers = User.query.filter_by(role='teacher', is_active=True).all()
+    # 강사 목록 로드 (가나다 순)
+    teachers = User.query.filter_by(role='teacher', is_active=True).order_by(User.name).all()
     form.teacher_id.choices = [('', '-- 강사 선택 --')] + [(t.user_id, t.name) for t in teachers]
 
     # GET 요청 시 is_terminated Boolean → 'Y'/'N' 변환
