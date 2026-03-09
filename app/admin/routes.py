@@ -2808,8 +2808,10 @@ def approve_parent_link_request(request_id):
 @requires_permission_level(2)
 def reject_parent_link_request(request_id):
     """연결 요청 거절"""
+    from app.models.parent_student import ParentStudent
     link_request = ParentLinkRequest.query.get_or_404(request_id)
-    reject_reason = request.form.get('reject_reason', '').strip()
+    # 폼 필드명 admin_notes (템플릿과 일치)
+    reject_reason = request.form.get('admin_notes', '').strip() or request.form.get('reject_reason', '').strip()
 
     if not reject_reason:
         flash('거절 사유를 입력해주세요.', 'warning')
@@ -2820,6 +2822,17 @@ def reject_parent_link_request(request_id):
     link_request.reviewed_by = current_user.user_id
     link_request.reviewed_at = datetime.utcnow()
     link_request.admin_notes = reject_reason
+
+    # 이미 승인된 연결이 있으면 비활성화
+    student_id = link_request.matched_student_id
+    if student_id:
+        existing = ParentStudent.query.filter_by(
+            parent_id=link_request.parent_id,
+            student_id=student_id,
+            is_active=True
+        ).first()
+        if existing:
+            existing.is_active = False
 
     db.session.commit()
 
