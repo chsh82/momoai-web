@@ -2,6 +2,8 @@
 
 {% block title %}검색 - MOMOAI v4.0{% endblock %}
 
+{% block page_title %}🔍 통합 검색{% endblock %}
+
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <h2 class="text-3xl font-bold text-gray-800 mb-6">🔍 통합 검색</h2>
@@ -22,38 +24,38 @@
             </div>
 
             <!-- 카테고리 필터 -->
-            <div class="flex gap-2 mt-4">
-                <label class="flex items-center">
+            <div class="flex gap-3 mt-4 overflow-x-auto pb-1 scrollbar-hide">
+                <label class="flex items-center gap-1 flex-shrink-0 cursor-pointer">
                     <input type="radio" name="category" value="all" {% if category == 'all' %}checked{% endif %}
-                           class="mr-2" onchange="this.form.submit()">
-                    <span class="text-sm text-gray-700">전체</span>
+                           class="accent-blue-600" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">전체</span>
                 </label>
                 {% if current_user.role in ['admin', 'teacher'] %}
-                <label class="flex items-center">
+                <label class="flex items-center gap-1 flex-shrink-0 cursor-pointer">
                     <input type="radio" name="category" value="students" {% if category == 'students' %}checked{% endif %}
-                           class="mr-2" onchange="this.form.submit()">
-                    <span class="text-sm text-gray-700">학생</span>
+                           class="accent-blue-600" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">학생</span>
                 </label>
                 {% endif %}
-                <label class="flex items-center">
+                <label class="flex items-center gap-1 flex-shrink-0 cursor-pointer">
                     <input type="radio" name="category" value="courses" {% if category == 'courses' %}checked{% endif %}
-                           class="mr-2" onchange="this.form.submit()">
-                    <span class="text-sm text-gray-700">수업</span>
+                           class="accent-blue-600" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">수업</span>
                 </label>
-                <label class="flex items-center">
+                <label class="flex items-center gap-1 flex-shrink-0 cursor-pointer">
                     <input type="radio" name="category" value="materials" {% if category == 'materials' %}checked{% endif %}
-                           class="mr-2" onchange="this.form.submit()">
-                    <span class="text-sm text-gray-700">학습자료</span>
+                           class="accent-blue-600" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">학습자료</span>
                 </label>
-                <label class="flex items-center">
+                <label class="flex items-center gap-1 flex-shrink-0 cursor-pointer">
                     <input type="radio" name="category" value="assignments" {% if category == 'assignments' %}checked{% endif %}
-                           class="mr-2" onchange="this.form.submit()">
-                    <span class="text-sm text-gray-700">과제</span>
+                           class="accent-blue-600" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">과제</span>
                 </label>
-                <label class="flex items-center">
+                <label class="flex items-center gap-1 flex-shrink-0 cursor-pointer">
                     <input type="radio" name="category" value="posts" {% if category == 'posts' %}checked{% endif %}
-                           class="mr-2" onchange="this.form.submit()">
-                    <span class="text-sm text-gray-700">게시글</span>
+                           class="accent-blue-600" onchange="this.form.submit()">
+                    <span class="text-sm text-gray-700 whitespace-nowrap">게시글</span>
                 </label>
             </div>
         </form>
