@@ -23,6 +23,21 @@ def generate_course_sessions(course):
 
     # weekly 스케줄인 경우
     if course.schedule_type == 'weekly' and course.weekday is not None:
+        # 시작일 = 종료일 (보강수업 등 단일 세션): 요일 매칭 없이 당일 세션만 생성
+        if course.start_date == course.end_date:
+            session = CourseSession(
+                course_id=course.course_id,
+                session_number=1,
+                session_date=course.start_date,
+                start_time=course.start_time,
+                end_time=course.end_time,
+                status='scheduled'
+            )
+            sessions.append(session)
+            db.session.add(session)
+            course.total_sessions = 1
+            return sessions
+
         # 첫 수업일 찾기 (시작일부터 지정된 요일 찾기)
         while current_date.weekday() != course.weekday:
             current_date += timedelta(days=1)

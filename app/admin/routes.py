@@ -306,11 +306,8 @@ def create_course():
         db.session.add(course)
         db.session.flush()
 
-        # 세션 자동 생성 (종료되지 않은 경우만)
-        if not is_terminated:
-            sessions = generate_course_sessions(course)
-        else:
-            sessions = []
+        # 세션 자동 생성 (종료 여부 관계없이 항상 생성)
+        sessions = generate_course_sessions(course)
 
         db.session.commit()
 
