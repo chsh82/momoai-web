@@ -1,12 +1,30 @@
 # -*- coding: utf-8 -*-
 """강사↔관리자 1:1 대화 스레드 라우트"""
-from flask import render_template, redirect, url_for, request, jsonify, abort, flash
+import os, uuid as _uuid
+from flask import render_template, redirect, url_for, request, jsonify, abort, flash, current_app, send_from_directory
 from flask_login import login_required, current_user
 from datetime import datetime
+from werkzeug.utils import secure_filename
 
 from app.messages import messages_bp
 from app.models import db, User
 from app.models.conversation import Conversation, ConversationMessage
+
+
+_ALLOWED_EXT = {'jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'hwp', 'zip', 'mp4', 'mp3'}
+
+def _save_attachment(file):
+    """첨부파일 저장 후 (url, name) 반환. 파일 없거나 확장자 불허 시 (None, None)"""
+    if not file or not file.filename:
+        return None, None
+    ext = os.path.splitext(secure_filename(file.filename))[1].lstrip('.').lower()
+    if ext not in _ALLOWED_EXT:
+        return None, None
+    save_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'dm_attachments')
+    os.makedirs(save_dir, exist_ok=True)
+    unique_name = f"{_uuid.uuid4().hex}.{ext}"
+    file.save(os.path.join(save_dir, unique_name))
+    return f"dm_attachments/{unique_name}", file.filename
 
 
 def _require_teacher_or_admin():
@@ -88,17 +106,20 @@ def new_conversation():
             flash('강사는 Master 관리자에게만 메시지를 보낼 수 있습니다.', 'error')
             return redirect(url_for('messages.new_conversation'))
 
+        att_url, att_name = _save_attachment(request.files.get('attachment'))
+
         conv = _get_or_create_conversation(other_id)
         msg = ConversationMessage(
             conversation_id=conv.conversation_id,
             sender_id=current_user.user_id,
-            body=body
+            body=body,
+            attachment_url=att_url,
+            attachment_name=att_name
         )
         conv.last_message_at = datetime.utcnow()
         db.session.add(msg)
         db.session.commit()
 
-        # 푸시 알림
         _send_dm_notification(other, conv.conversation_id, body)
 
         return redirect(url_for('messages.conversation', conv_id=conv.conversation_id))
@@ -159,21 +180,24 @@ def reply(conv_id):
         abort(403)
 
     body = request.form.get('body', '').strip()
-    if not body:
+    att_url, att_name = _save_attachment(request.files.get('attachment'))
+    if not body and not att_url:
         flash('메시지 내용을 입력해주세요.', 'error')
         return redirect(url_for('messages.conversation', conv_id=conv_id))
 
     msg = ConversationMessage(
         conversation_id=conv_id,
         sender_id=uid,
-        body=body
+        body=body,
+        attachment_url=att_url,
+        attachment_name=att_name
     )
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
     db.session.commit()
 
     other = conv.get_other_user(uid)
-    _send_dm_notification(other, conv_id, body)
+    _send_dm_notification(other, conv_id, body or f'[첨부파일] {att_name}')
 
     return redirect(url_for('messages.conversation', conv_id=conv_id))
 
@@ -210,6 +234,25 @@ def poll(conv_id):
         'created_at': m.created_at.strftime('%m/%d %H:%M'),
         'is_read': m.is_read,
     } for m in new_msgs])
+
+
+@messages_bp.route('/attachment/<int:msg_id>')
+@login_required
+def download_attachment(msg_id):
+    """DM 첨부파일 다운로드"""
+    _require_teacher_or_admin()
+    msg = ConversationMessage.query.get_or_404(msg_id)
+    conv = Conversation.query.get_or_404(msg.conversation_id)
+    uid = current_user.user_id
+    if conv.user1_id != uid and conv.user2_id != uid:
+        abort(403)
+    if not msg.attachment_url:
+        abort(404)
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    file_dir = os.path.dirname(os.path.join(upload_folder, msg.attachment_url))
+    file_name = os.path.basename(msg.attachment_url)
+    return send_from_directory(file_dir, file_name, as_attachment=True,
+                               download_name=msg.attachment_name or file_name)
 
 
 @messages_bp.route('/unread-count')

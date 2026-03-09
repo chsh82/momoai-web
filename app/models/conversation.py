@@ -52,6 +52,8 @@ class ConversationMessage(db.Model):
     sender_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
                           nullable=False, index=True)
     body = db.Column(db.Text, nullable=False)
+    attachment_url = db.Column(db.String(500), nullable=True)
+    attachment_name = db.Column(db.String(200), nullable=True)
     is_read = db.Column(db.Boolean, default=False, index=True)
     read_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)

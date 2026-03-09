@@ -26,7 +26,23 @@
             <div class="max-w-xs lg:max-w-md {% if is_mine %}items-end{% else %}items-start{% endif %} flex flex-col">
                 <div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed
                             {% if is_mine %}bg-blue-600 text-white rounded-br-sm{% else %}bg-white shadow text-gray-800 rounded-bl-sm{% endif %}">
-                    {{ msg.body | replace('\n', '<br>') | safe }}
+                    {% if msg.body %}{{ msg.body | replace('\n', '<br>') | safe }}{% endif %}
+                    {% if msg.attachment_url %}
+                    {% set ext = msg.attachment_name.rsplit('.', 1)[-1].lower() if msg.attachment_name else '' %}
+                    {% if ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                    <a href="{{ url_for('messages.download_attachment', msg_id=msg.message_id) }}" target="_blank" class="block mt-1">
+                        <img src="{{ url_for('messages.download_attachment', msg_id=msg.message_id) }}"
+                             alt="{{ msg.attachment_name }}"
+                             class="max-w-full rounded-lg max-h-48 object-contain border border-white border-opacity-30">
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('messages.download_attachment', msg_id=msg.message_id) }}"
+                       class="inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-lg text-xs font-medium
+                              {% if is_mine %}bg-blue-500 text-white hover:bg-blue-400{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %} transition">
+                        📎 {{ msg.attachment_name }}
+                    </a>
+                    {% endif %}
+                    {% endif %}
                 </div>
                 <span class="text-xs text-gray-400 mt-1 px-1">
                     {{ msg.created_at.strftime('%m/%d %H:%M') }}
@@ -47,13 +63,18 @@
     <!-- 답장 입력 -->
     <div class="bg-white rounded-xl shadow px-4 py-3 shrink-0">
         <form method="POST" action="{{ url_for('messages.reply', conv_id=conv.conversation_id) }}"
-              id="reply-form">
+              id="reply-form" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-2">
+                <input type="file" name="attachment"
+                       accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.hwp,.zip,.mp4,.mp3"
+                       class="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 file:font-medium hover:file:bg-blue-100 cursor-pointer">
+                <p class="text-xs text-gray-400 mt-1">이미지, PDF, 문서 등 (선택, 최대 20MB)</p>
+            </div>
             <div class="flex gap-2 items-end">
                 <textarea name="body" id="reply-body" rows="2"
                           placeholder="{{ other.name }}님께 메시지를 입력하세요... (Ctrl+Enter로 전송)"
-                          class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          required></textarea>
+                          class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
                 <button type="submit"
                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium h-10 shrink-0">
                     전송
