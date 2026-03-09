@@ -190,8 +190,8 @@ def courses():
 
     courses = query.order_by(Course.created_at.desc()).all()
 
-    # 강사 목록 (필터용)
-    teachers = User.query.filter_by(role='teacher').all()
+    # 강사 목록 (필터용, 가나다 순)
+    teachers = User.query.filter_by(role='teacher').order_by(User.name).all()
 
     return render_template('admin/courses.html',
                          courses=courses,
