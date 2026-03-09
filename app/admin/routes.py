@@ -582,7 +582,7 @@ def add_student(course_id):
                 notification_type='student_enrolled',
                 title='학생이 수업에 등록되었습니다',
                 message=f'{student.name} 학생이 "{course.course_name}" 수업에 등록되었습니다.',
-                link_url=url_for('admin.manage_students', course_id=course.course_id),
+                link_url=url_for('teacher.course_detail', course_id=course.course_id),
                 related_entity_type='course',
                 related_entity_id=str(course.course_id)
             )
