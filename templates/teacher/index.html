@@ -4,9 +4,7 @@
 
 {% block page_title %}🏠 {{ current_user.name }}의 마이 페이지{% endblock %}
 
-{% block page_subtitle %}
-<span class="text-sm text-white text-opacity-70 ml-3">내 수업 현황</span>
-{% endblock %}
+{% block page_subtitle %}{% endblock %}
 
 
 {% block content %}
@@ -111,21 +109,21 @@
     <!-- 빠른 메뉴 -->
     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <a href="{{ url_for('teacher.attendance_list') }}"
-           class="bg-red-600 hover:bg-red-700 text-white font-medium p-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg">
+           class="bg-red-600 hover:bg-red-700 text-white font-medium p-4 sm:p-6 rounded-lg transition duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-lg">
             <span class="text-3xl">✓</span>
-            <span class="text-lg">출석 체크</span>
+            <span class="text-base sm:text-lg">출석 체크</span>
         </a>
 
         <a href="{{ url_for('teacher.schedule') }}"
-           class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium p-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg">
+           class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium p-4 sm:p-6 rounded-lg transition duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-lg">
             <span class="text-3xl">📅</span>
-            <span class="text-lg">주간 시간표</span>
+            <span class="text-base sm:text-lg">주간 시간표</span>
         </a>
 
         <a href="{{ url_for('teacher.courses') }}"
-           class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg">
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 sm:p-6 rounded-lg transition duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 shadow-lg">
             <span class="text-3xl">📚</span>
-            <span class="text-lg">내 수업</span>
+            <span class="text-base sm:text-lg">내 수업</span>
         </a>
     </div>
 

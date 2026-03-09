@@ -1232,24 +1232,25 @@
         </aside>
 
         <div class="flex-1 flex flex-col overflow-hidden lg:ml-0">
-            <header class="header-navy px-6 py-4 text-white">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <h2 class="text-header pl-12 lg:pl-0" style="color: rgba(255,255,255,0.75);">
+            <header class="header-navy px-3 sm:px-6 py-3 sm:py-4 text-white">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h2 class="text-sm sm:text-header pl-12 lg:pl-0 truncate" style="color: rgba(255,255,255,0.75);">
                             {% block page_title %}대시보드{% endblock %}
                         </h2>
-                        {% block page_subtitle %}{% endblock %}
+                        <span class="hidden sm:inline">{% block page_subtitle %}{% endblock %}</span>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                         {% block header_actions %}
                         <a href="{{ url_for('search.index') }}"
-                           class="flex items-center gap-2 px-4 py-2 text-white text-opacity-80 hover:text-white rounded-button hover:bg-white hover:bg-opacity-10 transition duration-200">
+                           class="flex items-center gap-1 px-2 py-2 sm:px-4 text-white text-opacity-80 hover:text-white rounded-button hover:bg-white hover:bg-opacity-10 transition duration-200">
                             <span class="text-xl">🔍</span>
-                            <span class="text-sm font-medium">검색</span>
+                            <span class="hidden sm:inline text-sm font-medium">검색</span>
                         </a>
                         {% endblock %}
-                        <div class="text-sm text-white text-opacity-70">
-                            {{ now().strftime('%Y년 %m월 %d일') }}
+                        <div class="text-xs sm:text-sm text-white text-opacity-70 whitespace-nowrap">
+                            <span class="hidden sm:inline">{{ now().strftime('%Y년 %m월 %d일') }}</span>
+                            <span class="sm:hidden">{{ now().strftime('%m/%d') }}</span>
                         </div>
                     </div>
                 </div>
