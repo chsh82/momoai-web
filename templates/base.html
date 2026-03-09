@@ -588,11 +588,11 @@
                     <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">강사</div>
 
                     {% if current_user.role == 'admin' %}
-                    <!-- 대시보드 (관리자 전용) -->
+                    <!-- 마이 페이지 (관리자 전용) -->
                     <a href="{{ url_for('teacher.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.index' %}active{% endif %}">
                         <span class="text-xl">🏠</span>
-                        <span>대시보드</span>
+                        <span>마이 페이지</span>
                     </a>
                     {% endif %}
 
@@ -792,11 +792,11 @@
                     <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">학부모</div>
 
                     {% if current_user.role == 'admin' %}
-                    <!-- 1. 대시보드 (관리자 전용) -->
+                    <!-- 1. 마이 페이지 (관리자 전용) -->
                     <a href="{{ url_for('parent.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.index' in request.endpoint %}active{% endif %}">
                         <span class="text-xl">🏠</span>
-                        <span>대시보드</span>
+                        <span>마이 페이지</span>
                     </a>
                     {% endif %}
 
@@ -967,11 +967,11 @@
                     <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">학생</div>
 
                     {% if current_user.role == 'admin' %}
-                    <!-- 1. 대시보드 (관리자 전용) -->
+                    <!-- 1. 마이 페이지 (관리자 전용) -->
                     <a href="{{ url_for('student.index') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'student.index' in request.endpoint %}active{% endif %}">
                         <span class="text-xl">🏠</span>
-                        <span>대시보드</span>
+                        <span>마이 페이지</span>
                     </a>
                     {% endif %}
 
