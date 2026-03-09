@@ -1142,6 +1142,175 @@ def update_enrollment_payment_info(enrollment_id):
     return jsonify({'success': True})
 
 
+@admin_bp.route('/billing')
+@login_required
+@requires_permission_level(2)
+def billing():
+    """청구서 생성 메인 페이지"""
+    from app.services.payment_calculator import PaymentCalculator
+    from app.models.payment_period import PaymentPeriod
+
+    period_id = request.args.get('period_id', '').strip()
+
+    # 기간 선택 목록 (최근 2년치)
+    periods = PaymentPeriod.query.order_by(
+        PaymentPeriod.start_date.desc()
+    ).limit(30).all()
+
+    selected_period = None
+    billing_rows = []
+    setup_needed = []
+    stats = {}
+
+    if period_id:
+        selected_period = PaymentPeriod.query.get(period_id)
+
+    if selected_period:
+        # 해당 주기 활성 enrollment 전체 조회
+        all_enrollments = CourseEnrollment.query.filter_by(status='active').all()
+
+        billed_count = 0
+        ready_count = 0
+        setup_count = 0
+
+        for enrollment in sorted(all_enrollments, key=lambda e: e.student.name if e.student else ''):
+            # 결제 주기가 기간 유형과 다르면 건너뜀
+            if enrollment.payment_cycle and enrollment.payment_cycle != selected_period.period_type:
+                continue
+
+            # 설정 미완료 (주기 or 수업료 없음)
+            if not enrollment.payment_cycle or not enrollment.weekly_fee:
+                setup_needed.append(enrollment)
+                setup_count += 1
+                continue
+
+            # 이미 청구된 건 확인
+            existing = Payment.query.filter_by(
+                enrollment_id=enrollment.enrollment_id,
+                period_id=period_id
+            ).first()
+
+            if existing:
+                billing_rows.append({
+                    'enrollment': enrollment,
+                    'result': None,
+                    'existing_payment': existing,
+                    'billed': True,
+                })
+                billed_count += 1
+            else:
+                result = PaymentCalculator.calculate(enrollment, selected_period)
+                billing_rows.append({
+                    'enrollment': enrollment,
+                    'result': result,
+                    'existing_payment': None,
+                    'billed': False,
+                })
+                ready_count += 1
+
+        stats = {
+            'total': ready_count + billed_count + setup_count,
+            'ready': ready_count,
+            'billed': billed_count,
+            'setup_needed': setup_count,
+            'total_amount': sum(
+                r['result'].final_amount for r in billing_rows
+                if not r['billed'] and r['result']
+            ),
+        }
+
+    return render_template('admin/billing.html',
+                           periods=periods,
+                           selected_period=selected_period,
+                           period_id=period_id,
+                           billing_rows=billing_rows,
+                           setup_needed=setup_needed,
+                           stats=stats)
+
+
+@admin_bp.route('/billing/create-invoices', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def create_invoices():
+    """청구서 일괄 생성 (Payment 레코드 저장 + SessionAdjustment applied 처리)"""
+    from app.services.payment_calculator import PaymentCalculator
+    from app.models.payment_period import PaymentPeriod
+
+    period_id = request.form.get('period_id', '').strip()
+    enrollment_ids = request.form.getlist('enrollment_ids')
+
+    if not period_id or not enrollment_ids:
+        flash('기간과 수강생을 선택해주세요.', 'error')
+        return redirect(url_for('admin.billing'))
+
+    period = PaymentPeriod.query.get_or_404(period_id)
+
+    created_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    for enrollment_id in enrollment_ids:
+        enrollment = CourseEnrollment.query.get(enrollment_id)
+        if not enrollment or not enrollment.weekly_fee or not enrollment.payment_cycle:
+            error_count += 1
+            continue
+
+        # 이미 청구된 건 스킵
+        existing = Payment.query.filter_by(
+            enrollment_id=enrollment_id,
+            period_id=period_id
+        ).first()
+        if existing:
+            skipped_count += 1
+            continue
+
+        result = PaymentCalculator.calculate(enrollment, period)
+
+        payment = Payment(
+            enrollment_id=enrollment.enrollment_id,
+            course_id=enrollment.course_id,
+            student_id=enrollment.student_id,
+            amount=result.final_amount,
+            original_amount=result.base_amount,
+            discount_type=result.discount_type,
+            discount_rate=result.discount_rate,
+            discount_amount=result.total_discount,
+            payment_type='tuition',
+            payment_period=enrollment.payment_cycle,
+            period_id=period_id,
+            period_start=period.start_date,
+            period_end=period.end_date,
+            weekly_fee=result.weekly_fee,
+            weeks_count=result.weeks_charged,
+            is_prorated=result.is_prorated,
+            carried_over=result.rollover_sessions,
+            free_used=result.free_sessions,
+            status='pending',
+            processed_by=current_user.user_id,
+        )
+        db.session.add(payment)
+        db.session.flush()  # payment_id 확보
+
+        # 이번 청구에 반영된 조정 항목 → applied 처리
+        for adj in result.pending_adjustments:
+            adj.status = 'applied'
+            adj.applied_payment_id = payment.payment_id
+            if not adj.reviewed_at:
+                adj.reviewed_at = datetime.utcnow()
+
+        created_count += 1
+
+    db.session.commit()
+
+    msg = f'청구서 {created_count}건 생성 완료'
+    if skipped_count:
+        msg += f', 이미 청구된 {skipped_count}건 제외'
+    if error_count:
+        msg += f', 설정 오류 {error_count}건 건너뜀'
+    flash(msg, 'success')
+    return redirect(url_for('admin.billing', period_id=period_id))
+
+
 @admin_bp.route('/payments')
 @login_required
 @requires_permission_level(2)

@@ -509,6 +509,10 @@
                             </svg>
                         </button>
                         <div x-show="finance" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.billing') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'billing' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                🧾 청구서 생성
+                            </a>
                             <a href="{{ url_for('admin.payments') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint == 'admin.payments' %}text-orange-600 bg-orange-50{% endif %}">
                                 수납 관리

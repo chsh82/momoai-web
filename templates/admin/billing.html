@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}청구서 생성 - MOMOAI v4.0{% endblock %}
+{% block page_title %}🧾 청구서 생성{% endblock %}
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">기간별 수강료 청구서를 생성하세요</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-300{% elif category == 'success' %}bg-green-100 text-green-700 border border-green-300{% else %}bg-blue-100 text-blue-700 border border-blue-300{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 기간 선택 -->
+    <div class="bg-white rounded-xl shadow p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">📅 결제 기간 선택</h3>
+        <div class="flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[260px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">결제 기간</label>
+                <select id="periodSelect" onchange="selectPeriod()"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- 기간을 선택하세요 --</option>
+                    {% for p in periods %}
+                    <option value="{{ p.period_id }}"
+                            {% if selected_period and p.period_id == selected_period.period_id %}selected{% endif %}>
+                        {% if p.period_type == 'quarterly' %}📆{% else %}🗓️{% endif %}
+                        {{ p.label }}
+                        ({{ p.start_date.strftime('%m/%d') }} ~ {{ p.end_date.strftime('%m/%d') }},
+                        유효 {{ p.effective_weeks }}주)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if not periods %}
+            <p class="text-sm text-gray-500">
+                결제 기간이 없습니다.
+                <a href="{{ url_for('admin.payment_periods') }}" class="text-blue-600 hover:underline">결제 기간 관리</a>에서 먼저 생성하세요.
+            </p>
+            {% endif %}
+        </div>
+
+        {% if selected_period %}
+        <div class="mt-4 p-3 bg-blue-50 rounded-lg flex flex-wrap gap-4 text-sm">
+            <span class="font-medium text-blue-800">{{ selected_period.label }}</span>
+            <span class="text-blue-600">{{ selected_period.start_date.strftime('%Y년 %m월 %d일') }} ~ {{ selected_period.end_date.strftime('%Y년 %m월 %d일') }}</span>
+            <span class="text-blue-600">전체 {{ selected_period.weeks_count }}주 / 휴무 {{ selected_period.weeks_count - selected_period.effective_weeks }}주 / 유효 {{ selected_period.effective_weeks }}주</span>
+            <a href="{{ url_for('admin.payment_periods') }}" class="text-blue-500 hover:underline text-xs ml-auto">기간 설정 변경</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if selected_period %}
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total }}</p>
+            <p class="text-sm text-gray-500 mt-1">전체 대상</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <p class="text-2xl font-bold text-blue-600">{{ stats.ready }}</p>
+            <p class="text-sm text-gray-500 mt-1">생성 예정</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <p class="text-2xl font-bold text-green-600">{{ stats.billed }}</p>
+            <p class="text-sm text-gray-500 mt-1">이미 청구됨</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <p class="text-2xl font-bold text-orange-600">{{ "{:,}".format(stats.total_amount) }}</p>
+            <p class="text-sm text-gray-500 mt-1">생성 예정 총액 (원)</p>
+        </div>
+    </div>
+
+    <!-- 설정 필요 수강생 -->
+    {% if setup_needed %}
+    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-5 mb-6">
+        <div class="flex items-center gap-2 mb-3">
+            <span class="text-yellow-600 font-bold text-sm">⚠️ 결제 설정 필요 {{ stats.setup_needed }}건</span>
+            <span class="text-yellow-600 text-xs">— 아래 수강생들은 결제 주기 또는 주당 수업료가 설정되지 않아 청구서를 생성할 수 없습니다.</span>
+        </div>
+        <div class="space-y-2">
+            {% for enrollment in setup_needed %}
+            <div class="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-yellow-200">
+                <div class="flex items-center gap-3 text-sm">
+                    <span class="font-medium text-gray-800">{{ enrollment.student.name if enrollment.student else '알 수 없음' }}</span>
+                    <span class="text-gray-500">{{ enrollment.course.course_name if enrollment.course else '-' }}</span>
+                    {% if not enrollment.payment_cycle %}
+                    <span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">결제주기 미설정</span>
+                    {% endif %}
+                    {% if not enrollment.weekly_fee %}
+                    <span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">수업료 미설정</span>
+                    {% endif %}
+                </div>
+                <button type="button"
+                        class="settings-btn text-xs px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition"
+                        data-enrollment-id="{{ enrollment.enrollment_id }}"
+                        data-student-name="{{ enrollment.student.name if enrollment.student else '' }}"
+                        data-course-name="{{ enrollment.course.course_name if enrollment.course else '' }}"
+                        data-payment-cycle="{{ enrollment.payment_cycle or '' }}"
+                        data-weekly-fee="{{ enrollment.weekly_fee or '' }}"
+                        data-discount-type="{{ enrollment.discount_type or '' }}">
+                    설정
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 청구서 생성 폼 -->
+    {% if billing_rows %}
+    <form id="billingForm" method="POST" action="{{ url_for('admin.create_invoices') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="period_id" value="{{ selected_period.period_id }}">
+
+        <div class="bg-white rounded-xl shadow overflow-hidden">
+            <!-- 테이블 헤더 -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="selectAll" onchange="toggleAll(this.checked)"
+                               class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-600">전체 선택</span>
+                    </label>
+                    <span id="selectedCount" class="text-sm text-blue-600 font-medium hidden">0건 선택됨</span>
+                </div>
+                <button type="submit" id="createBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                        disabled>
+                    <span class="text-base">🧾</span>
+                    <span>청구서 생성</span>
+                </button>
+            </div>
+
+            <!-- 테이블 -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                        <tr>
+                            <th class="px-4 py-3 text-center w-10"></th>
+                            <th class="px-4 py-3 text-left">학생</th>
+                            <th class="px-4 py-3 text-left">수강 과목</th>
+                            <th class="px-4 py-3 text-center">주기</th>
+                            <th class="px-4 py-3 text-right">주당 수업료</th>
+                            <th class="px-4 py-3 text-center">수업 주차</th>
+                            <th class="px-4 py-3 text-right">기본 금액</th>
+                            <th class="px-4 py-3 text-right">할인</th>
+                            <th class="px-4 py-3 text-right">이월·무료</th>
+                            <th class="px-4 py-3 text-right font-bold text-gray-800">최종 청구액</th>
+                            <th class="px-4 py-3 text-center">상태</th>
+                            <th class="px-4 py-3 text-center">설정</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for row in billing_rows %}
+                        {% set e = row.enrollment %}
+                        {% set r = row.result %}
+                        <tr class="hover:bg-gray-50 {% if row.billed %}opacity-60{% endif %}">
+                            <!-- 체크박스 -->
+                            <td class="px-4 py-3 text-center">
+                                {% if not row.billed %}
+                                <input type="checkbox" name="enrollment_ids" value="{{ e.enrollment_id }}"
+                                       class="enrollment-cb w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                       onchange="updateSelectCount()">
+                                {% endif %}
+                            </td>
+                            <!-- 학생 -->
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-gray-800">{{ e.student.name if e.student else '-' }}</div>
+                                <div class="text-xs text-gray-400">{{ e.student.grade if e.student else '' }}</div>
+                            </td>
+                            <!-- 수강 과목 -->
+                            <td class="px-4 py-3 text-gray-600 max-w-[160px] truncate">
+                                {{ e.course.course_name if e.course else '-' }}
+                            </td>
+                            <!-- 결제 주기 -->
+                            <td class="px-4 py-3 text-center">
+                                {% if e.payment_cycle == 'quarterly' %}
+                                <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">분기</span>
+                                {% elif e.payment_cycle == 'monthly' %}
+                                <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">월별</span>
+                                {% else %}
+                                <span class="text-gray-400 text-xs">미설정</span>
+                                {% endif %}
+                            </td>
+                            <!-- 주당 수업료 -->
+                            <td class="px-4 py-3 text-right text-gray-700">
+                                {% if e.weekly_fee %}{{ "{:,}".format(e.weekly_fee) }}원{% else %}<span class="text-gray-400">-</span>{% endif %}
+                            </td>
+                            <!-- 수업 주차 -->
+                            <td class="px-4 py-3 text-center text-gray-600">
+                                {% if r %}
+                                {{ r.weeks_charged }}주
+                                {% if r.is_prorated %}<span class="text-xs text-orange-500 ml-1">(중간합류)</span>{% endif %}
+                                {% else %}-{% endif %}
+                            </td>
+                            <!-- 기본 금액 -->
+                            <td class="px-4 py-3 text-right text-gray-700">
+                                {% if r %}{{ "{:,}".format(r.base_amount) }}원{% else %}-{% endif %}
+                            </td>
+                            <!-- 할인 -->
+                            <td class="px-4 py-3 text-right">
+                                {% if r and r.total_discount > 0 %}
+                                <span class="text-red-600">-{{ "{:,}".format(r.total_discount) }}원</span>
+                                <div class="text-xs text-gray-400">
+                                    {% if r.quarterly_discount > 0 %}분기{% endif %}
+                                    {% if r.discount_type %}{{ r.discount_label }}{% endif %}
+                                </div>
+                                {% elif r %}
+                                <span class="text-gray-400">-</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <!-- 이월·무료 차감 -->
+                            <td class="px-4 py-3 text-right">
+                                {% if r and r.adjustment_deduction > 0 %}
+                                <span class="text-orange-600">-{{ "{:,}".format(r.adjustment_deduction) }}원</span>
+                                <div class="text-xs text-gray-400">
+                                    {% if r.rollover_sessions > 0 %}이월{{ r.rollover_sessions }}회{% endif %}
+                                    {% if r.free_sessions > 0 %} 무료{{ r.free_sessions }}회{% endif %}
+                                </div>
+                                {% elif r %}
+                                <span class="text-gray-400">-</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <!-- 최종 청구액 -->
+                            <td class="px-4 py-3 text-right font-bold">
+                                {% if row.billed %}
+                                <span class="text-gray-500">{{ "{:,}".format(row.existing_payment.amount) }}원</span>
+                                {% elif r %}
+                                <span class="text-blue-700 text-base">{{ "{:,}".format(r.final_amount) }}원</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <!-- 상태 -->
+                            <td class="px-4 py-3 text-center">
+                                {% if row.billed %}
+                                <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">청구됨</span>
+                                {% else %}
+                                <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">생성 예정</span>
+                                {% endif %}
+                            </td>
+                            <!-- 설정 -->
+                            <td class="px-4 py-3 text-center">
+                                <button type="button"
+                                        class="settings-btn text-xs px-2 py-1 border border-gray-300 hover:border-blue-400 hover:text-blue-600 rounded-lg transition"
+                                        data-enrollment-id="{{ e.enrollment_id }}"
+                                        data-student-name="{{ e.student.name if e.student else '' }}"
+                                        data-course-name="{{ e.course.course_name if e.course else '' }}"
+                                        data-payment-cycle="{{ e.payment_cycle or '' }}"
+                                        data-weekly-fee="{{ e.weekly_fee or '' }}"
+                                        data-discount-type="{{ e.discount_type or '' }}">
+                                    ✏️
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 합계 행 -->
+            <div class="border-t border-gray-200 p-4 flex justify-end items-center gap-4">
+                <span class="text-sm text-gray-500">생성 예정 총 청구액</span>
+                <span class="text-xl font-bold text-blue-700">{{ "{:,}".format(stats.total_amount) }}원</span>
+            </div>
+        </div>
+    </form>
+    {% elif not setup_needed %}
+    <div class="bg-white rounded-xl shadow p-12 text-center text-gray-400">
+        <p class="text-4xl mb-3">📭</p>
+        <p class="text-lg font-medium">해당 기간에 청구할 수강생이 없습니다.</p>
+        <p class="text-sm mt-2">이 기간 유형({{ '분기별' if selected_period.period_type == 'quarterly' else '월별' }})으로 설정된 수강생을 먼저 등록하세요.</p>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- 기간 미선택 안내 -->
+    <div class="bg-white rounded-xl shadow p-12 text-center text-gray-400">
+        <p class="text-4xl mb-3">📅</p>
+        <p class="text-lg font-medium">위에서 결제 기간을 선택하면 청구서를 생성할 수 있습니다.</p>
+        {% if not periods %}
+        <p class="text-sm mt-3">
+            결제 기간이 없습니다.
+            <a href="{{ url_for('admin.payment_periods') }}" class="text-blue-600 hover:underline">결제 기간 관리</a>에서 먼저 생성하세요.
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- 결제 설정 편집 모달 -->
+<div id="settingsModal" class="fixed inset-0 hidden" style="z-index:99999;">
+    <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeSettingsModal()"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">결제 설정 편집</h3>
+                        <p id="settingsSubtitle" class="text-sm text-gray-500 mt-0.5"></p>
+                    </div>
+                    <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+
+                <input type="hidden" id="settingsEnrollmentId">
+
+                <div class="space-y-4">
+                    <!-- 결제 주기 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">결제 주기</label>
+                        <select id="settingsPaymentCycle"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택하세요</option>
+                            <option value="monthly">월별</option>
+                            <option value="quarterly">분기별 (주당 -5,000원)</option>
+                        </select>
+                    </div>
+
+                    <!-- 주당 수업료 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">주당 수업료 (원)</label>
+                        <input type="number" id="settingsWeeklyFee" min="0" step="1000" placeholder="예: 80000"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-400 mt-1">주 1회 수업 기준 1주 수업료</p>
+                    </div>
+
+                    <!-- 할인 유형 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">할인 유형</label>
+                        <select id="settingsDiscountType"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">할인 없음</option>
+                            <option value="sibling">형제자매 할인 (10%)</option>
+                            <option value="acquaintance">지인 할인 (20%)</option>
+                            <option value="employee">직원 할인 (50%)</option>
+                            <option value="scholarship">장학 할인 (100%)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="settingsError" class="mt-3 p-3 bg-red-50 text-red-700 text-sm rounded-lg hidden"></div>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeSettingsModal()"
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                        취소
+                    </button>
+                    <button onclick="saveSettings()"
+                            class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                        저장 후 새로고침
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 기간 선택
+function selectPeriod() {
+    const pid = document.getElementById('periodSelect').value;
+    if (pid) {
+        window.location.href = '{{ url_for("admin.billing") }}?period_id=' + pid;
+    }
+}
+
+// 전체 선택/해제
+function toggleAll(checked) {
+    document.querySelectorAll('.enrollment-cb').forEach(cb => cb.checked = checked);
+    updateSelectCount();
+}
+
+// 선택 카운트 업데이트
+function updateSelectCount() {
+    const checked = document.querySelectorAll('.enrollment-cb:checked').length;
+    const total = document.querySelectorAll('.enrollment-cb').length;
+    const countEl = document.getElementById('selectedCount');
+    const createBtn = document.getElementById('createBtn');
+    const selectAll = document.getElementById('selectAll');
+
+    countEl.textContent = checked + '건 선택됨';
+    countEl.classList.toggle('hidden', checked === 0);
+    createBtn.disabled = checked === 0;
+
+    if (selectAll) {
+        selectAll.indeterminate = checked > 0 && checked < total;
+        selectAll.checked = total > 0 && checked === total;
+    }
+}
+
+// 설정 모달 열기
+function openSettingsModal(btn) {
+    document.getElementById('settingsEnrollmentId').value = btn.dataset.enrollmentId;
+    document.getElementById('settingsSubtitle').textContent =
+        btn.dataset.studentName + ' · ' + btn.dataset.courseName;
+    document.getElementById('settingsPaymentCycle').value = btn.dataset.paymentCycle || '';
+    document.getElementById('settingsWeeklyFee').value = btn.dataset.weeklyFee || '';
+    document.getElementById('settingsDiscountType').value = btn.dataset.discountType || '';
+    document.getElementById('settingsError').classList.add('hidden');
+    document.getElementById('settingsModal').classList.remove('hidden');
+}
+
+function closeSettingsModal() {
+    document.getElementById('settingsModal').classList.add('hidden');
+}
+
+// 설정 저장
+async function saveSettings() {
+    const enrollmentId = document.getElementById('settingsEnrollmentId').value;
+    const payload = {
+        payment_cycle: document.getElementById('settingsPaymentCycle').value,
+        weekly_fee: document.getElementById('settingsWeeklyFee').value,
+        discount_type: document.getElementById('settingsDiscountType').value,
+    };
+    const errEl = document.getElementById('settingsError');
+    errEl.classList.add('hidden');
+
+    try {
+        const res = await fetch(`/admin/api/enrollment/${enrollmentId}/update-payment-info`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            errEl.textContent = data.error || '저장 실패';
+            errEl.classList.remove('hidden');
+        }
+    } catch (e) {
+        errEl.textContent = '네트워크 오류가 발생했습니다.';
+        errEl.classList.remove('hidden');
+    }
+}
+
+// 청구서 생성 전 확인
+document.getElementById('billingForm')?.addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.enrollment-cb:checked').length;
+    if (!confirm(`${checked}건의 청구서를 생성합니다. 계속하시겠습니까?`)) {
+        e.preventDefault();
+    }
+});
+
+// 설정 버튼 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.settings-btn').forEach(btn => {
+        btn.addEventListener('click', function() { openSettingsModal(this); });
+    });
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeSettingsModal();
+    });
+});
+</script>
+{% endblock %}
