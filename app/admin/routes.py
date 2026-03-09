@@ -1078,6 +1078,70 @@ def student_enrollments_api(student_id):
     } for e in enrollments])
 
 
+@admin_bp.route('/api/enrollment/<enrollment_id>/calculate')
+@login_required
+@requires_permission_level(2)
+def calculate_enrollment_payment(enrollment_id):
+    """수강 결제 미리보기 API (계산 엔진 결과 반환)
+    GET /admin/api/enrollment/<id>/calculate?period_id=xxx
+    """
+    from app.services.payment_calculator import PaymentCalculator
+    from app.models.payment_period import PaymentPeriod
+
+    enrollment = CourseEnrollment.query.get_or_404(enrollment_id)
+    period_id = request.args.get('period_id')
+
+    if not period_id:
+        # period_id 미지정 시 현재 날짜에 해당하는 기간 자동 탐색
+        today = date.today()
+        period = PaymentPeriod.query.filter(
+            PaymentPeriod.start_date <= today,
+            PaymentPeriod.end_date >= today,
+            PaymentPeriod.period_type == (enrollment.payment_cycle or 'monthly')
+        ).first()
+        if not period:
+            return jsonify({'error': '해당 결제 기간을 찾을 수 없습니다.'}), 404
+    else:
+        period = PaymentPeriod.query.get_or_404(period_id)
+
+    result = PaymentCalculator.calculate(enrollment, period)
+    return jsonify(result.to_dict())
+
+
+@admin_bp.route('/api/enrollment/<enrollment_id>/update-payment-info', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def update_enrollment_payment_info(enrollment_id):
+    """수강 결제 설정 업데이트 (payment_cycle, weekly_fee, discount_type)
+    POST /admin/api/enrollment/<id>/update-payment-info
+    Body: { payment_cycle, weekly_fee, discount_type }
+    """
+    enrollment = CourseEnrollment.query.get_or_404(enrollment_id)
+    data = request.get_json() or {}
+
+    if 'payment_cycle' in data:
+        if data['payment_cycle'] in ('monthly', 'quarterly', ''):
+            enrollment.payment_cycle = data['payment_cycle'] or None
+
+    if 'weekly_fee' in data:
+        try:
+            fee = int(data['weekly_fee'])
+            enrollment.weekly_fee = fee if fee >= 0 else None
+        except (ValueError, TypeError):
+            return jsonify({'error': 'weekly_fee는 숫자여야 합니다.'}), 400
+
+    if 'discount_type' in data:
+        from app.services.payment_calculator import PaymentCalculator
+        valid = {k for k, _ in PaymentCalculator.get_discount_options()} | {''}
+        if data['discount_type'] in valid:
+            enrollment.discount_type = data['discount_type'] or None
+        else:
+            return jsonify({'error': '유효하지 않은 할인 유형입니다.'}), 400
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @admin_bp.route('/payments')
 @login_required
 @requires_permission_level(2)

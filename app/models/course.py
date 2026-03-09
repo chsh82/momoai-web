@@ -123,6 +123,14 @@ class CourseEnrollment(db.Model):
     payment_cycle = db.Column(db.String(20), nullable=True)  # 'monthly', 'quarterly'
     weekly_fee = db.Column(db.Integer, nullable=True)        # 이 수업의 주당 수업료
 
+    # 할인 유형
+    discount_type = db.Column(db.String(20), nullable=True)
+    # None: 할인 없음
+    # 'sibling': 형제자매 10%
+    # 'acquaintance': 지인 20%
+    # 'employee': 직원 50%
+    # 'scholarship': 장학 100%
+
     # 출석 통계
     attended_sessions = db.Column(db.Integer, default=0)
     absent_sessions = db.Column(db.Integer, default=0)
