@@ -5,198 +5,161 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">강사 관리</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">강사 관리</h2>
         <a href="{{ url_for('admin.create_staff') }}"
-           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 flex items-center gap-2">
-            <span class="text-xl">➕</span>
-            <span>직원 계정 생성</span>
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 flex items-center gap-2 whitespace-nowrap">
+            <span>➕</span><span>직원 계정 생성</span>
         </a>
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">강사</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ teacher_count }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">강사</p>
+                    <p class="text-xl sm:text-3xl font-bold text-blue-600">{{ teacher_count }}</p>
                 </div>
-                <div class="text-blue-600 text-4xl">👨‍🏫</div>
+                <div class="text-blue-600 text-2xl sm:text-4xl">👨‍🏫</div>
             </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">관리자</p>
-                    <p class="text-3xl font-bold text-green-600">{{ admin_count }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">관리자</p>
+                    <p class="text-xl sm:text-3xl font-bold text-green-600">{{ admin_count }}</p>
                 </div>
-                <div class="text-green-600 text-4xl">👔</div>
+                <div class="text-green-600 text-2xl sm:text-4xl">👔</div>
             </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">전체 직원</p>
-                    <p class="text-3xl font-bold text-gray-800">{{ teacher_count + admin_count }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">전체 직원</p>
+                    <p class="text-xl sm:text-3xl font-bold text-gray-800">{{ teacher_count + admin_count }}</p>
                 </div>
-                <div class="text-gray-600 text-4xl">👥</div>
+                <div class="text-gray-600 text-2xl sm:text-4xl">👥</div>
             </div>
         </div>
     </div>
 
-    <!-- 필터 -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="GET" action="" class="flex items-center gap-4">
-            <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 mb-1">역할</label>
-                <select name="role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onchange="this.form.submit()">
-                    <option value="all" {% if role_filter == 'all' %}selected{% endif %}>전체</option>
-                    <option value="teacher" {% if role_filter == 'teacher' %}selected{% endif %}>강사</option>
-                    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>관리자</option>
-                </select>
-            </div>
+    <!-- 필터 + 정렬 -->
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+        <form method="GET" action="" class="flex items-center gap-2">
+            <select name="role" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onchange="this.form.submit()">
+                <option value="all" {% if role_filter == 'all' %}selected{% endif %}>전체 역할</option>
+                <option value="teacher" {% if role_filter == 'teacher' %}selected{% endif %}>강사</option>
+                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>관리자</option>
+            </select>
         </form>
+        <div class="flex gap-2 ml-auto">
+            <a href="?role={{ role_filter }}&sort=name"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort == 'name' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                가나다순
+            </a>
+            <a href="?role={{ role_filter }}&sort=newest"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort != 'name' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                최신순
+            </a>
+        </div>
     </div>
 
-    <!-- 강사 목록 -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-gray-800">강사 목록</h3>
-            <div class="flex gap-2">
-                <a href="?role={{ role_filter }}&sort=name"
-                   class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
-                          {% if sort == 'name' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    가나다순
-                </a>
-                <a href="?role={{ role_filter }}&sort=newest"
-                   class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
-                          {% if sort != 'name' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    최신순
-                </a>
+    <!-- 직원 목록 (카드 그리드) -->
+    {% if staff_members %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for staff in staff_members %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <div class="p-4">
+                <!-- 상단: 이름 + 역할 + 상태 -->
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <h3 class="font-bold text-gray-800 text-base">{{ staff.name }}</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ staff.created_at.strftime('%Y.%m.%d') }} 생성</p>
+                    </div>
+                    <div class="flex items-center gap-1 flex-wrap justify-end">
+                        {% if staff.role == 'teacher' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">강사</span>
+                        {% elif staff.role == 'admin' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">관리자</span>
+                        {% endif %}
+                        {% if staff.user_id == current_user.user_id %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">본인</span>
+                        {% elif staff.is_active %}
+                        <button onclick="toggleStaffActive('{{ staff.user_id }}', '{{ staff.name }}', true)"
+                                class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 hover:bg-green-200 text-green-800 border-0 transition">
+                            사용중
+                        </button>
+                        {% else %}
+                        <button onclick="toggleStaffActive('{{ staff.user_id }}', '{{ staff.name }}', false)"
+                                class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 hover:bg-red-200 text-red-800 border-0 transition">
+                            미사용
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 연락처 정보 (가로 읽기) -->
+                <div class="space-y-1 text-sm text-gray-600 mb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-gray-400 shrink-0">📧</span>
+                        <span class="truncate text-xs">{{ staff.email }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">📞</span>
+                        <span class="text-xs">{{ staff.phone if staff.phone else '-' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">🕐</span>
+                        <span class="text-xs">
+                            {% if staff.last_login %}{{ staff.last_login.strftime('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}
+                        </span>
+                    </div>
+                    {% if staff.role == 'teacher' %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">🎥</span>
+                        {% if staff.zoom_link %}
+                        <button onclick="editZoomLink('{{ staff.user_id }}', '{{ zoom_links_decrypted.get(staff.user_id, '') }}')"
+                                class="text-xs text-green-600 hover:text-green-800 font-medium">줌 링크 수정</button>
+                        {% else %}
+                        <button onclick="editZoomLink('{{ staff.user_id }}', '')"
+                                class="text-xs text-blue-600 hover:text-blue-800 font-medium">줌 링크 추가</button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- 관리 버튼 -->
+                <div class="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-100">
+                    <a href="{{ url_for('admin.edit_staff', staff_id=staff.user_id) }}"
+                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
+                        수정
+                    </a>
+                    <form method="POST"
+                          action="{{ url_for('admin.reset_password', user_id=staff.user_id) }}"
+                          onsubmit="return confirm('{{ staff.name }}님의 비밀번호를 초기화하시겠습니까?');">
+                        <button type="submit"
+                                class="px-3 py-1.5 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-medium rounded-lg transition">
+                            비밀번호 초기화
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="p-6">
-            {% if staff_members %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">생성일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">전화번호</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">역할</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">줌 링크</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">마지막 로그인</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for staff in staff_members %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ staff.created_at.strftime('%Y-%m-%d') }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-800">{{ staff.name }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ staff.email }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ staff.phone if staff.phone else '-' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if staff.role == 'teacher' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
-                                    강사
-                                </span>
-                                {% elif staff.role == 'admin' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-                                    관리자
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if staff.role == 'teacher' %}
-                                <div class="flex items-center gap-2">
-                                    <button onclick="editZoomLink('{{ staff.user_id }}', '{{ zoom_links_decrypted.get(staff.user_id, '') }}')"
-                                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                        {% if staff.zoom_link %}
-                                        ✏️ 수정
-                                        {% else %}
-                                        ➕ 추가
-                                        {% endif %}
-                                    </button>
-                                    {% if staff.zoom_link %}
-                                    <span class="text-xs text-green-600">✓ 설정됨</span>
-                                    {% endif %}
-                                </div>
-                                {% else %}
-                                <span class="text-gray-400 text-sm">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if staff.user_id == current_user.user_id %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">사용 (본인)</span>
-                                {% elif staff.is_active %}
-                                <button onclick="toggleStaffActive('{{ staff.user_id }}', '{{ staff.name }}', true)"
-                                        class="px-2 py-1 text-xs font-medium rounded bg-green-100 hover:bg-green-200 text-green-800 cursor-pointer border-0 transition duration-150">
-                                    ✓ 사용
-                                </button>
-                                {% else %}
-                                <button onclick="toggleStaffActive('{{ staff.user_id }}', '{{ staff.name }}', false)"
-                                        class="px-2 py-1 text-xs font-medium rounded bg-red-100 hover:bg-red-200 text-red-800 cursor-pointer border-0 transition duration-150">
-                                    ✗ 미사용
-                                </button>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {% if staff.last_login %}
-                                {{ staff.last_login.strftime('%Y-%m-%d %H:%M') }}
-                                {% else %}
-                                <span class="text-gray-400">미로그인</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <a href="{{ url_for('admin.edit_staff', staff_id=staff.user_id) }}"
-                                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">수정</a>
-                                    <span class="text-gray-300">|</span>
-                                    <form method="POST"
-                                          action="{{ url_for('admin.reset_password', user_id=staff.user_id) }}"
-                                          onsubmit="return confirm('{{ staff.name }}님의 비밀번호를 초기화하시겠습니까?');">
-                                        <button type="submit"
-                                                class="text-sm font-medium"
-                                                style="color: #f97316;"
-                                                onmouseover="this.style.color='#c2410c'"
-                                                onmouseout="this.style.color='#f97316'">
-                                            비밀번호 초기화
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-12">
-                <p class="text-gray-500 text-lg">등록된 직원이 없습니다.</p>
-                <a href="{{ url_for('admin.create_staff') }}"
-                   class="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium">
-                    직원 계정 생성하기 →
-                </a>
-            </div>
-            {% endif %}
-        </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <p class="text-gray-500 text-lg">등록된 직원이 없습니다.</p>
+        <a href="{{ url_for('admin.create_staff') }}"
+           class="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium">
+            직원 계정 생성하기 →
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <!-- 줌 링크 수정 모달 -->
@@ -242,12 +205,8 @@ function toggleStaffActive(userId, userName, currentlyActive) {
     })
     .then(r => r.json())
     .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert('오류: ' + data.message);
-        }
+        if (data.success) { alert(data.message); location.reload(); }
+        else { alert('오류: ' + data.message); }
     })
     .catch(() => alert('요청 중 오류가 발생했습니다.'));
 }
@@ -265,40 +224,21 @@ function closeZoomModal() {
 
 async function saveZoomLink() {
     const zoomLink = document.getElementById('zoomLinkInput').value.trim();
-
-    if (!zoomLink) {
-        alert('줌 링크를 입력하세요.');
-        return;
-    }
-
+    if (!zoomLink) { alert('줌 링크를 입력하세요.'); return; }
     try {
         const response = await fetch(`/admin/staff/${currentStaffId}/zoom-link`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ zoom_link: zoomLink })
         });
-
         const data = await response.json();
-
-        if (data.success) {
-            alert('줌 링크가 저장되었습니다.');
-            location.reload();
-        } else {
-            alert('오류: ' + (data.message || '저장에 실패했습니다.'));
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('저장 중 오류가 발생했습니다.');
-    }
+        if (data.success) { alert('줌 링크가 저장되었습니다.'); location.reload(); }
+        else { alert('오류: ' + (data.message || '저장에 실패했습니다.')); }
+    } catch (error) { alert('저장 중 오류가 발생했습니다.'); }
 }
 
-// ESC 키로 모달 닫기
 document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeZoomModal();
-    }
+    if (event.key === 'Escape') closeZoomModal();
 });
 </script>
 {% endblock %}

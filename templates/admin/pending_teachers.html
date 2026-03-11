@@ -11,34 +11,32 @@
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">승인 대기</p>
-                    <p class="text-3xl font-bold text-yellow-600">{{ pending_count }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">승인 대기</p>
+                    <p class="text-xl sm:text-3xl font-bold text-yellow-600">{{ pending_count }}</p>
                 </div>
-                <div class="text-yellow-600 text-4xl">⏳</div>
+                <div class="text-yellow-600 text-2xl sm:text-4xl">⏳</div>
             </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">승인 완료</p>
-                    <p class="text-3xl font-bold text-green-600">{{ approved_count }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">승인 완료</p>
+                    <p class="text-xl sm:text-3xl font-bold text-green-600">{{ approved_count }}</p>
                 </div>
-                <div class="text-green-600 text-4xl">✓</div>
+                <div class="text-green-600 text-2xl sm:text-4xl">✓</div>
             </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">전체 강사</p>
-                    <p class="text-3xl font-bold text-gray-800">{{ pending_count + approved_count }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">전체 강사</p>
+                    <p class="text-xl sm:text-3xl font-bold text-gray-800">{{ pending_count + approved_count }}</p>
                 </div>
-                <div class="text-gray-600 text-4xl">👥</div>
+                <div class="text-gray-600 text-2xl sm:text-4xl">👥</div>
             </div>
         </div>
     </div>
@@ -63,85 +61,62 @@
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h3 class="text-xl font-bold text-gray-800">강사 목록</h3>
         </div>
-        <div class="p-6">
-            {% if teachers %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">가입일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">전화번호</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for teacher in teachers %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ teacher.created_at.strftime('%Y-%m-%d<br>%H:%M')|safe }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-800">{{ teacher.name }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ teacher.email }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ teacher.phone if teacher.phone else '-' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if teacher.is_active %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-                                    ✓ 승인됨
-                                </span>
-                                {% else %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-                                    ⏳ 대기 중
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if not teacher.is_active %}
-                                <div class="flex gap-2">
-                                    <form method="POST" action="{{ url_for('admin.approve_teacher', user_id=teacher.user_id) }}"
-                                          onsubmit="return confirm('{{ teacher.name }}님의 강사 계정을 승인하시겠습니까?');">
-                                        <button type="submit" class="text-green-600 hover:text-green-800 font-medium text-sm">
-                                            승인
-                                        </button>
-                                    </form>
-                                    <span class="text-gray-300">|</span>
-                                    <button onclick="showRejectModal('{{ teacher.user_id }}', '{{ teacher.name }}')"
-                                            class="text-red-600 hover:text-red-800 font-medium text-sm">
-                                        거절
-                                    </button>
-                                </div>
-                                {% else %}
-                                <span class="text-gray-500 text-sm">-</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-12">
-                <p class="text-gray-500 text-lg">
-                    {% if status_filter == 'pending' %}
-                    승인 대기 중인 강사가 없습니다.
-                    {% elif status_filter == 'approved' %}
-                    승인된 강사가 없습니다.
-                    {% else %}
-                    등록된 강사가 없습니다.
-                    {% endif %}
-                </p>
-            </div>
-            {% endif %}
-        </div>
     </div>
+
+    <!-- 강사 목록 (카드 그리드) -->
+    {% if teachers %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for teacher in teachers %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <div class="p-4">
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <h3 class="font-bold text-gray-800">{{ teacher.name }}</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ teacher.created_at.strftime('%Y.%m.%d %H:%M') }} 가입</p>
+                    </div>
+                    {% if teacher.is_active %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">✓ 승인됨</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">⏳ 대기중</span>
+                    {% endif %}
+                </div>
+                <div class="space-y-1 mb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-gray-400 shrink-0">📧</span>
+                        <span class="text-xs text-gray-600 truncate">{{ teacher.email }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">📞</span>
+                        <span class="text-xs text-gray-600">{{ teacher.phone if teacher.phone else '-' }}</span>
+                    </div>
+                </div>
+                {% if not teacher.is_active %}
+                <div class="flex gap-2 pt-2 border-t border-gray-100">
+                    <form method="POST" action="{{ url_for('admin.approve_teacher', user_id=teacher.user_id) }}"
+                          onsubmit="return confirm('{{ teacher.name }}님의 강사 계정을 승인하시겠습니까?');">
+                        <button type="submit" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
+                            ✓ 승인
+                        </button>
+                    </form>
+                    <button onclick="showRejectModal('{{ teacher.user_id }}', '{{ teacher.name }}')"
+                            class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition">
+                        ✕ 거절
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <p class="text-gray-500 text-lg">
+            {% if status_filter == 'pending' %}승인 대기 중인 강사가 없습니다.
+            {% elif status_filter == 'approved' %}승인된 강사가 없습니다.
+            {% else %}등록된 강사가 없습니다.{% endif %}
+        </p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- 거절 사유 모달 -->

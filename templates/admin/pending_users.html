@@ -51,65 +51,52 @@
         </div>
 
         {% if pending %}
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">이름</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">이메일</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">역할</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">연락처</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">가입일</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">관리</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
-                    {% for user in pending %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="font-medium text-gray-800">{{ user.name }}</div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ user.email }}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full
-                                {% if user.role == 'teacher' %}bg-purple-100 text-purple-800
-                                {% elif user.role == 'parent' %}bg-green-100 text-green-800
-                                {% elif user.role == 'student' %}bg-orange-100 text-orange-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {% if user.role == 'teacher' %}강사
-                                {% elif user.role == 'parent' %}학부모
-                                {% elif user.role == 'student' %}학생
-                                {% else %}{{ user.role }}{% endif %}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ user.phone or '-' }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">
-                            {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex gap-2">
-                                <form method="POST"
-                                      action="{{ url_for('admin.approve_user', user_id=user.user_id) }}"
-                                      onsubmit="return confirm('{{ user.name }} 계정을 승인하시겠습니까?')">
-                                    <button type="submit"
-                                            class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition duration-200">
-                                        ✓ 승인
-                                    </button>
-                                </form>
-                                <form method="POST"
-                                      action="{{ url_for('admin.reject_user', user_id=user.user_id) }}"
-                                      onsubmit="return confirm('{{ user.name }} 계정 승인을 거절하시겠습니까?\n계정은 비활성 상태로 유지됩니다.')">
-                                    <button type="submit"
-                                            class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium px-3 py-1.5 rounded-lg transition duration-200">
-                                        ✕ 거절
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for user in pending %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition">
+                <div class="flex items-start justify-between mb-2">
+                    <h3 class="font-bold text-gray-800">{{ user.name }}</h3>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-full
+                        {% if user.role == 'teacher' %}bg-purple-100 text-purple-800
+                        {% elif user.role == 'parent' %}bg-green-100 text-green-800
+                        {% elif user.role == 'student' %}bg-orange-100 text-orange-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {% if user.role == 'teacher' %}강사
+                        {% elif user.role == 'parent' %}학부모
+                        {% elif user.role == 'student' %}학생
+                        {% else %}{{ user.role }}{% endif %}
+                    </span>
+                </div>
+                <div class="space-y-1 mb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-gray-400 shrink-0">📧</span>
+                        <span class="text-xs text-gray-600 truncate">{{ user.email }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">📞</span>
+                        <span class="text-xs text-gray-600">{{ user.phone or '-' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">📅</span>
+                        <span class="text-xs text-gray-600">{{ user.created_at.strftime('%Y.%m.%d %H:%M') }} 가입</span>
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2 border-t border-gray-100">
+                    <form method="POST" action="{{ url_for('admin.approve_user', user_id=user.user_id) }}"
+                          onsubmit="return confirm('{{ user.name }} 계정을 승인하시겠습니까?')">
+                        <button type="submit" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
+                            ✓ 승인
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.reject_user', user_id=user.user_id) }}"
+                          onsubmit="return confirm('{{ user.name }} 계정 승인을 거절하시겠습니까?\n계정은 비활성 상태로 유지됩니다.')">
+                        <button type="submit" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition">
+                            ✕ 거절
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
         <div class="text-center py-16">

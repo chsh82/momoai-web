@@ -101,106 +101,83 @@
     </div>
 
     <!-- Student List -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-bold text-gray-800">학생 목록 ({{ students|length }}명)</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학생명</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학년</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">재학 학교</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">국가 및 도시</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">프로필 상태</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">계정 상태</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for student in students %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="font-medium text-gray-900">{{ student.name }}</div>
-                            <div class="text-sm text-gray-500">ID: {{ student.student_id[:8] }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {{ student.grade or '-' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {% if student.profile and student.profile.current_school %}
-                            {{ student.profile.current_school }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {% if student.country %}
-                            📍 {{ student.country }}{% if student.city %} · {{ student.city }}{% endif %}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if student.profile %}
-                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">✓ 작성완료</span>
-                            {% else %}
-                            <span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded">미작성</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% set linked_user = user_map.get(student.user_id) if student.user_id else None %}
-                            {% if not linked_user %}
-                            <span class="bg-gray-100 text-gray-500 text-xs font-semibold px-2.5 py-0.5 rounded">계정없음</span>
-                            {% elif linked_user.is_active %}
-                            <button onclick="toggleStudentActive('{{ student.student_id }}', '{{ student.name }}', true)"
-                                    class="bg-green-100 hover:bg-green-200 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded cursor-pointer border-0 transition duration-150">
-                                ✓ 사용
-                            </button>
-                            {% else %}
-                            <button onclick="toggleStudentActive('{{ student.student_id }}', '{{ student.name }}', false)"
-                                    class="bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded cursor-pointer border-0 transition duration-150">
-                                ✗ 미사용
-                            </button>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <div class="flex gap-2">
-                                <a href="{{ url_for('admin.student_profile', student_id=student.student_id) }}"
-                                   class="text-blue-600 hover:text-blue-800 font-medium">
-                                    보기
-                                </a>
-                                {% if student.profile %}
-                                <a href="{{ url_for('admin.edit_student_profile', student_id=student.student_id) }}"
-                                   class="text-green-600 hover:text-green-800 font-medium">
-                                    수정
-                                </a>
-                                {% else %}
-                                <a href="{{ url_for('admin.create_student_profile', student_id=student.student_id) }}"
-                                   class="text-green-600 hover:text-green-800 font-medium">
-                                    생성
-                                </a>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
+    <p class="text-sm text-gray-500 mb-3">학생 목록 ({{ students|length }}명)</p>
+    {% if students %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for student in students %}
+        {% set linked_user = user_map.get(student.user_id) if student.user_id else None %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <div class="p-4">
+                <!-- 이름 + 학년 + 상태 배지 -->
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <h3 class="font-bold text-gray-800">{{ student.name }}</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ student.grade or '-' }}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        {% if student.profile %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">프로필 완료</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">프로필 미작성</span>
+                        {% endif %}
+                        {% if not linked_user %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-500">계정없음</span>
+                        {% elif linked_user.is_active %}
+                        <button onclick="toggleStudentActive('{{ student.student_id }}', '{{ student.name }}', true)"
+                                class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 hover:bg-green-200 text-green-800 border-0 transition">
+                            사용중
+                        </button>
+                        {% else %}
+                        <button onclick="toggleStudentActive('{{ student.student_id }}', '{{ student.name }}', false)"
+                                class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 hover:bg-red-200 text-red-800 border-0 transition">
+                            미사용
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- 학교/국가 정보 -->
+                <div class="space-y-1 mb-3 text-xs text-gray-600">
+                    {% if student.profile and student.profile.current_school %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400">🏫</span>
+                        <span>{{ student.profile.current_school }}</span>
+                    </div>
+                    {% endif %}
+                    {% if student.country %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400">📍</span>
+                        <span>{{ student.country }}{% if student.city %} · {{ student.city }}{% endif %}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <!-- 버튼 -->
+                <div class="flex gap-2 pt-2 border-t border-gray-100">
+                    <a href="{{ url_for('admin.student_profile', student_id=student.student_id) }}"
+                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
+                        보기
+                    </a>
+                    {% if student.profile %}
+                    <a href="{{ url_for('admin.edit_student_profile', student_id=student.student_id) }}"
+                       class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
+                        수정
+                    </a>
                     {% else %}
-                    <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                            <div class="text-4xl mb-3">📭</div>
-                            {% if search %}
-                            <p>검색 결과가 없습니다.</p>
-                            {% else %}
-                            <p>등록된 학생이 없습니다.</p>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    <a href="{{ url_for('admin.create_student_profile', student_id=student.student_id) }}"
+                       class="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition">
+                        프로필 생성
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+        <div class="text-4xl mb-3">📭</div>
+        {% if search %}검색 결과가 없습니다.{% else %}등록된 학생이 없습니다.{% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 

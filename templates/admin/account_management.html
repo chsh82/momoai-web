@@ -5,47 +5,47 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">🔒 아이디 관리</h2>
-        <p class="text-gray-500 text-sm">비활성화된 계정을 조회하고 복원할 수 있습니다.</p>
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">🔒 아이디 관리</h2>
+        <p class="text-gray-500 text-sm hidden sm:block">비활성화된 계정을 조회하고 복원할 수 있습니다.</p>
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">전체 비활성</p>
-                    <p class="text-3xl font-bold text-gray-600">{{ total_inactive }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">전체 비활성</p>
+                    <p class="text-xl sm:text-3xl font-bold text-gray-600">{{ total_inactive }}</p>
                 </div>
-                <div class="text-gray-400 text-4xl">🔒</div>
+                <div class="text-gray-400 text-2xl sm:text-4xl">🔒</div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">강사</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ role_counts.teacher }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">강사</p>
+                    <p class="text-xl sm:text-3xl font-bold text-blue-600">{{ role_counts.teacher }}</p>
                 </div>
-                <div class="text-blue-400 text-4xl">👨‍🏫</div>
+                <div class="text-blue-400 text-2xl sm:text-4xl">👨‍🏫</div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">학부모</p>
-                    <p class="text-3xl font-bold text-green-600">{{ role_counts.parent }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">학부모</p>
+                    <p class="text-xl sm:text-3xl font-bold text-green-600">{{ role_counts.parent }}</p>
                 </div>
-                <div class="text-green-400 text-4xl">👪</div>
+                <div class="text-green-400 text-2xl sm:text-4xl">👪</div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">학생</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ role_counts.student }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">학생</p>
+                    <p class="text-xl sm:text-3xl font-bold text-purple-600">{{ role_counts.student }}</p>
                 </div>
-                <div class="text-purple-400 text-4xl">🎓</div>
+                <div class="text-purple-400 text-2xl sm:text-4xl">🎓</div>
             </div>
         </div>
     </div>
@@ -54,23 +54,20 @@
     <div class="bg-white rounded-lg shadow p-4 mb-6">
         <form method="GET" class="flex flex-wrap gap-3 items-center">
             <input type="text" name="search" value="{{ search }}"
-                   class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-64"
+                   class="min-w-0 flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                    placeholder="이름 또는 이메일로 검색...">
-
-            <select name="role" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="role" class="shrink-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">전체 역할</option>
                 <option value="teacher" {% if role_filter == 'teacher' %}selected{% endif %}>강사</option>
                 <option value="parent" {% if role_filter == 'parent' %}selected{% endif %}>학부모</option>
                 <option value="student" {% if role_filter == 'student' %}selected{% endif %}>학생</option>
             </select>
-
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
+            <button type="submit" class="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition">
                 검색
             </button>
-
             {% if search or role_filter %}
             <a href="{{ url_for('admin.account_management') }}"
-               class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition">
+               class="shrink-0 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg transition">
                 초기화
             </a>
             {% endif %}
@@ -78,139 +75,114 @@
     </div>
 
     <!-- 비활성 계정 목록 -->
-    <div class="bg-white rounded-lg shadow mb-8">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-xl font-bold text-gray-800">
-                비활성 계정 목록
-                <span class="text-sm font-normal text-gray-500 ml-2">{{ users|length }}명</span>
-            </h3>
+    <div class="mb-8">
+        <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-base font-bold text-gray-800">비활성 계정 목록</h3>
+            <span class="text-sm text-gray-500">({{ users|length }}명)</span>
         </div>
-        <div class="p-6">
-            {% if users %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">역할</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">가입일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">마지막 로그인</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for user in users %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-800">{{ user.name }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ user.email }}</td>
-                            <td class="px-4 py-3">
-                                {% if user.role == 'teacher' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">강사</span>
-                                {% elif user.role == 'parent' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">학부모</span>
-                                {% elif user.role == 'student' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">학생</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
-                                {% if user.last_login %}
-                                {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
-                                {% else %}
-                                <span class="text-gray-400">미로그인</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                <form method="POST"
-                                      action="{{ url_for('admin.restore_user', user_id=user.user_id) }}"
-                                      onsubmit="return confirm('{{ user.name }} 계정을 복원하시겠습니까?')">
-                                    <button type="submit"
-                                            class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded">
-                                        복원
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% if users %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for user in users %}
+            <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+                <div class="p-4">
+                    <div class="flex items-start justify-between mb-2">
+                        <h3 class="font-bold text-gray-800">{{ user.name }}</h3>
+                        {% if user.role == 'teacher' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">강사</span>
+                        {% elif user.role == 'parent' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">학부모</span>
+                        {% elif user.role == 'student' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">학생</span>
+                        {% endif %}
+                    </div>
+                    <div class="space-y-1 mb-3 text-xs text-gray-600">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-gray-400 shrink-0">📧</span>
+                            <span class="truncate">{{ user.email }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400 shrink-0">📅</span>
+                            <span>가입: {{ user.created_at.strftime('%y.%m.%d') if user.created_at else '-' }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-400 shrink-0">🕐</span>
+                            <span>{% if user.last_login %}{{ user.last_login.strftime('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="pt-2 border-t border-gray-100">
+                        <form method="POST"
+                              action="{{ url_for('admin.restore_user', user_id=user.user_id) }}"
+                              onsubmit="return confirm('{{ user.name }} 계정을 복원하시겠습니까?')">
+                            <button type="submit"
+                                    class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
+                                복원
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            {% else %}
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">✅</div>
-                <p class="text-gray-500 text-lg">
-                    {% if search or role_filter %}
-                    검색 조건에 해당하는 비활성 계정이 없습니다.
-                    {% else %}
-                    비활성화된 계정이 없습니다.
-                    {% endif %}
-                </p>
-            </div>
-            {% endif %}
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <div class="text-4xl mb-3">✅</div>
+            <p class="text-gray-500 text-lg">
+                {% if search or role_filter %}
+                검색 조건에 해당하는 비활성 계정이 없습니다.
+                {% else %}
+                비활성화된 계정이 없습니다.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- 삭제 아이디 목록 -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
-            <h3 class="text-xl font-bold text-red-800">
-                삭제 아이디 목록
-                <span class="text-sm font-normal text-red-500 ml-2">{{ deleted_users|length }}명</span>
-            </h3>
-            <p class="text-xs text-red-400 mt-1">영구 삭제 처리된 계정입니다. 복원이 불가합니다.</p>
+    <div>
+        <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-base font-bold text-red-800">삭제 아이디 목록</h3>
+            <span class="text-sm text-red-400">({{ deleted_users|length }}명)</span>
+            <span class="text-xs text-red-400">— 영구 삭제, 복원 불가</span>
         </div>
-        <div class="p-6">
-            {% if deleted_users %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">역할</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">가입일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">삭제일</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for user in deleted_users %}
-                        <tr class="hover:bg-red-50 opacity-75">
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-500 line-through">{{ user.name }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-400">{{ user.email }}</td>
-                            <td class="px-4 py-3">
-                                {% if user.role == 'teacher' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-400">강사</span>
-                                {% elif user.role == 'parent' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-400">학부모</span>
-                                {% elif user.role == 'student' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-50 text-purple-400">학생</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-400">
-                                {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-red-400">
-                                {{ user.deleted_at.strftime('%Y-%m-%d %H:%M') if user.deleted_at else '-' }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% if deleted_users %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for user in deleted_users %}
+            <div class="bg-white rounded-lg shadow opacity-70">
+                <div class="p-4">
+                    <div class="flex items-start justify-between mb-2">
+                        <h3 class="font-bold text-gray-400 line-through">{{ user.name }}</h3>
+                        {% if user.role == 'teacher' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-400">강사</span>
+                        {% elif user.role == 'parent' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-50 text-green-400">학부모</span>
+                        {% elif user.role == 'student' %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-50 text-purple-400">학생</span>
+                        {% endif %}
+                    </div>
+                    <div class="space-y-1 text-xs text-gray-400">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="shrink-0">📧</span>
+                            <span class="truncate">{{ user.email }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="shrink-0">📅</span>
+                            <span>가입: {{ user.created_at.strftime('%y.%m.%d') if user.created_at else '-' }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="shrink-0 text-red-400">🗑</span>
+                            <span class="text-red-400">삭제: {{ user.deleted_at.strftime('%y.%m.%d') if user.deleted_at else '-' }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            {% else %}
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">🗑️</div>
-                <p class="text-gray-400 text-lg">삭제된 계정이 없습니다.</p>
-            </div>
-            {% endif %}
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <div class="text-4xl mb-3">🗑️</div>
+            <p class="text-gray-400 text-lg">삭제된 계정이 없습니다.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
