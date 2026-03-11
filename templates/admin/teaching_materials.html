@@ -99,19 +99,17 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">게시기간</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">공개여부</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">조회/다운로드</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수정/삭제</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     {% for material in materials %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">
-                            <div>
-                                <p class="font-medium text-gray-800">{{ material.title }}</p>
-                                {% if material.description %}
-                                <p class="text-sm text-gray-500 mt-1">{{ material.description[:50] }}{% if material.description|length > 50 %}...{% endif %}</p>
-                                {% endif %}
-                            </div>
+                            <a href="{{ url_for('admin.teaching_material_detail', material_id=material.material_id) }}"
+                               class="font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ material.title }}
+                            </a>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-700">
                             {% if material.target_type == 'grade' %}
@@ -156,10 +154,6 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
-                                <a href="{{ url_for('admin.teaching_material_detail', material_id=material.material_id) }}"
-                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    상세
-                                </a>
                                 <a href="{{ url_for('admin.edit_teaching_material', material_id=material.material_id) }}"
                                    class="text-gray-600 hover:text-gray-800 text-sm font-medium">
                                     수정
