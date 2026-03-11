@@ -71,35 +71,37 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for material in materials %}
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <h4 class="font-bold text-gray-800 mb-1">{{ material.title }}</h4>
+                    <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition duration-200">
+                        <div class="flex items-start gap-3">
+                            <!-- 책 표지 섬네일 -->
+                            {% if material.book and material.book.cover_image_url %}
+                            <img src="{{ material.book.cover_image_url }}"
+                                 alt="{{ material.book.title }}"
+                                 class="w-14 h-20 object-cover rounded shadow flex-shrink-0">
+                            {% else %}
+                            <div class="w-14 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 text-2xl">📚</div>
+                            {% endif %}
 
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
-                                        {{ material.file_type.upper() }}
-                                    </span>
-                                    <span class="text-xs text-gray-500">{{ (material.file_size / 1024 / 1024)|round(1) }}MB</span>
-                                    <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">
-                                        {{ material.grade }}
-                                    </span>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-gray-800 mb-1 leading-snug">{{ material.title }}</h4>
+                                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                    <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">{{ material.file_type.upper() }}</span>
+                                    <span class="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">{{ material.grade }}</span>
+                                    <span class="text-xs text-gray-400">{{ (material.file_size / 1024 / 1024)|round(1) }}MB</span>
                                 </div>
-
-                                <p class="text-xs text-gray-500">
-                                    업로드: {{ material.created_at.strftime('%Y-%m-%d') }} | 다운로드: {{ material.download_count }}회
-                                </p>
-                            </div>
-
-                            <div class="ml-4 flex flex-col gap-2">
-                                <a href="{{ url_for('student.teaching_material_detail', material_id=material.material_id) }}"
-                                   class="bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium px-4 py-2 rounded transition duration-200 text-center">
-                                    상세보기
-                                </a>
-                                <a href="{{ url_for('student.download_teaching_material', material_id=material.material_id) }}"
-                                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200 text-center">
-                                    다운로드
-                                </a>
+                                {% if material.book %}
+                                <p class="text-xs text-blue-600 mb-2 truncate">📖 {{ material.book.title }}</p>
+                                {% endif %}
+                                <div class="flex gap-2 mt-2">
+                                    <a href="{{ url_for('student.teaching_material_detail', material_id=material.material_id) }}"
+                                       class="bg-gray-500 hover:bg-gray-600 text-white text-xs font-medium px-3 py-1.5 rounded transition text-center">
+                                        상세보기
+                                    </a>
+                                    <a href="{{ url_for('student.download_teaching_material', material_id=material.material_id) }}"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition text-center">
+                                        다운로드
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

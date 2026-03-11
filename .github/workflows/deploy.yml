@@ -19,4 +19,5 @@ jobs:
             cd ~/momoai_web
             git pull origin master
             python3 migrate_end_date_nullable.py
+            python3 migrate_teaching_material_book.py
             sudo systemctl restart momoai

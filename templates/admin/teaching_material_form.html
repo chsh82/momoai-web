@@ -206,6 +206,54 @@
                     {% endif %}
                 </div>
 
+                <!-- 연결 도서 -->
+                <div class="border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">연결 도서 <span class="text-sm font-normal text-gray-400">(선택)</span></h3>
+
+                    <!-- 선택된 도서 카드 -->
+                    <div id="selectedBookCard" class="{% if not (mode == 'edit' and material.book) %}hidden{% endif %} mb-4">
+                        <div class="flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <img id="selectedBookCover"
+                                 src="{{ material.book.cover_image_url if mode == 'edit' and material.book else '' }}"
+                                 onerror="this.src=''"
+                                 class="w-14 h-20 object-cover rounded shadow flex-shrink-0 bg-gray-200">
+                            <div class="flex-1 min-w-0">
+                                <p id="selectedBookTitle" class="font-semibold text-gray-800 truncate">{{ material.book.title if mode == 'edit' and material.book else '' }}</p>
+                                <p id="selectedBookAuthor" class="text-sm text-gray-500 mt-0.5">{{ material.book.author if mode == 'edit' and material.book else '' }}</p>
+                                <p id="selectedBookPublisher" class="text-xs text-gray-400">{{ material.book.publisher if mode == 'edit' and material.book else '' }}</p>
+                            </div>
+                            <button type="button" onclick="clearBook()" class="text-gray-400 hover:text-red-500 flex-shrink-0 text-xl font-bold">×</button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="book_id" id="bookIdField"
+                           value="{{ material.book_id if mode == 'edit' and material.book_id else '' }}">
+
+                    <!-- 검색 필터 -->
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">학년으로 필터</label>
+                            <select id="bookGradeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="">전체 학년</option>
+                                {% for g in ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'] %}
+                                <option value="{{ g }}">{{ g }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">제목 검색</label>
+                            <input type="text" id="bookTitleSearch" placeholder="책 제목 입력..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="button" onclick="searchBooks()"
+                            class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition mb-3">
+                        🔍 도서 검색
+                    </button>
+
+                    <!-- 검색 결과 -->
+                    <div id="bookSearchResults" class="space-y-2 max-h-64 overflow-y-auto hidden"></div>
+                </div>
+
                 <!-- 게시 기간 -->
                 <div class="border-b border-gray-200 pb-4">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">게시 기간</h3>
@@ -353,6 +401,65 @@ document.getElementById('bookName').addEventListener('input', buildTitle);
 // 제목 직접 수정 시 미리보기 동기화
 document.getElementById('titleField').addEventListener('input', function () {
     document.getElementById('titlePreview').textContent = this.value || '—';
+});
+// ────────────────────────────────────────────────────────────
+
+// ── 연결 도서 검색 ──────────────────────────────────────────
+async function searchBooks() {
+    const grade = document.getElementById('bookGradeFilter').value;
+    const title = document.getElementById('bookTitleSearch').value.trim();
+    const resultsEl = document.getElementById('bookSearchResults');
+
+    if (!grade && !title) {
+        alert('학년 또는 제목을 입력해주세요.');
+        return;
+    }
+
+    resultsEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-3">검색 중...</p>';
+    resultsEl.classList.remove('hidden');
+
+    const params = new URLSearchParams({ grade, title });
+    const res = await fetch(`{{ url_for('admin.search_books_for_material') }}?${params}`);
+    const books = await res.json();
+
+    if (!books.length) {
+        resultsEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-3">검색 결과가 없습니다.</p>';
+        return;
+    }
+
+    resultsEl.innerHTML = books.map(b => `
+        <button type="button" onclick="selectBook(${JSON.stringify(b).replace(/"/g, '&quot;')})"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition text-left">
+            <img src="${b.cover_image_url}" onerror="this.style.display='none'"
+                 class="w-10 h-14 object-cover rounded shadow flex-shrink-0 bg-gray-100">
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-gray-800 truncate">${b.title}</p>
+                <p class="text-xs text-gray-500">${b.author} · ${b.publisher}</p>
+            </div>
+        </button>
+    `).join('');
+}
+
+function selectBook(book) {
+    document.getElementById('bookIdField').value = book.book_id;
+    document.getElementById('selectedBookCover').src = book.cover_image_url;
+    document.getElementById('selectedBookTitle').textContent = book.title;
+    document.getElementById('selectedBookAuthor').textContent = book.author;
+    document.getElementById('selectedBookPublisher').textContent = book.publisher;
+    document.getElementById('selectedBookCard').classList.remove('hidden');
+    document.getElementById('bookSearchResults').classList.add('hidden');
+    document.getElementById('bookSearchResults').innerHTML = '';
+    document.getElementById('bookTitleSearch').value = '';
+}
+
+function clearBook() {
+    document.getElementById('bookIdField').value = '';
+    document.getElementById('selectedBookCard').classList.add('hidden');
+}
+
+// 엔터키로 검색
+document.getElementById('bookTitleSearch').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); searchBooks(); }
 });
 // ────────────────────────────────────────────────────────────
 

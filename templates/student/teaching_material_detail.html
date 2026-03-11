@@ -27,6 +27,27 @@
             </div>
         </div>
 
+        {% if material.book %}
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-sm font-medium text-gray-500 mb-3">연결된 도서</h3>
+            <a href="{{ url_for('library.book_detail', book_id=material.book.book_id) }}"
+               class="flex items-center gap-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl p-4 transition">
+                {% if material.book.cover_image_url %}
+                <img src="{{ material.book.cover_image_url }}" alt="{{ material.book.title }}"
+                     class="w-16 h-24 object-cover rounded shadow flex-shrink-0">
+                {% else %}
+                <div class="w-16 h-24 bg-gray-200 rounded flex items-center justify-center text-3xl flex-shrink-0">📖</div>
+                {% endif %}
+                <div class="min-w-0">
+                    <p class="font-bold text-gray-800 text-base leading-snug">{{ material.book.title }}</p>
+                    {% if material.book.author %}<p class="text-sm text-gray-600 mt-1">{{ material.book.author }}</p>{% endif %}
+                    {% if material.book.publisher %}<p class="text-xs text-gray-400 mt-0.5">{{ material.book.publisher }}</p>{% endif %}
+                    <p class="text-xs text-blue-500 mt-2 font-medium">도서 정보 보기 →</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
         <div class="p-6">
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-gray-50 rounded-lg p-4">
@@ -51,7 +72,7 @@
 
                 <div class="bg-gray-50 rounded-lg p-4">
                     <p class="text-sm text-gray-600 mb-1">공개 기간</p>
-                    <p class="font-medium text-gray-800">{{ material.publish_date.strftime('%Y-%m-%d') }} ~ {{ material.end_date.strftime('%Y-%m-%d') }}</p>
+                    <p class="font-medium text-gray-800">{{ material.publish_date.strftime('%Y-%m-%d') }} ~ {{ material.end_date.strftime('%Y-%m-%d') if material.end_date else '무제한' }}</p>
                 </div>
 
                 <div class="bg-gray-50 rounded-lg p-4">

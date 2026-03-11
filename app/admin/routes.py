@@ -15,6 +15,7 @@ from app.models import db, User, Student, Course, CourseEnrollment, CourseSessio
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.notification import Notification
 from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload, TeachingMaterialFile
+from app.models.book import Book
 from app.models.video import Video, VideoView
 from app.models.parent_link_request import ParentLinkRequest
 from app.utils.decorators import requires_permission_level
@@ -2848,6 +2849,31 @@ def teaching_materials():
                          format_file_size=format_file_size)
 
 
+@admin_bp.route('/teaching-materials/api/books/search')
+@login_required
+@requires_permission_level(2)
+def search_books_for_material():
+    """교재 연결용 도서 검색 API (학년 + 제목)"""
+    grade = request.args.get('grade', '').strip()
+    title = request.args.get('title', '').strip()
+
+    query = Book.query
+    if grade:
+        query = query.filter(Book.grade_tags.like(f'%{grade}%'))
+    if title:
+        query = query.filter(Book.title.ilike(f'%{title}%'))
+
+    books = query.order_by(Book.title).limit(30).all()
+    return jsonify([{
+        'book_id': b.book_id,
+        'title': b.title,
+        'author': b.author or '',
+        'publisher': b.publisher or '',
+        'cover_image_url': b.cover_image_url or '',
+        'grade_tags': b.grade_tags or '[]',
+    } for b in books])
+
+
 @admin_bp.route('/teaching-materials/new', methods=['GET', 'POST'])
 @login_required
 @requires_permission_level(2)
@@ -2896,6 +2922,8 @@ def create_teaching_material():
         first_ext = os.path.splitext(first_name)[1]
         first_stored = f"{uuid.uuid4().hex}{first_ext}"
 
+        book_id = request.form.get('book_id') or None
+
         material = TeachingMaterial(
             title=form.title.data,
             grade=auto_grade,
@@ -2907,7 +2935,8 @@ def create_teaching_material():
             end_date=form.end_date.data,
             is_public=form.is_public.data,
             target_audience=target_audience,
-            created_by=current_user.user_id
+            created_by=current_user.user_id,
+            book_id=book_id
         )
         db.session.add(material)
         db.session.flush()  # material_id 확보
@@ -3014,6 +3043,7 @@ def edit_teaching_material(material_id):
         material.end_date = form.end_date.data
         material.is_public = form.is_public.data
         material.target_audience = target_audience
+        material.book_id = request.form.get('book_id') or None
 
         # 새 파일 추가 (기존 파일 유지, 추가만)
         new_files = request.files.getlist('file_uploads')

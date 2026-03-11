@@ -24,9 +24,11 @@ class TeachingMaterial(db.Model):
     view_count = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     created_by = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    book_id = db.Column(db.String(36), db.ForeignKey('books.book_id', ondelete='SET NULL'), nullable=True)
 
     # Relationships
     creator = db.relationship('User', backref='created_teaching_materials')
+    book = db.relationship('Book', backref='teaching_materials')
     downloads = db.relationship('TeachingMaterialDownload', backref='teaching_material', cascade='all, delete-orphan')
     files = db.relationship('TeachingMaterialFile', back_populates='material',
                             cascade='all, delete-orphan', order_by='TeachingMaterialFile.sort_order')
