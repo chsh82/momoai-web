@@ -2813,7 +2813,7 @@ def teaching_materials():
         query = query.filter(
             TeachingMaterial.is_public == True,
             TeachingMaterial.publish_date <= today,
-            TeachingMaterial.end_date >= today
+            db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
         )
     elif status_filter == 'expired':
         query = query.filter(TeachingMaterial.end_date < today)

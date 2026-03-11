@@ -1267,7 +1267,7 @@ def teaching_materials():
     all_materials = TeachingMaterial.query.filter(
         TeachingMaterial.is_public == True,
         TeachingMaterial.publish_date <= today,
-        TeachingMaterial.end_date >= today
+        db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
     ).order_by(TeachingMaterial.created_at.desc()).all()
 
     # 접근 가능한 교재 필터링
@@ -1391,7 +1391,7 @@ def teaching_videos():
     all_videos = Video.query.filter(
         Video.is_public == True,
         Video.publish_date <= today,
-        Video.end_date >= today
+        db.or_(Video.end_date == None, Video.end_date >= today)
     ).order_by(Video.created_at.desc()).all()
 
     # 접근 가능한 동영상 필터링

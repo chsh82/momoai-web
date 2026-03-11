@@ -1,0 +1,21 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GCP server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: momoai.kr
+          username: chsh82
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            cd ~/momoai_web
+            git pull origin master
+            sudo systemctl restart momoai
