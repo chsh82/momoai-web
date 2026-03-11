@@ -3,7 +3,8 @@ Course.start_time / end_time 과 CourseSession.start_time / end_time 불일치 �
 - 오늘 이후 scheduled 세션 중 Course 시간과 다른 것을 일괄 수정
 """
 import os, sys
-sys.path.insert(0, os.path.dirname(__file__))
+os.environ.setdefault('DATABASE_URL', 'sqlite:///momoai.db')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import date
 from app import create_app
