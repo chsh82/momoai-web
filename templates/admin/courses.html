@@ -23,51 +23,92 @@
 
     <!-- 필터 -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="GET" action="" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
-                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">전체</option>
-                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>진행 중</option>
-                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
-                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
-                </select>
+        <form method="GET" action="">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>진행 중</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">담당 강사</label>
+                    <select name="teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
+                            {{ teacher.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">등급</label>
+                    <select name="tier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        <option value="A" {% if tier_filter == 'A' %}selected{% endif %}>A등급</option>
+                        <option value="B" {% if tier_filter == 'B' %}selected{% endif %}>B등급</option>
+                        <option value="C" {% if tier_filter == 'C' %}selected{% endif %}>C등급</option>
+                        <option value="VIP" {% if tier_filter == 'VIP' %}selected{% endif %}>VIP</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">정렬</label>
+                    <select name="sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="newest" {% if sort_order == 'newest' %}selected{% endif %}>최신순</option>
+                        <option value="name" {% if sort_order == 'name' %}selected{% endif %}>가나다순</option>
+                    </select>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">담당 강사</label>
-                <select name="teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">전체</option>
-                    {% for teacher in teachers %}
-                    <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
-                        {{ teacher.name }}
-                    </option>
-                    {% endfor %}
-                </select>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">학년</label>
+                    <select name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for g in ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'] %}
+                        <option value="{{ g }}" {% if grade_filter == g %}selected{% endif %}>{{ g }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">요일</label>
+                    <select name="weekday" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for wd_val, wd_name in [(0,'월'),(1,'화'),(2,'수'),(3,'목'),(4,'금'),(5,'토'),(6,'일')] %}
+                        <option value="{{ wd_val }}" {% if weekday_filter == wd_val|string %}selected{% endif %}>{{ wd_name }}요일</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">반형태</label>
+                    <select name="course_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for ct in ['베이직','프리미엄','정규반','하크니스'] %}
+                        <option value="{{ ct }}" {% if course_type_filter == ct %}selected{% endif %}>{{ ct }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">학생 이름 검색</label>
+                    <input type="text" name="student_name" value="{{ student_name_filter }}"
+                           placeholder="학생 이름..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">등급</label>
-                <select name="tier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">전체</option>
-                    <option value="A" {% if tier_filter == 'A' %}selected{% endif %}>A등급</option>
-                    <option value="B" {% if tier_filter == 'B' %}selected{% endif %}>B등급</option>
-                    <option value="C" {% if tier_filter == 'C' %}selected{% endif %}>C등급</option>
-                    <option value="VIP" {% if tier_filter == 'VIP' %}selected{% endif %}>VIP</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">정렬</label>
-                <select name="sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="newest" {% if sort_order == 'newest' %}selected{% endif %}>최신순</option>
-                    <option value="name" {% if sort_order == 'name' %}selected{% endif %}>가나다순</option>
-                </select>
-            </div>
-
-            <div class="flex items-end">
-                <button type="submit" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
-                    적용
+            <div class="flex justify-end">
+                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                    필터 적용
                 </button>
             </div>
         </form>

@@ -180,6 +180,10 @@ def courses():
     teacher_filter = request.args.get('teacher', '').strip()
     tier_filter = request.args.get('tier', '').strip()
     sort_order = request.args.get('sort', 'newest')  # newest | name
+    grade_filter = request.args.get('grade', '').strip()
+    weekday_filter = request.args.get('weekday', '').strip()
+    course_type_filter = request.args.get('course_type', '').strip()
+    student_name_filter = request.args.get('student_name', '').strip()
 
     query = Course.query
 
@@ -189,6 +193,20 @@ def courses():
         query = query.filter_by(teacher_id=teacher_filter)
     if tier_filter:
         query = query.filter_by(tier=tier_filter)
+    if grade_filter:
+        query = query.filter_by(grade=grade_filter)
+    if weekday_filter != '':
+        try:
+            query = query.filter_by(weekday=int(weekday_filter))
+        except ValueError:
+            pass
+    if course_type_filter:
+        query = query.filter_by(course_type=course_type_filter)
+    if student_name_filter:
+        query = query.join(CourseEnrollment, CourseEnrollment.course_id == Course.course_id)\
+                     .join(Student, Student.student_id == CourseEnrollment.student_id)\
+                     .filter(Student.name.ilike(f'%{student_name_filter}%'))\
+                     .distinct()
 
     if sort_order == 'name':
         courses = query.order_by(Course.course_name).all()
@@ -204,7 +222,11 @@ def courses():
                          status_filter=status_filter,
                          teacher_filter=teacher_filter,
                          tier_filter=tier_filter,
-                         sort_order=sort_order)
+                         sort_order=sort_order,
+                         grade_filter=grade_filter,
+                         weekday_filter=weekday_filter,
+                         course_type_filter=course_type_filter,
+                         student_name_filter=student_name_filter)
 
 
 @admin_bp.route('/courses/new', methods=['GET', 'POST'])

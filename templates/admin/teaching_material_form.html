@@ -569,6 +569,53 @@ document.addEventListener('keydown', function(event) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    // ── edit 모드: 기존 제목에서 탭 상태 + 책 이름 복원 ──────
+    const titleField = document.getElementById('titleField');
+    const bookNameInput = document.getElementById('bookName');
+    if (titleField && titleField.value) {
+        const existingTitle = titleField.value;
+        const bracketMatch = existingTitle.match(/^\[([^\]]+)\]\s*(.*)/);
+        if (bracketMatch) {
+            const prefixParts = bracketMatch[1].split(/\s+/);
+            const bookName = bracketMatch[2];
+            bookNameInput.value = bookName;
+
+            const knownGrades = ['전학년','초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'];
+            const knownTypes = ['정규반','프리미엄','베이직','하크니스'];
+
+            prefixParts.forEach(part => {
+                if (knownGrades.includes(part)) {
+                    selectedGrade = part;
+                    document.querySelectorAll('.grade-tab').forEach(btn => {
+                        if (btn.dataset.grade === part) btn.classList.add('active-tab','border-blue-500','bg-blue-50','text-blue-700');
+                    });
+                } else if (knownTypes.includes(part)) {
+                    selectedType = part;
+                    document.querySelectorAll('.type-tab').forEach(btn => {
+                        if (btn.dataset.type === part) btn.classList.add('active-tab','border-blue-500','bg-blue-50','text-blue-700');
+                        else if (btn.dataset.type === '') btn.classList.remove('active-tab','border-blue-500','bg-blue-50','text-blue-700');
+                    });
+                } else if (/^\d+분기$/.test(part)) {
+                    selectedQuarter = part;
+                    document.querySelectorAll('.quarter-tab').forEach(btn => {
+                        if (btn.dataset.quarter === part) btn.classList.add('active-tab','border-blue-500','bg-blue-50','text-blue-700');
+                    });
+                } else if (/^\d+주차$/.test(part)) {
+                    selectedWeek = part;
+                    document.querySelectorAll('.week-tab').forEach(btn => {
+                        if (btn.dataset.week === part) btn.classList.add('active-tab','border-blue-500','bg-blue-50','text-blue-700');
+                    });
+                }
+            });
+        } else {
+            // 대괄호 없는 제목 → 전체를 책 이름으로
+            bookNameInput.value = existingTitle;
+        }
+        // 미리보기 동기화
+        document.getElementById('titlePreview').textContent = existingTitle || '—';
+    }
+    // ─────────────────────────────────────────────────────────
+
     // 기존 course IDs 로드 (edit 모드)
     const hiddenField = document.getElementById('target_course_ids');
     if (hiddenField && hiddenField.value) {
