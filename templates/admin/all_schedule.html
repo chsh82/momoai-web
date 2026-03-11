@@ -38,17 +38,11 @@
                 월간
             </a>
         </div>
-        <!-- 출력/저장 버튼 -->
-        <div class="flex gap-2">
-            <button onclick="saveAsImage()"
-                    class="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
-                🖼️ 이미지 저장
-            </button>
-            <button onclick="printSchedule()"
-                    class="flex items-center gap-1.5 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
-                🖨️ 인쇄
-            </button>
-        </div>
+        <!-- 이미지 저장 버튼 -->
+        <button onclick="saveAsImage()"
+                class="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
+            🖼️ 이미지 저장
+        </button>
     </div>
 
     <!-- 강사 선택 및 네비게이션 -->
@@ -426,11 +420,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-// 인쇄
-function printSchedule() {
-    window.print();
-}
-
 // 이미지 저장
 async function saveAsImage() {
     const target = document.getElementById('printArea');
