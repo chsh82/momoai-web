@@ -89,10 +89,27 @@
             </label>
             <input type="text"
                    name="category"
+                   list="categoryList"
                    value="{% if book %}{{ book.category or '' }}{% endif %}"
                    maxlength="100"
                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                    placeholder="예: 소설, 에세이, 자기계발 등">
+            <datalist id="categoryList">
+                <option value="소설">
+                <option value="시">
+                <option value="에세이">
+                <option value="자기계발">
+                <option value="인문">
+                <option value="역사">
+                <option value="과학">
+                <option value="철학">
+                <option value="심리">
+                <option value="사회">
+                <option value="경제">
+                <option value="예술">
+                <option value="아동문학">
+                <option value="기타">
+            </datalist>
         </div>
 
         <!-- Description -->
