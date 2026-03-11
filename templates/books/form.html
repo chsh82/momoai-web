@@ -18,22 +18,8 @@
         <form method="POST" action="">
             {{ form.hidden_tag() }}
 
-            <!-- Tab Navigation -->
-            <div class="border-b border-gray-200 bg-gray-50">
-                <nav class="flex">
-                    <button type="button" onclick="switchTab('basic')" id="tab-basic"
-                            class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-blue-600 text-blue-600 transition">
-                        📋 기본 정보
-                    </button>
-                    <button type="button" onclick="switchTab('tags')" id="tab-tags"
-                            class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition">
-                        🏷️ 태그 &amp; 분류
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Panel 1: Basic Info -->
-            <div id="panel-basic" class="tab-panel p-8">
+            <!-- 기본 정보 + 태그 통합 -->
+            <div class="p-8">
                 <div class="space-y-6">
                     <!-- 도서 제목 -->
                     <div>
@@ -115,8 +101,8 @@
                 </div>
             </div>
 
-            <!-- Panel 2: Tags & Classification -->
-            <div id="panel-tags" class="tab-panel p-8 hidden">
+            <!-- 태그 & 분류 -->
+            <div class="p-8 pt-0">
                 <div class="space-y-6">
                     <!-- 레벨 태그 -->
                     <div class="bg-blue-50 rounded-lg p-5 border border-blue-200">
@@ -219,19 +205,6 @@
 </div>
 
 <script>
-function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('border-blue-600', 'text-blue-600');
-        btn.classList.add('border-transparent', 'text-gray-500');
-    });
-    document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.add('hidden');
-    });
-    document.getElementById('tab-' + tab).classList.remove('border-transparent', 'text-gray-500');
-    document.getElementById('tab-' + tab).classList.add('border-blue-600', 'text-blue-600');
-    document.getElementById('panel-' + tab).classList.remove('hidden');
-}
-
 // ISBN 조회
 function lookupISBN() {
     const isbn = document.getElementById('isbnInput').value.trim();
