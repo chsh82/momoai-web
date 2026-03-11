@@ -2363,8 +2363,11 @@ def attendance_status():
     if not date_to:
         date_to = today.strftime('%Y-%m-%d')
 
-    # 쿼리 빌드
-    query = Attendance.query.join(CourseSession).join(Course).join(Student)
+    # 쿼리 빌드 (Student는 Attendance.student_id 기준으로 명시적 join)
+    query = Attendance.query\
+        .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
+        .join(Course, CourseSession.course_id == Course.course_id)\
+        .join(Student, Attendance.student_id == Student.student_id)
 
     # 날짜 필터
     if date_from:
@@ -2395,7 +2398,10 @@ def attendance_status():
     ).limit(100).all()
 
     # 전체 통계
-    total_query = Attendance.query.join(CourseSession).join(Course).join(Student)
+    total_query = Attendance.query\
+        .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
+        .join(Course, CourseSession.course_id == Course.course_id)\
+        .join(Student, Attendance.student_id == Student.student_id)
     if date_from:
         total_query = total_query.filter(CourseSession.session_date >= date_from)
     if date_to:
