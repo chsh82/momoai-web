@@ -315,22 +315,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 게시 시작일 변경 시 종료일 자동 설정 (3주 후)
+    // 게시 시작일 변경 시 종료일 자동 설정 (1개월 후)
     const publishDateInput = document.getElementById('publish_date');
     const endDateInput = document.getElementById('end_date');
     if (publishDateInput && endDateInput) {
         function updateEndDate() {
             const publishDate = new Date(publishDateInput.value);
-            if (publishDate && !isNaN(publishDate.getTime()) && !endDateInput.value) {
+            if (publishDate && !isNaN(publishDate.getTime())) {
                 const endDate = new Date(publishDate);
-                endDate.setDate(endDate.getDate() + 21);
+                endDate.setMonth(endDate.getMonth() + 1);
                 const y = endDate.getFullYear();
                 const m = String(endDate.getMonth() + 1).padStart(2, '0');
                 const d = String(endDate.getDate()).padStart(2, '0');
                 endDateInput.value = `${y}-${m}-${d}`;
             }
         }
-        if (publishDateInput.value && !endDateInput.value) updateEndDate();
+        if (publishDateInput.value) updateEndDate();
         publishDateInput.addEventListener('change', updateEndDate);
     }
 });
