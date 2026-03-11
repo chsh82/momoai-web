@@ -2791,7 +2791,7 @@ def teaching_materials():
     """교재 목록"""
     # 필터 파라미터
     grade_filter = request.args.get('grade', '')
-    status_filter = request.args.get('status', 'active')  # active, expired, all
+    status_filter = request.args.get('status', 'all')  # active, expired, all
     is_public_filter = request.args.get('is_public', '')  # '', '0', '1'
 
     # 기본 쿼리
