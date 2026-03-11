@@ -252,7 +252,6 @@ def create_course():
             course_name += f" - {teacher.name}"
 
         # 2. 수업 코드 자동 생성: [학년][수업타입 첫 글자][날짜YYMMDD]
-        from datetime import datetime
         date_code = form.start_date.data.strftime('%y%m%d')
         type_code = form.course_type.data[0] if form.course_type.data else 'X'
         base_code = f"{form.grade.data}{type_code}{date_code}"
