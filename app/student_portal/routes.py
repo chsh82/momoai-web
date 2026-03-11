@@ -2807,6 +2807,85 @@ def help_page():
     return render_template('student/help.html')
 
 
+@student_bp.route('/zoom-classes')
+@login_required
+@requires_role('student', 'admin')
+def zoom_classes():
+    """학생의 수강 중인 수업 줌 링크 목록 반환"""
+    from app.utils.zoom_utils import decrypt_zoom_link, log_zoom_access
+    from flask import request as req
+
+    student = Student.query.filter_by(user_id=current_user.user_id).first()
+    if not student:
+        return jsonify({'error': '학생 정보를 찾을 수 없습니다.'}), 404
+
+    enrollments = CourseEnrollment.query.filter_by(
+        student_id=student.student_id, status='active'
+    ).join(Course).filter(Course.status == 'active').all()
+
+    results = []
+    seen_teachers = set()
+    for enrollment in enrollments:
+        course = enrollment.course
+        teacher = course.teacher
+        if not teacher or not teacher.zoom_link:
+            continue
+        # 같은 강사의 줌 링크는 중복 제거
+        if teacher.user_id in seen_teachers:
+            continue
+        seen_teachers.add(teacher.user_id)
+        zoom_url = decrypt_zoom_link(teacher.zoom_link)
+        if zoom_url:
+            results.append({
+                'course_name': course.course_name,
+                'teacher_name': teacher.name,
+                'zoom_url': zoom_url,
+                'course_id': course.course_id,
+                'teacher_id': teacher.user_id,
+            })
+
+    # 단일 수업이면 접속 로그 기록
+    if len(results) == 1:
+        try:
+            log_zoom_access(
+                student_id=student.student_id,
+                teacher_id=results[0]['teacher_id'],
+                course_id=results[0]['course_id'],
+                ip_address=req.remote_addr,
+                user_agent=req.user_agent.string
+            )
+        except Exception:
+            pass
+
+    return jsonify({'classes': results})
+
+
+@student_bp.route('/zoom-log', methods=['POST'])
+@login_required
+@requires_role('student', 'admin')
+def zoom_log():
+    """줌 강의실 접속 로그 기록 (팝업 선택 후)"""
+    from app.utils.zoom_utils import log_zoom_access
+    from flask import request as req
+
+    student = Student.query.filter_by(user_id=current_user.user_id).first()
+    if not student:
+        return jsonify({'ok': False}), 404
+
+    data = req.get_json() or {}
+    try:
+        log_zoom_access(
+            student_id=student.student_id,
+            teacher_id=data.get('teacher_id'),
+            course_id=data.get('course_id'),
+            ip_address=req.remote_addr,
+            user_agent=req.user_agent.string
+        )
+    except Exception:
+        pass
+    return jsonify({'ok': True})
+
+
 @student_bp.route('/help/pdf')
 @login_required
 @requires_role('student', 'admin')

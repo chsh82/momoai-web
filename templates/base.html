@@ -988,6 +988,13 @@
                         <span>마이 페이지</span>
                     </a>
 
+                    <!-- 강의실 바로가기 -->
+                    <button onclick="enterZoomClass()"
+                            class="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold bg-blue-500 hover:bg-blue-400 rounded-lg transition mt-1">
+                        <span class="text-xl">📹</span>
+                        <span>강의실 바로가기</span>
+                    </button>
+
                     <!-- 2. 내 수업 -->
                     <div class="mt-2">
                         <button @click="courses = !courses"
@@ -1800,5 +1807,76 @@
     })();
     {% endif %}
     </script>
+
+    {% if current_user.is_authenticated and current_user.role == 'student' %}
+    <!-- 줌 강의실 선택 모달 -->
+    <div id="zoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="p-6 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800">📹 강의실 선택</h3>
+                <p class="text-sm text-gray-500 mt-1">입장할 강의실을 선택하세요.</p>
+            </div>
+            <div id="zoomClassList" class="p-4 space-y-2 max-h-72 overflow-y-auto"></div>
+            <div class="p-4 border-t border-gray-100 flex justify-end">
+                <button onclick="closeZoomModal()"
+                        class="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function enterZoomClass() {
+        try {
+            const res = await fetch('{{ url_for("student.zoom_classes") }}');
+            const data = await res.json();
+            const classes = data.classes || [];
+
+            if (classes.length === 0) {
+                alert('현재 등록된 줌 강의실이 없습니다.\n강사에게 문의하세요.');
+                return;
+            }
+            if (classes.length === 1) {
+                window.open(classes[0].zoom_url, '_blank');
+                return;
+            }
+            // 2개 이상: 모달 표시
+            const list = document.getElementById('zoomClassList');
+            list.innerHTML = classes.map(c => `
+                <button onclick="selectZoomClass('${c.zoom_url}', '${c.teacher_id}', '${c.course_id}')"
+                        class="w-full text-left flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition">
+                    <span class="text-2xl">📹</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">${c.course_name}</p>
+                        <p class="text-sm text-gray-500">${c.teacher_name} 강사</p>
+                    </div>
+                </button>
+            `).join('');
+            document.getElementById('zoomModal').classList.remove('hidden');
+        } catch (e) {
+            alert('강의실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        }
+    }
+
+    function selectZoomClass(url, teacherId, courseId) {
+        closeZoomModal();
+        fetch('{{ url_for("student.zoom_log") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({teacher_id: teacherId, course_id: courseId})
+        });
+        window.open(url, '_blank');
+    }
+
+    function closeZoomModal() {
+        document.getElementById('zoomModal').classList.add('hidden');
+    }
+
+    document.getElementById('zoomModal').addEventListener('click', function(e) {
+        if (e.target === this) closeZoomModal();
+    });
+    </script>
+    {% endif %}
 </body>
 </html>
