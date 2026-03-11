@@ -178,12 +178,10 @@ def courses():
     # 필터
     status_filter = request.args.get('status', '').strip()
     teacher_filter = request.args.get('teacher', '').strip()
-    tier_filter = request.args.get('tier', '').strip()
-    sort_order = request.args.get('sort', 'newest')  # newest | name
     grade_filter = request.args.get('grade', '').strip()
     weekday_filter = request.args.get('weekday', '').strip()
-    course_type_filter = request.args.get('course_type', '').strip()
-    student_name_filter = request.args.get('student_name', '').strip()
+    search_filter = request.args.get('search', '').strip()
+    sort_order = request.args.get('sort', 'newest')  # newest | weekday
 
     query = Course.query
 
@@ -191,8 +189,6 @@ def courses():
         query = query.filter_by(status=status_filter)
     if teacher_filter:
         query = query.filter_by(teacher_id=teacher_filter)
-    if tier_filter:
-        query = query.filter_by(tier=tier_filter)
     if grade_filter:
         query = query.filter_by(grade=grade_filter)
     if weekday_filter != '':
@@ -200,17 +196,37 @@ def courses():
             query = query.filter_by(weekday=int(weekday_filter))
         except ValueError:
             pass
-    if course_type_filter:
-        query = query.filter_by(course_type=course_type_filter)
-    if student_name_filter:
-        query = query.join(CourseEnrollment, CourseEnrollment.course_id == Course.course_id)\
-                     .join(Student, Student.student_id == CourseEnrollment.student_id)\
-                     .filter(Student.name.ilike(f'%{student_name_filter}%'))\
-                     .distinct()
 
-    if sort_order == 'name':
-        courses = query.order_by(Course.course_name).all()
-    else:
+    # 통합 검색: 반이름, 강사명, 학년, 요일, 반형태
+    if search_filter:
+        weekday_map = {'월': 0, '화': 1, '수': 2, '목': 3, '금': 4, '토': 5, '일': 6}
+        wd_num = weekday_map.get(search_filter.replace('요일', ''))
+        teacher_ids = [t.user_id for t in
+                       User.query.filter(User.name.ilike(f'%{search_filter}%'),
+                                         User.role == 'teacher').all()]
+        student_course_ids = [e.course_id for e in
+                              CourseEnrollment.query
+                              .join(Student, Student.student_id == CourseEnrollment.student_id)
+                              .filter(Student.name.ilike(f'%{search_filter}%')).all()]
+        conditions = [
+            Course.course_name.ilike(f'%{search_filter}%'),
+            Course.grade.ilike(f'%{search_filter}%'),
+            Course.course_type.ilike(f'%{search_filter}%'),
+        ]
+        if teacher_ids:
+            conditions.append(Course.teacher_id.in_(teacher_ids))
+        if student_course_ids:
+            conditions.append(Course.course_id.in_(student_course_ids))
+        if wd_num is not None:
+            conditions.append(Course.weekday == wd_num)
+        query = query.filter(db.or_(*conditions)).distinct()
+
+    if sort_order == 'weekday':
+        courses = query.order_by(
+            db.case({None: 99}, value=Course.weekday, else_=Course.weekday),
+            Course.start_time
+        ).all()
+    else:  # newest
         courses = query.order_by(Course.created_at.desc()).all()
 
     # 강사 목록 (필터용, 가나다 순)
@@ -221,12 +237,10 @@ def courses():
                          teachers=teachers,
                          status_filter=status_filter,
                          teacher_filter=teacher_filter,
-                         tier_filter=tier_filter,
-                         sort_order=sort_order,
                          grade_filter=grade_filter,
                          weekday_filter=weekday_filter,
-                         course_type_filter=course_type_filter,
-                         student_name_filter=student_name_filter)
+                         search_filter=search_filter,
+                         sort_order=sort_order)
 
 
 @admin_bp.route('/courses/new', methods=['GET', 'POST'])

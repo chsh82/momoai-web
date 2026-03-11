@@ -22,8 +22,9 @@
     </div>
 
     <!-- 필터 -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
         <form method="GET" action="">
+            <!-- 1행: 상태 / 담당강사 / 학년 / 요일 -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
@@ -34,40 +35,15 @@
                         <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">담당 강사</label>
                     <select name="teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">전체</option>
                         {% for teacher in teachers %}
-                        <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
-                            {{ teacher.name }}
-                        </option>
+                        <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>{{ teacher.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">등급</label>
-                    <select name="tier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">전체</option>
-                        <option value="A" {% if tier_filter == 'A' %}selected{% endif %}>A등급</option>
-                        <option value="B" {% if tier_filter == 'B' %}selected{% endif %}>B등급</option>
-                        <option value="C" {% if tier_filter == 'C' %}selected{% endif %}>C등급</option>
-                        <option value="VIP" {% if tier_filter == 'VIP' %}selected{% endif %}>VIP</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">정렬</label>
-                    <select name="sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="newest" {% if sort_order == 'newest' %}selected{% endif %}>최신순</option>
-                        <option value="name" {% if sort_order == 'name' %}selected{% endif %}>가나다순</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">학년</label>
                     <select name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -77,7 +53,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">요일</label>
                     <select name="weekday" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -87,28 +62,14 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">반형태</label>
-                    <select name="course_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">전체</option>
-                        {% for ct in ['베이직','프리미엄','정규반','하크니스'] %}
-                        <option value="{{ ct }}" {% if course_type_filter == ct %}selected{% endif %}>{{ ct }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">학생 이름 검색</label>
-                    <input type="text" name="student_name" value="{{ student_name_filter }}"
-                           placeholder="학생 이름..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
             </div>
-
-            <div class="flex justify-end">
-                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                    필터 적용
+            <!-- 2행: 통합 검색 -->
+            <div class="flex gap-3">
+                <input type="text" name="search" value="{{ search_filter }}"
+                       placeholder="반이름, 강사명, 학년, 요일 등 자유 검색..."
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 whitespace-nowrap">
+                    검색
                 </button>
             </div>
         </form>
@@ -117,6 +78,19 @@
     <!-- 수업 목록 -->
     <div class="bg-white rounded-lg shadow">
         {% if courses %}
+        <!-- 정렬 버튼 -->
+        <div class="flex justify-end gap-2 px-4 pt-3 pb-1">
+            <a href="?{{ request.query_string.decode().replace('sort=newest','').replace('sort=weekday','').strip('&') }}&sort=newest"
+               class="px-4 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort_order == 'newest' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                최신순
+            </a>
+            <a href="?{{ request.query_string.decode().replace('sort=newest','').replace('sort=weekday','').strip('&') }}&sort=weekday"
+               class="px-4 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort_order == 'weekday' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                요일순
+            </a>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-gray-50 border-b border-gray-200">
