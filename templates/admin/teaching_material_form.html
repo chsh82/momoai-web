@@ -231,11 +231,11 @@
                     <!-- 검색 필터 -->
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">학년으로 필터</label>
-                            <select id="bookGradeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                                <option value="">전체 학년</option>
-                                {% for g in ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'] %}
-                                <option value="{{ g }}">{{ g }}</option>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">레벨</label>
+                            <select id="bookGradeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" onchange="searchBooks()">
+                                <option value="">전체</option>
+                                {% for lv in range(1, 13) %}
+                                <option value="LV{{ lv }}">LV{{ lv }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -251,7 +251,7 @@
                     </button>
 
                     <!-- 검색 결과 -->
-                    <div id="bookSearchResults" class="space-y-2 max-h-64 overflow-y-auto hidden"></div>
+                    <div id="bookSearchResults" class="space-y-1 max-h-64 overflow-y-auto hidden"></div>
                 </div>
 
                 <!-- 게시 기간 -->
@@ -342,12 +342,19 @@ function activateTab(selector, btn) {
     btn.classList.add('active-tab', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
 }
 
+// 학년 → LV 매핑
+const gradeToLv = {
+    '초1':'LV1','초2':'LV2','초3':'LV3','초4':'LV4','초5':'LV5','초6':'LV6',
+    '중1':'LV7','중2':'LV8','중3':'LV9','고1':'LV10','고2':'LV11','고3':'LV12'
+};
+
 // 학년 탭
 document.querySelectorAll('.grade-tab').forEach(btn => {
     btn.addEventListener('click', function () {
         activateTab('.grade-tab', this);
         selectedGrade = this.dataset.grade;
         buildTitle();
+
         // 대상 설정 학년 동기화
         const checkboxes = document.querySelectorAll('input[name="target_grades"]');
         if (selectedGrade === '전학년') {
@@ -355,6 +362,12 @@ document.querySelectorAll('.grade-tab').forEach(btn => {
         } else {
             checkboxes.forEach(cb => { cb.checked = (cb.value === selectedGrade); });
         }
+
+        // 연결 도서 — LV 자동 설정 후 자동 검색
+        const lv = gradeToLv[selectedGrade] || '';
+        const lvSelect = document.getElementById('bookGradeFilter');
+        lvSelect.value = lv;
+        if (lv) searchBooks();
     });
 });
 
@@ -423,18 +436,19 @@ async function searchBooks() {
     const books = await res.json();
 
     if (!books.length) {
-        resultsEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-3">검색 결과가 없습니다.</p>';
+        resultsEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">해당 레벨/제목의 도서가 없습니다.<br>다른 조건으로 검색하거나 공란으로 두세요.</p>';
         return;
     }
 
     resultsEl.innerHTML = books.map(b => `
         <button type="button" onclick="selectBook(${JSON.stringify(b).replace(/"/g, '&quot;')})"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition text-left">
-            <img src="${b.cover_image_url}" onerror="this.style.display='none'"
-                 class="w-10 h-14 object-cover rounded shadow flex-shrink-0 bg-gray-100">
-            <div class="min-w-0">
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition text-left">
+            ${b.cover_image_url
+                ? `<img src="${b.cover_image_url}" class="w-9 h-13 object-cover rounded shadow flex-shrink-0">`
+                : `<div class="w-9 h-13 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 text-lg">📖</div>`}
+            <div class="min-w-0 flex-1">
                 <p class="text-sm font-semibold text-gray-800 truncate">${b.title}</p>
-                <p class="text-xs text-gray-500">${b.author} · ${b.publisher}</p>
+                <p class="text-xs text-gray-500 truncate">${[b.author, b.publisher].filter(Boolean).join(' · ')}</p>
             </div>
         </button>
     `).join('');
