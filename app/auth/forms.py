@@ -55,9 +55,14 @@ class SignupForm(FlaskForm):
         default='parent',
         validators=[DataRequired(message='계정 유형을 선택해주세요.')]
     )
-    phone = StringField('전화번호 (선택)', validators=[
+    phone = StringField('전화번호', validators=[
         Length(max=50, message='전화번호는 최대 50자까지 입력 가능합니다.')
     ])
+
+    def validate_phone(self, field):
+        """학부모는 전화번호 필수"""
+        if self.role.data == 'parent' and not field.data:
+            raise ValidationError('학부모 회원가입 시 전화번호는 필수입니다.')
 
     # 학생 전용 필드 (role='student'일 때만 필수)
     grade = SelectField('학년',

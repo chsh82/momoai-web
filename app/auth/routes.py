@@ -121,6 +121,11 @@ def signup():
     if form.validate_on_submit():
         role = form.role.data
 
+        # 학부모인 경우 전화번호 필수
+        if role == 'parent' and not form.phone.data:
+            flash('학부모 회원가입 시 전화번호는 필수입니다.', 'error')
+            return render_template('auth/signup.html', form=form)
+
         # 학생인 경우 필수 필드 검증
         if role == 'student':
             if not form.grade.data:
