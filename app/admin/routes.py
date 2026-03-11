@@ -2864,8 +2864,8 @@ def create_teaching_material():
             flash('파일을 하나 이상 선택하세요.', 'danger')
             return render_template('admin/teaching_material_form.html', form=form, mode='create')
 
-        if len(uploaded_files) > 5:
-            flash('파일은 최대 5개까지 업로드할 수 있습니다.', 'danger')
+        if len(uploaded_files) > 10:
+            flash('파일은 최대 10개까지 업로드할 수 있습니다.', 'danger')
             return render_template('admin/teaching_material_form.html', form=form, mode='create')
 
         # 허용 확장자
@@ -3022,8 +3022,8 @@ def edit_teaching_material(material_id):
         if new_files:
             allowed_exts = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'zip'}
             current_count = len(material.files)
-            if current_count + len(new_files) > 5:
-                flash(f'파일은 최대 5개까지 등록 가능합니다. (현재 {current_count}개)', 'danger')
+            if current_count + len(new_files) > 10:
+                flash(f'파일은 최대 10개까지 등록 가능합니다. (현재 {current_count}개)', 'danger')
                 return render_template('admin/teaching_material_form.html',
                                      form=form, mode='edit', material=material,
                                      target_audience=target_audience)
