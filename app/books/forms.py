@@ -33,6 +33,7 @@ class BookForm(FlaskForm):
                               ('history', '역사'),
                               ('science', '과학'),
                               ('social', '사회'),
+                              ('psychology', '심리'),
                               ('art', '예술'),
                               ('language', '언어'),
                               ('other', '기타')
