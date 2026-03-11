@@ -123,6 +123,55 @@
 
     {% if selected_teacher %}
 
+    <!-- 통계 + 범례 (시간표 위) -->
+    {% set total_count = stat_sessions | length %}
+    {% set scheduled_count = stat_sessions | selectattr('status', 'equalto', 'scheduled') | list | length %}
+    {% set completed_count = stat_sessions | selectattr('status', 'equalto', 'completed') | list | length %}
+    {% set cancelled_count = stat_sessions | selectattr('status', 'equalto', 'cancelled') | list | length %}
+
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <!-- 통계 -->
+            <div class="flex gap-6">
+                <div class="text-center">
+                    <p class="text-xs text-gray-500">전체</p>
+                    <p class="text-xl font-bold text-gray-800">{{ total_count }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-blue-500">예정</p>
+                    <p class="text-xl font-bold text-blue-600">{{ scheduled_count }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-green-500">완료</p>
+                    <p class="text-xl font-bold text-green-600">{{ completed_count }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-red-500">취소</p>
+                    <p class="text-xl font-bold text-red-600">{{ cancelled_count }}</p>
+                </div>
+            </div>
+            <!-- 범례 -->
+            <div class="flex flex-wrap gap-4">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-blue-100 border border-blue-400 rounded flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600">예정</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-green-100 border border-green-400 rounded flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600">완료</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-red-100 border border-red-400 rounded flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600">취소</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-blue-50 border border-blue-200 rounded flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600">오늘</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {# ======================== 일간 뷰 ======================== #}
     {% if view_mode == 'daily' %}
     <div class="bg-white rounded-lg shadow p-6">
@@ -333,73 +382,6 @@
     </div>
     {% endif %}
 
-    <!-- 범례 -->
-    <div class="mt-6 bg-white rounded-lg shadow p-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-3">📌 범례</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-                <span class="text-sm text-gray-700">예정된 수업</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                <span class="text-sm text-gray-700">완료된 수업</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-                <span class="text-sm text-gray-700">취소된 수업</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
-                <span class="text-sm text-gray-700">오늘</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- 통계 -->
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        {% set total_count = stat_sessions | length %}
-        {% set scheduled_count = stat_sessions | selectattr('status', 'equalto', 'scheduled') | list | length %}
-        {% set completed_count = stat_sessions | selectattr('status', 'equalto', 'completed') | list | length %}
-        {% set cancelled_count = stat_sessions | selectattr('status', 'equalto', 'cancelled') | list | length %}
-
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600 mb-1">전체 수업</p>
-                    <p class="text-2xl font-bold text-gray-800">{{ total_count }}</p>
-                </div>
-                <div class="text-gray-400 text-3xl">📚</div>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600 mb-1">예정</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ scheduled_count }}</p>
-                </div>
-                <div class="text-blue-400 text-3xl">📅</div>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600 mb-1">완료</p>
-                    <p class="text-2xl font-bold text-green-600">{{ completed_count }}</p>
-                </div>
-                <div class="text-green-400 text-3xl">✅</div>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600 mb-1">취소</p>
-                    <p class="text-2xl font-bold text-red-600">{{ cancelled_count }}</p>
-                </div>
-                <div class="text-red-400 text-3xl">❌</div>
-            </div>
-        </div>
-    </div>
     {% endif %}
 </div>
 
