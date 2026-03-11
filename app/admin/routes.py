@@ -178,6 +178,7 @@ def courses():
     status_filter = request.args.get('status', '').strip()
     teacher_filter = request.args.get('teacher', '').strip()
     tier_filter = request.args.get('tier', '').strip()
+    sort_order = request.args.get('sort', 'newest')  # newest | name
 
     query = Course.query
 
@@ -188,7 +189,10 @@ def courses():
     if tier_filter:
         query = query.filter_by(tier=tier_filter)
 
-    courses = query.order_by(Course.created_at.desc()).all()
+    if sort_order == 'name':
+        courses = query.order_by(Course.course_name).all()
+    else:
+        courses = query.order_by(Course.created_at.desc()).all()
 
     # 강사 목록 (필터용, 가나다 순)
     teachers = User.query.filter_by(role='teacher').order_by(User.name).all()
@@ -198,7 +202,8 @@ def courses():
                          teachers=teachers,
                          status_filter=status_filter,
                          teacher_filter=teacher_filter,
-                         tier_filter=tier_filter)
+                         tier_filter=tier_filter,
+                         sort_order=sort_order)
 
 
 @admin_bp.route('/courses/new', methods=['GET', 'POST'])
