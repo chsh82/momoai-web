@@ -12,23 +12,18 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="mb-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-3xl font-bold text-gray-800">학생 프로필 관리</h2>
-                <p class="text-gray-600 mt-1">학생 기초 조사 정보 관리</p>
-            </div>
-            <div class="flex gap-2">
-                <a href="{{ url_for('admin.import_students_and_profiles') }}"
-                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-2">
-                    <span>🚀 학생+프로필 일괄생성</span>
-                    <span class="text-xs bg-green-800 px-2 py-0.5 rounded">추천</span>
-                </a>
-                <a href="{{ url_for('admin.import_student_profiles') }}"
-                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
-                    📤 프로필만 임포트
-                </a>
-            </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">학생 프로필 관리</h2>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('admin.import_students_and_profiles') }}"
+               class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-sm rounded-lg font-medium transition duration-200 flex items-center gap-1.5 whitespace-nowrap">
+                <span>🚀 일괄생성</span>
+                <span class="text-xs bg-green-800 px-1.5 py-0.5 rounded">추천</span>
+            </a>
+            <a href="{{ url_for('admin.import_student_profiles') }}"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm rounded-lg font-medium transition duration-200 whitespace-nowrap">
+                📤 프로필 임포트
+            </a>
         </div>
     </div>
 
