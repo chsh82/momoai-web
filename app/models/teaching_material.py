@@ -17,7 +17,7 @@ class TeachingMaterial(db.Model):
     file_size = db.Column(db.Integer, nullable=False)  # bytes
     file_type = db.Column(db.String(50), nullable=False)  # pdf, doc, etc.
     publish_date = db.Column(db.Date, nullable=False, index=True)
-    end_date = db.Column(db.Date, nullable=False, index=True)
+    end_date = db.Column(db.Date, nullable=True, index=True)
     is_public = db.Column(db.Boolean, default=True, nullable=False, index=True)
     target_audience = db.Column(db.Text, nullable=False)  # JSON: {"type": "grade"|"course", "grades": [...], "course_ids": [...]}
     download_count = db.Column(db.Integer, default=0, nullable=False)

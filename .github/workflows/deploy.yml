@@ -18,4 +18,5 @@ jobs:
           script: |
             cd ~/momoai_web
             git pull origin master
+            python3 migrate_end_date_nullable.py
             sudo systemctl restart momoai
