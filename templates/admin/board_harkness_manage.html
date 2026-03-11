@@ -11,23 +11,23 @@
     </div>
 
     <!-- 통계 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">총 게시판</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ total_boards }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">총 게시판</p>
+                    <p class="text-xl sm:text-3xl font-bold text-purple-600">{{ total_boards }}</p>
                 </div>
-                <div class="text-purple-600 text-4xl">📋</div>
+                <div class="text-purple-600 text-2xl sm:text-4xl">📋</div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">총 게시글</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ total_posts }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">총 게시글</p>
+                    <p class="text-xl sm:text-3xl font-bold text-blue-600">{{ total_posts }}</p>
                 </div>
-                <div class="text-blue-600 text-4xl">📝</div>
+                <div class="text-blue-600 text-2xl sm:text-4xl">📝</div>
             </div>
         </div>
     </div>
@@ -131,17 +131,17 @@
 
         <!-- 검색 -->
         <div class="p-4 border-b border-gray-100">
-            <form method="GET" class="flex gap-3">
+            <form method="GET" class="flex gap-2">
                 <input type="text" name="search" value="{{ search }}"
                        placeholder="게시글 제목 또는 내용 검색..."
-                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                       class="min-w-0 flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                 <button type="submit"
-                        class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                        class="shrink-0 bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
                     검색
                 </button>
                 {% if search %}
                 <a href="{{ url_for('admin.board_harkness_manage') }}"
-                   class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition duration-200">
+                   class="shrink-0 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-3 py-2 text-sm rounded-lg transition duration-200">
                     초기화
                 </a>
                 {% endif %}

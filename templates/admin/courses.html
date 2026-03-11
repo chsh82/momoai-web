@@ -12,11 +12,11 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">수업 관리</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">수업 관리</h2>
         <a href="{{ url_for('admin.create_course') }}"
-           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 flex items-center gap-2">
-            <span class="text-xl">➕</span>
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 text-sm sm:px-6 sm:py-3 rounded-lg transition duration-200 flex items-center gap-2 whitespace-nowrap">
+            <span>➕</span>
             <span>새 수업 생성</span>
         </a>
     </div>
@@ -64,11 +64,11 @@
                 </div>
             </div>
             <!-- 2행: 통합 검색 -->
-            <div class="flex gap-3">
+            <div class="flex gap-2">
                 <input type="text" name="search" value="{{ search_filter }}"
                        placeholder="반이름, 강사명, 학년, 요일 등 자유 검색..."
-                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 whitespace-nowrap">
+                       class="min-w-0 flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="shrink-0 bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
                     검색
                 </button>
             </div>

@@ -5,46 +5,46 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <h2 class="text-3xl font-bold text-gray-800">📱 SMS 발송 내역</h2>
-            <p class="text-gray-600 mt-1">SMS/LMS 발송 내역을 확인할 수 있습니다.</p>
+            <h2 class="text-xl sm:text-3xl font-bold text-gray-800">📱 SMS 발송 내역</h2>
+            <p class="text-gray-600 mt-1 text-sm">SMS/LMS 발송 내역을 확인할 수 있습니다.</p>
         </div>
         <a href="{{ url_for('admin.send_message') }}"
-           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 text-sm sm:px-6 sm:py-3 rounded-lg transition duration-200 whitespace-nowrap">
             + SMS 발송
         </a>
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">총 발송 건수</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ total_sent }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">총 발송 건수</p>
+                    <p class="text-xl sm:text-3xl font-bold text-blue-600">{{ total_sent }}</p>
                 </div>
-                <div class="text-blue-600 text-4xl">📨</div>
+                <div class="text-blue-600 text-2xl sm:text-4xl">📨</div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">총 수신자 수</p>
-                    <p class="text-3xl font-bold text-green-600">{{ total_recipients }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">총 수신자 수</p>
+                    <p class="text-xl sm:text-3xl font-bold text-green-600">{{ total_recipients }}</p>
                 </div>
-                <div class="text-green-600 text-4xl">👥</div>
+                <div class="text-green-600 text-2xl sm:text-4xl">👥</div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">전체 내역</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ messages|length }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">전체 내역</p>
+                    <p class="text-xl sm:text-3xl font-bold text-purple-600">{{ messages|length }}</p>
                 </div>
-                <div class="text-purple-600 text-4xl">📋</div>
+                <div class="text-purple-600 text-2xl sm:text-4xl">📋</div>
             </div>
         </div>
     </div>

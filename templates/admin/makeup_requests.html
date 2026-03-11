@@ -18,25 +18,25 @@
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white rounded-lg shadow p-6">
-            <p class="text-sm text-gray-600 mb-1">전체 신청</p>
-            <p class="text-2xl font-bold text-blue-600">{{ total_requests }}</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">전체 신청</p>
+            <p class="text-xl sm:text-2xl font-bold text-blue-600">{{ total_requests }}</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-            <p class="text-sm text-gray-600 mb-1">대기 중</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ pending_requests }}</p>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">대기 중</p>
+            <p class="text-xl sm:text-2xl font-bold text-yellow-600">{{ pending_requests }}</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-            <p class="text-sm text-gray-600 mb-1">승인됨</p>
-            <p class="text-2xl font-bold text-green-600">{{ approved_requests }}</p>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">승인됨</p>
+            <p class="text-xl sm:text-2xl font-bold text-green-600">{{ approved_requests }}</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-            <p class="text-sm text-gray-600 mb-1">거절됨</p>
-            <p class="text-2xl font-bold text-red-600">{{ rejected_requests }}</p>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
+            <p class="text-xs sm:text-sm text-gray-600 mb-1">거절됨</p>
+            <p class="text-xl sm:text-2xl font-bold text-red-600">{{ rejected_requests }}</p>
         </div>
     </div>
 
