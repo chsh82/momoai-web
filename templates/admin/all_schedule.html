@@ -19,23 +19,36 @@
         <p class="text-gray-600 mt-1">강사별 수업 일정을 확인하세요</p>
     </div>
 
-    <!-- 뷰 모드 탭 -->
-    <div class="flex gap-2 mb-4">
-        <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, view='daily') }}"
-           class="px-5 py-2 rounded-lg font-medium text-sm transition
-                  {% if view_mode == 'daily' %}bg-blue-600 text-white{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
-            일간
-        </a>
-        <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, view='weekly') }}"
-           class="px-5 py-2 rounded-lg font-medium text-sm transition
-                  {% if view_mode == 'weekly' %}bg-blue-600 text-white{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
-            주간
-        </a>
-        <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, view='monthly') }}"
-           class="px-5 py-2 rounded-lg font-medium text-sm transition
-                  {% if view_mode == 'monthly' %}bg-blue-600 text-white{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
-            월간
-        </a>
+    <!-- 뷰 모드 탭 + 출력 버튼 -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex gap-2">
+            <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, view='daily') }}"
+               class="px-5 py-2 rounded-lg font-medium text-sm transition
+                      {% if view_mode == 'daily' %}bg-blue-600 text-white{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                일간
+            </a>
+            <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, view='weekly') }}"
+               class="px-5 py-2 rounded-lg font-medium text-sm transition
+                      {% if view_mode == 'weekly' %}bg-blue-600 text-white{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                주간
+            </a>
+            <a href="{{ url_for('admin.all_schedule', teacher_id=selected_teacher_id, view='monthly') }}"
+               class="px-5 py-2 rounded-lg font-medium text-sm transition
+                      {% if view_mode == 'monthly' %}bg-blue-600 text-white{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                월간
+            </a>
+        </div>
+        <!-- 출력/저장 버튼 -->
+        <div class="flex gap-2">
+            <button onclick="saveAsImage()"
+                    class="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
+                🖼️ 이미지 저장
+            </button>
+            <button onclick="printSchedule()"
+                    class="flex items-center gap-1.5 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
+                🖨️ 인쇄
+            </button>
+        </div>
     </div>
 
     <!-- 강사 선택 및 네비게이션 -->
@@ -122,6 +135,15 @@
     </div>
 
     {% if selected_teacher %}
+
+    <div id="printArea" class="bg-white rounded-xl p-4">
+    <!-- 인쇄 헤더 (화면에서는 숨김, 인쇄 시 표시) -->
+    <div style="display:none;" class="print-header mb-3 text-center">
+        <p class="text-lg font-bold text-gray-800">
+            {{ selected_teacher.name if selected_teacher else '' }} 수업 시간표
+            {% if view_mode == 'weekly' %} · {{ week_start.strftime('%Y.%m.%d') }} ~ {{ week_end.strftime('%m.%d') }}{% endif %}
+        </p>
+    </div>
 
     <!-- 통계 + 범례 (시간표 위) -->
     {% set total_count = stat_sessions | length %}
@@ -382,10 +404,72 @@
     </div>
     {% endif %}
 
+    </div><!-- end printArea -->
     {% endif %}
 </div>
 
+<style>
+@media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%;
+        background: white;
+        padding: 10mm;
+    }
+    .print-header { display: block !important; }
+    @page { size: A4 landscape; margin: 8mm; }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
+// 인쇄
+function printSchedule() {
+    window.print();
+}
+
+// 이미지 저장
+async function saveAsImage() {
+    const target = document.getElementById('printArea');
+    if (!target) { alert('저장할 시간표가 없습니다.'); return; }
+
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    try {
+        const canvas = await html2canvas(target, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: target.scrollWidth,
+            windowHeight: target.scrollHeight
+        });
+        const link = document.createElement('a');
+        const teacherName = '{{ selected_teacher.name if selected_teacher else "시간표" }}';
+        {% if view_mode == 'weekly' %}
+        const label = '{{ week_start.strftime("%m%d") }}_{{ week_end.strftime("%m%d") }}';
+        {% elif view_mode == 'daily' %}
+        const label = '{{ target_date.strftime("%m%d") }}';
+        {% else %}
+        const label = '{{ base_year }}{{ "%02d"|format(base_month) }}';
+        {% endif %}
+        link.download = `시간표_${teacherName}_${label}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch(e) {
+        alert('이미지 저장 중 오류가 발생했습니다.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🖼️ 이미지 저장';
+    }
+}
+
 function changeTeacher() {
     const teacherId = document.getElementById('teacherSelect').value;
     const view = '{{ view_mode }}';
