@@ -12,12 +12,12 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- 헤더 -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div>
-            <h2 class="text-3xl font-bold text-gray-800">관리자 대시보드</h2>
-            <p class="text-sm text-gray-600 mt-1">전체 운영 현황을 한눈에 확인하세요</p>
+            <h2 class="text-xl sm:text-3xl font-bold text-gray-800">관리자 대시보드</h2>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1">전체 운영 현황을 한눈에 확인하세요</p>
         </div>
-        <div class="text-sm text-gray-500">
+        <div class="hidden sm:block text-sm text-gray-500">
             마지막 업데이트: {{ now().strftime('%Y-%m-%d %H:%M') }}
         </div>
     </div>
@@ -40,98 +40,98 @@
         </div>
 
         <!-- 주간 뷰 컨텐츠 -->
-        <div x-show="activeTab === 'weekly'" class="p-6">
+        <div x-show="activeTab === 'weekly'" class="p-3 sm:p-6">
             <!-- KPI 카드 (주간) -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <!-- 진행 중인 수업 -->
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">📚</span>
-                        <span class="text-xs font-medium text-blue-600 bg-blue-200 px-2 py-1 rounded">진행중</span>
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">📚</span>
+                        <span class="text-xs font-medium text-blue-600 bg-blue-200 px-1.5 py-0.5 rounded">진행중</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">진행 중인 수업</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ total_courses }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">진행 중인 수업</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-blue-600">{{ total_courses }}</p>
                 </div>
 
                 <!-- 전체 학생 -->
-                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">👨‍🎓</span>
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">👨‍🎓</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">전체 학생</p>
-                    <p class="text-3xl font-bold text-green-600">{{ total_students }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">전체 학생</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-green-600">{{ total_students }}</p>
                 </div>
 
                 <!-- 강사 수 -->
-                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">👨‍🏫</span>
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">👨‍🏫</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">전체 강사</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ total_teachers }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">전체 강사</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-purple-600">{{ total_teachers }}</p>
                 </div>
 
                 <!-- 이번 주 수업 -->
-                <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">⏰</span>
-                        <span class="text-xs font-medium text-orange-600 bg-orange-200 px-2 py-1 rounded">이번주</span>
+                <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">⏰</span>
+                        <span class="text-xs font-medium text-orange-600 bg-orange-200 px-1.5 py-0.5 rounded">이번주</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">예정된 수업</p>
-                    <p class="text-3xl font-bold text-orange-600">{{ weekly_sessions }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">예정된 수업</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-orange-600">{{ weekly_sessions }}</p>
                 </div>
             </div>
 
             <!-- 두 번째 줄 KPI -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <!-- 평균 출석률 -->
-                <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">📊</span>
+                <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">📊</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">평균 출석률</p>
-                    <p class="text-3xl font-bold text-teal-600">{{ attendance_rate }}%</p>
+                    <p class="text-xs text-gray-600 mb-0.5">평균 출석률</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-teal-600">{{ attendance_rate }}%</p>
                 </div>
 
                 <!-- 대기 중 알림 -->
-                <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">🔔</span>
+                <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">🔔</span>
                         {% if pending_notifications > 0 %}
-                        <span class="text-xs font-medium text-red-600 bg-red-200 px-2 py-1 rounded animate-pulse">승인필요</span>
+                        <span class="text-xs font-medium text-red-600 bg-red-200 px-1.5 py-0.5 rounded animate-pulse">승인필요</span>
                         {% endif %}
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">대기 중 알림</p>
-                    <p class="text-3xl font-bold text-red-600">{{ pending_notifications }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">대기 중 알림</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-red-600">{{ pending_notifications }}</p>
                 </div>
 
                 <!-- 학부모 연결 -->
-                <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">👪</span>
+                <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">👪</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">학부모 연결</p>
-                    <p class="text-3xl font-bold text-pink-600">{{ total_parent_links }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">학부모 연결</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-pink-600">{{ total_parent_links }}</p>
                     {% if pending_parent_links %}
-                    <p class="text-xs text-pink-700 mt-1">대기: {{ pending_parent_links }}</p>
+                    <p class="text-xs text-pink-700">대기: {{ pending_parent_links }}</p>
                     {% endif %}
                 </div>
 
                 <!-- 첨삭 현황 -->
-                <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-2xl">📝</span>
+                <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">📝</span>
                     </div>
-                    <p class="text-sm text-gray-600 mb-1">첨삭 현황</p>
-                    <div class="flex items-baseline gap-2">
-                        <p class="text-2xl font-bold text-indigo-600">{{ essays_pending + essays_processing }}</p>
-                        <p class="text-sm text-gray-500">/ {{ essays_completed }}</p>
+                    <p class="text-xs text-gray-600 mb-0.5">첨삭 현황</p>
+                    <div class="flex items-baseline gap-1">
+                        <p class="text-2xl sm:text-3xl font-bold text-indigo-600">{{ essays_pending + essays_processing }}</p>
+                        <p class="text-xs text-gray-500">/ {{ essays_completed }}</p>
                     </div>
-                    <p class="text-xs text-indigo-700 mt-1">대기·처리중 / 완료</p>
+                    <p class="text-xs text-indigo-700">대기·처리중 / 완료</p>
                 </div>
             </div>
 
-            <div class="text-sm text-gray-500 text-center mb-6">
+            <div class="text-xs text-gray-500 text-center mb-4">
                 💡 주간 뷰: 이번 주 운영 현황을 보여줍니다
             </div>
         </div>

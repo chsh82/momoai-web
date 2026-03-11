@@ -75,111 +75,109 @@
         </form>
     </div>
 
-    <!-- 수업 목록 -->
-    <div class="bg-white rounded-lg shadow">
-        {% if courses %}
-        <!-- 정렬 버튼 -->
-        <div class="flex justify-end gap-2 px-4 pt-3 pb-1">
+    <!-- 정렬 버튼 + 결과 수 -->
+    {% if courses %}
+    <div class="flex items-center justify-between mb-3">
+        <p class="text-sm text-gray-500">총 {{ courses|length }}개 수업</p>
+        <div class="flex gap-2">
             <a href="?{{ request.query_string.decode().replace('sort=newest','').replace('sort=weekday','').strip('&') }}&sort=newest"
-               class="px-4 py-1.5 rounded-lg text-sm font-medium border transition
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
                       {% if sort_order == 'newest' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
                 최신순
             </a>
             <a href="?{{ request.query_string.decode().replace('sort=newest','').replace('sort=weekday','').strip('&') }}&sort=weekday"
-               class="px-4 py-1.5 rounded-lg text-sm font-medium border transition
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
                       {% if sort_order == 'weekday' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
                 요일순
             </a>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수업 정보</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">담당 강사</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수강생</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">보강신청</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for course in courses %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <p class="font-medium text-gray-800">{{ course.course_name }}</p>
-                                    {% if course.tier %}
-                                    <span class="px-2 py-1 text-xs font-medium rounded
-                                        {% if course.tier == 'A' %}bg-red-100 text-red-800
-                                        {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
-                                        {% elif course.tier == 'C' %}bg-green-100 text-green-800
-                                        {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
-                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ course.tier }}
-                                    </span>
-                                    {% endif %}
-                                </div>
-                                <p class="text-sm text-gray-500">{{ course.course_code }}</p>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-700">
-                            {{ course.teacher.name if course.teacher else '미배정' }}
-                        </td>
-                        <td class="px-6 py-4 text-sm">
-                            <button onclick="showStudentModal('{{ course.course_id }}')"
-                                    class="text-blue-600 hover:text-blue-800 font-medium hover:underline cursor-pointer">
-                                👥 {{ course.enrolled_count }}/{{ course.max_students }}
-                            </button>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-700">
-                            {{ course.start_date.strftime('%Y-%m-%d') }}<br>
-                            ~ {{ course.end_date.strftime('%Y-%m-%d') }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs font-medium rounded
-                                {% if course.status == 'active' %}bg-green-100 text-green-800
-                                {% elif course.status == 'completed' %}bg-gray-100 text-gray-800
-                                {% else %}bg-red-100 text-red-800{% endif %}">
-                                {% if course.status == 'active' %}진행 중
-                                {% elif course.status == 'completed' %}완료
-                                {% else %}취소{% endif %}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            {% if course.makeup_class_allowed %}
-                            <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
-                                ✓ 보강가능
-                            </span>
-                            {% else %}
-                            <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">
-                                ✗ 보강불가
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4">
-                            <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
-                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                상세보기 →
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="p-12 text-center">
-            <p class="text-gray-500 text-lg mb-4">등록된 수업이 없습니다.</p>
-            <a href="{{ url_for('admin.create_course') }}"
-               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
-                첫 수업 생성하기
-            </a>
-        </div>
-        {% endif %}
     </div>
+    {% endif %}
+
+    <!-- 수업 목록 (카드 그리드) -->
+    {% if courses %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for course in courses %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <div class="p-4">
+                <!-- 상단: 상태 + 보강 여부 -->
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="px-2 py-0.5 text-xs font-medium rounded
+                            {% if course.status == 'active' %}bg-green-100 text-green-800
+                            {% elif course.status == 'completed' %}bg-gray-100 text-gray-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if course.status == 'active' %}진행 중
+                            {% elif course.status == 'completed' %}완료
+                            {% else %}취소{% endif %}
+                        </span>
+                        {% if course.tier %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded
+                            {% if course.tier == 'A' %}bg-red-100 text-red-800
+                            {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
+                            {% elif course.tier == 'C' %}bg-green-100 text-green-800
+                            {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ course.tier }}
+                        </span>
+                        {% endif %}
+                        {% if course.makeup_class_allowed %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700">보강가능</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 수업명 -->
+                <h3 class="font-bold text-gray-800 mb-0.5 leading-snug">{{ course.course_name }}</h3>
+                <p class="text-xs text-gray-400 mb-2">{{ course.course_code }}</p>
+
+                <!-- 상세 정보 (가로 읽기) -->
+                <div class="space-y-1 text-sm text-gray-600 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 w-4">👤</span>
+                        <span>{{ course.teacher.name if course.teacher else '미배정' }}</span>
+                        {% if course.grade %}<span class="text-gray-400">·</span><span>{{ course.grade }}</span>{% endif %}
+                    </div>
+                    {% set weekday_names = ['월','화','수','목','금','토','일'] %}
+                    {% if course.weekday is not none %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 w-4">📅</span>
+                        <span>{{ weekday_names[course.weekday] }}요일
+                            {% if course.start_time %} · {{ course.start_time.strftime('%H:%M') }}~{{ course.end_time.strftime('%H:%M') if course.end_time }}{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 w-4">👥</span>
+                        <button onclick="showStudentModal('{{ course.course_id }}')"
+                                class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
+                            수강생 {{ course.enrolled_count }}/{{ course.max_students }}명
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 w-4">📆</span>
+                        <span class="text-xs">{{ course.start_date.strftime('%y.%m.%d') }} ~ {{ course.end_date.strftime('%y.%m.%d') }}</span>
+                    </div>
+                </div>
+
+                <!-- 상세보기 버튼 -->
+                <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
+                   class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition duration-200">
+                    상세보기 →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <p class="text-gray-500 text-lg mb-4">등록된 수업이 없습니다.</p>
+        <a href="{{ url_for('admin.create_course') }}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            첫 수업 생성하기
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <!-- 학생 상세정보 모달 -->
