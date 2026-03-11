@@ -5,183 +5,174 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">학부모 관리</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">학부모 관리</h2>
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">전체 학부모</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ total }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">전체 학부모</p>
+                    <p class="text-xl sm:text-3xl font-bold text-blue-600">{{ total }}</p>
                 </div>
-                <div class="text-blue-600 text-4xl">👪</div>
+                <div class="text-blue-600 text-2xl sm:text-4xl">👪</div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">활성 계정</p>
-                    <p class="text-3xl font-bold text-green-600">{{ active }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">활성 계정</p>
+                    <p class="text-xl sm:text-3xl font-bold text-green-600">{{ active }}</p>
                 </div>
-                <div class="text-green-600 text-4xl">✅</div>
+                <div class="text-green-600 text-2xl sm:text-4xl">✅</div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-600 mb-1">비활성 계정</p>
-                    <p class="text-3xl font-bold text-gray-500">{{ total - active }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-1">비활성 계정</p>
+                    <p class="text-xl sm:text-3xl font-bold text-gray-500">{{ total - active }}</p>
                 </div>
-                <div class="text-gray-400 text-4xl">🔒</div>
+                <div class="text-gray-400 text-2xl sm:text-4xl">🔒</div>
             </div>
         </div>
     </div>
 
     <!-- 검색 -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="GET" action="" class="flex items-center gap-3">
-            <div class="flex-1">
-                <input type="text" name="search" value="{{ search }}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       placeholder="이름, 이메일, 전화번호로 검색...">
-            </div>
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <form method="GET" action="" class="flex items-center gap-2">
+            <input type="text" name="search" value="{{ search }}"
+                   class="min-w-0 flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="이름, 이메일, 전화번호로 검색...">
             <button type="submit"
-                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                    class="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
                 검색
             </button>
             {% if search %}
             <a href="{{ url_for('admin.parent_list') }}"
-               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+               class="shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition">
                 초기화
             </a>
             {% endif %}
         </form>
     </div>
 
-    <!-- 학부모 목록 -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-gray-800">
-                학부모 목록
-                {% if search %}
-                <span class="text-sm font-normal text-gray-500 ml-2">"{{ search }}" 검색 결과: {{ parent_data|length }}명</span>
-                {% endif %}
-            </h3>
-            <div class="flex gap-2">
-                <a href="?search={{ search }}&sort=name"
-                   class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
-                          {% if sort == 'name' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    가나다순
-                </a>
-                <a href="?search={{ search }}&sort=newest"
-                   class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
-                          {% if sort != 'name' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    최신순
-                </a>
-            </div>
-        </div>
-        <div class="p-6">
-            {% if parent_data %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">전화번호</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">연결된 자녀</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">마지막 로그인</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for item in parent_data %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-800">{{ item.user.name }}</p>
-                                <p class="text-xs text-gray-400">{{ item.user.created_at.strftime('%Y-%m-%d') }} 가입</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ item.user.email }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ item.user.phone if item.user.phone else '-' }}</td>
-                            <td class="px-4 py-3">
-                                {% if item.children %}
-                                <div class="flex flex-wrap gap-1">
-                                    {% for child in item.children %}
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
-                                        {{ child.name }} ({{ child.grade }})
-                                    </span>
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                <span class="text-gray-400 text-sm">연결된 자녀 없음</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if item.user.is_active %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">활성</span>
-                                {% else %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">비활성</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {% if item.user.last_login %}
-                                {{ item.user.last_login.strftime('%Y-%m-%d %H:%M') }}
-                                {% else %}
-                                <span class="text-gray-400">미로그인</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <a href="{{ url_for('admin.edit_parent', parent_id=item.user.user_id) }}"
-                                       class="text-blue-600 hover:text-blue-800 text-sm font-medium">수정</a>
-                                    <span class="text-gray-300">|</span>
-                                    <form method="POST"
-                                          action="{{ url_for('admin.reset_password', user_id=item.user.user_id) }}"
-                                          onsubmit="return confirm('{{ item.user.name }}님의 비밀번호를 초기화하시겠습니까?');">
-                                        <button type="submit"
-                                                class="text-sm font-medium"
-                                                style="color: #f97316;"
-                                                onmouseover="this.style.color='#c2410c'"
-                                                onmouseout="this.style.color='#f97316'">
-                                            비밀번호 초기화
-                                        </button>
-                                    </form>
-                                    {% if current_user.role_level == 1 %}
-                                    <span class="text-gray-300">|</span>
-                                    <form method="POST"
-                                          action="{{ url_for('admin.delete_parent', parent_id=item.user.user_id) }}"
-                                          onsubmit="return confirm('{{ item.user.name }} 계정을 완전 삭제하시겠습니까? 복원 불가합니다.')">
-                                        <button type="submit"
-                                                class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded">
-                                            완전 삭제
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-12">
-                <p class="text-gray-500 text-lg">
-                    {% if search %}
-                    "{{ search }}"에 해당하는 학부모가 없습니다.
-                    {% else %}
-                    등록된 학부모가 없습니다.
-                    {% endif %}
-                </p>
-            </div>
-            {% endif %}
+    <!-- 정렬 + 결과 수 -->
+    {% if parent_data %}
+    <div class="flex items-center justify-between mb-3">
+        <p class="text-sm text-gray-500">
+            {% if search %}"{{ search }}" 검색 결과: {% endif %}총 {{ parent_data|length }}명
+        </p>
+        <div class="flex gap-2">
+            <a href="?search={{ search }}&sort=name"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort == 'name' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                가나다순
+            </a>
+            <a href="?search={{ search }}&sort=newest"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort != 'name' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                최신순
+            </a>
         </div>
     </div>
+    {% endif %}
+
+    <!-- 학부모 목록 (카드 그리드) -->
+    {% if parent_data %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for item in parent_data %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
+            <div class="p-4">
+                <!-- 상단: 이름 + 상태 -->
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <h3 class="font-bold text-gray-800 text-base">{{ item.user.name }}</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ item.user.created_at.strftime('%Y.%m.%d') }} 가입</p>
+                    </div>
+                    {% if item.user.is_active %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">활성</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">비활성</span>
+                    {% endif %}
+                </div>
+
+                <!-- 연락처 정보 (가로 읽기) -->
+                <div class="space-y-1 text-sm text-gray-600 mb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-gray-400 shrink-0">📧</span>
+                        <span class="truncate text-xs">{{ item.user.email }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">📞</span>
+                        <span class="text-xs">{{ item.user.phone if item.user.phone else '-' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">🕐</span>
+                        <span class="text-xs">
+                            {% if item.user.last_login %}{{ item.user.last_login.strftime('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 연결된 자녀 -->
+                <div class="mb-3">
+                    {% if item.children %}
+                    <div class="flex flex-wrap gap-1">
+                        {% for child in item.children %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                            {{ child.name }} ({{ child.grade }})
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-xs text-gray-400">연결된 자녀 없음</span>
+                    {% endif %}
+                </div>
+
+                <!-- 관리 버튼 -->
+                <div class="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-100">
+                    <a href="{{ url_for('admin.edit_parent', parent_id=item.user.user_id) }}"
+                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
+                        수정
+                    </a>
+                    <form method="POST"
+                          action="{{ url_for('admin.reset_password', user_id=item.user.user_id) }}"
+                          onsubmit="return confirm('{{ item.user.name }}님의 비밀번호를 초기화하시겠습니까?');">
+                        <button type="submit"
+                                class="px-3 py-1.5 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-medium rounded-lg transition">
+                            비밀번호 초기화
+                        </button>
+                    </form>
+                    {% if current_user.role_level == 1 %}
+                    <form method="POST"
+                          action="{{ url_for('admin.delete_parent', parent_id=item.user.user_id) }}"
+                          onsubmit="return confirm('{{ item.user.name }} 계정을 완전 삭제하시겠습니까? 복원 불가합니다.')">
+                        <button type="submit"
+                                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition">
+                            완전 삭제
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <p class="text-gray-500 text-lg">
+            {% if search %}
+            "{{ search }}"에 해당하는 학부모가 없습니다.
+            {% else %}
+            등록된 학부모가 없습니다.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
