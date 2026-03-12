@@ -40,16 +40,10 @@
 </head>
 <body class="bg-gray-50" x-data="{ mobileMenuOpen: false, sidebarCollapsed: false }">
     {% if current_user.is_authenticated %}
-    <!-- Mobile Menu Button -->
+    <!-- Mobile Menu Button (desktop-only fallback, hidden on mobile — moved into header) -->
     <button @click="mobileMenuOpen = !mobileMenuOpen"
-            class="fixed top-4 left-4 lg:hidden bg-indigo-600 text-white p-3 rounded-lg shadow-lg hover:bg-indigo-700 transition"
+            class="hidden"
             style="z-index: 9999;">
-        <svg x-show="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-        <svg x-show="mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
     </button>
 
     <!-- Mobile Overlay -->
@@ -1262,13 +1256,27 @@
         </aside>
 
         <div class="flex-1 flex flex-col overflow-hidden lg:ml-0">
-            <header class="header-navy px-3 sm:px-6 py-3 sm:py-4 text-white">
-                <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <h2 class="text-sm sm:text-header pl-12 lg:pl-0 truncate" style="color: rgba(255,255,255,0.75);">
+            <header class="header-navy px-3 sm:px-6 py-0 sm:py-4 text-white">
+                <div class="flex items-center justify-between gap-2 h-12 sm:h-auto">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- 모바일: 햄버거 버튼 (헤더 내부, 수직 중앙 정렬) -->
+                        <button @click="mobileMenuOpen = !mobileMenuOpen"
+                                class="lg:hidden flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg transition"
+                                style="z-index: 9999;">
+                            <svg x-show="!mobileMenuOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                            <svg x-show="mobileMenuOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <!-- 모바일: MOMOAI 로고만 표시 -->
+                        <span class="lg:hidden font-bold text-base text-white tracking-wide">MOMOAI</span>
+                        <!-- 데스크탑: 페이지 제목 -->
+                        <h2 class="hidden lg:block text-header truncate" style="color: rgba(255,255,255,0.75);">
                             {% block page_title %}대시보드{% endblock %}
                         </h2>
-                        <span class="hidden sm:inline">{% block page_subtitle %}{% endblock %}</span>
+                        <span class="hidden lg:inline">{% block page_subtitle %}{% endblock %}</span>
                     </div>
                     <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                         {% block header_actions %}

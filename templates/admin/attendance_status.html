@@ -12,32 +12,55 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">📊 전체 출석 현황</h2>
-        <p class="text-gray-600 mt-2">반별/개인별 출석 현황을 확인하세요</p>
+    <div class="mb-4">
+        <h2 class="text-2xl font-bold text-gray-800">📊 전체 출석 현황</h2>
     </div>
 
-    <!-- 필터 섹션 -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <form method="GET" action="" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- 날짜 범위 -->
+    <!-- 전체 통계 (상단) -->
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
+        <div class="bg-white rounded-lg shadow p-3 text-center">
+            <p class="text-xs text-gray-500 mb-0.5">전체</p>
+            <p class="text-xl font-bold text-gray-800">{{ total_count }}</p>
+        </div>
+        <div class="bg-green-50 rounded-lg shadow p-3 text-center">
+            <p class="text-xs text-green-600 mb-0.5">출석</p>
+            <p class="text-xl font-bold text-green-800">{{ present_count }}</p>
+        </div>
+        <div class="bg-yellow-50 rounded-lg shadow p-3 text-center">
+            <p class="text-xs text-yellow-600 mb-0.5">지각</p>
+            <p class="text-xl font-bold text-yellow-800">{{ late_count }}</p>
+        </div>
+        <div class="bg-red-50 rounded-lg shadow p-3 text-center">
+            <p class="text-xs text-red-600 mb-0.5">결석</p>
+            <p class="text-xl font-bold text-red-800">{{ absent_count }}</p>
+        </div>
+        <div class="bg-blue-50 rounded-lg shadow p-3 text-center">
+            <p class="text-xs text-blue-600 mb-0.5">인정결석</p>
+            <p class="text-xl font-bold text-blue-800">{{ excused_count }}</p>
+        </div>
+        <div class="bg-purple-50 rounded-lg shadow p-3 text-center">
+            <p class="text-xs text-purple-600 mb-0.5">출석률</p>
+            <p class="text-xl font-bold text-purple-800">{{ "%.1f"|format(attendance_rate) }}%</p>
+        </div>
+    </div>
+
+    <!-- 조건별 검색 (통계 아래) -->
+    <div class="bg-white rounded-lg shadow px-4 py-3 mb-5">
+        <form method="GET" action="">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-2">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">시작일</label>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">시작일</label>
                     <input type="date" name="date_from" value="{{ date_from }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </div>
-
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">종료일</label>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">종료일</label>
                     <input type="date" name="date_to" value="{{ date_to }}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </div>
-
-                <!-- 수업 선택 -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">수업 (반)</label>
-                    <select name="course_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">수업 (반)</label>
+                    <select name="course_id" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">전체 수업</option>
                         {% for course in courses %}
                         <option value="{{ course.course_id }}" {% if course_filter == course.course_id %}selected{% endif %}>
@@ -46,11 +69,9 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- 강사 선택 -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">강사</label>
-                    <select name="teacher_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">강사</label>
+                    <select name="teacher_id" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">전체 강사</option>
                         {% for teacher in teachers %}
                         <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>
@@ -59,11 +80,9 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- 학생 선택 -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">학생</label>
-                    <select name="student_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">학생</label>
+                    <select name="student_id" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">전체 학생</option>
                         {% for student in students %}
                         <option value="{{ student.student_id }}" {% if student_filter == student.student_id %}selected{% endif %}>
@@ -72,11 +91,9 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- 상태 필터 -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">출석 상태</label>
-                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">출석 상태</label>
+                    <select name="status" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">전체 상태</option>
                         <option value="present" {% if status_filter == 'present' %}selected{% endif %}>출석</option>
                         <option value="late" {% if status_filter == 'late' %}selected{% endif %}>지각</option>
@@ -85,45 +102,15 @@
                     </select>
                 </div>
             </div>
-
-            <!-- 버튼 -->
-            <div class="flex gap-3">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5 rounded transition duration-200">
                     🔍 검색
                 </button>
-                <a href="{{ url_for('admin.attendance_status') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg transition duration-200">
+                <a href="{{ url_for('admin.attendance_status') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium px-4 py-1.5 rounded transition duration-200">
                     ↺ 초기화
                 </a>
             </div>
         </form>
-    </div>
-
-    <!-- 전체 통계 -->
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-sm text-gray-600 mb-1">전체</p>
-            <p class="text-2xl font-bold text-gray-800">{{ total_count }}</p>
-        </div>
-        <div class="bg-green-50 rounded-lg shadow p-4">
-            <p class="text-sm text-green-600 mb-1">출석</p>
-            <p class="text-2xl font-bold text-green-800">{{ present_count }}</p>
-        </div>
-        <div class="bg-yellow-50 rounded-lg shadow p-4">
-            <p class="text-sm text-yellow-600 mb-1">지각</p>
-            <p class="text-2xl font-bold text-yellow-800">{{ late_count }}</p>
-        </div>
-        <div class="bg-red-50 rounded-lg shadow p-4">
-            <p class="text-sm text-red-600 mb-1">결석</p>
-            <p class="text-2xl font-bold text-red-800">{{ absent_count }}</p>
-        </div>
-        <div class="bg-blue-50 rounded-lg shadow p-4">
-            <p class="text-sm text-blue-600 mb-1">인정결석</p>
-            <p class="text-2xl font-bold text-blue-800">{{ excused_count }}</p>
-        </div>
-        <div class="bg-purple-50 rounded-lg shadow p-4">
-            <p class="text-sm text-purple-600 mb-1">출석률</p>
-            <p class="text-2xl font-bold text-purple-800">{{ "%.1f"|format(attendance_rate) }}%</p>
-        </div>
     </div>
 
     <!-- 반별 출석 현황 -->
