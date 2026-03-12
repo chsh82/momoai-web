@@ -13,12 +13,12 @@
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
+        <a href="{{ url_for('student.index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-3 inline-block">
+            ← 마이 페이지
+        </a>
+        <div class="mb-4">
             <h2 class="text-3xl font-bold text-gray-800">📚 독서 논술 MBTI 자가평가</h2>
-            <a href="{{ url_for('student.index') }}"
-               class="text-blue-600 hover:text-blue-800 font-medium">
-                ← 마이 페이지
-            </a>
         </div>
         <p class="text-gray-600">
             나의 독서, 발표/토론, 쓰기 스타일을 진단하고 맞춤형 학습 전략을 확인하세요.
