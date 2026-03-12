@@ -143,6 +143,35 @@ def index():
     recent_makeup_requests = MakeupClassRequest.query.filter_by(status='pending')\
         .order_by(MakeupClassRequest.created_at.desc()).limit(5).all()
 
+    # === 주간 추가 통계 ===
+    from app.models.consultation import ConsultationRecord
+
+    # 신규문의: 이번 주 신규상담 기록 수
+    weekly_new_consultations = ConsultationRecord.query.filter(
+        ConsultationRecord.major_category == '신규상담',
+        ConsultationRecord.consultation_date >= week_start,
+        ConsultationRecord.consultation_date <= week_end
+    ).count()
+
+    # 신규생: 이번 주 새로 가입한 학생 수
+    weekly_new_students = Student.query.filter(
+        Student.created_at >= datetime.combine(week_start, datetime.min.time()),
+        Student.created_at <= datetime.combine(week_end, datetime.max.time())
+    ).count()
+
+    # 휴퇴원생: 이번 주 상태가 leave/withdrawn으로 변경된 학생 수
+    try:
+        weekly_withdrawn = Student.query.filter(
+            Student.status.in_(['leave', 'withdrawn']),
+            Student.status_changed_at >= datetime.combine(week_start, datetime.min.time()),
+            Student.status_changed_at <= datetime.combine(week_end, datetime.max.time())
+        ).count()
+    except Exception:
+        weekly_withdrawn = 0
+
+    # 전체강좌: 취소되지 않은 전체 강좌 수
+    total_all_courses = Course.query.filter(Course.status != 'cancelled').count()
+
     return render_template('admin/index.html',
                          # KPI 카드
                          total_courses=total_courses,
@@ -156,6 +185,11 @@ def index():
                          essays_pending=essays_pending,
                          essays_processing=essays_processing,
                          essays_completed=essays_completed,
+                         # 주간 추가 통계
+                         weekly_new_consultations=weekly_new_consultations,
+                         weekly_new_students=weekly_new_students,
+                         weekly_withdrawn=weekly_withdrawn,
+                         total_all_courses=total_all_courses,
                          # 차트 데이터
                          student_labels=json.dumps(student_labels),
                          student_data=json.dumps(student_data),
@@ -5428,6 +5462,26 @@ def toggle_student_active(student_id):
 
     db.session.commit()
     return jsonify({'success': True, 'new_status': new_status, 'message': message})
+
+
+@admin_bp.route('/students/<string:student_id>/change-status', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def change_student_status(student_id):
+    """학생 등록 상태 변경 (active/leave/withdrawn)"""
+    student = Student.query.get_or_404(student_id)
+    new_status = request.json.get('status') if request.is_json else request.form.get('status')
+
+    if new_status not in ('active', 'leave', 'withdrawn'):
+        return jsonify({'success': False, 'message': '유효하지 않은 상태값입니다.'}), 400
+
+    student.status = new_status
+    student.status_changed_at = datetime.utcnow()
+    db.session.commit()
+
+    status_labels = {'active': '등록', 'leave': '휴원', 'withdrawn': '퇴원'}
+    return jsonify({'success': True, 'new_status': new_status,
+                    'message': f'{student.name} 학생 상태가 {status_labels[new_status]}으로 변경되었습니다.'})
 
 
 @admin_bp.route('/student-risk-analysis')

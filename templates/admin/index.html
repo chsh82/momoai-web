@@ -131,6 +131,45 @@
                 </div>
             </div>
 
+            <!-- 세 번째 줄 KPI (이번 주 신규 현황) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <!-- 신규문의 -->
+                <div class="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">🗣️</span>
+                        <span class="text-xs font-medium text-cyan-600 bg-cyan-200 px-1.5 py-0.5 rounded">이번주</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-0.5">신규문의</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-cyan-600">{{ weekly_new_consultations }}</p>
+                </div>
+                <!-- 신규생 -->
+                <div class="bg-gradient-to-br from-lime-50 to-lime-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">🆕</span>
+                        <span class="text-xs font-medium text-lime-600 bg-lime-200 px-1.5 py-0.5 rounded">이번주</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-0.5">신규생</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-lime-600">{{ weekly_new_students }}</p>
+                </div>
+                <!-- 휴퇴원생 -->
+                <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">📤</span>
+                        <span class="text-xs font-medium text-amber-600 bg-amber-200 px-1.5 py-0.5 rounded">이번주</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-0.5">휴퇴원생</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-amber-600">{{ weekly_withdrawn }}</p>
+                </div>
+                <!-- 전체강좌 -->
+                <div class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg shadow p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl">🗂️</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-0.5">전체강좌</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-slate-600">{{ total_all_courses }}</p>
+                </div>
+            </div>
+
             <div class="text-xs text-gray-500 text-center mb-4">
                 💡 주간 뷰: 이번 주 운영 현황을 보여줍니다
             </div>
