@@ -126,202 +126,134 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- 반별 통계 -->
-        {% if not course_filter and not student_filter %}
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">📚 반별 출석 현황 (상위 10개)</h3>
-            </div>
-            <div class="p-6">
-                {% if course_stats %}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">수업명</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">전체</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">출석</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">지각</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">결석</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">출석률</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            {% for stat in course_stats %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-3 py-2">
-                                    <a href="{{ url_for('admin.attendance_status', course_id=stat.course_id, date_from=date_from, date_to=date_to) }}"
-                                       class="text-blue-600 hover:text-blue-800 font-medium">
-                                        {{ stat.course_name }}
-                                    </a>
-                                </td>
-                                <td class="px-3 py-2 text-center font-medium">{{ stat.total }}</td>
-                                <td class="px-3 py-2 text-center text-green-600">{{ stat.present }}</td>
-                                <td class="px-3 py-2 text-center text-yellow-600">{{ stat.late }}</td>
-                                <td class="px-3 py-2 text-center text-red-600">{{ stat.absent }}</td>
-                                <td class="px-3 py-2 text-center">
-                                    {% set rate = (stat.present / stat.total * 100) if stat.total > 0 else 0 %}
-                                    <span class="font-medium {% if rate >= 80 %}text-green-600{% elif rate >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                                        {{ "%.1f"|format(rate) }}%
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- 반별 출석 현황 -->
+    {% if not course_filter and not student_filter %}
+    <div class="mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-3">📚 반별 출석 현황 (상위 10개)</h3>
+        {% if course_stats %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for stat in course_stats %}
+            {% set rate = (stat.present / stat.total * 100) if stat.total > 0 else 0 %}
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-start justify-between mb-2">
+                    <a href="{{ url_for('admin.attendance_status', course_id=stat.course_id, date_from=date_from, date_to=date_to) }}"
+                       class="text-sm font-bold text-blue-600 hover:text-blue-800 leading-tight">
+                        {{ stat.course_name }}
+                    </a>
+                    <span class="text-sm font-bold ml-2 {% if rate >= 80 %}text-green-600{% elif rate >= 60 %}text-yellow-600{% else %}text-red-600{% endif %} whitespace-nowrap">
+                        {{ "%.1f"|format(rate) }}%
+                    </span>
                 </div>
-                {% else %}
-                <p class="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- 학생별 통계 -->
-        {% if not student_filter %}
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">👥 학생별 출석 현황 (상위 20명)</h3>
-            </div>
-            <div class="p-6">
-                {% if student_stats %}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">학생명</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">학년</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">전체</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">출석</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">지각</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">결석</th>
-                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">출석률</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            {% for stat in student_stats %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-3 py-2">
-                                    <a href="{{ url_for('admin.attendance_status', student_id=stat.student_id, date_from=date_from, date_to=date_to) }}"
-                                       class="text-blue-600 hover:text-blue-800 font-medium">
-                                        {{ stat.name }}
-                                    </a>
-                                </td>
-                                <td class="px-3 py-2 text-center text-gray-600">{{ stat.grade or '-' }}</td>
-                                <td class="px-3 py-2 text-center font-medium">{{ stat.total }}</td>
-                                <td class="px-3 py-2 text-center text-green-600">{{ stat.present }}</td>
-                                <td class="px-3 py-2 text-center text-yellow-600">{{ stat.late }}</td>
-                                <td class="px-3 py-2 text-center text-red-600">{{ stat.absent }}</td>
-                                <td class="px-3 py-2 text-center">
-                                    {% set rate = (stat.present / stat.total * 100) if stat.total > 0 else 0 %}
-                                    <span class="font-medium {% if rate >= 80 %}text-green-600{% elif rate >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                                        {{ "%.1f"|format(rate) }}%
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="flex gap-3 text-xs text-gray-600">
+                    <span>전체 <strong class="text-gray-800">{{ stat.total }}</strong></span>
+                    <span class="text-green-600">출석 <strong>{{ stat.present }}</strong></span>
+                    <span class="text-yellow-600">지각 <strong>{{ stat.late }}</strong></span>
+                    <span class="text-red-600">결석 <strong>{{ stat.absent }}</strong></span>
                 </div>
-                {% else %}
-                <p class="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-                {% endif %}
+                <div class="mt-2 bg-gray-200 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full {% if rate >= 80 %}bg-green-500{% elif rate >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                         style="width: {{ rate|round }}%"></div>
+                </div>
             </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-6 bg-white rounded-lg shadow">데이터가 없습니다.</p>
         {% endif %}
     </div>
+    {% endif %}
+
+    <!-- 학생별 출석 현황 -->
+    {% if not student_filter %}
+    <div class="mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-3">👥 학생별 출석 현황 (상위 20명)</h3>
+        {% if student_stats %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for stat in student_stats %}
+            {% set rate = (stat.present / stat.total * 100) if stat.total > 0 else 0 %}
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <a href="{{ url_for('admin.attendance_status', student_id=stat.student_id, date_from=date_from, date_to=date_to) }}"
+                           class="text-sm font-bold text-blue-600 hover:text-blue-800">
+                            {{ stat.name }}
+                        </a>
+                        <span class="text-xs text-gray-400 ml-1">{{ stat.grade or '-' }}</span>
+                    </div>
+                    <span class="text-sm font-bold {% if rate >= 80 %}text-green-600{% elif rate >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ "%.1f"|format(rate) }}%
+                    </span>
+                </div>
+                <div class="flex gap-3 text-xs text-gray-600">
+                    <span>전체 <strong class="text-gray-800">{{ stat.total }}</strong></span>
+                    <span class="text-green-600">출석 <strong>{{ stat.present }}</strong></span>
+                    <span class="text-yellow-600">지각 <strong>{{ stat.late }}</strong></span>
+                    <span class="text-red-600">결석 <strong>{{ stat.absent }}</strong></span>
+                </div>
+                <div class="mt-2 bg-gray-200 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full {% if rate >= 80 %}bg-green-500{% elif rate >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                         style="width: {{ rate|round }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-6 bg-white rounded-lg shadow">데이터가 없습니다.</p>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <!-- 상세 출석 기록 -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <div>
-                <h3 class="text-xl font-bold text-gray-800">📋 상세 출석 기록</h3>
-                <p class="text-sm text-gray-600 mt-1">최근 100개 레코드</p>
-            </div>
-            {% if course_filter or student_filter %}
-            <div class="text-sm">
+    <div class="mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-lg font-bold text-gray-800">📋 상세 출석 기록 <span class="text-sm font-normal text-gray-500">(최근 100개)</span></h3>
+            <div class="flex gap-2">
                 {% if course_filter %}
-                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                    수업 필터 적용중
-                </span>
+                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">수업 필터 적용중</span>
                 {% endif %}
                 {% if student_filter %}
-                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
-                    학생 필터 적용중
-                </span>
+                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">학생 필터 적용중</span>
                 {% endif %}
             </div>
-            {% endif %}
         </div>
-        <div class="p-6">
-            {% if attendances %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">날짜</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">수업</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">학생</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">학년</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">출석 상태</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">체크 시간</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">메모</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for attendance in attendances %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ attendance.session.session_date.strftime('%Y-%m-%d') }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="text-sm font-medium text-gray-800">{{ attendance.session.course.course_name }}</div>
-                                <div class="text-xs text-gray-500">세션 {{ attendance.session.session_number }}</div>
-                            </td>
-                            <td class="px-4 py-3 text-sm font-medium text-gray-800">
-                                {{ attendance.student.name }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ attendance.student.grade or '-' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs font-medium rounded
-                                    {% if attendance.status == 'present' %}bg-green-100 text-green-800
-                                    {% elif attendance.status == 'late' %}bg-yellow-100 text-yellow-800
-                                    {% elif attendance.status == 'absent' %}bg-red-100 text-red-800
-                                    {% elif attendance.status == 'excused' %}bg-blue-100 text-blue-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {% if attendance.status == 'present' %}✓ 출석
-                                    {% elif attendance.status == 'late' %}⏰ 지각
-                                    {% elif attendance.status == 'absent' %}✗ 결석
-                                    {% elif attendance.status == 'excused' %}📝 인정결석
-                                    {% else %}{{ attendance.status }}{% endif %}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-xs text-gray-600">
-                                {% if attendance.checked_at %}
-                                    {{ attendance.checked_at.strftime('%H:%M') }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-xs text-gray-600">
-                                {{ attendance.notes or '-' }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% if attendances %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for attendance in attendances %}
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex items-start justify-between mb-1.5">
+                    <div>
+                        <span class="text-sm font-bold text-gray-800">{{ attendance.student.name }}</span>
+                        <span class="text-xs text-gray-400 ml-1">{{ attendance.student.grade or '-' }}</span>
+                    </div>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded
+                        {% if attendance.status == 'present' %}bg-green-100 text-green-800
+                        {% elif attendance.status == 'late' %}bg-yellow-100 text-yellow-800
+                        {% elif attendance.status == 'absent' %}bg-red-100 text-red-800
+                        {% elif attendance.status == 'excused' %}bg-blue-100 text-blue-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {% if attendance.status == 'present' %}✓ 출석
+                        {% elif attendance.status == 'late' %}⏰ 지각
+                        {% elif attendance.status == 'absent' %}✗ 결석
+                        {% elif attendance.status == 'excused' %}📝 인정결석
+                        {% else %}{{ attendance.status }}{% endif %}
+                    </span>
+                </div>
+                <div class="text-xs text-gray-500 space-y-0.5">
+                    <div>{{ attendance.session.session_date.strftime('%Y-%m-%d') }} · 세션 {{ attendance.session.session_number }}</div>
+                    <div class="text-gray-600 font-medium">{{ attendance.session.course.course_name }}</div>
+                    {% if attendance.notes %}
+                    <div class="text-gray-400 italic">{{ attendance.notes }}</div>
+                    {% endif %}
+                </div>
             </div>
-            {% else %}
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">📋</div>
-                <p class="text-gray-500 text-lg">출석 기록이 없습니다.</p>
-                <p class="text-gray-400 text-sm mt-2">필터 조건을 변경해보세요.</p>
-            </div>
-            {% endif %}
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="text-center py-12 bg-white rounded-lg shadow">
+            <div class="text-4xl mb-3">📋</div>
+            <p class="text-gray-500">출석 기록이 없습니다.</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- 안내 -->

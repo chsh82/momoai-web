@@ -420,8 +420,10 @@ def course_detail(course_id):
     # 수강생 목록
     enrollments = CourseEnrollment.query.filter_by(course_id=course_id).all()
 
-    # 세션 목록 (최근 5개)
+    # 진행 완료된 세션 목록 (오늘 이전, 최근 5개)
+    today = datetime.utcnow().date()
     recent_sessions = CourseSession.query.filter_by(course_id=course_id)\
+        .filter(CourseSession.session_date <= today)\
         .order_by(CourseSession.session_date.desc()).limit(5).all()
 
     return render_template('admin/course_detail.html',

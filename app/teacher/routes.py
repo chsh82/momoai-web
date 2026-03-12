@@ -313,12 +313,13 @@ def course_detail(course_id):
     # 수강생 목록
     enrollments = CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
 
-    # 최근 세션 (최근 5개)
+    # 진행 완료된 세션 (오늘 이전, 최근 5개)
+    today = datetime.utcnow().date()
     recent_sessions = CourseSession.query.filter_by(course_id=course_id)\
+        .filter(CourseSession.session_date <= today)\
         .order_by(CourseSession.session_date.desc()).limit(5).all()
 
     # 다음 예정 세션
-    today = datetime.utcnow().date()
     upcoming_sessions = CourseSession.query.filter_by(course_id=course_id, status='scheduled')\
         .filter(CourseSession.session_date >= today)\
         .order_by(CourseSession.session_date.asc()).limit(3).all()
@@ -362,8 +363,10 @@ def attendance_list():
     search_mode = request.args.get('search', '').strip()
     course_filter = request.args.get('course_id', '').strip()
     teacher_filter = request.args.get('teacher_id', '').strip()
-    date_from = request.args.get('date_from', '').strip()
-    date_to = request.args.get('date_to', '').strip()
+    date_filter = request.args.get('date', '').strip()
+    grade_filter = request.args.get('grade', '').strip()
+    weekday_filter = request.args.get('weekday', '').strip()
+    course_type_filter = request.args.get('course_type', '').strip()
     status_filter = request.args.get('status', '').strip()
 
     # 강사의 수업 조회 (관리자는 전체 또는 선택한 강사)
@@ -383,9 +386,14 @@ def attendance_list():
 
     course_ids = [c.course_id for c in courses]
 
-    # 보강수업 / 일반수업 분리
+    # 보강수업 / 일반수업 분리 (학년/반형태 필터 적용)
     makeup_course_ids = [c.course_id for c in courses if c.course_type == '보강수업']
-    regular_course_ids = [c.course_id for c in courses if c.course_type != '보강수업']
+    regular_courses = [c for c in courses if c.course_type != '보강수업']
+    if grade_filter:
+        regular_courses = [c for c in regular_courses if c.grade == grade_filter]
+    if course_type_filter:
+        regular_courses = [c for c in regular_courses if c.course_type == course_type_filter]
+    regular_course_ids = [c.course_id for c in regular_courses]
 
     # 강사 목록 로드 (관리자만)
     teachers = []
@@ -405,8 +413,10 @@ def attendance_list():
                              makeup_sessions=[],
                              course_filter=course_filter,
                              teacher_filter=teacher_filter,
-                             date_from=date_from,
-                             date_to=date_to)
+                             date_filter=date_filter,
+                             grade_filter=grade_filter,
+                             weekday_filter=weekday_filter,
+                             course_type_filter=course_type_filter)
 
     # 보강수업 세션 (과거 30일 ~ 미래 90일, 날짜순)
     makeup_sessions = []
@@ -426,10 +436,18 @@ def attendance_list():
     # 필터 적용
     if course_filter:
         past_query = past_query.filter(CourseSession.course_id == course_filter)
-    if date_from:
-        past_query = past_query.filter(CourseSession.session_date >= date_from)
-    if date_to:
-        past_query = past_query.filter(CourseSession.session_date <= date_to)
+    if date_filter:
+        try:
+            from datetime import date as date_type
+            d = date_type.fromisoformat(date_filter)
+            past_query = past_query.filter(CourseSession.session_date == d)
+        except ValueError:
+            pass
+    if weekday_filter and weekday_filter.isdigit():
+        # weekday: 0=월 1=화 2=수 3=목 4=금 5=토 6=일
+        all_sessions = past_query.all()
+        filtered_ids = [s.session_id for s in all_sessions if s.session_date.weekday() == int(weekday_filter)]
+        past_query = CourseSession.query.filter(CourseSession.session_id.in_(filtered_ids))
 
     past_sessions = past_query.order_by(
         CourseSession.session_date.desc(),
@@ -487,8 +505,10 @@ def attendance_list():
                          makeup_sessions=makeup_sessions,
                          course_filter=course_filter,
                          teacher_filter=teacher_filter,
-                         date_from=date_from,
-                         date_to=date_to,
+                         date_filter=date_filter,
+                         grade_filter=grade_filter,
+                         weekday_filter=weekday_filter,
+                         course_type_filter=course_type_filter,
                          parent_phones=parent_phones if past_sessions else {})
 
 

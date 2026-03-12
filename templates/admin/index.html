@@ -212,24 +212,24 @@
         <div class="lg:col-span-2">
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">⚡ 빠른 액션</h3>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <a href="{{ url_for('admin.create_course') }}"
-                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span class="text-xl">➕</span>
                         <span class="text-sm">새 수업 생성</span>
                     </a>
                     <a href="{{ url_for('students.index') }}"
-                       class="bg-green-600 hover:bg-green-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                       class="bg-green-600 hover:bg-green-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span class="text-xl">👨‍🎓</span>
                         <span class="text-sm">학생 등록</span>
                     </a>
                     <a href="{{ url_for('admin.payments') }}"
-                       class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                       class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span class="text-xl">💰</span>
                         <span class="text-sm">결제 등록</span>
                     </a>
                     <a href="{{ url_for('admin.parent_link_requests') }}"
-                       class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                       class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span class="text-xl">🔗</span>
                         <span class="text-sm">학부모 승인</span>
                         {% if pending_parent_links %}
@@ -237,14 +237,24 @@
                         {% endif %}
                     </a>
                     <a href="{{ url_for('admin.courses') }}"
-                       class="bg-gray-600 hover:bg-gray-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                       class="bg-gray-600 hover:bg-gray-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span class="text-xl">📋</span>
                         <span class="text-sm">수업 관리</span>
                     </a>
                     <a href="{{ url_for('admin.export_monthly_report') }}"
-                       class="bg-red-600 hover:bg-red-700 text-white font-medium p-4 rounded-lg transition flex items-center justify-center gap-2">
+                       class="bg-red-600 hover:bg-red-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
                         <span class="text-xl">📊</span>
                         <span class="text-sm">월간 리포트</span>
+                    </a>
+                    <a href="{{ url_for('admin.create_consultation') }}"
+                       class="bg-teal-600 hover:bg-teal-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">📝</span>
+                        <span class="text-sm">상담 작성</span>
+                    </a>
+                    <a href="{{ url_for('essays.index') }}"
+                       class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium p-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <span class="text-xl">✏️</span>
+                        <span class="text-sm">첨삭 관리</span>
                     </a>
                 </div>
             </div>
