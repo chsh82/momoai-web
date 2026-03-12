@@ -5,13 +5,13 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">📚 도서 관리</h2>
-        <div class="flex gap-2">
-            <a href="{{ url_for('books.bulk_import') }}" class="bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-3 rounded-lg transition duration-200">
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <h2 class="text-3xl font-bold text-gray-800 whitespace-nowrap">📚 도서 관리</h2>
+        <div class="flex gap-2 shrink-0">
+            <a href="{{ url_for('books.bulk_import') }}" class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 whitespace-nowrap">
                 📋 일괄 등록
             </a>
-            <a href="{{ url_for('books.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            <a href="{{ url_for('books.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 whitespace-nowrap">
                 + 새 도서 추가
             </a>
         </div>

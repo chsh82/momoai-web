@@ -6,23 +6,18 @@
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <a href="{{ url_for('books.index') }}" class="text-blue-600 hover:text-blue-800 font-medium">
-                ← 도서 목록으로
-            </a>
-            <a href="{{ url_for('books.new') }}" class="text-blue-600 hover:text-blue-800 font-medium">
-                → 도서 등록
-            </a>
-        </div>
-        <div class="flex items-center justify-between">
-            <h2 class="text-3xl font-bold text-gray-800">📖 도서 상세</h2>
-            <div class="flex gap-2">
+        <a href="{{ url_for('books.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-3 inline-block">
+            ← 도서 목록으로
+        </a>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <h2 class="text-3xl font-bold text-gray-800 whitespace-nowrap">📖 도서 상세</h2>
+            <div class="flex gap-2 shrink-0">
                 <a href="{{ url_for('books.edit', book_id=book.book_id) }}"
-                   class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                   class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-lg transition duration-200 whitespace-nowrap">
                     수정
                 </a>
                 <button onclick="confirmDelete()"
-                        class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                        class="bg-red-600 hover:bg-red-700 text-white font-medium px-5 py-2 rounded-lg transition duration-200 whitespace-nowrap">
                     삭제
                 </button>
             </div>
