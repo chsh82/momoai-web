@@ -546,11 +546,11 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.index' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
                                 모모 게시판
                             </a>
-                            <a href="{{ url_for('library.create_hall_of_fame') }}"
+                            <a href="{{ url_for('library.hall_of_fame') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
                                 명예의 전당
                             </a>
-                            <a href="{{ url_for('library.create_admission_info') }}"
+                            <a href="{{ url_for('library.admission_info') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.admission_info' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
                                 입시정보
                             </a>
