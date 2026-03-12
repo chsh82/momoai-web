@@ -9,7 +9,7 @@
         <a href="{{ url_for('students.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-3 inline-block">
             ← 학생 목록으로
         </a>
-        <div class="flex items-center gap-3 mb-3">
+        <div class="flex flex-wrap items-center gap-3 mb-3">
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">{{ student.name }}</h2>
             <span class="px-3 py-1 text-sm font-medium rounded-full
                 {% if student.grade == '초등' %}bg-green-100 text-green-800
@@ -17,6 +17,44 @@
                 {% else %}bg-purple-100 text-purple-800{% endif %}">
                 {{ student.grade }}
             </span>
+            <!-- 상태 배지 -->
+            {% if student.status == 'active' %}
+            <span class="px-3 py-1 text-sm font-bold rounded-full bg-emerald-100 text-emerald-700">✅ 등록</span>
+            {% elif student.status == 'leave' %}
+            <span class="px-3 py-1 text-sm font-bold rounded-full bg-yellow-100 text-yellow-700">⏸️ 휴원</span>
+            {% elif student.status == 'withdrawn' %}
+            <span class="px-3 py-1 text-sm font-bold rounded-full bg-red-100 text-red-700">🚫 퇴원</span>
+            {% endif %}
+        </div>
+        <!-- 상태 변경 버튼 -->
+        <div class="flex flex-wrap gap-2 mb-3">
+            {% if student.status != 'active' %}
+            <form method="POST" action="{{ url_for('students.change_status', student_id=student.student_id) }}"
+                  onsubmit="return confirm('{{ student.name }} 학생을 [등록] 상태로 변경하시겠습니까?')">
+                <input type="hidden" name="status" value="active">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 whitespace-nowrap">
+                    ✅ 등록으로 변경
+                </button>
+            </form>
+            {% endif %}
+            {% if student.status != 'leave' %}
+            <form method="POST" action="{{ url_for('students.change_status', student_id=student.student_id) }}"
+                  onsubmit="return confirm('{{ student.name }} 학생을 [휴원] 상태로 변경하시겠습니까?\n휴원 상태에서는 학생 포털 기능 이용이 제한됩니다.')">
+                <input type="hidden" name="status" value="leave">
+                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 whitespace-nowrap">
+                    ⏸️ 휴원으로 변경
+                </button>
+            </form>
+            {% endif %}
+            {% if student.status != 'withdrawn' %}
+            <form method="POST" action="{{ url_for('students.change_status', student_id=student.student_id) }}"
+                  onsubmit="return confirm('{{ student.name }} 학생을 [퇴원] 상태로 변경하시겠습니까?\n퇴원 상태에서는 학생 포털 기능 이용이 제한됩니다.')">
+                <input type="hidden" name="status" value="withdrawn">
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 whitespace-nowrap">
+                    🚫 퇴원으로 변경
+                </button>
+            </form>
+            {% endif %}
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ url_for('students.student_report', student_id=student.student_id) }}"

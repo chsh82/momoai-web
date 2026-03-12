@@ -343,6 +343,31 @@ def delete(student_id):
     return redirect(url_for('students.index'))
 
 
+@students_bp.route('/<student_id>/change_status', methods=['POST'])
+@login_required
+def change_status(student_id):
+    """학생 상태 변경 (등록/휴원/퇴원)"""
+    is_admin = current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)
+    if not is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('students.index'))
+
+    student = Student.query.get_or_404(student_id)
+    new_status = request.form.get('status')
+
+    if new_status not in ('active', 'leave', 'withdrawn'):
+        flash('올바르지 않은 상태값입니다.', 'error')
+        return redirect(url_for('students.detail', student_id=student_id))
+
+    student.status = new_status
+    student.status_changed_at = datetime.utcnow()
+    db.session.commit()
+
+    label_map = {'active': '등록', 'leave': '휴원', 'withdrawn': '퇴원'}
+    flash(f'{student.name} 학생 상태가 [{label_map[new_status]}]으로 변경되었습니다.', 'success')
+    return redirect(url_for('students.detail', student_id=student_id))
+
+
 @students_bp.route('/<student_id>/report')
 @login_required
 def student_report(student_id):
