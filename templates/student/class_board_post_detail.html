@@ -16,16 +16,13 @@
     <!-- 게시글 -->
     <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
         <!-- Header -->
-        <div class="border-b border-gray-200 pb-6 mb-6">
-            <div class="flex items-center gap-2 mb-3">
+        <div class="border-b border-gray-200 pb-5 mb-6">
+            <!-- 배지 -->
+            <div class="flex items-center gap-1.5 mb-2 flex-wrap">
                 {% if post.is_pinned %}
-                <span class="text-red-600 text-xl">📌</span>
+                <span class="text-red-600">📌</span>
                 {% endif %}
-                {% if post.is_notice %}
-                <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded font-medium">공지</span>
-                {% endif %}
-
-                <span class="px-2 py-1 text-xs rounded font-medium
+                <span class="px-2 py-0.5 text-xs rounded font-medium
                     {% if post.post_type == 'question' %}bg-blue-100 text-blue-800
                     {% elif post.post_type == 'material' %}bg-green-100 text-green-800
                     {% elif post.post_type == 'discussion' %}bg-purple-100 text-purple-800
@@ -35,25 +32,22 @@
                     {% elif post.post_type == 'discussion' %}토론
                     {% else %}일반{% endif %}
                 </span>
-
-                <h1 class="text-2xl font-bold text-gray-800">
-                    {{ post.title }}
-                </h1>
             </div>
-
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4 text-sm text-gray-600">
+            <!-- 제목 -->
+            <h1 class="text-2xl font-bold text-gray-800 mb-3">{{ post.title }}</h1>
+            <!-- 글쓴이/날짜/수정/삭제 -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                     <span>👤 {{ post.author.name }}</span>
-                    <span>📅 {{ post.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                    <span>📅 {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
                     <span>👁️ {{ post.view_count }}</span>
                     <span>💬 {{ post.comment_count }}</span>
                 </div>
-
                 {% if post.can_edit(current_user) or post.can_delete(current_user) %}
                 <div class="flex gap-2">
                     {% if post.can_edit(current_user) %}
                     <a href="{{ url_for('student.edit_class_board_post', course_id=course.course_id, post_id=post.post_id) }}"
-                       class="text-sm text-blue-600 hover:text-blue-700 px-3 py-1 border border-blue-600 rounded">
+                       class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-sm px-3 py-1.5 rounded-lg transition duration-200">
                         수정
                     </a>
                     {% endif %}
@@ -61,7 +55,7 @@
                     <form method="POST" action="{{ url_for('student.delete_class_board_post', course_id=course.course_id, post_id=post.post_id) }}"
                           onsubmit="return confirm('정말 삭제하시겠습니까?')" class="inline">
                         <button type="submit"
-                                class="text-sm text-red-600 hover:text-red-700 px-3 py-1 border border-red-600 rounded">
+                                class="bg-red-50 hover:bg-red-100 text-red-700 font-medium text-sm px-3 py-1.5 rounded-lg transition duration-200">
                             삭제
                         </button>
                     </form>

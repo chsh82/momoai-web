@@ -42,18 +42,18 @@
             </div>
 
             <!-- 공지 유형 & 옵션 -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div>
                     <label class="block text-gray-700 font-medium mb-2">{{ form.announcement_type.label }}</label>
                     {{ form.announcement_type(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500") }}
                 </div>
-                <div class="flex flex-col justify-center space-y-2">
-                    <label class="flex items-center">
-                        {{ form.is_pinned(class="mr-2") }}
+                <div class="flex items-center gap-6 pt-1 sm:pt-7">
+                    <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                        {{ form.is_pinned(class="") }}
                         <span class="text-gray-700">{{ form.is_pinned.label.text }}</span>
                     </label>
-                    <label class="flex items-center">
-                        {{ form.is_popup(class="mr-2") }}
+                    <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                        {{ form.is_popup(class="") }}
                         <span class="text-gray-700">{{ form.is_popup.label.text }}</span>
                     </label>
                 </div>
@@ -62,10 +62,10 @@
             <!-- 공지 대상 -->
             <div class="mb-6">
                 <label class="block text-gray-700 font-medium mb-2">{{ form.target_roles.label }}</label>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="flex flex-wrap gap-2">
                     {% for value, text in form.target_roles.choices %}
-                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" name="target_roles" value="{{ value }}" class="mr-2"
+                    <label class="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer whitespace-nowrap">
+                        <input type="checkbox" name="target_roles" value="{{ value }}"
                                {% if value in (form.target_roles.data or []) %}checked{% endif %}>
                         <span class="text-gray-700">{{ text }}</span>
                     </label>
@@ -77,10 +77,10 @@
             <!-- 대상 등급 -->
             <div class="mb-6">
                 <label class="block text-gray-700 font-medium mb-2">{{ form.target_tiers.label }}</label>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="flex flex-wrap gap-2">
                     {% for value, text in form.target_tiers.choices %}
-                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" name="target_tiers" value="{{ value }}" class="mr-2"
+                    <label class="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer whitespace-nowrap">
+                        <input type="checkbox" name="target_tiers" value="{{ value }}"
                                {% if value in (form.target_tiers.data or []) %}checked{% endif %}>
                         <span class="text-gray-700">{{ text }}</span>
                     </label>
