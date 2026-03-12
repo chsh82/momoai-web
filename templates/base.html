@@ -509,7 +509,7 @@
                             </a>
                             <a href="{{ url_for('admin.payments') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint == 'admin.payments' %}text-orange-600 bg-orange-50{% endif %}">
-                                수납 관리
+                                결제 관리
                             </a>
                             <a href="{{ url_for('admin.session_adjustments') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'session_adjustment' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
@@ -923,11 +923,11 @@
                         <span>보강수업</span>
                     </a>
 
-                    <!-- 6. 수납 관리 -->
+                    <!-- 6. 결제 관리 -->
                     <a href="{{ url_for('parent.all_payments') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.all_payments' in request.endpoint %}active{% endif %} mt-2">
                         <span class="text-xl">💰</span>
-                        <span>수납 관리</span>
+                        <span>결제 관리</span>
                     </a>
 
                     <!-- 7. 게시판 -->
