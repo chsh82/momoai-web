@@ -58,6 +58,15 @@ class SignupForm(FlaskForm):
     phone = StringField('전화번호', validators=[
         Length(max=50, message='전화번호는 최대 50자까지 입력 가능합니다.')
     ])
+    gender = SelectField('성별',
+        choices=[
+            ('', '-- 성별 선택 --'),
+            ('male', '남성'),
+            ('female', '여성'),
+            ('other', '기타'),
+        ],
+        validators=[DataRequired(message='성별을 선택해주세요.')]
+    )
 
     def validate_phone(self, field):
         """학부모는 전화번호 필수"""

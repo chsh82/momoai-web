@@ -145,6 +145,7 @@ def signup():
             email=form.email.data,
             name=form.name.data,
             phone=form.phone.data if form.phone.data else None,
+            gender=form.gender.data if form.gender.data else None,
             role=role,
             is_active=False,  # 관리자 승인 후 활성화
             email_verified=not mail_configured,
@@ -171,7 +172,8 @@ def signup():
                     school=form.school.data,
                     birth_date=form.birth_date.data,
                     email=user.email,
-                    phone=user.phone
+                    phone=user.phone,
+                    gender=user.gender
                 )
                 db.session.add(student_record)
 

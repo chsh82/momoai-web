@@ -91,6 +91,32 @@
                 {% endif %}
             </div>
 
+            <!-- Gender -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">
+                    성별 <span class="text-red-500">*</span>
+                </label>
+                <div class="flex gap-3">
+                    {% for value, label in form.gender.choices %}
+                    {% if value %}
+                    <label class="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                        <input type="radio" name="gender" value="{{ value }}"
+                               {% if form.gender.data == value %}checked{% endif %}
+                               class="w-4 h-4 text-blue-600">
+                        <span class="text-gray-800 font-medium">{{ label }}</span>
+                    </label>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% if form.gender.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.gender.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
             <!-- Role Selection -->
             <div class="mb-6">
                 <label class="block text-gray-700 font-medium mb-3">{{ form.role.label.text }}</label>

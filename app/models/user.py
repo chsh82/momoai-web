@@ -35,6 +35,9 @@ class User(UserMixin, db.Model):
     city = db.Column(db.String(100), nullable=True)      # 거주 도시
     kakao_id = db.Column(db.String(100), nullable=True)  # 카카오톡 아이디 (학부모용)
 
+    # 성별 (학부모/학생용)
+    gender = db.Column(db.String(10), nullable=True)  # male, female, other
+
     # 강사 소개 (teacher 역할용)
     teacher_intro = db.Column(db.Text, nullable=True)
     teacher_intro_public = db.Column(db.Boolean, default=False)

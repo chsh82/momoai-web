@@ -25,6 +25,7 @@ class Student(db.Model):
     city = db.Column(db.String(100), nullable=True)      # 거주 도시
     notes = db.Column(db.Text, nullable=True)
     is_temp = db.Column(db.Boolean, default=False, nullable=False)  # 임시 학생 여부
+    gender = db.Column(db.String(10), nullable=True)  # male, female, other
     status = db.Column(db.String(20), default='active', nullable=False, index=True)  # active, leave, withdrawn
     status_changed_at = db.Column(db.DateTime, nullable=True)  # 상태 변경 일시
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
