@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}학생 독서 논술 MBTI - 교사 포털{% endblock %}
+{% block title %}학생 모모아이 MBTI - 교사 포털{% endblock %}
 
-{% block page_title %}🧠 독서논술 MBTI{% endblock %}
+{% block page_title %}🧠 모모아이 MBTI{% endblock %}
 
 {% block page_subtitle %}
 <span class="text-sm text-white text-opacity-70 ml-3">학생 성향 분석</span>
@@ -14,7 +14,7 @@
     <!-- Header -->
     <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-3xl font-bold text-gray-800">📚 학생 독서 논술 MBTI 분석</h2>
+            <h2 class="text-3xl font-bold text-gray-800">📚 학생 모모아이 MBTI 분석</h2>
             <a href="{{ url_for('teacher.index') }}"
                class="text-blue-600 hover:text-blue-800 font-medium">
                 ← 마이 페이지
@@ -206,56 +206,41 @@
         </div>
         <div class="p-6">
             {% if my_students %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">학생</th>
-                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">학년</th>
-                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">유형</th>
-                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">검사일</th>
-                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">상세</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        {% for student in my_students %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3">
-                                <div class="font-medium text-gray-800">{{ student.name }}</div>
-                            </td>
-                            <td class="px-4 py-3 text-gray-600">{{ student.grade }}</td>
-                            <td class="px-4 py-3">
-                                {% if student.student_id in latest_results %}
-                                <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">
-                                    {{ latest_results[student.student_id].mbti_type.type_name }}
-                                </span>
-                                {% else %}
-                                <span class="px-3 py-1 bg-gray-100 text-gray-500 text-sm rounded-full">
-                                    미검사
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
-                                {% if student.student_id in latest_results %}
-                                {{ latest_results[student.student_id].created_at.strftime('%Y-%m-%d') }}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                {% if student.student_id in latest_results %}
-                                <a href="{{ url_for('teacher.view_student_mbti', student_id=student.student_id) }}"
-                                   class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                    상세 보기 →
-                                </a>
-                                {% else %}
-                                <span class="text-gray-400 text-sm">-</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for student in my_students %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <div class="font-semibold text-gray-800">{{ student.name }}</div>
+                            <div class="text-xs text-gray-500">{{ student.grade }}</div>
+                        </div>
+                        {% if student.student_id in latest_results %}
+                        <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">
+                            {{ latest_results[student.student_id].mbti_type.type_name }}
+                        </span>
+                        {% else %}
+                        <span class="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
+                            미검사
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <span class="text-xs text-gray-400">
+                            {% if student.student_id in latest_results %}
+                            {{ latest_results[student.student_id].created_at.strftime('%Y-%m-%d') }}
+                            {% else %}
+                            검사 기록 없음
+                            {% endif %}
+                        </span>
+                        {% if student.student_id in latest_results %}
+                        <a href="{{ url_for('teacher.view_student_mbti', student_id=student.student_id) }}"
+                           class="text-blue-600 hover:text-blue-800 font-medium text-xs">
+                            상세 보기 →
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <div class="text-center py-12 text-gray-500">

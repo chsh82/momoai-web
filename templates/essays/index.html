@@ -5,16 +5,16 @@
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800 mb-3">
             {% if current_user.role == 'parent' %}첨삭 보기{% else %}첨삭 관리{% endif %}
         </h2>
         {% if current_user.role in ['admin', 'teacher'] %}
         <div class="flex gap-2">
-            <a href="{{ url_for('essays.quick') }}" class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-3 rounded-lg transition duration-200">
+            <a href="{{ url_for('essays.quick') }}" class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-lg transition duration-200">
                 ⚡ 임시 첨삭
             </a>
-            <a href="{{ url_for('essays.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+            <a href="{{ url_for('essays.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition duration-200">
                 + 새 첨삭 시작
             </a>
         </div>
@@ -219,12 +219,10 @@
     {% if essays %}
     <div class="space-y-4">
         {% for essay in essays %}
-        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-200">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
+        <div class="bg-white rounded-lg shadow-lg p-5 hover:shadow-xl transition duration-200">
                     <div class="flex items-center gap-3 mb-3 flex-wrap">
                         <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
-                           class="text-xl font-bold text-gray-800 hover:text-blue-600 transition duration-200">
+                           class="text-lg font-bold text-gray-800 hover:text-blue-600 transition duration-200">
                             {{ essay.title or essay.student.name + '의 논술' }}
                         </a>
 
@@ -268,22 +266,13 @@
                         {% endif %}
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
-                        <div>
-                            <span class="font-medium">👤 학생:</span> {{ essay.student.name }}
-                        </div>
-                        <div>
-                            <span class="font-medium">🎓 학년:</span> {{ essay.student.grade }}
-                        </div>
-                        <div>
-                            <span class="font-medium">📅 작성일:</span> {{ essay.created_at.strftime('%m/%d %H:%M') }}
-                        </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600 mb-3">
+                        <div><span class="font-medium">👤 학생:</span> {{ essay.student.name }}</div>
+                        <div><span class="font-medium">🎓 학년:</span> {{ essay.student.grade }}</div>
+                        <div><span class="font-medium">📅 작성일:</span> {{ essay.created_at.strftime('%m/%d %H:%M') }}</div>
                         <div>
                             <span class="font-medium">📄 버전:</span> v{{ essay.current_version }}
-                            {% if essay.user %}
-                            <span class="text-gray-300 mx-1">|</span>
-                            <span class="font-medium">✍️</span> {{ essay.user.name }}
-                            {% endif %}
+                            {% if essay.user %}<span class="text-gray-300 mx-1">|</span><span class="font-medium">✍️</span> {{ essay.user.name }}{% endif %}
                         </div>
                     </div>
 
@@ -320,49 +309,43 @@
                         </div>
                     </div>
                     {% endif %}
-                </div>
 
-                <div class="ml-4 flex flex-col gap-2">
-                    <!-- OCR 인식 버튼 -->
-                    {% if essay.attachment_path %}
-                    <a href="{{ url_for('essays.ocr_from_essay', essay_id=essay.essay_id) }}"
-                       class="block bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 text-center whitespace-nowrap">
-                        OCR 인식
-                    </a>
-                    {% endif %}
-
-                    <!-- 과제 보기 버튼 -->
-                    <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
-                       class="block bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 text-center whitespace-nowrap">
-                        과제 보기
-                    </a>
-
-                    <!-- 첨삭 시작 / 결과 보기 버튼 -->
-                    {% if essay.status == 'draft' %}
-                    <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
-                          onsubmit="return confirm('이 학생의 글을 첨삭하시겠습니까? (약 10~30초 소요)');">
-                        <button type="submit"
-                                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 text-center whitespace-nowrap">
-                            첨삭 시작
-                        </button>
-                    </form>
-                    {% elif essay.status == 'processing' %}
-                    <a href="{{ url_for('essays.processing', essay_id=essay.essay_id) }}"
-                       class="block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 text-center">
-                        진행 상황 보기
-                    </a>
-                    {% elif essay.status in ['reviewing', 'completed'] %}
-                    <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
-                       class="block bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200 text-center">
-                        결과 보기
-                    </a>
-                    {% elif essay.status == 'failed' %}
-                    <span class="block bg-red-600 text-white font-medium px-6 py-2 rounded-lg text-center">
-                        실패
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
+                    <!-- 액션 버튼 (하단) -->
+                    <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+                        {% if essay.attachment_path %}
+                        <a href="{{ url_for('essays.ocr_from_essay', essay_id=essay.essay_id) }}"
+                           class="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition duration-200 whitespace-nowrap">
+                            OCR 인식
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+                           class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition duration-200 whitespace-nowrap">
+                            과제 보기
+                        </a>
+                        {% if essay.status == 'draft' %}
+                        <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                              onsubmit="return confirm('이 학생의 글을 첨삭하시겠습니까? (약 10~30초 소요)');">
+                            <button type="submit"
+                                    class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition duration-200 whitespace-nowrap">
+                                첨삭 시작
+                            </button>
+                        </form>
+                        {% elif essay.status == 'processing' %}
+                        <a href="{{ url_for('essays.processing', essay_id=essay.essay_id) }}"
+                           class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition duration-200 whitespace-nowrap">
+                            진행 상황 보기
+                        </a>
+                        {% elif essay.status in ['reviewing', 'completed'] %}
+                        <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
+                           class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition duration-200 whitespace-nowrap">
+                            결과 보기
+                        </a>
+                        {% elif essay.status == 'failed' %}
+                        <span class="bg-red-100 text-red-700 text-sm font-medium px-4 py-1.5 rounded-lg whitespace-nowrap">
+                            ✗ 실패
+                        </span>
+                        {% endif %}
+                    </div>
         </div>
         {% endfor %}
     </div>

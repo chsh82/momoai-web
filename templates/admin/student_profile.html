@@ -29,11 +29,6 @@
                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
                     ✏️ 프로필 수정
                 </a>
-                {% else %}
-                <a href="{{ url_for('admin.create_student_profile', student_id=student.student_id) }}"
-                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
-                    ➕ 프로필 생성
-                </a>
                 {% endif %}
             </div>
         </div>
@@ -43,29 +38,29 @@
     <!-- 탭 네비게이션 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="border-b border-gray-200">
-            <nav class="flex -mb-px">
+            <nav class="flex -mb-px overflow-x-auto">
                 <button onclick="showTab('basic')" id="tab-basic"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+                        class="tab-button whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
                     📋 기본정보
                 </button>
                 <button onclick="showTab('enrollment')" id="tab-enrollment"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     📚 수강이력
                 </button>
                 <button onclick="showTab('profile')" id="tab-profile"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     📝 프로필
                 </button>
                 <button onclick="showTab('mbti')" id="tab-mbti"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     🧠 MBTI
                 </button>
                 <button onclick="showTab('consultation')" id="tab-consultation"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     💬 상담이력
                 </button>
                 <button onclick="showTab('insights')" id="tab-insights"
-                        class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        class="tab-button whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     🤖 AI 인사이트
                 </button>
             </nav>
