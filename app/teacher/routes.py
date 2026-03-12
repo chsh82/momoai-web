@@ -344,8 +344,12 @@ def course_sessions(course_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('teacher.courses'))
 
-    sessions = CourseSession.query.filter_by(course_id=course_id)\
-        .order_by(CourseSession.session_number.asc()).all()
+    from datetime import date
+    today = date.today()
+    sessions = CourseSession.query.filter(
+        CourseSession.course_id == course_id,
+        CourseSession.session_date <= today
+    ).order_by(CourseSession.session_number.asc()).all()
 
     return render_template('teacher/course_sessions.html',
                          course=course,

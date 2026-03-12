@@ -27,15 +27,15 @@
         </div>
 
         <div class="bg-white rounded-lg shadow p-6">
-            <p class="text-sm text-gray-600 mb-1">예정된 세션</p>
-            <p class="text-3xl font-bold text-purple-600">{{ sessions|selectattr('status', 'equalto', 'scheduled')|list|length }}</p>
+            <p class="text-sm text-gray-600 mb-1">취소된 세션</p>
+            <p class="text-3xl font-bold text-red-500">{{ sessions|selectattr('status', 'equalto', 'cancelled')|list|length }}</p>
         </div>
     </div>
 
     <!-- 세션 목록 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800">전체 세션 목록</h3>
+            <h3 class="text-xl font-bold text-gray-800">과거 수업 이력</h3>
         </div>
         <div class="p-6">
             {% if sessions %}

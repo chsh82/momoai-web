@@ -733,11 +733,15 @@ def update_student_grade(student_id):
 @login_required
 @requires_permission_level(2)
 def course_sessions(course_id):
-    """수업 세션 목록"""
+    """수업 세션 목록 (과거 이력만)"""
     course = Course.query.get_or_404(course_id)
 
-    sessions = CourseSession.query.filter_by(course_id=course_id)\
-        .order_by(CourseSession.session_number.asc()).all()
+    from datetime import date
+    today = date.today()
+    sessions = CourseSession.query.filter(
+        CourseSession.course_id == course_id,
+        CourseSession.session_date <= today
+    ).order_by(CourseSession.session_number.asc()).all()
 
     return render_template('admin/course_sessions.html',
                          course=course,
