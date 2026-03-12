@@ -316,7 +316,7 @@ v3.3.0 필수 포함 사항:
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=8192,
+                    max_tokens=12000,
                     timeout=300.0,
                     system=[
                         {
@@ -507,7 +507,7 @@ v3.3.0 필수 포함 사항:
     def _call_elem_step(self, elem_system: str, messages: list,
                         step_name: str, student_name: str,
                         user_id=None, essay_id=None) -> str:
-        """초등 모델 단계별 API 호출 (max_tokens=8192, retry 포함)"""
+        """초등 모델 단계별 API 호출 (max_tokens=12000, retry 포함)"""
         import time
         max_retries = 3
         retry_delays = [30, 60, 120]
@@ -520,7 +520,7 @@ v3.3.0 필수 포함 사항:
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=8192,
+                    max_tokens=12000,
                     timeout=300.0,
                     system=[
                         {

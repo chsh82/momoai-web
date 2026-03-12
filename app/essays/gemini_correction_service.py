@@ -102,7 +102,7 @@ v3.3.0 필수 포함 사항:
             model_name=self.MODEL_NAME,
             system_instruction=system_prompt,
             generation_config=genai.types.GenerationConfig(
-                max_output_tokens=8192,
+                max_output_tokens=20000,
                 temperature=0.7,
             ),
         )
