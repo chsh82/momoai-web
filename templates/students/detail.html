@@ -6,47 +6,41 @@
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
-        <a href="{{ url_for('students.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+        <a href="{{ url_for('students.index') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-3 inline-block">
             ← 학생 목록으로
         </a>
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }}</h2>
-                <span class="px-4 py-2 text-sm font-medium rounded-full
-                    {% if student.grade == '초등' %}bg-green-100 text-green-800
-                    {% elif student.grade == '중등' %}bg-blue-100 text-blue-800
-                    {% else %}bg-purple-100 text-purple-800{% endif %}">
-                    {{ student.grade }}
-                </span>
-            </div>
-            <div class="flex gap-2">
-                <a href="{{ url_for('students.student_report', student_id=student.student_id) }}"
-                   class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                    📊 리포트 보기
-                </a>
-                <a href="{{ url_for('students.edit', student_id=student.student_id) }}"
-                   class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                    수정
-                </a>
-                {% if student.user_id %}
-                <form method="POST"
-                      action="{{ url_for('admin.reset_password', user_id=student.user_id) }}"
-                      onsubmit="return confirm('{{ student.name }} 학생의 비밀번호를 초기화하시겠습니까?');"
-                      style="display: inline;">
-                    <button type="submit"
-                            class="text-white font-medium px-6 py-2 rounded-lg transition duration-200"
-                            style="background-color: #f97316;"
-                            onmouseover="this.style.backgroundColor='#ea6c0a'"
-                            onmouseout="this.style.backgroundColor='#f97316'">
-                        비밀번호 초기화
-                    </button>
-                </form>
-                {% endif %}
-                <button onclick="confirmDelete()"
-                        class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                    삭제
+        <div class="flex items-center gap-3 mb-3">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">{{ student.name }}</h2>
+            <span class="px-3 py-1 text-sm font-medium rounded-full
+                {% if student.grade == '초등' %}bg-green-100 text-green-800
+                {% elif student.grade == '중등' %}bg-blue-100 text-blue-800
+                {% else %}bg-purple-100 text-purple-800{% endif %}">
+                {{ student.grade }}
+            </span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('students.student_report', student_id=student.student_id) }}"
+               class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 whitespace-nowrap">
+                📊 리포트 보기
+            </a>
+            <a href="{{ url_for('students.edit', student_id=student.student_id) }}"
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
+                수정
+            </a>
+            {% if student.user_id %}
+            <form method="POST"
+                  action="{{ url_for('admin.reset_password', user_id=student.user_id) }}"
+                  onsubmit="return confirm('{{ student.name }} 학생의 비밀번호를 초기화하시겠습니까?');">
+                <button type="submit"
+                        class="bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 whitespace-nowrap">
+                    비밀번호 초기화
                 </button>
-            </div>
+            </form>
+            {% endif %}
+            <button onclick="confirmDelete()"
+                    class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
+                삭제
+            </button>
         </div>
     </div>
 
@@ -359,10 +353,22 @@
 
                     <!-- Action Button -->
                     <div class="flex-shrink-0">
-                        <!-- 향후 첨삭 상세 페이지 링크 추가 -->
-                        <button class="text-gray-400 hover:text-blue-600 text-sm font-medium transition duration-200" disabled>
-                            상세보기
-                        </button>
+                        {% if essay.status in ['reviewing', 'completed'] %}
+                        <a href="{{ url_for('essays.result', essay_id=essay.essay_id) }}"
+                           class="text-blue-600 hover:text-blue-800 text-sm font-medium transition duration-200">
+                            상세보기 →
+                        </a>
+                        {% elif essay.status == 'processing' %}
+                        <a href="{{ url_for('essays.processing', essay_id=essay.essay_id) }}"
+                           class="text-yellow-600 hover:text-yellow-800 text-sm font-medium transition duration-200">
+                            처리중 →
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+                           class="text-gray-500 hover:text-blue-600 text-sm font-medium transition duration-200">
+                            보기 →
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

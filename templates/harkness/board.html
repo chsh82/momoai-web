@@ -67,28 +67,22 @@
     <!-- 게시글 목록 -->
     <div class="bg-white rounded-lg shadow">
         {% if posts %}
-        <div class="divide-y divide-gray-200">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             {% for post in posts %}
             <a href="{{ url_for('harkness.post_detail', board_id=board.board_id, post_id=post.post_id) }}"
-               class="block px-6 py-4 hover:bg-gray-50 transition duration-200">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2">
-                            {% if post.is_notice %}
-                            <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">공지</span>
-                            {% endif %}
-                            <h3 class="text-lg font-semibold text-gray-800">{{ post.title }}</h3>
-                            {% if post.comment_count > 0 %}
-                            <span class="text-blue-600 text-sm">[{{ post.comment_count }}]</span>
-                            {% endif %}
-                        </div>
-                        <div class="flex items-center gap-4 text-sm text-gray-600">
-                            <span>👤 {{ post.author.name }}</span>
-                            <span>📅 {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-                            <span>👁️ {{ post.view_count }}</span>
-                            <span>👍 {{ post.like_count }}</span>
-                        </div>
-                    </div>
+               class="block border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition duration-200">
+                <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+                    {% if post.is_notice %}
+                    <span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">공지</span>
+                    {% endif %}
+                    {% if post.comment_count > 0 %}
+                    <span class="text-blue-600 text-xs font-medium">[{{ post.comment_count }}]</span>
+                    {% endif %}
+                </div>
+                <h3 class="text-sm font-semibold text-gray-800 hover:text-blue-600 mb-2 line-clamp-2">{{ post.title }}</h3>
+                <div class="text-xs text-gray-500 space-y-0.5">
+                    <div>👤 {{ post.author.name }} · 📅 {{ post.created_at.strftime('%m/%d %H:%M') }}</div>
+                    <div>👁️ {{ post.view_count }} · 👍 {{ post.like_count }}</div>
                 </div>
             </a>
             {% endfor %}

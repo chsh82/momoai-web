@@ -10,21 +10,21 @@
 <div class="max-w-7xl mx-auto">
 
     <!-- 헤더 -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">이월 및 차감 관리</h2>
+            <h2 class="text-2xl font-bold text-gray-800 whitespace-nowrap">이월 및 차감 관리</h2>
             <p class="text-gray-500 text-sm mt-1">인정결석 분류 및 이월·무료수업 내역을 관리합니다</p>
         </div>
         <button onclick="document.getElementById('createModal').classList.remove('hidden')"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition flex items-center gap-2">
+                class="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap">
             ➕ 직접 추가
         </button>
     </div>
 
     <!-- 탭 -->
-    <div class="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+    <div class="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg overflow-x-auto">
         <a href="{{ url_for('admin.session_adjustments', tab='review') }}"
-           class="px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2
+           class="whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-1.5
                   {% if tab == 'review' %}bg-white text-gray-900 shadow{% else %}text-gray-600 hover:text-gray-900{% endif %}">
             🔴 분류 대기
             {% if review_count > 0 %}
@@ -32,7 +32,7 @@
             {% endif %}
         </a>
         <a href="{{ url_for('admin.session_adjustments', tab='pending') }}"
-           class="px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2
+           class="whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-1.5
                   {% if tab == 'pending' %}bg-white text-gray-900 shadow{% else %}text-gray-600 hover:text-gray-900{% endif %}">
             🟡 적용 대기
             {% if pending_count > 0 %}
@@ -40,7 +40,7 @@
             {% endif %}
         </a>
         <a href="{{ url_for('admin.session_adjustments', tab='done') }}"
-           class="px-4 py-2 rounded-md text-sm font-medium transition
+           class="whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition
                   {% if tab == 'done' %}bg-white text-gray-900 shadow{% else %}text-gray-600 hover:text-gray-900{% endif %}">
             ✅ 처리 완료
         </a>
