@@ -1270,8 +1270,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
-                        <!-- 모바일: MOMOAI 로고만 표시 -->
-                        <span class="lg:hidden font-bold text-base text-white tracking-wide">MOMOAI</span>
+                        <!-- 모바일: MOMOAI 로고만 표시 (대시보드 링크) -->
+                        <a href="{{ url_for('admin.index') if current_user.role in ('admin','manager') else url_for('teacher.index') if current_user.role == 'teacher' else url_for('parent.index') if current_user.role == 'parent' else url_for('student.index') }}"
+                           class="lg:hidden font-bold text-base text-white tracking-wide hover:text-indigo-200 transition">MOMOAI</a>
                         <!-- 데스크탑: 페이지 제목 -->
                         <h2 class="hidden lg:block text-header truncate" style="color: rgba(255,255,255,0.75);">
                             {% block page_title %}대시보드{% endblock %}

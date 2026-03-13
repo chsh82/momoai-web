@@ -2,7 +2,7 @@
 """학생 포털 라우트"""
 from flask import render_template, request, redirect, url_for, flash, jsonify, current_app, send_from_directory
 from flask_login import login_required, current_user
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy import desc, and_
 from werkzeug.utils import secure_filename
 import os
@@ -220,10 +220,12 @@ def course_detail(course_id):
         flash('수강하지 않는 수업입니다.', 'error')
         return redirect(url_for('student.courses'))
 
-    # 출석 기록 조회
+    # 출석 기록 조회 (오늘 이전 과거 이력만, 최신순)
     attendances = Attendance.query.filter_by(
         enrollment_id=enrollment.enrollment_id
-    ).join(CourseSession).order_by(desc(CourseSession.session_date)).all()
+    ).join(CourseSession).filter(
+        CourseSession.session_date <= date.today()
+    ).order_by(desc(CourseSession.session_date)).all()
 
     # 클래스 게시판 글 조회 (고정글 우선, 최신순)
     board_posts = ClassBoardPost.query.filter_by(
