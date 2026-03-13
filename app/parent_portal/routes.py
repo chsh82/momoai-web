@@ -6,7 +6,7 @@ from datetime import datetime
 import os
 
 from app.parent_portal import parent_bp
-from app.models import (db, Student, ParentStudent, CourseEnrollment,
+from app.models import (db, Student, ParentStudent, CourseEnrollment, Course,
                        TeacherFeedback, Payment, Attendance, CourseSession, User)
 from app.models.essay import Essay
 from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload
@@ -664,6 +664,55 @@ def makeup_classes_history(student_id):
                          pending_count=pending_count,
                          approved_count=approved_count,
                          rejected_count=rejected_count)
+
+
+# ==================== 수업 목록 ====================
+
+@parent_bp.route('/courses')
+@login_required
+@requires_role('parent', 'admin')
+def courses_index():
+    """수업 목록 - 자녀 선택"""
+    parent_relations = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        is_active=True
+    ).all()
+
+    children = [pr.student for pr in parent_relations]
+
+    # 자녀가 1명이면 바로 해당 자녀의 수업 목록으로 이동
+    if len(children) == 1:
+        return redirect(url_for('parent.child_courses', student_id=children[0].student_id))
+
+    return render_template('parent/courses_index.html', children=children)
+
+
+@parent_bp.route('/courses/<student_id>')
+@login_required
+@requires_role('parent', 'admin')
+def child_courses(student_id):
+    """자녀의 수업 목록"""
+    # 권한 확인
+    relation = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        student_id=student_id,
+        is_active=True
+    ).first()
+
+    if not relation and current_user.role != 'admin':
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('parent.index'))
+
+    student = Student.query.get_or_404(student_id)
+
+    enrollments = CourseEnrollment.query.filter_by(
+        student_id=student_id,
+        status='active'
+    ).all()
+
+    return render_template('parent/child_courses.html',
+                           student=student,
+                           enrollments=enrollments)
 
 
 # ==================== 출결 현황 ====================

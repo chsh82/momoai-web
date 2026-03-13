@@ -861,6 +861,10 @@
                             </svg>
                         </button>
                         <div x-show="learning" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('parent.courses_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.course' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                수업 목록
+                            </a>
                             <a href="{{ url_for('parent.attendance_index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.attendance' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 출결 현황
