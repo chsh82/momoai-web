@@ -22,12 +22,16 @@ with app.app_context():
         student_ids = [r[0] for r in rows]
         ids_str = ",".join(f"'{sid}'" for sid in student_ids)
 
-        # Delete related records first
-        db.session.execute(text(f"DELETE FROM course_enrollments WHERE student_id IN ({ids_str})"))
-        db.session.execute(text(f"DELETE FROM essay_submissions WHERE student_id IN ({ids_str})"))
-        db.session.execute(text(f"DELETE FROM parent_students WHERE student_id IN ({ids_str})"))
-        db.session.execute(text(f"DELETE FROM makeup_class_requests WHERE student_id IN ({ids_str})"))
-        db.session.execute(text(f"DELETE FROM attendance WHERE student_id IN ({ids_str})"))
+        # Delete related records first (using IF EXISTS style with try/except per table)
+        for tbl in ['course_enrollments', 'essays', 'essay_notes', 'essay_versions',
+                    'essay_results', 'essay_scores', 'essay_books', 'essay_books',
+                    'parent_student', 'makeup_class_requests', 'attendance',
+                    'notifications', 'correction_attachments']:
+            try:
+                db.session.execute(text(f"DELETE FROM {tbl} WHERE student_id IN ({ids_str})"))
+            except Exception as e:
+                if 'no such column' not in str(e) and 'no such table' not in str(e):
+                    raise
 
         # Now delete the students
         db.session.execute(text(f"DELETE FROM students WHERE student_id IN ({ids_str})"))
