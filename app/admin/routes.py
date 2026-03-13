@@ -2602,15 +2602,30 @@ def all_schedule():
     week_end = week_start + timedelta(days=6)
 
     weekly_schedule = {i: [] for i in range(7)}
+    weekly_courses_only = {i: [] for i in range(7)}   # 세션 없이 Course.weekday로만 표시
+    weekly_mismatch = []  # 요일 불일치 세션 목록
     if view_mode == 'weekly' and teacher_course_ids:
         sessions = CourseSession.query.filter(
             CourseSession.course_id.in_(teacher_course_ids),
             CourseSession.session_date >= week_start,
             CourseSession.session_date <= week_end
         ).order_by(CourseSession.session_date, CourseSession.start_time).all()
+        session_course_ids_this_week = set()
         for session in sessions:
             day_index = session.session_date.weekday()
             weekly_schedule[day_index].append(session)
+            session_course_ids_this_week.add(session.course_id)
+            # 요일 불일치 감지
+            if (session.course.weekday is not None and
+                    session.session_date.weekday() != session.course.weekday):
+                weekly_mismatch.append(session)
+        # 이번 주 세션이 없는 수업 → Course.weekday 기준으로 표시
+        for course in teacher_courses:
+            if (course.course_id not in session_course_ids_this_week and
+                    course.weekday is not None and
+                    not course.is_terminated and
+                    course.status == 'active'):
+                weekly_courses_only[course.weekday].append(course)
 
     # ── 월간 뷰 ──
     month_offset = int(request.args.get('month', 0))
@@ -2665,6 +2680,8 @@ def all_schedule():
                          week_end=week_end,
                          week_offset=week_offset,
                          weekly_schedule=weekly_schedule,
+                         weekly_courses_only=weekly_courses_only,
+                         weekly_mismatch=weekly_mismatch,
                          time_slots=time_slots,
                          # monthly
                          month_offset=month_offset,

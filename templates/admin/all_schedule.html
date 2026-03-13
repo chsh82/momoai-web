@@ -134,6 +134,27 @@
         </p>
     </div>
 
+    <!-- 요일 불일치 경고 -->
+    {% if weekly_mismatch %}
+    <div class="bg-orange-50 border border-orange-300 rounded-lg p-3 mb-4">
+        <div class="flex items-start gap-2">
+            <span class="text-orange-500 font-bold mt-0.5">⚠️</span>
+            <div>
+                <p class="text-sm font-semibold text-orange-800">요일 불일치 감지됨</p>
+                <p class="text-xs text-orange-700 mt-0.5">아래 수업의 세션 날짜가 수업 설정 요일과 다릅니다. 수업관리에서 해당 수업을 저장하면 자동으로 수정됩니다.</p>
+                <ul class="mt-1 space-y-0.5">
+                {% set wday_names = ['월','화','수','목','금','토','일'] %}
+                {% for s in weekly_mismatch %}
+                <li class="text-xs text-orange-700">
+                    · {{ s.course.course_name }}: 세션={{ s.session_date.strftime('%m/%d') }}({{ wday_names[s.session_date.weekday()] }}), 설정={{ wday_names[s.course.weekday] }}요일
+                </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 통계 + 범례 (시간표 위) -->
     {% set total_count = stat_sessions | length %}
     {% set scheduled_count = stat_sessions | selectattr('status', 'equalto', 'scheduled') | list | length %}
@@ -174,6 +195,10 @@
                 <div class="flex items-center gap-1.5">
                     <div class="w-3.5 h-3.5 bg-red-100 border border-red-400 rounded flex-shrink-0"></div>
                     <span class="text-xs text-gray-600">취소</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-3.5 h-3.5 bg-gray-100 border border-dashed border-gray-400 rounded flex-shrink-0"></div>
+                    <span class="text-xs text-gray-600">세션 미생성</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <div class="w-3.5 h-3.5 bg-blue-50 border border-blue-200 rounded flex-shrink-0"></div>
@@ -299,7 +324,7 @@
                          style="top: {{ (h - START_HOUR) * 60 + 30 }}px;"></div>
                     {% endfor %}
 
-                    <!-- 수업 블록 -->
+                    <!-- 수업 블록 (CourseSession 기반) -->
                     {% for session in weekly_schedule[day_idx] %}
                     {% if session.start_time %}
                         {% set s_total = session.start_time.hour * 60 + session.start_time.minute %}
@@ -311,17 +336,20 @@
                             {% set dur = 60 %}
                         {% endif %}
                         {% set h_px = dur if dur >= 24 else 24 %}
+                        {% set wd_mismatch = session.course.weekday is not none and session.session_date.weekday() != session.course.weekday %}
                     <a href="{{ url_for('admin.course_detail', course_id=session.course.course_id) }}"
                        class="absolute rounded overflow-hidden text-xs shadow-sm
                               hover:shadow-md hover:z-20 transition z-10
-                              {% if session.status == 'scheduled' %}bg-blue-100 border border-blue-400 text-blue-900
+                              {% if wd_mismatch %}bg-orange-100 border-2 border-orange-500 text-orange-900
+                              {% elif session.status == 'scheduled' %}bg-blue-100 border border-blue-400 text-blue-900
                               {% elif session.status == 'completed' %}bg-green-100 border border-green-400 text-green-900
                               {% elif session.status == 'cancelled' %}bg-red-100 border border-red-400 text-red-900
                               {% else %}bg-gray-100 border border-gray-400 text-gray-900{% endif %}"
                        style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px;"
-                       title="{{ session.course.course_name }} | {{ session.start_time.strftime('%H:%M') }}{% if session.end_time %} ~ {{ session.end_time.strftime('%H:%M') }}{% endif %}">
+                       title="{{ session.course.course_name }} | {{ session.start_time.strftime('%H:%M') }}{% if session.end_time %} ~ {{ session.end_time.strftime('%H:%M') }}{% endif %}{% if wd_mismatch %} ⚠️ 요일불일치{% endif %}">
                         {% set active_enr = session.course.enrollments | selectattr('status', 'equalto', 'active') | list %}
                         <div class="px-1 pt-0.5 leading-tight h-full flex flex-col overflow-hidden">
+                            {% if wd_mismatch %}<div class="text-orange-600 font-bold text-xs">⚠️ 요일불일치</div>{% endif %}
                             <div class="font-semibold truncate">{{ session.course.course_name }}</div>
                             {% if h_px >= 36 %}
                             <div class="opacity-75 mt-0.5 truncate">
@@ -330,6 +358,50 @@
                             {% endif %}
                             {% if h_px >= 52 %}
                             <div class="opacity-75 mt-0.5">👥 {{ active_enr | length }}명{% if session.course.grade %} · {{ session.course.grade }}{% endif %}</div>
+                            {% endif %}
+                            {% if h_px >= 65 %}
+                            <div class="mt-0.5 space-y-0.5">
+                                {% for en in active_enr[:4] %}
+                                <div class="text-xs opacity-90 truncate font-medium">{{ en.student.name }}</div>
+                                {% endfor %}
+                                {% if active_enr | length > 4 %}
+                                <div class="text-xs opacity-60">+{{ active_enr | length - 4 }}명</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+
+                    <!-- 세션 없는 수업 (Course.weekday 기준 표시) -->
+                    {% for course in weekly_courses_only[day_idx] %}
+                    {% if course.start_time %}
+                        {% set s_total = course.start_time.hour * 60 + course.start_time.minute %}
+                        {% set top_px = s_total - START_HOUR * 60 %}
+                        {% if course.end_time %}
+                            {% set e_total = course.end_time.hour * 60 + course.end_time.minute %}
+                            {% set dur = e_total - s_total %}
+                        {% else %}
+                            {% set dur = 60 %}
+                        {% endif %}
+                        {% set h_px = dur if dur >= 24 else 24 %}
+                    <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
+                       class="absolute rounded overflow-hidden text-xs z-10
+                              bg-gray-100 border border-dashed border-gray-400 text-gray-600
+                              hover:shadow-md hover:z-20 transition"
+                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;"
+                       title="{{ course.course_name }} | {{ course.start_time.strftime('%H:%M') }} (세션 미생성)">
+                        {% set active_enr = course.enrollments | selectattr('status', 'equalto', 'active') | list %}
+                        <div class="px-1 pt-0.5 leading-tight h-full flex flex-col overflow-hidden">
+                            <div class="font-semibold truncate">{{ course.course_name }}</div>
+                            {% if h_px >= 36 %}
+                            <div class="opacity-75 mt-0.5 truncate">
+                                {{ course.start_time.strftime('%H:%M') }}{% if course.end_time %}&nbsp;–&nbsp;{{ course.end_time.strftime('%H:%M') }}{% endif %}
+                            </div>
+                            {% endif %}
+                            {% if h_px >= 52 %}
+                            <div class="opacity-75 mt-0.5">👥 {{ active_enr | length }}명 <span class="text-gray-400">(세션없음)</span></div>
                             {% endif %}
                             {% if h_px >= 65 %}
                             <div class="mt-0.5 space-y-0.5">
