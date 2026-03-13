@@ -198,8 +198,8 @@
                       {% elif session.status == 'completed' %}bg-green-50 border-green-300
                       {% elif session.status == 'cancelled' %}bg-red-50 border-red-300
                       {% else %}bg-gray-50 border-gray-300{% endif %}">
-                <div class="flex items-center justify-between">
-                    <div>
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
                         <p class="font-semibold text-gray-800">{{ session.course.course_name }}</p>
                         <p class="text-sm text-gray-600 mt-1">
                             {% if session.start_time %}🕐 {{ session.start_time.strftime('%H:%M') }}{% endif %}
@@ -207,6 +207,16 @@
                             {% if session.course.grade %} · 📚 {{ session.course.grade }}{% endif %}
                             · 👥 {{ session.course.enrolled_count }}명
                         </p>
+                        {% set daily_enr = session.course.enrollments | selectattr('status', 'equalto', 'active') | list %}
+                        {% if daily_enr %}
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            {% for en in daily_enr %}
+                            <span class="px-2 py-0.5 bg-white bg-opacity-60 border border-current border-opacity-30 rounded-full text-xs font-medium">
+                                {{ en.student.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                     <span class="text-sm font-medium px-3 py-1 rounded-full
                                  {% if session.status == 'scheduled' %}bg-blue-200 text-blue-800
@@ -310,6 +320,7 @@
                               {% else %}bg-gray-100 border border-gray-400 text-gray-900{% endif %}"
                        style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px;"
                        title="{{ session.course.course_name }} | {{ session.start_time.strftime('%H:%M') }}{% if session.end_time %} ~ {{ session.end_time.strftime('%H:%M') }}{% endif %}">
+                        {% set active_enr = session.course.enrollments | selectattr('status', 'equalto', 'active') | list %}
                         <div class="px-1 pt-0.5 leading-tight h-full flex flex-col overflow-hidden">
                             <div class="font-semibold truncate">{{ session.course.course_name }}</div>
                             {% if h_px >= 36 %}
@@ -318,7 +329,17 @@
                             </div>
                             {% endif %}
                             {% if h_px >= 52 %}
-                            <div class="opacity-75 mt-0.5">👥 {{ session.course.enrolled_count }}명{% if session.course.grade %} · {{ session.course.grade }}{% endif %}</div>
+                            <div class="opacity-75 mt-0.5">👥 {{ active_enr | length }}명{% if session.course.grade %} · {{ session.course.grade }}{% endif %}</div>
+                            {% endif %}
+                            {% if h_px >= 65 %}
+                            <div class="mt-0.5 space-y-0.5">
+                                {% for en in active_enr[:4] %}
+                                <div class="text-xs opacity-90 truncate font-medium">{{ en.student.name }}</div>
+                                {% endfor %}
+                                {% if active_enr | length > 4 %}
+                                <div class="text-xs opacity-60">+{{ active_enr | length - 4 }}명</div>
+                                {% endif %}
+                            </div>
                             {% endif %}
                         </div>
                     </a>

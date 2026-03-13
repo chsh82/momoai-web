@@ -475,17 +475,27 @@ def edit_course(course_id):
         course.is_terminated = (form.is_terminated.data == 'Y')
 
         # 시작/종료 시간이 변경된 경우: 미래 예정 세션들 시간도 일괄 업데이트
+        from datetime import date as _date, timedelta as _td
         time_changed = (old_start_time != course.start_time or old_end_time != course.end_time)
-        if time_changed:
-            from datetime import date as _date
+        weekday_changed = (old_weekday != course.weekday and
+                           course.schedule_type == 'weekly' and
+                           course.weekday is not None and
+                           old_weekday is not None)
+
+        if time_changed or weekday_changed:
             future_sessions = CourseSession.query.filter(
                 CourseSession.course_id == course.course_id,
                 CourseSession.status == 'scheduled',
                 CourseSession.session_date >= _date.today()
             ).all()
             for s in future_sessions:
-                s.start_time = course.start_time
-                s.end_time = course.end_time
+                if time_changed:
+                    s.start_time = course.start_time
+                    s.end_time = course.end_time
+                if weekday_changed:
+                    # 같은 주 내에서 새 요일로 날짜 이동
+                    day_shift = course.weekday - old_weekday
+                    s.session_date = s.session_date + _td(days=day_shift)
 
         # 종료일이 연장된 weekly 수업: 새 세션 자동 생성
         if (course.schedule_type == 'weekly' and course.weekday is not None
