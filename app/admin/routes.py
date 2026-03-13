@@ -631,9 +631,12 @@ def manage_students(course_id):
     enrollments = CourseEnrollment.query.filter_by(course_id=course_id)\
         .order_by(CourseEnrollment.enrolled_at.desc()).all()
 
-    # 등록 가능한 학생 (아직 수강 신청하지 않은 학생)
+    # 등록 가능한 학생 (아직 수강 신청하지 않은 학생, 임시학생 제외)
     enrolled_student_ids = [e.student_id for e in enrollments if e.status == 'active']
-    available_students = Student.query.filter(~Student.student_id.in_(enrolled_student_ids)).all()
+    available_students = Student.query.filter(
+        ~Student.student_id.in_(enrolled_student_ids),
+        Student.is_temp == False
+    ).all()
 
     return render_template('admin/manage_students.html',
                          course=course,
@@ -1608,7 +1611,7 @@ def search_students():
     query = request.args.get('q', '').strip()
     grade = request.args.get('grade', '').strip()
 
-    students_query = Student.query
+    students_query = Student.query.filter_by(is_temp=False)
 
     if grade:
         students_query = students_query.filter_by(grade=grade)
@@ -3787,8 +3790,9 @@ def api_search_students():
     if not query_text:
         return jsonify({'students': []})
 
-    # 이름으로만 검색 (student_code 필드 없음)
+    # 이름으로만 검색 (student_code 필드 없음, 임시학생 제외)
     students = Student.query.filter(
+        Student.is_temp == False,
         Student.name.ilike(f'%{query_text}%')
     ).limit(20).all()
 

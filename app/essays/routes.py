@@ -273,7 +273,7 @@ def new():
                 teacher_id=current_user.user_id,
                 name=new_name,
                 grade=new_grade,
-                is_temp=False
+                is_temp=True
             )
             db.session.add(student)
             db.session.flush()
