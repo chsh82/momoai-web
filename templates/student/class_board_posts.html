@@ -10,13 +10,11 @@
            class="text-blue-600 hover:text-blue-700 text-sm mb-2 inline-block">
             ← 수업 목록으로
         </a>
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-3xl font-bold text-gray-800">{{ course.course_name }}</h2>
-                <p class="text-gray-600 mt-1">👨‍🏫 {{ course.teacher.name if course.teacher else '미배정' }}</p>
-            </div>
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 truncate">{{ course.course_name }}</h2>
+            <p class="text-gray-600 mt-1 mb-3">👨‍🏫 {{ course.teacher.name if course.teacher else '미배정' }}</p>
             <a href="{{ url_for('student.create_class_board_post', course_id=course.course_id) }}"
-               class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition duration-200 text-sm">
                 ✍️ 글쓰기
             </a>
         </div>
