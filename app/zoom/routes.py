@@ -2,7 +2,7 @@
 """줌 온라인 강의실 라우트"""
 from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
-from datetime import datetime
+from datetime import datetime, time as dtime
 
 from app.zoom import zoom_bp
 from app.models import db, User, Student, Course, CourseSession, CourseEnrollment
@@ -36,12 +36,12 @@ def join(token):
     teacher = User.query.filter_by(zoom_token=token, role='teacher', is_active=True).first()
     if not teacher:
         flash('유효하지 않은 강의실 링크입니다.', 'danger')
-        return redirect(url_for('student_portal.courses'))
+        return redirect(url_for('student.courses'))
 
     # 줌 링크가 없는 경우
     if not teacher.zoom_link:
         flash('강사님의 온라인 강의실이 아직 준비되지 않았습니다.', 'warning')
-        return redirect(url_for('student_portal.courses'))
+        return redirect(url_for('student.courses'))
 
     # 해당 강사의 수업에 등록되어 있는지 확인
     enrollment = db.session.query(CourseEnrollment).join(Course).filter(
@@ -52,7 +52,7 @@ def join(token):
 
     if not enrollment:
         flash('해당 강사님의 수업에 등록되어 있지 않습니다.', 'danger')
-        return redirect(url_for('student_portal.courses'))
+        return redirect(url_for('student.courses'))
 
     # 현재 또는 다가오는 수업 세션 찾기
     session = get_current_or_upcoming_session(student.student_id)
@@ -60,7 +60,11 @@ def join(token):
     # 수업이 없어도 강사의 줌 링크로 접속은 허용하되, 시간 체크만 수행
     if session:
         # 수업 시작 시간 확인 (10분 전부터 접속 가능)
-        can_access, message = can_access_zoom(session.session_date)
+        session_start = dtime.min
+        if session.start_time:
+            session_start = session.start_time
+        session_dt = datetime.combine(session.session_date, session_start)
+        can_access, message = can_access_zoom(session_dt)
 
         if not can_access:
             # 10분 전이 아니면 대기 페이지 표시
@@ -84,7 +88,7 @@ def join(token):
     zoom_url = decrypt_zoom_link(teacher.zoom_link)
     if not zoom_url:
         flash('강의실 링크를 불러올 수 없습니다. 관리자에게 문의하세요.', 'danger')
-        return redirect(url_for('student_portal.courses'))
+        return redirect(url_for('student.courses'))
 
     # 실제 줌 링크로 리다이렉트
     return redirect(zoom_url)

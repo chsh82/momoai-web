@@ -490,10 +490,12 @@ def attendance():
     for enrollment in enrollments:
         course = enrollment.course
 
-        # 이 enrollment의 모든 출석 기록
+        # 이 enrollment의 출석 기록 (오늘 이전 과거 세션만)
         attendance_records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
-        ).join(CourseSession).order_by(CourseSession.session_date.desc()).all()
+        ).join(CourseSession).filter(
+            CourseSession.session_date <= date.today()
+        ).order_by(CourseSession.session_date.desc()).all()
 
         # 출석 통계 계산
         total_sessions = len(attendance_records)
