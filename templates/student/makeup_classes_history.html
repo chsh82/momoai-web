@@ -12,37 +12,35 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h2 class="text-3xl font-bold text-gray-800">📋 보강수업 신청 이력</h2>
-            <p class="text-gray-600 mt-2">전체 보강수업 신청 내역을 확인할 수 있습니다.</p>
-        </div>
+    <div class="mb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 truncate">📋 보강수업 신청 이력</h2>
+        <p class="text-gray-600 mt-1 mb-3">전체 보강수업 신청 내역을 확인할 수 있습니다.</p>
         <a href="{{ url_for('student.makeup_classes') }}"
-           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+           class="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm">
             ← 보강수업 신청
         </a>
     </div>
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="text-sm text-gray-600 mb-1">전체 신청</div>
-            <div class="text-3xl font-bold text-gray-800">{{ all_requests|length }}</div>
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-gray-400">
+            <div class="text-xs text-gray-500 mb-1">전체 신청</div>
+            <div class="text-2xl font-bold text-gray-800">{{ all_requests|length }}</div>
         </div>
 
-        <div class="bg-yellow-50 rounded-lg shadow p-6">
-            <div class="text-sm text-yellow-600 mb-1">대기 중</div>
-            <div class="text-3xl font-bold text-yellow-700">{{ pending_count }}</div>
+        <div class="bg-yellow-50 rounded-lg shadow p-4 border-l-4 border-yellow-400">
+            <div class="text-xs text-yellow-600 mb-1">대기 중</div>
+            <div class="text-2xl font-bold text-yellow-700">{{ pending_count }}</div>
         </div>
 
-        <div class="bg-green-50 rounded-lg shadow p-6">
-            <div class="text-sm text-green-600 mb-1">승인됨</div>
-            <div class="text-3xl font-bold text-green-700">{{ approved_count }}</div>
+        <div class="bg-green-50 rounded-lg shadow p-4 border-l-4 border-green-400">
+            <div class="text-xs text-green-600 mb-1">승인됨</div>
+            <div class="text-2xl font-bold text-green-700">{{ approved_count }}</div>
         </div>
 
-        <div class="bg-red-50 rounded-lg shadow p-6">
-            <div class="text-sm text-red-600 mb-1">거절됨</div>
-            <div class="text-3xl font-bold text-red-700">{{ rejected_count }}</div>
+        <div class="bg-red-50 rounded-lg shadow p-4 border-l-4 border-red-400">
+            <div class="text-xs text-red-600 mb-1">거절됨</div>
+            <div class="text-2xl font-bold text-red-700">{{ rejected_count }}</div>
         </div>
     </div>
 
