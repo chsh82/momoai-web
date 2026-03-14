@@ -91,7 +91,12 @@
                 <!-- 상단: 이름 + 상태 -->
                 <div class="flex items-start justify-between mb-2">
                     <div>
-                        <h3 class="font-bold text-gray-800 text-base">{{ item.user.name }}</h3>
+                        <h3 class="font-bold text-gray-800 text-base">
+                            {{ item.user.name }}
+                            {% if item.children %}
+                            <span class="text-gray-400 font-normal text-xs ml-1">({{ item.children | map(attribute='name') | join(', ') }}) 학부모</span>
+                            {% endif %}
+                        </h3>
                         <p class="text-xs text-gray-400 mt-0.5">{{ item.user.created_at.strftime('%Y.%m.%d') }} 가입</p>
                     </div>
                     {% if item.user.is_active %}
