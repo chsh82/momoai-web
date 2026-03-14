@@ -4259,6 +4259,8 @@ def edit_parent(parent_id):
         email = request.form.get('email', '').strip()
         phone = request.form.get('phone', '').strip()
         kakao_id = request.form.get('kakao_id', '').strip()
+        country = request.form.get('country', '').strip() or None
+        city = request.form.get('city', '').strip() or None
         is_active = 'is_active' in request.form
 
         if not name or not email:
@@ -4277,7 +4279,25 @@ def edit_parent(parent_id):
         parent.email = email
         parent.phone = phone if phone else None
         parent.kakao_id = kakao_id if kakao_id else None
+        parent.country = country
+        parent.city = city
         parent.is_active = is_active
+
+        # 거주 정보가 있으면 연결된 자녀에게도 동기화
+        if country or city:
+            from app.models.parent_student import ParentStudent
+            from app.models import Student as _Student
+            for ps in ParentStudent.query.filter_by(parent_id=parent_id, is_active=True).all():
+                child = _Student.query.get(ps.student_id)
+                if child:
+                    child.country = country
+                    child.city = city
+                    if child.user_id:
+                        child_user = User.query.get(child.user_id)
+                        if child_user:
+                            child_user.country = country
+                            child_user.city = city
+
         db.session.commit()
 
         flash(f'{parent.name}님의 정보가 수정되었습니다.', 'success')

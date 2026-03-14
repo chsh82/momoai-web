@@ -55,6 +55,50 @@
                     </p>
                 </div>
 
+                <!-- 거주 국가/도시 -->
+                <div class="mb-5 border-t border-gray-200 pt-5">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">🌍 거주 국가 / 도시 <span class="text-gray-400 font-normal text-xs">(선택사항 · 저장 시 연결 자녀에게도 적용)</span></h4>
+
+                    <!-- 국가 탭 -->
+                    <div class="mb-3">
+                        <p class="text-xs text-gray-500 mb-2">국가 선택</p>
+                        <div class="flex flex-wrap gap-2" id="countryTabs">
+                            {% set countries = ['대한민국','미국','캐나다','호주','영국','독일','프랑스','일본','중국','싱가포르','홍콩','뉴질랜드','네덜란드','스위스','스웨덴','아랍에미리트','태국','베트남','인도네시아','필리핀','말레이시아','브라질','직접입력'] %}
+                            {% for c in countries %}
+                            <button type="button" onclick="selectCountry('{{ c }}')"
+                                    class="country-tab px-3 py-1.5 rounded-full text-sm border transition duration-150
+                                           {% if parent.country == c %}bg-blue-600 text-white border-blue-600
+                                           {% elif not parent.country and c == '대한민국' %}bg-blue-600 text-white border-blue-600
+                                           {% elif c == '직접입력' and parent.country and parent.country not in countries[:-1] %}bg-blue-600 text-white border-blue-600
+                                           {% else %}bg-white text-gray-600 border-gray-300 hover:border-blue-400{% endif %}">
+                                {{ c }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- 도시 탭 -->
+                    <div class="mb-3">
+                        <p class="text-xs text-gray-500 mb-2">도시 선택 <span class="text-gray-400">(해당 없으면 국가만 선택)</span></p>
+                        <div class="flex flex-wrap gap-2" id="cityTabs"></div>
+                    </div>
+
+                    <!-- 직접 입력 -->
+                    <div id="customCountrySection" class="mb-3 hidden">
+                        <input type="text" id="customCountryInput"
+                               placeholder="국가명 직접 입력 (예: 우즈베키스탄)"
+                               oninput="customCountryChange(this.value)"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- 선택 결과 미리보기 -->
+                    <div id="locationPreview" class="text-sm text-blue-700 font-medium mt-1"></div>
+
+                    <!-- 실제 전송 hidden inputs -->
+                    <input type="hidden" name="country" id="countryInput" value="{{ parent.country or '' }}">
+                    <input type="hidden" name="city" id="cityInput" value="{{ parent.city or '' }}">
+                </div>
+
                 <div class="mb-6">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" name="is_active" value="1"
@@ -79,4 +123,114 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CITY_DATA = {
+    '대한민국': ['서울','부산','인천','대구','대전','광주','울산','수원','창원','고양','용인','성남','청주','안산','전주','천안','안양','남양주','화성','부천'],
+    '미국': ['뉴욕','로스앤젤레스','시카고','휴스턴','피닉스','필라델피아','샌안토니오','샌디에이고','댈러스','시애틀','보스턴','워싱턴DC','애틀랜타','마이애미','덴버'],
+    '캐나다': ['토론토','밴쿠버','몬트리올','캘거리','에드먼턴','오타와','위니펙','퀘벡시티'],
+    '호주': ['시드니','멜버른','브리즈번','퍼스','애들레이드','골드코스트','캔버라'],
+    '영국': ['런던','맨체스터','버밍엄','리즈','글래스고','에든버러','리버풀','브리스톨'],
+    '독일': ['베를린','뮌헨','함부르크','쾰른','프랑크푸르트','슈투트가르트','뒤셀도르프'],
+    '프랑스': ['파리','마르세유','리옹','툴루즈','니스','낭트','스트라스부르'],
+    '일본': ['도쿄','오사카','요코하마','나고야','삿포로','후쿠오카','고베','교토'],
+    '중국': ['베이징','상하이','광저우','선전','충칭','청두','텐진','우한','시안','항저우'],
+    '싱가포르': ['싱가포르'],
+    '홍콩': ['홍콩'],
+    '뉴질랜드': ['오클랜드','웰링턴','크라이스트처치','해밀턴','더니든'],
+    '네덜란드': ['암스테르담','로테르담','헤이그','위트레흐트'],
+    '스위스': ['취리히','제네바','바젤','베른','로잔'],
+    '스웨덴': ['스톡홀름','예테보리','말뫼','웁살라'],
+    '아랍에미리트': ['두바이','아부다비','샤르자'],
+    '태국': ['방콕','치앙마이','파타야','푸켓'],
+    '베트남': ['하노이','호치민','다낭','호이안'],
+    '인도네시아': ['자카르타','발리','수라바야','반둥'],
+    '필리핀': ['마닐라','세부','다바오'],
+    '말레이시아': ['쿠알라룸푸르','페낭','코타키나발루','조호르바루'],
+    '브라질': ['상파울루','리우데자네이루','브라질리아','살바도르']
+};
+const PRESET_COUNTRIES = Object.keys(CITY_DATA);
+
+const initCountry = document.getElementById('countryInput').value;
+const initCity    = document.getElementById('cityInput').value;
+
+window.addEventListener('DOMContentLoaded', function() {
+    if (initCountry && !PRESET_COUNTRIES.includes(initCountry)) {
+        document.getElementById('customCountrySection').classList.remove('hidden');
+        document.getElementById('customCountryInput').value = initCountry;
+        renderCityTabs([]);
+    } else {
+        renderCityTabs(CITY_DATA[initCountry] || []);
+    }
+    updatePreview();
+});
+
+function selectCountry(c) {
+    document.querySelectorAll('.country-tab').forEach(btn => {
+        const active = 'bg-blue-600 text-white border-blue-600';
+        const inactive = 'bg-white text-gray-600 border-gray-300 hover:border-blue-400';
+        if (btn.textContent.trim() === c) {
+            btn.classList.remove(...inactive.split(' '));
+            btn.classList.add(...active.split(' '));
+        } else {
+            btn.classList.remove(...active.split(' '));
+            btn.classList.add(...inactive.split(' '));
+        }
+    });
+    if (c === '직접입력') {
+        document.getElementById('customCountrySection').classList.remove('hidden');
+        document.getElementById('countryInput').value = '';
+        document.getElementById('cityInput').value = '';
+        renderCityTabs([]);
+        updatePreview();
+        return;
+    }
+    document.getElementById('customCountrySection').classList.add('hidden');
+    document.getElementById('countryInput').value = c;
+    document.getElementById('cityInput').value = '';
+    renderCityTabs(CITY_DATA[c] || []);
+    updatePreview();
+}
+
+function selectCity(city) {
+    document.getElementById('cityInput').value = city;
+    document.querySelectorAll('.city-tab').forEach(btn => {
+        if (btn.textContent.trim() === city) {
+            btn.className = 'city-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-green-500 text-white border-green-500';
+        } else {
+            btn.className = 'city-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-white text-gray-600 border-gray-300 hover:border-green-400';
+        }
+    });
+    updatePreview();
+}
+
+function renderCityTabs(cities) {
+    const container = document.getElementById('cityTabs');
+    container.innerHTML = '';
+    const curCity = document.getElementById('cityInput').value;
+    cities.forEach(city => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'city-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 ' +
+            (curCity === city ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-600 border-gray-300 hover:border-green-400');
+        btn.textContent = city;
+        btn.onclick = () => selectCity(city);
+        container.appendChild(btn);
+    });
+}
+
+function customCountryChange(val) {
+    document.getElementById('countryInput').value = val;
+    document.getElementById('cityInput').value = '';
+    updatePreview();
+}
+
+function updatePreview() {
+    const c = document.getElementById('countryInput').value;
+    const ci = document.getElementById('cityInput').value;
+    document.getElementById('locationPreview').textContent = c ? '선택: ' + c + (ci ? ' · ' + ci : '') : '';
+}
+</script>
 {% endblock %}
