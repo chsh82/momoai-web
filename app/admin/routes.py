@@ -6544,3 +6544,96 @@ def help_pdf():
     """관리자 사용 설명서 PDF 다운로드"""
     from app.utils.pdf_utils import generate_admin_manual_pdf
     return generate_admin_manual_pdf()
+
+
+@admin_bp.route('/push-notifications')
+@login_required
+@requires_permission_level(2)
+def push_notification_dashboard():
+    """푸시 알림 관리 대시보드"""
+    from datetime import datetime, timedelta
+    from app.models.push_subscription import PushSubscription
+    from app.models.reminder_log import ReminderLog
+    from app.models.course import CourseSession, CourseEnrollment
+
+    # 구독 통계
+    total_subs = PushSubscription.query.count()
+    subscribed_users = db.session.query(PushSubscription.user_id).distinct().count()
+
+    # 역할별 구독자
+    from sqlalchemy import func
+    role_stats = db.session.query(User.role, func.count(PushSubscription.id))\
+        .join(PushSubscription, User.user_id == PushSubscription.user_id)\
+        .group_by(User.role).all()
+
+    # 최근 발송 이력 (최근 20건)
+    recent_logs = db.session.query(ReminderLog, CourseSession)\
+        .join(CourseSession, ReminderLog.session_id == CourseSession.session_id)\
+        .order_by(ReminderLog.sent_at.desc()).limit(20).all()
+
+    # 앞으로 2시간 내 예정 세션
+    now = datetime.now()
+    upcoming = CourseSession.query.filter(
+        CourseSession.session_date == now.date(),
+        CourseSession.start_time >= now.time(),
+        CourseSession.start_time <= (now + timedelta(hours=2)).time(),
+        CourseSession.status == 'scheduled'
+    ).all()
+
+    return render_template('admin/push_dashboard.html',
+                           total_subs=total_subs,
+                           subscribed_users=subscribed_users,
+                           role_stats=dict(role_stats),
+                           recent_logs=recent_logs,
+                           upcoming=upcoming,
+                           now=now)
+
+
+@admin_bp.route('/push-notifications/test', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def push_test_send():
+    """관리자 테스트 푸시 발송"""
+    from app.utils.push_utils import send_push_to_user
+    target = request.form.get('target', 'me')
+
+    if target == 'me':
+        send_push_to_user(
+            user_id=current_user.user_id,
+            title='🔔 테스트 알림',
+            body='푸시 알림이 정상적으로 작동합니다.',
+            url='/admin/push-notifications'
+        )
+        flash('본인에게 테스트 푸시를 발송했습니다.', 'success')
+
+    elif target == 'all':
+        from app.models.push_subscription import PushSubscription
+        user_ids = [r.user_id for r in db.session.query(PushSubscription.user_id).distinct().all()]
+        for uid in user_ids:
+            send_push_to_user(
+                user_id=uid,
+                title='📢 공지 테스트',
+                body='관리자 테스트 알림입니다.',
+                url='/notifications'
+            )
+        flash(f'{len(user_ids)}명에게 테스트 푸시를 발송했습니다.', 'success')
+
+    return redirect(url_for('admin.push_notification_dashboard'))
+
+
+@admin_bp.route('/push-notifications/trigger-reminder', methods=['POST'])
+@login_required
+@requires_permission_level(1)
+def trigger_reminder_now():
+    """리마인더 즉시 실행 (master_admin 전용)"""
+    try:
+        from app.utils.scheduler import send_class_reminders
+        from flask import current_app
+        import threading
+        app = current_app._get_current_object()
+        t = threading.Thread(target=send_class_reminders, args=[app], daemon=True)
+        t.start()
+        flash('수업 알림 스케줄러를 즉시 실행했습니다.', 'success')
+    except Exception as e:
+        flash(f'실행 오류: {e}', 'danger')
+    return redirect(url_for('admin.push_notification_dashboard'))

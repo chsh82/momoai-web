@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}푸시 알림 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">🔔 푸시 알림 관리</h2>
+            <p class="text-gray-500 text-sm mt-1">수업 1시간 전 알림 · 30분 간격 자동 실행</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+        <div class="mb-4 p-4 rounded-lg {% if category == 'danger' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <div class="text-3xl font-bold text-blue-600">{{ total_subs }}</div>
+            <div class="text-xs text-gray-500 mt-1">전체 구독 수</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <div class="text-3xl font-bold text-green-600">{{ subscribed_users }}</div>
+            <div class="text-xs text-gray-500 mt-1">구독 사용자 수</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <div class="text-3xl font-bold text-purple-600">{{ role_stats.get('student', 0) }}</div>
+            <div class="text-xs text-gray-500 mt-1">학생 구독</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 text-center">
+            <div class="text-3xl font-bold text-orange-500">{{ role_stats.get('parent', 0) }}</div>
+            <div class="text-xs text-gray-500 mt-1">학부모 구독</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- 테스트 발송 -->
+        <div class="bg-white rounded-xl shadow p-5">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">테스트 발송</h3>
+
+            <form method="POST" action="{{ url_for('admin.push_test_send') }}" class="space-y-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">대상 선택</label>
+                    <select name="target" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <option value="me">나(관리자)에게만</option>
+                        <option value="all">구독자 전체</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition text-sm">
+                    📤 테스트 푸시 발송
+                </button>
+            </form>
+
+            {% if current_user.role_level <= 1 %}
+            <hr class="my-4 border-gray-200">
+            <form method="POST" action="{{ url_for('admin.trigger_reminder_now') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        onclick="return confirm('수업 알림 스케줄러를 지금 즉시 실행합니다. 계속하시겠습니까?')"
+                        class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 rounded-lg transition text-sm">
+                    ⚡ 리마인더 즉시 실행 (master)
+                </button>
+            </form>
+            {% endif %}
+
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500 space-y-1">
+                <p>• 스케줄러: <span class="font-medium text-green-600">30분 간격 자동 실행</span></p>
+                <p>• 발송 조건: 오늘 수업 중 지금으로부터 55~65분 후 시작되는 세션</p>
+                <p>• 중복 방지: 세션당 1회만 발송</p>
+            </div>
+        </div>
+
+        <!-- 오늘 앞으로 2시간 내 수업 -->
+        <div class="bg-white rounded-xl shadow p-5">
+            <h3 class="text-lg font-bold text-gray-800 mb-1">오늘 예정 수업 <span class="text-sm font-normal text-gray-400">(지금~2시간 후)</span></h3>
+            <p class="text-xs text-gray-400 mb-4">기준: {{ now.strftime('%H:%M') }}</p>
+
+            {% if upcoming %}
+            <div class="space-y-2">
+                {% for session in upcoming %}
+                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">{{ session.course.course_name }}</p>
+                        <p class="text-xs text-gray-500">{{ session.start_time.strftime('%H:%M') }} 시작</p>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full
+                        {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (now.hour * 60 + now.minute) %}
+                        {% if diff <= 65 and diff >= 55 %}bg-orange-100 text-orange-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (now.hour * 60 + now.minute) %}
+                        {{ diff }}분 후
+                        {% if diff <= 65 and diff >= 55 %} ← 알림 대상{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-gray-400 py-8 text-sm">
+                앞으로 2시간 내 예정된 수업이 없습니다.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 최근 발송 이력 -->
+    <div class="bg-white rounded-xl shadow p-5">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">최근 발송 이력</h3>
+
+        {% if recent_logs %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                        <th class="pb-2 pr-4">발송 시각</th>
+                        <th class="pb-2 pr-4">세션 날짜</th>
+                        <th class="pb-2 pr-4">수업명</th>
+                        <th class="pb-2">시작 시간</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for log, session in recent_logs %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 pr-4 text-gray-600">{{ log.sent_at.strftime('%m/%d %H:%M') }}</td>
+                        <td class="py-2 pr-4 text-gray-600">{{ session.session_date.strftime('%m/%d') }}</td>
+                        <td class="py-2 pr-4 font-medium text-gray-800">{{ session.course.course_name if session.course else '-' }}</td>
+                        <td class="py-2 text-gray-600">{{ session.start_time.strftime('%H:%M') if session.start_time else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-gray-400 py-8 text-sm">
+            아직 발송된 알림이 없습니다.<br>
+            <span class="text-xs">reminder_logs 테이블이 생성되면 여기에 이력이 표시됩니다.</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 구독 방법 안내 -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mt-6">
+        <h3 class="text-sm font-bold text-amber-800 mb-2">📱 학생·학부모 푸시 구독 안내</h3>
+        <ul class="text-xs text-amber-700 space-y-1 list-disc list-inside">
+            <li>학생·학부모가 사이트 접속 시 하단에 푸시 알림 허용 배너가 표시됩니다.</li>
+            <li>배너에서 <strong>"알림 허용"</strong>을 클릭하면 자동으로 구독 등록됩니다.</li>
+            <li>iOS Safari의 경우 홈 화면에 추가(PWA) 후 구독이 가능합니다.</li>
+            <li>현재 구독자가 0명이면 먼저 학생·학부모에게 알림 허용을 안내해주세요.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -332,6 +332,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_risk_analysis' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 🤖 학생 위험도 분석
                             </a>
+                            <a href="{{ url_for('admin.push_notification_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'push_notification' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                🔔 푸시 알림 관리
+                            </a>
                         </div>
                     </div>
 
