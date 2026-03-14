@@ -1790,13 +1790,14 @@ def upload_material():
             flash('파일이 선택되지 않았습니다.', 'error')
             return redirect(request.url)
 
-        # 파일 확장자 체크
-        filename = secure_filename(file.filename)
-        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        # 파일 확장자 체크 (원본 파일명에서 추출 - 한글 파일명 대응)
+        _, raw_ext = os.path.splitext(file.filename)
+        file_ext = raw_ext.lstrip('.').lower()
+        filename = secure_filename(file.filename) or f"file{raw_ext}"
 
         from config import ALLOWED_MATERIAL_EXTENSIONS
         if file_ext not in ALLOWED_MATERIAL_EXTENSIONS:
-            flash(f'허용되지 않는 파일 형식입니다. 허용: {", ".join(ALLOWED_MATERIAL_EXTENSIONS)}', 'error')
+            flash(f'허용되지 않는 파일 형식입니다. 허용: {", ".join(sorted(ALLOWED_MATERIAL_EXTENSIONS))}', 'error')
             return redirect(request.url)
 
         # 파일 저장

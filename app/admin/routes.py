@@ -3021,12 +3021,13 @@ def create_teaching_material():
             flash('파일은 최대 10개까지 업로드할 수 있습니다.', 'danger')
             return render_template('admin/teaching_material_form.html', form=form, mode='create')
 
-        # 허용 확장자
-        allowed_exts = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'zip'}
+        # 허용 확장자 (원본 파일명에서 추출 - 한글 파일명 대응)
+        from config import ALLOWED_MATERIAL_EXTENSIONS
         for f in uploaded_files:
-            ext = os.path.splitext(secure_filename(f.filename))[1].lstrip('.').lower()
-            if ext not in allowed_exts:
-                flash(f'허용되지 않는 파일 형식: {f.filename}. 허용: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, HWP, ZIP', 'danger')
+            _, raw_ext = os.path.splitext(f.filename)
+            ext = raw_ext.lstrip('.').lower()
+            if ext not in ALLOWED_MATERIAL_EXTENSIONS:
+                flash(f'허용되지 않는 파일 형식: {f.filename}. 허용: {", ".join(sorted(ALLOWED_MATERIAL_EXTENSIONS))}', 'danger')
                 return render_template('admin/teaching_material_form.html', form=form, mode='create')
 
         upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'materials')
@@ -3045,8 +3046,9 @@ def create_teaching_material():
 
         # 첫 번째 파일 정보로 TeachingMaterial 레코드 생성 (backward compat)
         first_file = uploaded_files[0]
-        first_name = secure_filename(first_file.filename)
-        first_ext = os.path.splitext(first_name)[1]
+        _, first_raw_ext = os.path.splitext(first_file.filename)
+        first_name = secure_filename(first_file.filename) or f"file{first_raw_ext}"
+        first_ext = first_raw_ext
         first_stored = f"{uuid.uuid4().hex}{first_ext}"
 
         book_id = request.form.get('book_id') or None
@@ -3071,8 +3073,9 @@ def create_teaching_material():
         # 각 파일 저장 및 TeachingMaterialFile 생성
         total_size = 0
         for idx, file in enumerate(uploaded_files):
-            orig_name = secure_filename(file.filename)
-            file_ext = os.path.splitext(orig_name)[1]
+            _, raw_file_ext = os.path.splitext(file.filename)
+            orig_name = secure_filename(file.filename) or f"file{raw_file_ext}"
+            file_ext = raw_file_ext
             stored_name = f"{uuid.uuid4().hex}{file_ext}" if idx > 0 else first_stored
             file_path = os.path.join(upload_folder, stored_name)
             file.save(file_path)
@@ -3177,7 +3180,7 @@ def edit_teaching_material(material_id):
         new_files = [f for f in new_files if f and f.filename]
 
         if new_files:
-            allowed_exts = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'zip'}
+            from config import ALLOWED_MATERIAL_EXTENSIONS
             current_count = len(material.files)
             if current_count + len(new_files) > 10:
                 flash(f'파일은 최대 10개까지 등록 가능합니다. (현재 {current_count}개)', 'danger')
@@ -3190,12 +3193,13 @@ def edit_teaching_material(material_id):
             next_order = current_count
 
             for file in new_files:
-                ext = os.path.splitext(secure_filename(file.filename))[1].lstrip('.').lower()
-                if ext not in allowed_exts:
+                _, raw_ext = os.path.splitext(file.filename)
+                ext = raw_ext.lstrip('.').lower()
+                if ext not in ALLOWED_MATERIAL_EXTENSIONS:
                     flash(f'허용되지 않는 파일 형식: {file.filename}', 'danger')
                     continue
-                orig_name = secure_filename(file.filename)
-                file_ext = os.path.splitext(orig_name)[1]
+                orig_name = secure_filename(file.filename) or f"file{raw_ext}"
+                file_ext = raw_ext
                 stored_name = f"{uuid.uuid4().hex}{file_ext}"
                 file_path = os.path.join(upload_folder, stored_name)
                 file.save(file_path)

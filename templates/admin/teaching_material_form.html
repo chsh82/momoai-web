@@ -196,9 +196,9 @@
                         <input type="file" name="file_uploads" multiple
                                {% if mode == 'create' %}required{% endif %}
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.zip"
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.hwp,.txt,.zip,.png,.jpg,.jpeg"
                                onchange="updateFileCount(this)">
-                        <p class="text-xs text-gray-500 mt-1">허용 파일: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, HWP, ZIP · 최대 32MB/파일</p>
+                        <p class="text-xs text-gray-500 mt-1">허용 파일: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, HWP, TXT, ZIP, PNG, JPG · 최대 32MB/파일</p>
                         <p id="fileCountMsg" class="text-xs text-blue-600 mt-1 hidden"></p>
                     </div>
                     {% else %}

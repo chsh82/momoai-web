@@ -38,7 +38,7 @@ NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
 # 업로드 제한
 MAX_CONTENT_LENGTH = 32 * 1024 * 1024  # 32MB
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
-ALLOWED_MATERIAL_EXTENSIONS = {'pdf', 'docx', 'pptx', 'xlsx', 'txt', 'zip', 'png', 'jpg', 'jpeg'}
+ALLOWED_MATERIAL_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'txt', 'zip', 'png', 'jpg', 'jpeg'}
 
 # 폴더 생성
 for folder in [UPLOAD_FOLDER, HTML_FOLDER, PDF_FOLDER, POST_FILES_FOLDER, POST_IMAGES_FOLDER,
