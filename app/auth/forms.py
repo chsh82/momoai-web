@@ -98,6 +98,10 @@ class SignupForm(FlaskForm):
     ])
     birth_date = DateField('생년월일', validators=[Optional()], format='%Y-%m-%d')
 
+    # 거주 국가/도시 (학부모·학생 공통, 선택)
+    country = StringField('거주 국가', validators=[Optional(), Length(max=100)])
+    city = StringField('거주 도시', validators=[Optional(), Length(max=100)])
+
     submit = SubmitField('회원가입')
 
     def validate_email(self, field):

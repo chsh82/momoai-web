@@ -149,7 +149,9 @@ def signup():
             role=role,
             is_active=False,  # 관리자 승인 후 활성화
             email_verified=not mail_configured,
-            role_level=5 if role == 'student' else 4
+            role_level=5 if role == 'student' else 4,
+            country=form.country.data if form.country.data else None,
+            city=form.city.data if form.city.data else None,
         )
         user.set_password(form.password.data)
 
@@ -173,7 +175,9 @@ def signup():
                     birth_date=form.birth_date.data,
                     email=user.email,
                     phone=user.phone,
-                    gender=user.gender
+                    gender=user.gender,
+                    country=user.country,
+                    city=user.city,
                 )
                 db.session.add(student_record)
 

@@ -147,6 +147,47 @@
                 {% endif %}
             </div>
 
+            <!-- 거주 국가/도시 (학부모·학생 공통) -->
+            <div id="locationFields" class="mb-6 border-t border-gray-200 pt-5 hidden">
+                <h3 class="text-base font-medium text-gray-800 mb-3">🌍 거주 정보 <span class="text-sm font-normal text-gray-500">(선택사항)</span></h3>
+
+                <!-- 국가 탭 -->
+                <div class="mb-3">
+                    <p class="text-xs text-gray-500 mb-2">국가 선택</p>
+                    <div class="flex flex-wrap gap-2" id="signupCountryTabs">
+                        {% set countries = ['대한민국','미국','캐나다','호주','영국','독일','프랑스','일본','중국','싱가포르','홍콩','뉴질랜드','네덜란드','스위스','스웨덴','아랍에미리트','태국','베트남','인도네시아','필리핀','말레이시아','브라질','직접입력'] %}
+                        {% for c in countries %}
+                        <button type="button" onclick="signupSelectCountry('{{ c }}')"
+                                class="signup-country-tab px-3 py-1.5 rounded-full text-sm border transition duration-150
+                                       {% if c == '대한민국' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:border-blue-400{% endif %}">
+                            {{ c }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 도시 탭 -->
+                <div id="signupCitySection" class="mb-3">
+                    <p class="text-xs text-gray-500 mb-2">도시 선택 <span class="text-gray-400">(해당 없으면 국가만 선택)</span></p>
+                    <div class="flex flex-wrap gap-2" id="signupCityTabs"></div>
+                </div>
+
+                <!-- 직접 입력 -->
+                <div id="signupCustomCountrySection" class="mb-3 hidden">
+                    <input type="text" id="signupCustomCountryInput"
+                           placeholder="국가명 직접 입력 (예: 우즈베키스탄)"
+                           oninput="signupCustomCountryChange(this.value)"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- 선택 결과 미리보기 -->
+                <div id="signupLocationPreview" class="text-sm text-blue-700 font-medium mt-2"></div>
+
+                <!-- hidden inputs -->
+                {{ form.country(id="signupCountryInput", class="hidden") }}
+                {{ form.city(id="signupCityInput", class="hidden") }}
+            </div>
+
             <!-- Student-only fields -->
             <div id="studentFields" style="display: none;">
                 <!-- Grade -->
@@ -236,10 +277,113 @@
 </div>
 
 <script>
+// 국가별 주요 도시 데이터
+const SIGNUP_CITY_DATA = {
+    '대한민국': ['서울','부산','인천','대구','대전','광주','울산','수원','창원','고양','용인','성남','청주','안산','전주','천안','안양','남양주','화성','부천'],
+    '미국': ['뉴욕','로스앤젤레스','시카고','휴스턴','피닉스','필라델피아','샌안토니오','샌디에이고','댈러스','시애틀','보스턴','워싱턴DC','애틀랜타','마이애미','덴버'],
+    '캐나다': ['토론토','밴쿠버','몬트리올','캘거리','에드먼턴','오타와','위니펙','퀘벡시티','해밀턴','런던'],
+    '호주': ['시드니','멜버른','브리즈번','퍼스','애들레이드','골드코스트','캔버라','뉴캐슬','선샤인코스트','울릉공'],
+    '영국': ['런던','맨체스터','버밍엄','리즈','글래스고','에든버러','리버풀','브리스톨','셰필드','카디프'],
+    '독일': ['베를린','뮌헨','함부르크','쾰른','프랑크푸르트','슈투트가르트','뒤셀도르프','라이프치히','도르트문트','에센'],
+    '프랑스': ['파리','마르세유','리옹','툴루즈','니스','낭트','스트라스부르','몽펠리에','보르도','릴'],
+    '일본': ['도쿄','오사카','요코하마','나고야','삿포로','후쿠오카','고베','교토','가와사키','사이타마'],
+    '중국': ['베이징','상하이','광저우','선전','충칭','청두','텐진','우한','시안','항저우'],
+    '싱가포르': ['싱가포르'],
+    '홍콩': ['홍콩'],
+    '뉴질랜드': ['오클랜드','웰링턴','크라이스트처치','해밀턴','타우랑가','더니든'],
+    '네덜란드': ['암스테르담','로테르담','헤이그','위트레흐트','에인트호번'],
+    '스위스': ['취리히','제네바','바젤','베른','로잔'],
+    '스웨덴': ['스톡홀름','예테보리','말뫼','웁살라'],
+    '아랍에미리트': ['두바이','아부다비','샤르자'],
+    '태국': ['방콕','치앙마이','파타야','푸켓'],
+    '베트남': ['하노이','호치민','다낭','호이안'],
+    '인도네시아': ['자카르타','발리','수라바야','반둥'],
+    '필리핀': ['마닐라','세부','다바오'],
+    '말레이시아': ['쿠알라룸푸르','페낭','코타키나발루','조호르바루'],
+    '브라질': ['상파울루','리우데자네이루','브라질리아','살바도르']
+};
+
+let signupSelectedCountry = '대한민국';
+let signupSelectedCity = '';
+
+function signupSelectCountry(country) {
+    signupSelectedCountry = country;
+    signupSelectedCity = '';
+
+    // 탭 스타일 업데이트
+    document.querySelectorAll('.signup-country-tab').forEach(btn => {
+        if (btn.textContent.trim() === country) {
+            btn.className = 'signup-country-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-blue-600 text-white border-blue-600';
+        } else {
+            btn.className = 'signup-country-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-white text-gray-600 border-gray-300 hover:border-blue-400';
+        }
+    });
+
+    const customSection = document.getElementById('signupCustomCountrySection');
+    if (country === '직접입력') {
+        customSection.classList.remove('hidden');
+        document.getElementById('signupCountryInput').value = '';
+        document.getElementById('signupCityInput').value = '';
+        signupUpdateCityTabs([]);
+        signupUpdatePreview();
+        return;
+    }
+    customSection.classList.add('hidden');
+    document.getElementById('signupCountryInput').value = country;
+    document.getElementById('signupCityInput').value = '';
+    signupUpdateCityTabs(SIGNUP_CITY_DATA[country] || []);
+    signupUpdatePreview();
+}
+
+function signupSelectCity(city) {
+    signupSelectedCity = city;
+    document.getElementById('signupCityInput').value = city;
+    document.querySelectorAll('.signup-city-tab').forEach(btn => {
+        if (btn.textContent.trim() === city) {
+            btn.className = 'signup-city-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-green-500 text-white border-green-500';
+        } else {
+            btn.className = 'signup-city-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-white text-gray-600 border-gray-300 hover:border-green-400';
+        }
+    });
+    signupUpdatePreview();
+}
+
+function signupUpdateCityTabs(cities) {
+    const container = document.getElementById('signupCityTabs');
+    container.innerHTML = '';
+    cities.forEach(city => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'signup-city-tab px-3 py-1.5 rounded-full text-sm border transition duration-150 bg-white text-gray-600 border-gray-300 hover:border-green-400';
+        btn.textContent = city;
+        btn.onclick = () => signupSelectCity(city);
+        container.appendChild(btn);
+    });
+}
+
+function signupCustomCountryChange(val) {
+    document.getElementById('signupCountryInput').value = val;
+    document.getElementById('signupCityInput').value = '';
+    signupSelectedCity = '';
+    signupUpdatePreview();
+}
+
+function signupUpdatePreview() {
+    const country = document.getElementById('signupCountryInput').value;
+    const city = document.getElementById('signupCityInput').value;
+    const preview = document.getElementById('signupLocationPreview');
+    if (country) {
+        preview.textContent = '선택: ' + country + (city ? ' · ' + city : '');
+    } else {
+        preview.textContent = '';
+    }
+}
+
 // 학생 필드 및 전화번호 필수 여부 토글
 function toggleStudentFields() {
     const roleRadios = document.querySelectorAll('input[name="role"]');
     const studentFields = document.getElementById('studentFields');
+    const locationFields = document.getElementById('locationFields');
     const phoneInput = document.getElementById('phone');
     const phoneRequired = document.getElementById('phoneRequired');
     const phoneOptional = document.getElementById('phoneOptional');
@@ -249,6 +393,9 @@ function toggleStudentFields() {
     roleRadios.forEach(radio => {
         if (radio.checked) selectedRole = radio.value;
     });
+
+    // 거주 정보는 학부모/학생 모두 표시
+    locationFields.classList.remove('hidden');
 
     if (selectedRole === 'student') {
         studentFields.style.display = 'block';
@@ -268,6 +415,10 @@ function toggleStudentFields() {
 // 페이지 로드 시 초기 상태 설정
 window.addEventListener('DOMContentLoaded', function() {
     toggleStudentFields();
+    // 기본 대한민국 도시 표시
+    signupUpdateCityTabs(SIGNUP_CITY_DATA['대한민국'] || []);
+    document.getElementById('signupCountryInput').value = '대한민국';
+    signupUpdatePreview();
 });
 </script>
 {% endblock %}

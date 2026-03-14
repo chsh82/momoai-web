@@ -3746,6 +3746,17 @@ def approve_parent_link_request(request_id):
     link_request.reviewed_at = datetime.utcnow()
     link_request.admin_notes = request.form.get('admin_notes', '').strip() or None
 
+    # 부모의 거주 정보를 자녀에게 동기화
+    parent_user = User.query.get(link_request.parent_id)
+    if parent_user and (parent_user.country or parent_user.city):
+        student.country = parent_user.country
+        student.city = parent_user.city
+        if student.user_id:
+            child_user = User.query.get(student.user_id)
+            if child_user:
+                child_user.country = parent_user.country
+                child_user.city = parent_user.city
+
     db.session.commit()
 
     # 학부모에게 알림

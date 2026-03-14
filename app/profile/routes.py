@@ -138,6 +138,26 @@ def edit():
             if form.birth_date.data:
                 student_record.birth_date = form.birth_date.data
 
+        # 학부모인 경우 연결된 자녀에게 거주 정보 동기화
+        if current_user.role == 'parent':
+            from app.models.parent_student import ParentStudent
+            new_country = form.country.data if form.country.data else None
+            new_city = form.city.data if form.city.data else None
+            if new_country or new_city:
+                parent_links = ParentStudent.query.filter_by(
+                    parent_id=current_user.user_id, is_active=True
+                ).all()
+                for ps in parent_links:
+                    child_student = Student.query.get(ps.student_id)
+                    if child_student:
+                        child_student.country = new_country
+                        child_student.city = new_city
+                        if child_student.user_id:
+                            child_user = User.query.filter_by(user_id=child_student.user_id).first()
+                            if child_user:
+                                child_user.country = new_country
+                                child_user.city = new_city
+
         # 프로필 이미지 업로드 처리
         if 'profile_image' in request.files:
             file = request.files['profile_image']
