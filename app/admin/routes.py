@@ -4207,12 +4207,19 @@ def parent_list():
     search = request.args.get('search', '').strip()
     query = User.query.filter(User.role == 'parent')
 
+    from app.models import Student
     if search:
+        # 자녀 이름으로 검색: 해당 학생과 연결된 학부모 id 목록 추출
+        child_parent_ids = db.session.query(ParentStudent.parent_id)\
+            .join(Student, ParentStudent.student_id == Student.student_id)\
+            .filter(Student.name.ilike(f'%{search}%'), ParentStudent.is_active == True)\
+            .subquery()
         query = query.filter(
             db.or_(
                 User.name.ilike(f'%{search}%'),
                 User.email.ilike(f'%{search}%'),
-                User.phone.ilike(f'%{search}%')
+                User.phone.ilike(f'%{search}%'),
+                User.user_id.in_(child_parent_ids)
             )
         )
 
