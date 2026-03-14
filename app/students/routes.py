@@ -22,12 +22,33 @@ def index():
     search_form = StudentSearchForm(request.args, meta={'csrf': False})
 
     # 기본 쿼리 (관리자는 모든 학생, 강사는 자신의 학생만)
-    if current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2):
-        # 관리자/매니저는 모든 학생 조회 (임시 학생 제외)
-        query = Student.query.filter_by(is_temp=False)
+    is_admin = current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)
+    if is_admin:
+        base_query = Student.query.filter_by(is_temp=False)
     else:
-        # 강사는 자신의 학생만 조회 (임시 학생 제외)
-        query = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)
+        base_query = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)
+
+    # ── 대시보드 통계 (필터 적용 전 전체 기준) ──
+    today = datetime.now()
+    first_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    first_of_week = today - timedelta(days=today.weekday())
+    first_of_week = first_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    total_all = base_query.count()
+    new_this_month = base_query.filter(Student.created_at >= first_of_month).count()
+    new_this_week = base_query.filter(Student.created_at >= first_of_week).count()
+    overseas_count = base_query.filter(
+        Student.country.isnot(None),
+        Student.country != '',
+        Student.country != '대한민국'
+    ).count()
+
+    # 학년별 인원
+    grade_list = ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3']
+    grade_stats = {g: base_query.filter_by(grade=g).count() for g in grade_list}
+
+    # ── 필터 적용 쿼리 ──
+    query = base_query
 
     # 검색어 필터
     search = request.args.get('search', '').strip()
@@ -52,9 +73,6 @@ def index():
         students = query.order_by(Student.name).all()
 
     # 실제 등록된 국가 목록 (중복 제거, 정렬)
-    base_query = Student.query.filter_by(is_temp=False)
-    if not (current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)):
-        base_query = base_query.filter_by(teacher_id=current_user.user_id)
     registered_countries = sorted(set(
         s.country for s in base_query.with_entities(Student.country).all()
         if s.country
@@ -67,7 +85,12 @@ def index():
                          grade_filter=grade_filter,
                          country_filter=country_filter,
                          registered_countries=registered_countries,
-                         sort=sort)
+                         sort=sort,
+                         total_all=total_all,
+                         new_this_month=new_this_month,
+                         new_this_week=new_this_week,
+                         overseas_count=overseas_count,
+                         grade_stats=grade_stats)
 
 
 @students_bp.route('/new', methods=['GET', 'POST'])

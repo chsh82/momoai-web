@@ -5,7 +5,7 @@
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-5">
         <h2 class="text-3xl font-bold text-gray-800">학생 관리</h2>
         <a href="{{ url_for('students.new') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
             + 새 학생 추가
@@ -23,8 +23,63 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Grade Tabs -->
-    <div class="bg-white rounded-lg shadow p-4 mb-4">
+    <!-- ── 대시보드 ── -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+            <span class="text-2xl font-bold text-blue-600">{{ total_all }}</span>
+            <span class="text-xs text-gray-500 mt-1">전체 학생</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+            <span class="text-2xl font-bold text-green-600">{{ new_this_month }}</span>
+            <span class="text-xs text-gray-500 mt-1">이번 달 신규</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+            <span class="text-2xl font-bold text-purple-600">{{ new_this_week }}</span>
+            <span class="text-xs text-gray-500 mt-1">이번 주 신규</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+            <span class="text-2xl font-bold text-orange-500">{{ overseas_count }}</span>
+            <span class="text-xs text-gray-500 mt-1">해외 거주</span>
+        </div>
+    </div>
+
+    <!-- 학년별 분포 -->
+    {% if total_all > 0 %}
+    <div class="bg-white rounded-xl shadow p-4 mb-5">
+        <p class="text-xs font-medium text-gray-500 mb-2">학년별 분포</p>
+        <div class="flex items-end gap-1 h-12">
+            {% set grade_groups = [
+                (['초1','초2','초3','초4','초5','초6'], 'bg-green-400', '초등'),
+                (['중1','중2','중3'], 'bg-blue-400', '중등'),
+                (['고1','고2','고3'], 'bg-purple-400', '고등')
+            ] %}
+            {% for grades, color, label in grade_groups %}
+                {% for g in grades %}
+                {% set cnt = grade_stats.get(g, 0) %}
+                {% set pct = (cnt / total_all * 100) | int if total_all > 0 else 0 %}
+                <div class="flex-1 flex flex-col items-center group relative">
+                    <div class="{{ color }} rounded-t w-full transition-all duration-300"
+                         style="height: {{ [pct, 4]|max }}%; min-height: 4px; max-height: 100%;"
+                         title="{{ g }}: {{ cnt }}명"></div>
+                    <!-- 툴팁 -->
+                    <div class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
+                        {{ g }}: {{ cnt }}명
+                    </div>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <div class="flex gap-3 mt-1 text-xs text-gray-500 justify-center">
+            <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded bg-green-400"></span>초등</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded bg-blue-400"></span>중등</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded bg-purple-400"></span>고등</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── 학년 탭 ── -->
+    <div class="bg-white rounded-lg shadow p-4 mb-3">
+        <p class="text-xs font-medium text-gray-400 mb-2">학년 필터</p>
         <div class="flex flex-wrap gap-2">
             {% set grades = ['전체', '초1', '초2', '초3', '초4', '초5', '초6', '중1', '중2', '중3', '고1', '고2', '고3'] %}
             {% for g in grades %}
@@ -32,15 +87,32 @@
             <a href="{{ url_for('students.index', grade_filter=gval, search=search, sort=sort, country_filter=country_filter) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if grade_filter == gval %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                {{ g }}
+                {{ g }}{% if gval and grade_stats.get(gval, 0) > 0 %}<span class="ml-1 text-xs opacity-70">{{ grade_stats.get(gval, 0) }}</span>{% endif %}
             </a>
             {% endfor %}
         </div>
     </div>
 
-    <!-- Country Tabs -->
+    <!-- ── 초성 탭 ── -->
+    <div class="bg-white rounded-lg shadow p-4 mb-3">
+        <p class="text-xs font-medium text-gray-400 mb-2">초성 필터</p>
+        <div class="flex flex-wrap gap-2" id="chosungTabs">
+            {% set consonants = ['전체','ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'] %}
+            {% for c in consonants %}
+            <button type="button" onclick="filterChosung('{{ c }}')"
+                    class="chosung-tab px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
+                           {% if c == '전체' %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
+                    data-chosung="{{ c }}">
+                {{ c }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ── 국가 탭 ── -->
     {% if registered_countries %}
-    <div class="bg-white rounded-lg shadow p-4 mb-4">
+    <div class="bg-white rounded-lg shadow p-4 mb-3">
+        <p class="text-xs font-medium text-gray-400 mb-2">거주국 필터</p>
         <div class="flex flex-wrap gap-2">
             <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter='') }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
@@ -58,7 +130,7 @@
     </div>
     {% endif %}
 
-    <!-- Search Form -->
+    <!-- ── 검색 ── -->
     <div class="bg-white rounded-lg shadow p-4 mb-4">
         <form method="GET" action="{{ url_for('students.index') }}" class="flex flex-wrap gap-3">
             <input type="hidden" name="grade_filter" value="{{ grade_filter }}">
@@ -80,10 +152,13 @@
         </form>
     </div>
 
-    <!-- Students Count + Sort -->
+    <!-- ── 인원 수 + 정렬 ── -->
     <div class="mb-4 flex items-center justify-between">
         <div class="text-gray-600">
-            총 <strong class="text-gray-800">{{ students|length }}</strong>명의 학생
+            총 <strong class="text-gray-800" id="visibleCount">{{ students|length }}</strong>명
+            {% if students|length != total_all %}
+            <span class="text-gray-400 text-sm">/ 전체 {{ total_all }}명</span>
+            {% endif %}
         </div>
         <div class="flex gap-2">
             <a href="{{ url_for('students.index', grade_filter=grade_filter, country_filter=country_filter, search=search, sort='name') }}"
@@ -99,17 +174,18 @@
         </div>
     </div>
 
-    <!-- Students List -->
+    <!-- ── 학생 목록 ── -->
     {% if students %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="studentGrid">
         {% for student in students %}
-        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-200 overflow-hidden">
+        <div class="student-card bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-200 overflow-hidden"
+             data-name="{{ student.name }}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-xl font-bold text-gray-800">{{ student.name }}</h3>
                     <span class="px-3 py-1 text-sm font-medium rounded-full
-                        {% if student.grade == '초등' %}bg-green-100 text-green-800
-                        {% elif student.grade == '중등' %}bg-blue-100 text-blue-800
+                        {% if student.grade and student.grade.startswith('초') %}bg-green-100 text-green-800
+                        {% elif student.grade and student.grade.startswith('중') %}bg-blue-100 text-blue-800
                         {% else %}bg-purple-100 text-purple-800{% endif %}">
                         {{ student.grade }}
                     </span>
@@ -132,6 +208,12 @@
                         <span class="font-medium mr-2">📝</span>
                         첨삭 {{ student.essay_count }}건
                     </div>
+                    {% if student.country and student.country != '대한민국' %}
+                    <div class="flex items-center text-orange-600">
+                        <span class="font-medium mr-2">🌍</span>
+                        {{ student.country }}{% if student.city %} · {{ student.city }}{% endif %}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="flex gap-2">
@@ -148,6 +230,13 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- 초성 필터 결과 없음 메시지 -->
+    <div id="chosungEmpty" class="hidden bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-5xl mb-3">🔍</div>
+        <p class="text-gray-500">해당 초성의 학생이 없습니다.</p>
+    </div>
+
     {% else %}
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <div class="text-6xl mb-4">👥</div>
@@ -159,4 +248,69 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// ── 초성 필터 ──
+const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+// 단순화: ㄲ→ㄱ, ㄸ→ㄷ, ㅃ→ㅂ, ㅆ→ㅅ, ㅉ→ㅈ 로 매핑
+const CHOSUNG_MAP = {0:'ㄱ',1:'ㄱ',2:'ㄴ',3:'ㄷ',4:'ㄷ',5:'ㄹ',6:'ㅁ',7:'ㅂ',8:'ㅂ',9:'ㅅ',10:'ㅅ',11:'ㅇ',12:'ㅈ',13:'ㅈ',14:'ㅊ',15:'ㅋ',16:'ㅌ',17:'ㅍ',18:'ㅎ'};
+
+function getChosung(char) {
+    const code = char.charCodeAt(0);
+    if (code < 0xAC00 || code > 0xD7A3) return null; // 한글 아님
+    return CHOSUNG_MAP[Math.floor((code - 0xAC00) / (21 * 28))];
+}
+
+let currentChosung = '전체';
+
+function filterChosung(c) {
+    currentChosung = c;
+
+    // 탭 스타일
+    document.querySelectorAll('.chosung-tab').forEach(btn => {
+        if (btn.dataset.chosung === c) {
+            btn.className = 'chosung-tab px-3 py-1.5 rounded-full text-sm font-medium transition duration-200 bg-indigo-600 text-white';
+        } else {
+            btn.className = 'chosung-tab px-3 py-1.5 rounded-full text-sm font-medium transition duration-200 bg-gray-100 text-gray-700 hover:bg-gray-200';
+        }
+    });
+
+    const cards = document.querySelectorAll('.student-card');
+    let visible = 0;
+
+    cards.forEach(card => {
+        const name = card.dataset.name || '';
+        if (c === '전체') {
+            card.style.display = '';
+            visible++;
+        } else {
+            const firstChar = name.charAt(0);
+            const cs = getChosung(firstChar);
+            if (cs === c) {
+                card.style.display = '';
+                visible++;
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
+
+    // 인원 수 업데이트
+    const countEl = document.getElementById('visibleCount');
+    if (countEl) countEl.textContent = visible;
+
+    // 빈 결과 메시지
+    const emptyEl = document.getElementById('chosungEmpty');
+    const grid = document.getElementById('studentGrid');
+    if (emptyEl && grid) {
+        if (visible === 0) {
+            emptyEl.classList.remove('hidden');
+            grid.classList.add('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+            grid.classList.remove('hidden');
+        }
+    }
+}
+</script>
 {% endblock %}
