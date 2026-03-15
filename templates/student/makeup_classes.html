@@ -19,12 +19,14 @@
 
     <!-- 내 신청 내역 -->
     <div class="bg-white rounded-lg shadow mb-6">
-        <div class="px-6 py-4 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
+        <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+            <div class="flex justify-end mb-1">
+                <a href="{{ url_for('student.makeup_classes_history') }}"
+                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 이력 보기 →
+                </a>
+            </div>
             <h3 class="text-xl font-bold text-blue-900">내 보강수업 신청 내역 (최근 5건)</h3>
-            <a href="{{ url_for('student.makeup_classes_history') }}"
-               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                전체 이력 보기 →
-            </a>
         </div>
         <div class="p-6">
             {% if my_requests %}
