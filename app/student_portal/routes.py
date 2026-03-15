@@ -1105,11 +1105,19 @@ def makeup_classes():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    # 보강신청 가능한 수업 조회 (같은 학년, makeup_class_allowed=True, 진행 중)
+    # 현재 수강 중인 수업 ID 목록
+    enrolled_course_ids = [
+        e.course_id for e in CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).all()
+    ]
+
+    # 보강신청 가능한 수업 조회 (같은 학년, makeup_class_allowed=True, 진행 중, 본인 수강 수업 제외)
     available_courses = Course.query.filter(
         Course.grade == student.grade,
         Course.makeup_class_allowed == True,
-        Course.status == 'active'
+        Course.status == 'active',
+        ~Course.course_id.in_(enrolled_course_ids) if enrolled_course_ids else True
     ).order_by(Course.weekday, Course.start_time).all()
 
     # 본인의 신청 내역 조회 (최근 5건만)
