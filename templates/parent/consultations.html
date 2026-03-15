@@ -20,34 +20,33 @@
 
     <!-- Search Bar -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="GET" action="{{ url_for('parent.consultations', student_id=student.student_id) }}" class="flex gap-3">
-            <input type="text"
-                   name="search"
-                   value="{{ search }}"
-                   placeholder="제목으로 검색..."
-                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-            <select name="category"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">-- 전체 분류 --</option>
-                <option value="신규상담" {% if category == '신규상담' %}selected{% endif %}>신규상담</option>
-                <option value="정기상담" {% if category == '정기상담' %}selected{% endif %}>정기상담</option>
-                <option value="진로진학상담" {% if category == '진로진학상담' %}selected{% endif %}>진로진학상담</option>
-                <option value="학습상담" {% if category == '학습상담' %}selected{% endif %}>학습상담</option>
-                <option value="기타" {% if category == '기타' %}selected{% endif %}>기타</option>
-            </select>
-
-            <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
-                🔍 검색
-            </button>
-
-            {% if search or category %}
-            <a href="{{ url_for('parent.consultations', student_id=student.student_id) }}"
-               class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
-                초기화
-            </a>
-            {% endif %}
+        <form method="GET" action="{{ url_for('parent.consultations', student_id=student.student_id) }}">
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <input type="text"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="제목으로 검색..."
+                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select name="category"
+                        class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- 전체 분류 --</option>
+                    <option value="신규상담" {% if category == '신규상담' %}selected{% endif %}>신규상담</option>
+                    <option value="정기상담" {% if category == '정기상담' %}selected{% endif %}>정기상담</option>
+                    <option value="진로진학상담" {% if category == '진로진학상담' %}selected{% endif %}>진로진학상담</option>
+                    <option value="학습상담" {% if category == '학습상담' %}selected{% endif %}>학습상담</option>
+                    <option value="기타" {% if category == '기타' %}selected{% endif %}>기타</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition duration-200">
+                    🔍 검색
+                </button>
+                <a href="{{ url_for('parent.consultations', student_id=student.student_id) }}"
+                   class="bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-lg text-sm font-medium text-center transition duration-200 {% if not search and not category %}invisible{% endif %}">
+                    초기화
+                </a>
+            </div>
         </form>
     </div>
 
