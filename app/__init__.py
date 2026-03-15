@@ -127,9 +127,9 @@ def create_app(config_name='default'):
             # CSS, JS, 이미지 파일 1년 캐싱
             response.headers['Cache-Control'] = 'public, max-age=31536000'
         elif response.mimetype and response.mimetype.startswith('text/html'):
-            # HTML은 짧은 캐싱 (5분) — 단, 라우트에서 이미 설정된 경우 덮어쓰지 않음
+            # 동적 HTML은 캐시 금지 (로그인 사용자별 다른 데이터 표시)
             if 'Cache-Control' not in response.headers:
-                response.headers['Cache-Control'] = 'public, max-age=300'
+                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
         return response
 
     # Jinja2 custom filters
