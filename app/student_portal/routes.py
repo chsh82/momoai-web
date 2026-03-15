@@ -470,7 +470,7 @@ def view_essay(essay_id):
 @requires_role('student', 'admin')
 def attendance():
     """학생 출결 현황"""
-    # 학생 정보 조회
+    import math
     if current_user.role == 'student':
         student = Student.query.filter_by(email=current_user.email).first()
     else:
@@ -480,40 +480,42 @@ def attendance():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    # 학생의 모든 수강 정보
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id
     ).order_by(CourseEnrollment.enrolled_at.desc()).all()
 
-    # 수업별 출결 정보
+    # 수업별 통계 (카드용) - 실제 진행된 출결 기록만
+    DONE_STATUSES = ['present', 'late', 'absent', 'excused']
     course_attendance_data = []
+    all_records = []  # 전체 합산용 (페이지네이션)
+
     for enrollment in enrollments:
         course = enrollment.course
 
-        # 이 enrollment의 출석 기록 (오늘 이전 과거 세션만)
-        attendance_records = Attendance.query.filter_by(
+        # 실제 진행된 수업만: 오늘 이전 날짜 + 출결 상태 확정된 것
+        records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession).filter(
-            CourseSession.session_date <= date.today()
+            CourseSession.session_date <= date.today(),
+            Attendance.status.in_(DONE_STATUSES)
         ).order_by(CourseSession.session_date.desc()).all()
 
-        # 출석 통계 계산
-        total_sessions = len(attendance_records)
-        present_count = sum(1 for a in attendance_records if a.status == 'present')
-        late_count = sum(1 for a in attendance_records if a.status == 'late')
-        absent_count = sum(1 for a in attendance_records if a.status == 'absent')
-        excused_count = sum(1 for a in attendance_records if a.status == 'excused')
+        present_count = sum(1 for a in records if a.status == 'present')
+        late_count    = sum(1 for a in records if a.status == 'late')
+        absent_count  = sum(1 for a in records if a.status == 'absent')
+        excused_count = sum(1 for a in records if a.status == 'excused')
+        total_sessions = len(records)
 
-        # 출석률 계산
+        attendance_rate = 0
         if total_sessions > 0:
             attendance_rate = (present_count + late_count * 0.5) / total_sessions * 100
-        else:
-            attendance_rate = 0
 
         course_attendance_data.append({
             'enrollment': enrollment,
             'course': course,
-            'attendance_records': attendance_records,
             'stats': {
                 'total': total_sessions,
                 'present': present_count,
@@ -524,9 +526,24 @@ def attendance():
             }
         })
 
+        for r in records:
+            all_records.append({'attendance': r, 'course': course})
+
+    # 날짜 최신순 정렬
+    all_records.sort(key=lambda x: x['attendance'].session.session_date, reverse=True)
+
+    total_count = len(all_records)
+    total_pages = max(1, math.ceil(total_count / per_page))
+    page = min(max(page, 1), total_pages)
+    page_records = all_records[(page - 1) * per_page: page * per_page]
+
     return render_template('student/attendance.html',
                          student=student,
-                         course_attendance_data=course_attendance_data)
+                         course_attendance_data=course_attendance_data,
+                         page_records=page_records,
+                         page=page,
+                         total_pages=total_pages,
+                         total_count=total_count)
 
 
 @student_bp.route('/announcements')
