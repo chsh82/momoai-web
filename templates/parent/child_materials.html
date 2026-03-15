@@ -23,9 +23,24 @@
                        class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 <select name="grade" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     <option value="">전체 학년</option>
-                    <option value="초등" {% if grade_filter == '초등' %}selected{% endif %}>초등</option>
-                    <option value="중등" {% if grade_filter == '중등' %}selected{% endif %}>중등</option>
-                    <option value="고등" {% if grade_filter == '고등' %}selected{% endif %}>고등</option>
+                    <optgroup label="초등">
+                        <option value="초1" {% if grade_filter == '초1' %}selected{% endif %}>초등 1학년</option>
+                        <option value="초2" {% if grade_filter == '초2' %}selected{% endif %}>초등 2학년</option>
+                        <option value="초3" {% if grade_filter == '초3' %}selected{% endif %}>초등 3학년</option>
+                        <option value="초4" {% if grade_filter == '초4' %}selected{% endif %}>초등 4학년</option>
+                        <option value="초5" {% if grade_filter == '초5' %}selected{% endif %}>초등 5학년</option>
+                        <option value="초6" {% if grade_filter == '초6' %}selected{% endif %}>초등 6학년</option>
+                    </optgroup>
+                    <optgroup label="중등">
+                        <option value="중1" {% if grade_filter == '중1' %}selected{% endif %}>중학교 1학년</option>
+                        <option value="중2" {% if grade_filter == '중2' %}selected{% endif %}>중학교 2학년</option>
+                        <option value="중3" {% if grade_filter == '중3' %}selected{% endif %}>중학교 3학년</option>
+                    </optgroup>
+                    <optgroup label="고등">
+                        <option value="고1" {% if grade_filter == '고1' %}selected{% endif %}>고등학교 1학년</option>
+                        <option value="고2" {% if grade_filter == '고2' %}selected{% endif %}>고등학교 2학년</option>
+                        <option value="고3" {% if grade_filter == '고3' %}selected{% endif %}>고등학교 3학년</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="grid grid-cols-2 gap-2">
