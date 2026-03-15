@@ -57,10 +57,14 @@ def index():
         ).count()
         unread_feedbacks += unread
 
-        # 미납 금액
-        for enrollment in active_enrollments:
-            calc = calculate_tuition_amount(enrollment)
-            total_unpaid += calc['remaining_amount']
+        # 미납 금액 - 실제 Payment 레코드 기준 (pending 상태만)
+        enrollment_ids = [e.enrollment_id for e in active_enrollments]
+        if enrollment_ids:
+            pending = Payment.query.filter(
+                Payment.enrollment_id.in_(enrollment_ids),
+                Payment.status == 'pending'
+            ).all()
+            total_unpaid += sum(p.amount for p in pending)
 
         children_data.append({
             'student': child,
@@ -178,11 +182,15 @@ def children():
             is_read=False
         ).count()
 
-        # 미납 금액
+        # 미납 금액 - 실제 Payment 레코드 기준 (pending 상태만)
         unpaid_amount = 0
-        for enrollment in enrollments:
-            calc = calculate_tuition_amount(enrollment)
-            unpaid_amount += calc['remaining_amount']
+        enrollment_ids = [e.enrollment_id for e in enrollments]
+        if enrollment_ids:
+            pending = Payment.query.filter(
+                Payment.enrollment_id.in_(enrollment_ids),
+                Payment.status == 'pending'
+            ).all()
+            unpaid_amount = sum(p.amount for p in pending)
 
         children_data.append({
             'student': student,
