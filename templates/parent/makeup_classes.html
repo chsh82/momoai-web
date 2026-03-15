@@ -23,65 +23,47 @@
                 전체 이력 보기 →
             </a>
         </div>
-        <div class="p-6">
+        <div class="p-4">
             {% if student_requests %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">수업명</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청 사유</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for req in student_requests %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ req.request_date.strftime('%Y-%m-%d %H:%M') }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-800">{{ req.requested_course.course_name if req.requested_course else '(삭제된 수업)' }}</p>
-                                <p class="text-xs text-gray-500">{{ req.requested_course.teacher.name if req.requested_course and req.requested_course.teacher else '-' }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ req.reason or '-' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if req.status == 'pending' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-                                    ⏳ 대기 중
-                                </span>
-                                {% elif req.status == 'approved' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-                                    ✓ 승인됨
-                                </span>
-                                {% else %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
-                                    ✗ 거절됨
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if req.status == 'pending' %}
-                                <form method="POST" action="{{ url_for('parent.cancel_makeup_request', student_id=student.student_id, request_id=req.request_id) }}"
-                                      onsubmit="return confirm('신청을 취소하시겠습니까?');" style="display: inline;">
-                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                        취소
-                                    </button>
-                                </form>
-                                {% elif req.status == 'rejected' and req.admin_notes %}
-                                <span class="text-xs text-gray-500">{{ req.admin_notes }}</span>
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="space-y-3">
+                {% for req in student_requests %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                    <!-- 상단: 수업명 + 상태 -->
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="min-w-0 flex-1 mr-3">
+                            <p class="font-semibold text-gray-800 truncate">{{ req.requested_course.course_name if req.requested_course else '(삭제된 수업)' }}</p>
+                            <p class="text-xs text-gray-500">{{ req.requested_course.teacher.name if req.requested_course and req.requested_course.teacher else '-' }}</p>
+                        </div>
+                        <div class="shrink-0">
+                            {% if req.status == 'pending' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">⏳ 대기 중</span>
+                            {% elif req.status == 'approved' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">✓ 승인됨</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">✗ 거절됨</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- 하단: 날짜 + 사유 + 액션 -->
+                    <div class="flex items-center justify-between text-xs text-gray-400">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span>📅 {{ req.request_date.strftime('%Y.%m.%d %H:%M') }}</span>
+                            {% if req.reason %}
+                            <span class="text-gray-500">{{ req.reason }}</span>
+                            {% endif %}
+                            {% if req.status == 'rejected' and req.admin_notes %}
+                            <span class="text-red-500">{{ req.admin_notes }}</span>
+                            {% endif %}
+                        </div>
+                        {% if req.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('parent.cancel_makeup_request', student_id=student.student_id, request_id=req.request_id) }}"
+                              onsubmit="return confirm('신청을 취소하시겠습니까?');" class="inline shrink-0">
+                            <button type="submit" class="text-red-500 hover:text-red-700 font-medium">취소</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <div class="text-center py-8">
