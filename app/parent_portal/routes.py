@@ -772,10 +772,14 @@ def attendance(student_id):
     for enrollment in enrollments:
         course = enrollment.course
 
-        # 이 enrollment의 모든 출석 기록
+        # 실제 진행 완료된 수업의 출석 기록만 (status='completed' 세션)
+        DONE_STATUSES = ['present', 'late', 'absent', 'excused']
         attendance_records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
-        ).join(CourseSession).order_by(CourseSession.session_date.desc()).all()
+        ).join(CourseSession).filter(
+            CourseSession.status == 'completed',
+            Attendance.status.in_(DONE_STATUSES)
+        ).order_by(CourseSession.session_date.desc()).all()
 
         # 출석 통계 계산
         total_sessions = len(attendance_records)
