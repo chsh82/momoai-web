@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ student.name }} - 독서 논술 MBTI{% endblock %}
+{% block title %}{{ student.name }} - 모모아이 MBTI{% endblock %}
 
 {% block page_title %}🧠 자녀 MBTI 상세{% endblock %}
 
@@ -9,14 +9,12 @@
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-4">
-                <a href="{{ url_for('parent.reading_mbti') }}"
-                   class="text-blue-600 hover:text-blue-800 font-medium">
-                    ← 자녀 목록
-                </a>
-                <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 독서 논술 MBTI</h2>
-            </div>
+        <a href="{{ url_for('parent.reading_mbti') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 자녀 목록
+        </a>
+        <div class="flex items-center justify-between">
+            <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 모모아이 MBTI</h2>
             <div class="flex items-center gap-3">
                 <span class="text-sm text-gray-600">{{ student.grade }}</span>
                 {% if test %}
@@ -394,7 +392,7 @@
         <div class="text-6xl mb-4">📋</div>
         <h3 class="text-2xl font-bold text-gray-800 mb-2">아직 검사를 진행하지 않았습니다</h3>
         <p class="text-gray-600 mb-6">
-            아래 버튼을 눌러 자녀의 독서 논술 MBTI 검사를 바로 진행할 수 있습니다.
+            아래 버튼을 눌러 자녀의 모모아이 MBTI 검사를 바로 진행할 수 있습니다.
         </p>
         <div class="flex justify-center gap-4">
             {% if test %}

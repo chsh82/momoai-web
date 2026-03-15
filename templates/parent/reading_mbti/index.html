@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}자녀 독서 논술 MBTI - 학부모 포털{% endblock %}
+{% block title %}자녀 모모아이 MBTI - 학부모 포털{% endblock %}
 
-{% block page_title %}🧠 독서논술 MBTI{% endblock %}
+{% block page_title %}🧠 모모아이 MBTI{% endblock %}
 
 {% block page_subtitle %}
 <span class="text-sm text-white text-opacity-70 ml-3">자녀 학습 성향</span>
@@ -13,14 +13,12 @@
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-3xl font-bold text-gray-800">📚 자녀 독서 논술 MBTI</h2>
-            <a href="{{ url_for('parent.index') }}"
-               class="text-blue-600 hover:text-blue-800 font-medium">
-                ← 마이 페이지
-            </a>
-        </div>
-        <p class="text-gray-600">
+        <a href="{{ url_for('parent.index') }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← 마이 페이지
+        </a>
+        <h2 class="text-3xl font-bold text-gray-800">📚 자녀 모모아이 MBTI</h2>
+        <p class="text-gray-600 mt-1">
             자녀의 독서, 발표/토론, 쓰기 스타일을 확인하고 학습 방향을 이해하세요.
         </p>
     </div>
@@ -30,7 +28,7 @@
         <div class="flex items-center gap-4 mb-4">
             <div class="text-6xl">🎯</div>
             <div>
-                <h3 class="text-2xl font-bold mb-2">독서 논술 MBTI란?</h3>
+                <h3 class="text-2xl font-bold mb-2">모모아이 MBTI란?</h3>
                 <p class="text-purple-100">
                     학생의 독서, 발표/토론, 쓰기 스타일을 9가지 차원으로 분석하여<br>
                     27가지 유형 중 하나로 진단하는 자가평가 시스템입니다.
