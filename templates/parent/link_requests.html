@@ -117,83 +117,63 @@
         <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
             <h3 class="text-xl font-bold text-blue-900">신청 내역</h3>
         </div>
-        <div class="p-6">
+        <div class="p-4">
             {% if requests %}
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">신청일</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학생 이름</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학년</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관계</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for req in requests %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-gray-800">{{ req.student_name }}</p>
-                                {% if req.student_birth_date %}
-                                <p class="text-xs text-gray-500">{{ req.student_birth_date.strftime('%Y-%m-%d') }}</p>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ req.student_grade or '-' }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ req.relation_type or '-' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if req.status == 'pending' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-                                    ⏳ 대기 중
-                                </span>
-                                {% elif req.status == 'approved' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-                                    ✓ 승인됨
-                                </span>
-                                {% elif req.status == 'rejected' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
-                                    ✗ 거절됨
-                                </span>
-                                {% elif req.status == 'cancelled' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">
-                                    취소됨
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if req.status == 'pending' %}
-                                <form method="POST" action="{{ url_for('parent.cancel_link_request', request_id=req.request_id) }}"
-                                      onsubmit="return confirm('신청을 취소하시겠습니까?');" style="display: inline;">
-                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                        취소
-                                    </button>
-                                </form>
-                                {% elif req.status == 'rejected' and req.admin_notes %}
-                                <button onclick="showRejectReason('{{ req.student_name }}', '{{ req.admin_notes }}')"
-                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    거절 사유 보기
+            <div class="space-y-3">
+                {% for req in requests %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                    <!-- 상단: 이름 + 상태 -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-gray-800 text-base">{{ req.student_name }}</span>
+                            {% if req.student_grade %}
+                            <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{{ req.student_grade }}</span>
+                            {% endif %}
+                            {% if req.relation_type %}
+                            <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">{{ req.relation_type }}</span>
+                            {% endif %}
+                        </div>
+                        {% if req.status == 'pending' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800 shrink-0">⏳ 대기 중</span>
+                        {% elif req.status == 'approved' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 shrink-0">✓ 승인됨</span>
+                        {% elif req.status == 'rejected' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800 shrink-0">✗ 거절됨</span>
+                        {% elif req.status == 'cancelled' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800 shrink-0">취소됨</span>
+                        {% endif %}
+                    </div>
+                    <!-- 하단: 신청일 + 액션 -->
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs text-gray-400 flex items-center gap-3">
+                            <span>📅 {{ req.created_at.strftime('%Y.%m.%d %H:%M') }}</span>
+                            {% if req.student_birth_date %}
+                            <span>🎂 {{ req.student_birth_date.strftime('%Y.%m.%d') }}</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if req.status == 'pending' %}
+                            <form method="POST" action="{{ url_for('parent.cancel_link_request', request_id=req.request_id) }}"
+                                  onsubmit="return confirm('신청을 취소하시겠습니까?');" class="inline">
+                                <button type="submit" class="text-xs px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg transition">
+                                    신청 취소
                                 </button>
-                                {% elif req.status == 'approved' and req.matched_student %}
-                                <a href="{{ url_for('parent.child_detail', student_id=req.matched_student_id) }}"
-                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    자녀 정보 보기
-                                </a>
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </form>
+                            {% elif req.status == 'rejected' and req.admin_notes %}
+                            <button onclick="showRejectReason('{{ req.student_name }}', '{{ req.admin_notes }}')"
+                                    class="text-xs px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition">
+                                거절 사유 보기
+                            </button>
+                            {% elif req.status == 'approved' and req.matched_student %}
+                            <a href="{{ url_for('parent.child_detail', student_id=req.matched_student_id) }}"
+                               class="text-xs px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition">
+                                자녀 정보 보기
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <div class="text-center py-12">
