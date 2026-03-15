@@ -495,11 +495,11 @@ def attendance():
     for enrollment in enrollments:
         course = enrollment.course
 
-        # 실제 진행된 수업만: 오늘 이전 날짜 + 출결 상태 확정된 것
+        # 실제 진행된 수업만: 완료된 세션(status='completed')만
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession).filter(
-            CourseSession.session_date <= date.today(),
+            CourseSession.status == 'completed',
             Attendance.status.in_(DONE_STATUSES)
         ).order_by(CourseSession.session_date.desc()).all()
 
