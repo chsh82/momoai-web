@@ -36,7 +36,9 @@ def can_access_content(content, user, student=None):
 
     # 3. Check date range
     today = date.today()
-    if not (content.publish_date <= today <= content.end_date):
+    if content.publish_date and content.publish_date > today:
+        return False
+    if content.end_date and content.end_date < today:
         return False
 
     # 4. If no student context (shouldn't happen for student/parent), deny access
