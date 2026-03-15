@@ -11,31 +11,29 @@
 {% block content %}
 <div class="container mx-auto px-4 py-6">
 
-    <!-- 상단 버튼 -->
-    <div class="flex justify-between items-center mb-6">
-        <a href="{{ url_for('parent.weekly_evaluation') }}" class="btn btn-outline">
-            ← 돌아가기
-        </a>
+    <!-- 돌아가기 -->
+    <a href="{{ url_for('parent.weekly_evaluation') }}" class="text-blue-600 hover:text-blue-800 font-medium mb-3 inline-block">
+        ← 돌아가기
+    </a>
 
-        <!-- 기간 필터 -->
-        <div class="flex gap-2">
-            <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='3months') }}"
-               class="btn {{ 'btn-primary' if period == '3months' else 'btn-outline' }}">
-                최근 3개월
-            </a>
-            <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='6months') }}"
-               class="btn {{ 'btn-primary' if period == '6months' else 'btn-outline' }}">
-                최근 6개월
-            </a>
-            <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='1year') }}"
-               class="btn {{ 'btn-primary' if period == '1year' else 'btn-outline' }}">
-                최근 1년
-            </a>
-            <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='all') }}"
-               class="btn {{ 'btn-primary' if period == 'all' else 'btn-outline' }}">
-                전체
-            </a>
-        </div>
+    <!-- 기간 필터 -->
+    <div class="flex flex-wrap gap-2 mb-6">
+        <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='all') }}"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition {{ 'bg-blue-600 text-white' if period == 'all' else 'bg-white border border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600' }}">
+            전체
+        </a>
+        <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='1year') }}"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition {{ 'bg-blue-600 text-white' if period == '1year' else 'bg-white border border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600' }}">
+            최근 1년
+        </a>
+        <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='6months') }}"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition {{ 'bg-blue-600 text-white' if period == '6months' else 'bg-white border border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600' }}">
+            최근 6개월
+        </a>
+        <a href="{{ url_for('parent.weekly_evaluation_report', student_id=student.student_id, period='3months') }}"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition {{ 'bg-blue-600 text-white' if period == '3months' else 'bg-white border border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600' }}">
+            최근 3개월
+        </a>
     </div>
 
     <!-- 학생 정보 -->
