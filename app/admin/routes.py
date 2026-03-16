@@ -232,6 +232,7 @@ def courses():
             pass
 
     # 통합 검색: 반이름, 강사명, 학년, 요일, 반형태
+    pre_computed_courses = None
     if search_filter:
         weekday_map = {'월': 0, '화': 1, '수': 2, '목': 3, '금': 4, '토': 5, '일': 6}
         wd_num = weekday_map.get(search_filter.replace('요일', ''))
@@ -249,13 +250,38 @@ def courses():
         ]
         if teacher_ids:
             conditions.append(Course.teacher_id.in_(teacher_ids))
-        if student_course_ids:
-            conditions.append(Course.course_id.in_(student_course_ids))
         if wd_num is not None:
             conditions.append(Course.weekday == wd_num)
-        query = query.filter(db.or_(*conditions)).distinct()
 
-    if sort_order == 'weekday':
+        if student_course_ids:
+            # 학생명 검색 시: 텍스트 조건은 status 필터 적용, 수강 수업은 status 무관하게 표시
+            text_matched = query.filter(db.or_(*conditions)).all() if conditions else []
+            enrollment_matched = Course.query.filter(
+                Course.course_id.in_(student_course_ids)
+            ).all()
+            seen = set()
+            merged = []
+            for c in enrollment_matched + text_matched:
+                if c.course_id not in seen:
+                    merged.append(c)
+                    seen.add(c.course_id)
+            if sort_order == 'weekday':
+                pre_computed_courses = sorted(
+                    merged,
+                    key=lambda c: (c.weekday if c.weekday is not None else 99, str(c.start_time or ''))
+                )
+            else:
+                pre_computed_courses = sorted(
+                    merged,
+                    key=lambda c: c.created_at or datetime.min,
+                    reverse=True
+                )
+        else:
+            query = query.filter(db.or_(*conditions)).distinct()
+
+    if pre_computed_courses is not None:
+        courses = pre_computed_courses
+    elif sort_order == 'weekday':
         courses = query.order_by(
             db.case({None: 99}, value=Course.weekday, else_=Course.weekday),
             Course.start_time
