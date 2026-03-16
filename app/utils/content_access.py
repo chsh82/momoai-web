@@ -57,9 +57,19 @@ def can_access_content(content, user, student=None):
         if not target_grades:  # Empty = all grades
             return True
 
-        # If student.grade is in GRADE_MAP (broad like '중등'), expand it
-        # Otherwise use the specific grade directly (like '중2')
-        student_grades = GRADE_MAP.get(student.grade, [student.grade])
+        # 학생 본인 학년
+        student_grades = set(GRADE_MAP.get(student.grade, [student.grade]))
+
+        # 수강 중인 수업 학년도 포함 (중1 학생이 초6 수업 수강 시 초6 교재 접근 허용)
+        enrollments = CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).all()
+        from app.models.course import Course
+        for e in enrollments:
+            course = Course.query.get(e.course_id)
+            if course and course.grade:
+                student_grades.update(GRADE_MAP.get(course.grade, [course.grade]))
+
         return any(g in target_grades for g in student_grades)
 
     elif target.get('type') == 'course':
