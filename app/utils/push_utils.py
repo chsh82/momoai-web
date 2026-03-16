@@ -54,7 +54,13 @@ def _do_send_push(app, user_id, title, body, url):
             except WebPushException as e:
                 status = e.response.status_code if e.response else 'no-response'
                 app.logger.warning(f'[Push] WebPushException sub#{sub.id} status={status}: {e}')
-                if e.response and e.response.status_code in (400, 403, 404, 410):
+                # e.response가 None이어도 메시지에서 만료 상태코드 감지
+                expired_codes = (400, 403, 404, 410)
+                is_expired = (
+                    (e.response and e.response.status_code in expired_codes) or
+                    any(str(code) in str(e) for code in expired_codes)
+                )
+                if is_expired:
                     expired_ids.append(sub.id)
             except Exception as e:
                 app.logger.warning(f'[Push] Unexpected error sub#{sub.id}: {e}')
