@@ -332,10 +332,10 @@ def submit_essay():
                     upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
                     os.makedirs(upload_folder, exist_ok=True)
 
-                    # 안전한 파일명 생성
-                    original_filename = secure_filename(file.filename)
-                    file_ext = os.path.splitext(original_filename)[1]
-                    stored_filename = f"{uuid.uuid4().hex}{file_ext}"
+                    # 안전한 파일명 생성 (확장자는 원본에서 추출)
+                    raw_ext = os.path.splitext(file.filename)[1]
+                    original_filename = secure_filename(file.filename) or f"file{raw_ext}"
+                    stored_filename = f"{uuid.uuid4().hex}{raw_ext}"
                     file_path = os.path.join(upload_folder, stored_filename)
 
                     # 파일 저장
