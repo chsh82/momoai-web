@@ -93,7 +93,7 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <p class="text-sm text-gray-600">{{ enrollment.course.teacher.name }} 강사</p>
+                                <p class="text-sm text-gray-600">{{ enrollment.course.teacher.name if enrollment.course.teacher else '미배정' }} 강사</p>
                             </div>
                         </div>
 
@@ -192,7 +192,7 @@
 
                     <div>
                         <p class="text-sm text-gray-600 mb-1">담당 강사</p>
-                        <p class="text-gray-800 font-medium">{{ student.teacher.name }}</p>
+                        <p class="text-gray-800 font-medium">{{ student.teacher.name if student.teacher else '미배정' }}</p>
                     </div>
                 </div>
 

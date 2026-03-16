@@ -39,7 +39,7 @@
                     </div>
                     <div>
                         <span class="text-gray-500">상담자:</span>
-                        <span class="font-semibold text-gray-800">{{ consultation.counselor.name }}</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.counselor.name if consultation.counselor else '미배정' }}</span>
                     </div>
                     <div>
                         <span class="text-gray-500">상담일:</span>

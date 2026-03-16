@@ -50,8 +50,8 @@
                                 </span>
                             </div>
                             <p class="text-sm text-gray-600">
-                                <span class="font-medium text-purple-700">{{ feedback.student.name }}</span> 학생 |
-                                {{ feedback.teacher.name }} 강사 |
+                                <span class="font-medium text-purple-700">{{ feedback.student.name if feedback.student else '-' }}</span> 학생 |
+                                {{ feedback.teacher.name if feedback.teacher else '미배정' }} 강사 |
                                 {{ feedback.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}
                                 {% if feedback.course %}| {{ feedback.course.course_name }}{% endif %}
                             </p>

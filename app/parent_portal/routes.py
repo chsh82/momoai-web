@@ -93,7 +93,7 @@ def index():
         ).all()
 
         if enrollments:
-            total_sessions = sum(e.course.total_sessions for e in enrollments if e.course.total_sessions > 0)
+            total_sessions = sum(e.course.total_sessions for e in enrollments if e.course and e.course.total_sessions and e.course.total_sessions > 0)
             attended_sessions = sum(e.attended_sessions for e in enrollments)
 
             if total_sessions > 0:
@@ -1564,6 +1564,8 @@ def export_child_attendance(student_id):
 
         for attendance in attendances:
             session = CourseSession.query.get(attendance.session_id)
+            if not session:
+                continue
             attendance_data.append({
                 'date': session.session_date.strftime('%Y-%m-%d'),
                 'course_name': enrollment.course.course_name,
