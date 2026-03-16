@@ -260,11 +260,21 @@ def schedule():
     week_start = week_start + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
 
-    # 내가 담당하는 수업의 세션 조회
-    my_courses = Course.query.filter_by(
+    # 내가 담당하는 수업의 세션 조회 (보강수업은 completed 상태도 포함)
+    active_courses = Course.query.filter_by(
         teacher_id=current_user.user_id,
         status='active'
     ).all()
+    makeup_courses = Course.query.filter(
+        Course.teacher_id == current_user.user_id,
+        Course.course_type == '보강수업',
+        Course.status != 'cancelled'
+    ).all()
+    seen_ids = {c.course_id for c in active_courses}
+    my_courses = list(active_courses)
+    for c in makeup_courses:
+        if c.course_id not in seen_ids:
+            my_courses.append(c)
     my_course_ids = [c.course_id for c in my_courses]
 
     # 해당 주의 모든 세션

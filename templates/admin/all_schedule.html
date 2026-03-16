@@ -359,7 +359,7 @@
                             {% if h_px >= 52 %}
                             <div class="opacity-75 mt-0.5">👥 {{ active_enr | length }}명{% if session.course.grade %} · {{ session.course.grade }}{% endif %}</div>
                             {% endif %}
-                            {% if h_px >= 65 %}
+                            {% if h_px >= 55 %}
                             <div class="mt-0.5 space-y-0.5">
                                 {% for en in active_enr[:4] %}
                                 <div class="text-xs opacity-90 truncate font-medium">{{ en.student.name }}</div>
@@ -403,7 +403,7 @@
                             {% if h_px >= 52 %}
                             <div class="opacity-75 mt-0.5">👥 {{ active_enr | length }}명 <span class="text-gray-400">(세션없음)</span></div>
                             {% endif %}
-                            {% if h_px >= 65 %}
+                            {% if h_px >= 55 %}
                             <div class="mt-0.5 space-y-0.5">
                                 {% for en in active_enr[:4] %}
                                 <div class="text-xs opacity-90 truncate font-medium">{{ en.student.name }}</div>
