@@ -133,7 +133,14 @@
         </div>
         <div class="divide-y divide-gray-100">
             {% for session in makeup_sessions %}
-            <div class="px-4 py-3 flex flex-wrap items-center justify-between gap-2 hover:bg-orange-50">
+            {% set enrolled_names = session.course.enrollments | map(attribute='student') | selectattr('name') | map(attribute='name') | join(' ') %}
+            <div class="session-row px-4 py-3 flex flex-wrap items-center justify-between gap-2 hover:bg-orange-50">
+                <!-- 학생명 필터용 숨김 행 -->
+                {% for enrollment in session.course.enrollments %}
+                {% if enrollment.student %}
+                <span class="student-row hidden" data-student-name="{{ enrollment.student.name }}"></span>
+                {% endif %}
+                {% endfor %}
                 <div class="flex items-center gap-3 text-sm">
                     <span class="font-semibold text-gray-800">
                         {{ session.session_date.strftime('%Y-%m-%d') }}
@@ -143,6 +150,9 @@
                     <span class="px-1.5 py-0.5 bg-orange-200 text-orange-800 text-xs rounded font-medium">오늘</span>
                     {% endif %}
                     <span class="text-gray-700">{{ session.course.course_name }}</span>
+                    {% if enrolled_names %}
+                    <span class="text-orange-600 text-xs font-medium">{{ enrolled_names }}</span>
+                    {% endif %}
                     <span class="text-gray-400 text-xs">
                         {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
                         {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
@@ -665,10 +675,15 @@ function filterByStudentName(keyword) {
         studentRows.forEach(row => {
             const name = (row.dataset.studentName || '').toLowerCase();
             if (!q || name.includes(q)) {
-                row.style.display = '';
+                // span(보강수업 필터용)은 display 변경 없이 name 매칭만 카운트
+                if (!row.classList.contains('hidden')) {
+                    row.style.display = '';
+                }
                 visibleCount++;
             } else {
-                row.style.display = 'none';
+                if (!row.classList.contains('hidden')) {
+                    row.style.display = 'none';
+                }
             }
         });
         // 매칭 학생이 없으면 세션 행 숨김, 있으면 표시

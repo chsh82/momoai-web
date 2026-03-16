@@ -374,19 +374,42 @@ def attendance_list():
     status_filter = request.args.get('status', '').strip()
 
     # 강사의 수업 조회 (관리자는 전체 또는 선택한 강사)
+    # 보강수업은 완료 상태여도 출석체크 목록에 포함
     if current_user.is_admin:
         if teacher_filter:
-            courses = Course.query.filter_by(
+            active_courses = Course.query.filter_by(
                 teacher_id=teacher_filter,
                 status='active'
             ).order_by(Course.course_name).all()
+            makeup_courses = Course.query.filter(
+                Course.teacher_id == teacher_filter,
+                Course.course_type == '보강수업',
+                Course.status != 'cancelled'
+            ).order_by(Course.course_name).all()
         else:
-            courses = Course.query.filter_by(status='active').order_by(Course.course_name).all()
+            active_courses = Course.query.filter_by(status='active').order_by(Course.course_name).all()
+            makeup_courses = Course.query.filter(
+                Course.course_type == '보강수업',
+                Course.status != 'cancelled'
+            ).order_by(Course.course_name).all()
     else:
-        courses = Course.query.filter_by(
+        active_courses = Course.query.filter_by(
             teacher_id=current_user.user_id,
             status='active'
         ).order_by(Course.course_name).all()
+        makeup_courses = Course.query.filter(
+            Course.teacher_id == current_user.user_id,
+            Course.course_type == '보강수업',
+            Course.status != 'cancelled'
+        ).order_by(Course.course_name).all()
+
+    # 중복 제거 후 병합
+    seen_ids = {c.course_id for c in active_courses}
+    courses = list(active_courses)
+    for c in makeup_courses:
+        if c.course_id not in seen_ids:
+            courses.append(c)
+            seen_ids.add(c.course_id)
 
     course_ids = [c.course_id for c in courses]
 
