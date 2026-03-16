@@ -2807,7 +2807,7 @@ def approve_makeup_request(request_id):
         makeup_class_allowed=False,  # 보강수업은 재보강 불가
         schedule_type='custom',
         max_students=1,  # 1:1 보강
-        price_per_session=0,  # 보강수업은 무료
+        price_per_session=65000,  # 보강수업 기본 수강료
         status='active',
         created_by=current_user.user_id,
         description=f"{student.name} 학생의 보강수업 (원수업: {original_course.course_name})"
