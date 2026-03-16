@@ -1290,6 +1290,18 @@ def teaching_materials():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
+    # 수강 중인 학생만 접근 가능 (admin 제외)
+    if current_user.role == 'student':
+        is_enrolled = CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).first() is not None
+        if not is_enrolled:
+            return render_template('student/teaching_materials.html',
+                                   student=student,
+                                   accessible_materials=[],
+                                   search='', grade_filter='',
+                                   is_blocked=True)
+
     # 모든 공개된 교재 조회
     from datetime import date
     today = date.today()
@@ -1319,7 +1331,8 @@ def teaching_materials():
                          student=student,
                          materials=accessible_materials,
                          search=search,
-                         grade_filter=grade_filter)
+                         grade_filter=grade_filter,
+                         is_blocked=False)
 
 
 @student_bp.route('/teaching-materials/<material_id>')
@@ -1368,6 +1381,15 @@ def download_teaching_material(material_id):
 
     material = TeachingMaterial.query.get_or_404(material_id)
 
+    # 수강 중인 학생만 접근 가능
+    if current_user.role == 'student':
+        is_enrolled = CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).first() is not None
+        if not is_enrolled:
+            flash('수강 중인 학생만 이용 가능합니다.', 'error')
+            return redirect(url_for('student.teaching_materials'))
+
     # 접근 권한 확인
     if not can_access_content(material, current_user, student):
         flash('접근 권한이 없습니다.', 'error')
@@ -1414,6 +1436,18 @@ def teaching_videos():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
+    # 수강 중인 학생만 접근 가능
+    if current_user.role == 'student':
+        is_enrolled = CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).first() is not None
+        if not is_enrolled:
+            return render_template('student/teaching_videos.html',
+                                   student=student,
+                                   videos=[],
+                                   search='', grade_filter='',
+                                   is_blocked=True)
+
     # 모든 공개된 동영상 조회
     from datetime import date
     today = date.today()
@@ -1443,7 +1477,8 @@ def teaching_videos():
                          student=student,
                          videos=accessible_videos,
                          search=search,
-                         grade_filter=grade_filter)
+                         grade_filter=grade_filter,
+                         is_blocked=False)
 
 
 @student_bp.route('/teaching-videos/<video_id>')

@@ -10,6 +10,20 @@
 
 
 {% block content %}
+{% if is_blocked %}
+<div id="blockedModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4 text-center">
+        <div class="text-5xl mb-4">🔒</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">접근 제한</h3>
+        <p class="text-gray-600 mb-6">수강 중인 학생만 이용 가능합니다.</p>
+        <a href="{{ url_for('student.index') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+            확인
+        </a>
+    </div>
+</div>
+{% endif %}
+
 <div class="max-w-7xl mx-auto">
     <h2 class="text-3xl font-bold text-gray-800 mb-6">학습 교재</h2>
 
