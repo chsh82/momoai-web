@@ -247,7 +247,9 @@ dropzone.addEventListener('drop', e => {
     e.preventDefault();
     dropzone.classList.remove('border-green-500', 'bg-green-50');
     const input = document.getElementById('correction_attachments');
-    input.files = e.dataTransfer.files;
+    const dt = new DataTransfer();
+    Array.from(e.dataTransfer.files).forEach(file => dt.items.add(file));
+    input.files = dt.files;
     handleFileSelect(input);
 });
 </script>
