@@ -1089,6 +1089,14 @@ def child_materials(student_id):
 
     student = Student.query.get_or_404(student_id)
 
+    # 자녀가 수강 중인 경우만 접근 가능
+    is_enrolled = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).first() is not None
+    if not is_enrolled:
+        flash('수강 중인 학생만 이용 가능합니다.', 'warning')
+        return redirect(url_for('parent.child_detail', student_id=student_id))
+
     # 모든 공개된 교재 조회
     from datetime import date
     today = date.today()
@@ -1138,6 +1146,15 @@ def child_material_detail(student_id, material_id):
         return redirect(url_for('parent.index'))
 
     student = Student.query.get_or_404(student_id)
+
+    # 자녀가 수강 중인 경우만 접근 가능
+    is_enrolled = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).first() is not None
+    if not is_enrolled:
+        flash('수강 중인 학생만 이용 가능합니다.', 'warning')
+        return redirect(url_for('parent.child_detail', student_id=student_id))
+
     material = TeachingMaterial.query.get_or_404(material_id)
 
     # 접근 권한 확인
@@ -1171,6 +1188,15 @@ def download_child_material(student_id, material_id):
         return redirect(url_for('parent.index'))
 
     student = Student.query.get_or_404(student_id)
+
+    # 자녀가 수강 중인 경우만 접근 가능
+    is_enrolled = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).first() is not None
+    if not is_enrolled:
+        flash('수강 중인 학생만 이용 가능합니다.', 'warning')
+        return redirect(url_for('parent.child_detail', student_id=student_id))
+
     material = TeachingMaterial.query.get_or_404(material_id)
 
     # 접근 권한 확인
@@ -1239,6 +1265,14 @@ def child_videos(student_id):
         return redirect(url_for('parent.index'))
 
     student = Student.query.get_or_404(student_id)
+
+    # 자녀가 수강 중인 경우만 접근 가능
+    is_enrolled = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).first() is not None
+    if not is_enrolled:
+        flash('수강 중인 학생만 이용 가능합니다.', 'warning')
+        return redirect(url_for('parent.child_detail', student_id=student_id))
 
     # 모든 공개된 동영상 조회
     from datetime import date
