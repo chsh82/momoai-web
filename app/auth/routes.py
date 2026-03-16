@@ -111,7 +111,7 @@ def login():
 
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
-@limiter.limit("5 per hour", methods=["POST"])
+@limiter.limit("30 per hour", methods=["POST"])
 def signup():
     """회원가입 (학부모/학생만)"""
     if current_user.is_authenticated:
