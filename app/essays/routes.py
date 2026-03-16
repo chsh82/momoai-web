@@ -762,11 +762,27 @@ def manual_correction(essay_id):
             flash('첨삭 내용을 입력해주세요.', 'error')
             return redirect(url_for('essays.manual_correction', essay_id=essay_id))
 
+        # 기존 첨부파일 삭제 처리
+        delete_attachment_ids = request.form.getlist('delete_attachments')
+        if delete_attachment_ids:
+            from app.models.essay import CorrectionAttachment
+            for att_id in delete_attachment_ids:
+                att = CorrectionAttachment.query.get(att_id)
+                if att and att.essay_id == essay.essay_id:
+                    try:
+                        Path(att.file_path).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                    db.session.delete(att)
+
         # 첨부파일 검증 (이미지 + PDF, 최대 10개)
         uploaded_files = request.files.getlist('correction_attachments')
         allowed_exts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'}
         valid_files = []
-        for f in uploaded_files[:10]:
+        # 기존 파일 수를 고려해서 남은 슬롯만큼만 허용
+        existing_count = len(essay.correction_attachments) - len(delete_attachment_ids)
+        remaining_slots = max(0, 10 - existing_count)
+        for f in uploaded_files[:remaining_slots]:
             if f and f.filename:
                 ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else ''
                 if ext in allowed_exts:

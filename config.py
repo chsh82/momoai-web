@@ -36,7 +36,7 @@ NAVER_CLIENT_ID = os.environ.get('NAVER_CLIENT_ID')
 NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
 
 # 업로드 제한
-MAX_CONTENT_LENGTH = 32 * 1024 * 1024  # 32MB
+MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB (수동첨삭 이미지 10개 대응)
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
 ALLOWED_MATERIAL_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'hwp', 'txt', 'zip', 'png', 'jpg', 'jpeg'}
 
