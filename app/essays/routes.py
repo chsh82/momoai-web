@@ -758,10 +758,6 @@ def manual_correction(essay_id):
         final_grade = request.form.get('final_grade', '').strip()
         action = request.form.get('action', 'save')  # 'save' or 'finalize'
 
-        if not correction_content:
-            flash('첨삭 내용을 입력해주세요.', 'error')
-            return redirect(url_for('essays.manual_correction', essay_id=essay_id))
-
         # 기존 첨부파일 삭제 처리
         delete_attachment_ids = request.form.getlist('delete_attachments')
         if delete_attachment_ids:
@@ -788,16 +784,24 @@ def manual_correction(essay_id):
                 if ext in allowed_exts:
                     valid_files.append((f, ext))
 
+        # 텍스트도 파일도 없으면 에러
+        if not correction_content and not valid_files:
+            flash('첨삭 내용 또는 첨부파일 중 하나는 입력해주세요.', 'error')
+            return redirect(url_for('essays.manual_correction', essay_id=essay_id))
+
         # 입력이 HTML이면 그대로, 아니면 whitespace-pre-wrap div로 래핑
-        if correction_content.strip().startswith('<'):
+        if correction_content and correction_content.strip().startswith('<'):
             html_content = correction_content
-        else:
+        elif correction_content:
             safe_content = correction_content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             html_content = (
                 '<div style="white-space: pre-wrap; font-family: \'Noto Sans KR\', sans-serif; '
                 'line-height: 1.9; font-size: 15px; color: #222;">'
                 + safe_content + '</div>'
             )
+        else:
+            # 파일만 업로드하는 경우 (텍스트 없음)
+            html_content = '<p style="color:#666; font-size:14px;">첨부파일을 확인하세요.</p>'
 
         # HTML 파일 저장
         html_folder = Path(current_app.config['HTML_FOLDER'])

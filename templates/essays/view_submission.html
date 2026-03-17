@@ -403,6 +403,14 @@
                         <p class="text-xs text-gray-500 mt-0.5">3단계 체인 방식 · 해요체 친절한 피드백</p>
                     </div>
                 </label>
+                <label class="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition model-option" id="label-elementary">
+                    <input type="radio" name="correction_model_ui" value="elementary" class="accent-green-600">
+                    <div>
+                        <span class="font-medium text-gray-800 text-sm">🌱 초등 모델</span>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-1">초등 1~5학년 전용</span>
+                        <p class="text-xs text-gray-500 mt-0.5">성장단계 등급 · 아이 눈높이 피드백</p>
+                    </div>
+                </label>
                 <label class="flex items-center gap-3 p-3 border-2 rounded-lg transition model-option {% if not is_harkness_student %}opacity-40 cursor-not-allowed{% else %}cursor-pointer{% endif %}" id="label-harkness">
                     <input type="radio" name="correction_model_ui" value="harkness" class="accent-indigo-600"
                            id="radio-harkness" {% if not is_harkness_student %}disabled{% endif %}>
