@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}청구서 생성 - MOMOAI v4.0{% endblock %}
-{% block page_title %}🧾 청구서 생성{% endblock %}
+{% block page_title %}🧾 선불 청구서 생성{% endblock %}
 {% block page_subtitle %}
-<span class="text-sm text-white text-opacity-70 ml-3">기간별 수강료 청구서를 생성하세요</span>
+<span class="text-sm text-white text-opacity-70 ml-3">다음 결제 기간 수강료를 미리 청구 · 직전 기간 이월/무료 자동 차감</span>
 {% endblock %}
 
 {% block content %}
@@ -50,11 +50,25 @@
 
         {% if selected_period %}
         <div class="mt-4 p-3 bg-blue-50 rounded-lg flex flex-wrap gap-4 text-sm">
+            {% if is_prepaid %}
+            <span class="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">선불</span>
+            {% else %}
+            <span class="bg-gray-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">후불</span>
+            {% endif %}
             <span class="font-medium text-blue-800">{{ selected_period.label }}</span>
             <span class="text-blue-600">{{ selected_period.start_date.strftime('%Y년 %m월 %d일') }} ~ {{ selected_period.end_date.strftime('%Y년 %m월 %d일') }}</span>
             <span class="text-blue-600">전체 {{ selected_period.weeks_count }}주 / 휴무 {{ selected_period.weeks_count - selected_period.effective_weeks }}주 / 유효 {{ selected_period.effective_weeks }}주</span>
+            <span class="text-blue-600 font-medium">납부기한: {{ selected_period.start_date.strftime('%m/%d') }}까지</span>
+            {% if prev_period %}
+            <span class="text-gray-500 text-xs">직전 기간: {{ prev_period.label }}</span>
+            {% endif %}
             <a href="{{ url_for('admin.payment_periods') }}" class="text-blue-500 hover:underline text-xs ml-auto">기간 설정 변경</a>
         </div>
+        {% if not is_prepaid %}
+        <div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
+            ⚠️ 선택한 기간이 이미 시작된 기간입니다. 선불 청구를 위해서는 <strong>시작일이 오늘 이후인 기간</strong>을 선택하세요.
+        </div>
+        {% endif %}
         {% endif %}
     </div>
 
@@ -206,6 +220,7 @@
                             <th class="px-3 py-3 text-right">할인</th>
                             <th class="px-3 py-3 text-right">이월·무료</th>
                             <th class="px-3 py-3 text-right font-bold text-gray-800">최종 청구액</th>
+                            <th class="px-3 py-3 text-center">납부기한</th>
                             <th class="px-3 py-3 text-center">상태</th>
                             <th class="px-3 py-3 text-center">액션</th>
                         </tr>
@@ -277,18 +292,23 @@
                                 <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
-                            <!-- 이월·무료 차감 -->
+                            <!-- 이월·무료 차감 (직전 기간에서 이월된 항목) -->
                             <td class="px-3 py-3 text-right">
                                 {% if row.billed and p %}
                                     {% set adj_count = (p.carried_over or 0) + (p.free_used or 0) %}
                                     {% if adj_count > 0 %}
-                                    <span class="text-orange-600 text-xs">{{ adj_count }}회 차감</span>
+                                    <span class="text-orange-600 text-xs font-medium">{{ adj_count }}회 차감</span>
+                                    <div class="text-xs text-gray-400">
+                                        {% if p.carried_over %}이월 {{ p.carried_over }}회{% endif %}
+                                        {% if p.free_used %} 무료 {{ p.free_used }}회{% endif %}
+                                    </div>
                                     {% else %}<span class="text-gray-400">-</span>{% endif %}
                                 {% elif r and r.adjustment_deduction > 0 %}
-                                <span class="text-orange-600">-{{ "{:,}".format(r.adjustment_deduction) }}원</span>
+                                <span class="text-orange-600 font-medium">-{{ "{:,}".format(r.adjustment_deduction) }}원</span>
                                 <div class="text-xs text-gray-400">
-                                    {% if r.rollover_sessions > 0 %}이월{{ r.rollover_sessions }}{% endif %}
-                                    {% if r.free_sessions > 0 %} 무료{{ r.free_sessions }}{% endif %}
+                                    {% if r.rollover_sessions > 0 %}이월 {{ r.rollover_sessions }}회{% endif %}
+                                    {% if r.free_sessions > 0 %} 무료 {{ r.free_sessions }}회{% endif %}
+                                    <div class="text-orange-400">직전 기간 반영</div>
                                 </div>
                                 {% else %}<span class="text-gray-400">-</span>{% endif %}
                             </td>
@@ -300,10 +320,27 @@
                                 <span class="text-blue-700 text-base">{{ "{:,}".format(r.final_amount) }}원</span>
                                 {% else %}-{% endif %}
                             </td>
+                            <!-- 납부기한 -->
+                            <td class="px-3 py-3 text-center text-xs">
+                                {% if row.billed and p and p.due_date %}
+                                <span class="{% if p.is_overdue %}text-red-600 font-bold{% else %}text-gray-500{% endif %}">
+                                    {{ p.due_date.strftime('%m/%d') }}
+                                    {% if p.is_overdue %}<div class="text-red-500">연체</div>{% endif %}
+                                </span>
+                                {% elif not row.billed %}
+                                <span class="text-blue-600">{{ selected_period.start_date.strftime('%m/%d') }}</span>
+                                {% else %}<span class="text-gray-400">-</span>{% endif %}
+                            </td>
                             <!-- 상태 -->
                             <td class="px-3 py-3 text-center">
                                 {% if row.billed %}
-                                <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">청구됨</span>
+                                    {% if p and p.status == 'completed' %}
+                                    <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">납부완료</span>
+                                    {% elif p and p.is_overdue %}
+                                    <span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">연체</span>
+                                    {% else %}
+                                    <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">납부대기</span>
+                                    {% endif %}
                                 {% else %}
                                 <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">생성 예정</span>
                                 {% endif %}
@@ -341,9 +378,15 @@
             </div>
 
             <!-- 합계 행 -->
-            <div class="border-t border-gray-200 p-4 flex justify-end items-center gap-4">
-                <span class="text-sm text-gray-500">생성 예정 총 청구액</span>
-                <span class="text-xl font-bold text-blue-700">{{ "{:,}".format(stats.total_amount) }}원</span>
+            <div class="border-t border-gray-200 p-4 flex flex-wrap justify-between items-center gap-4">
+                <div class="text-xs text-gray-400 space-y-0.5">
+                    <p>📌 <strong>선불 청구 방식</strong>: 기간 시작 전 미리 청구 → 납부 후 수업 진행</p>
+                    <p>🔄 직전 기간({{ prev_period.label if prev_period else '없음' }})의 인정결석(이월) · 무료수업을 이번 청구액에서 자동 차감합니다.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-gray-500">생성 예정 총 청구액</span>
+                    <span class="text-xl font-bold text-blue-700">{{ "{:,}".format(stats.total_amount) }}원</span>
+                </div>
             </div>
         </div>
     </form>

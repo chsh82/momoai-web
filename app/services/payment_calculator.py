@@ -112,10 +112,14 @@ class PaymentCalculator:
 
     @classmethod
     def calculate(cls, enrollment, period):
-        """
+        """선불 방식 수강료 계산.
+
+        청구 기간(period)의 예정된 수업 주차 수를 기준으로 금액을 산출하고,
+        period.start_date 이전에 발생한 pending 조정(이월/무료수업)을 차감한다.
+
         Args:
             enrollment: CourseEnrollment (payment_cycle, weekly_fee, discount_type, course 필요)
-            period: PaymentPeriod
+            period: PaymentPeriod (미래 또는 당월 기간)
         Returns:
             PaymentCalculationResult
         """
@@ -163,7 +167,11 @@ class PaymentCalculator:
         result.subtotal = max(0, base_amount - result.total_discount)
 
         # 6. 이월/무료수업 차감
-        adjustments = SessionAdjustment.get_pending_for_enrollment(enrollment.enrollment_id)
+        # 선불 방식: 청구 기간 시작일 이전에 발생한 pending 조정만 반영
+        # (당월 기간 중 발생하는 미래 조정은 다음 기간 청구서에서 처리)
+        adjustments = SessionAdjustment.get_pending_before(
+            enrollment.enrollment_id, period.start_date
+        )
         rollover_sessions = sum(a.sessions_count for a in adjustments
                                 if a.adjustment_type == 'rollover')
         free_sessions = sum(a.sessions_count for a in adjustments

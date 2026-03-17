@@ -1300,11 +1300,25 @@ def billing():
     billing_rows = []
     setup_needed = []
     stats = {}
+    prev_period = None
+    is_prepaid = False
 
     if period_id:
         selected_period = PaymentPeriod.query.get(period_id)
 
     if selected_period:
+        from datetime import date as _date
+        today = _date.today()
+
+        # 직전 기간 조회 (같은 period_type 중 start_date가 바로 이전인 것)
+        prev_period = PaymentPeriod.query.filter(
+            PaymentPeriod.period_type == selected_period.period_type,
+            PaymentPeriod.start_date < selected_period.start_date
+        ).order_by(PaymentPeriod.start_date.desc()).first()
+
+        # 선불 여부: 청구 기간 시작일이 오늘 이후면 선불
+        is_prepaid = selected_period.start_date >= today
+
         # 해당 주기 활성 enrollment 전체 조회
         all_enrollments = CourseEnrollment.query.filter_by(status='active').all()
 
@@ -1364,7 +1378,9 @@ def billing():
                            period_id=period_id,
                            billing_rows=billing_rows,
                            setup_needed=setup_needed,
-                           stats=stats)
+                           stats=stats,
+                           prev_period=prev_period,
+                           is_prepaid=is_prepaid)
 
 
 @admin_bp.route('/billing/create-invoices', methods=['POST'])
@@ -1405,6 +1421,8 @@ def create_invoices():
 
         result = PaymentCalculator.calculate(enrollment, period)
 
+        # 선불 납부 기한: 기간 시작일 (기간 시작 전날까지 납부가 이상적이나,
+        # 시작일 당일까지로 설정. 필요 시 start_date - timedelta(days=1) 가능)
         payment = Payment(
             enrollment_id=enrollment.enrollment_id,
             course_id=enrollment.course_id,
@@ -1424,6 +1442,7 @@ def create_invoices():
             is_prorated=result.is_prorated,
             carried_over=result.rollover_sessions,
             free_used=result.free_sessions,
+            due_date=period.start_date,  # 선불: 기간 시작일이 납부 기한
             status='pending',
             processed_by=current_user.user_id,
         )

@@ -122,10 +122,26 @@ class SessionAdjustment(db.Model):
 
     @classmethod
     def get_pending_for_enrollment(cls, enrollment_id):
-        """특정 enrollment의 미적용 조정 건 조회"""
+        """특정 enrollment의 미적용 조정 건 전체 조회"""
         return cls.query.filter_by(
             enrollment_id=enrollment_id,
             status='pending'
+        ).all()
+
+    @classmethod
+    def get_pending_before(cls, enrollment_id, before_date):
+        """선불 청구용: 특정 날짜 이전에 발생한 미적용 조정 건만 조회
+
+        Args:
+            enrollment_id: 수강 ID
+            before_date: 기준일 (결제 기간 시작일). 이 날짜 이전 발생 건만 포함.
+        """
+        from datetime import datetime
+        cutoff = datetime(before_date.year, before_date.month, before_date.day)
+        return cls.query.filter(
+            cls.enrollment_id == enrollment_id,
+            cls.status == 'pending',
+            cls.created_at < cutoff
         ).all()
 
     @classmethod
