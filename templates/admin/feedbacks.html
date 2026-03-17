@@ -32,14 +32,12 @@
     <div class="bg-white rounded-xl shadow p-5 mb-6">
         <form method="GET" action="{{ url_for('admin.feedbacks') }}">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                <!-- 키워드 -->
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">키워드</label>
                     <input type="text" name="keyword" value="{{ filters.keyword }}"
                            placeholder="제목 또는 내용 검색"
                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                 </div>
-                <!-- 강사 -->
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">강사</label>
                     <select name="teacher_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -49,7 +47,6 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!-- 학생 -->
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">학생</label>
                     <select name="student_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -59,7 +56,6 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!-- 유형 -->
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">피드백 유형</label>
                     <select name="feedback_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -70,7 +66,6 @@
                         <option value="attendance" {% if filters.feedback_type == 'attendance' %}selected{% endif %}>출결</option>
                     </select>
                 </div>
-                <!-- 중요도 -->
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">중요도</label>
                     <select name="priority" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -80,7 +75,6 @@
                         <option value="low" {% if filters.priority == 'low' %}selected{% endif %}>🟢 낮음</option>
                     </select>
                 </div>
-                <!-- 읽음 여부 -->
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">읽음 여부</label>
                     <select name="is_read" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -117,7 +111,7 @@
 
     <!-- 결과 목록 -->
     <div class="bg-white rounded-xl shadow overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div class="px-5 py-4 border-b border-gray-100">
             <span class="text-sm font-medium text-gray-700">총 <strong>{{ feedbacks|length }}</strong>건</span>
         </div>
 
@@ -127,28 +121,23 @@
             {% set type_label = {'general': '일반', 'progress': '학습 진도', 'behavior': '태도/행동', 'attendance': '출결'} %}
             {% set type_color = {'general': 'bg-gray-100 text-gray-600', 'progress': 'bg-blue-100 text-blue-700', 'behavior': 'bg-orange-100 text-orange-700', 'attendance': 'bg-purple-100 text-purple-700'} %}
             {% set priority_icon = {'high': '🔴', 'normal': '🟡', 'low': '🟢'} %}
-            <div class="px-5 py-4 hover:bg-gray-50 transition">
+            <div class="px-5 py-4 hover:bg-gray-50 transition cursor-pointer"
+                 onclick="openFeedback({{ loop.index0 }})">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1 flex-wrap">
-                            <!-- 중요도 -->
                             <span class="text-sm">{{ priority_icon.get(fb.priority, '🟡') }}</span>
-                            <!-- 유형 뱃지 -->
                             <span class="text-xs px-2 py-0.5 rounded-full {{ type_color.get(fb.feedback_type, 'bg-gray-100 text-gray-600') }}">
                                 {{ type_label.get(fb.feedback_type, fb.feedback_type) }}
                             </span>
-                            <!-- 읽음 여부 -->
                             {% if fb.is_read %}
                             <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">읽음</span>
                             {% else %}
                             <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">미읽음</span>
                             {% endif %}
                         </div>
-                        <!-- 제목 -->
-                        <p class="font-semibold text-gray-800 truncate">{{ fb.title }}</p>
-                        <!-- 내용 미리보기 -->
+                        <p class="font-semibold text-blue-700 hover:underline truncate">{{ fb.title }}</p>
                         <p class="text-sm text-gray-500 mt-0.5 line-clamp-2">{{ fb.content }}</p>
-                        <!-- 메타 정보 -->
                         <div class="flex items-center gap-3 mt-2 text-xs text-gray-400 flex-wrap">
                             <span>👤 학생: <strong class="text-gray-600">{{ fb.student.name if fb.student else '-' }}</strong></span>
                             <span>📚 강사: <strong class="text-gray-600">{{ fb.teacher.name if fb.teacher else '-' }}</strong></span>
@@ -171,4 +160,83 @@
         {% endif %}
     </div>
 </div>
+
+<!-- 피드백 상세 모달 -->
+<div id="feedbackModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        <!-- 모달 헤더 -->
+        <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+                <div id="modal-badges" class="flex items-center gap-2 mb-1 flex-wrap"></div>
+                <h3 id="modal-title" class="text-base font-bold text-gray-800 leading-snug"></h3>
+            </div>
+            <button onclick="closeFeedback()" class="shrink-0 text-gray-400 hover:text-gray-600 text-xl leading-none mt-0.5">✕</button>
+        </div>
+        <!-- 메타 정보 -->
+        <div id="modal-meta" class="px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1"></div>
+        <!-- 본문 -->
+        <div class="px-6 py-5 overflow-y-auto flex-1">
+            <p id="modal-content" class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"></p>
+        </div>
+        <!-- 닫기 버튼 -->
+        <div class="px-6 py-4 border-t border-gray-100 flex justify-end">
+            <button onclick="closeFeedback()"
+                    class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">
+                닫기
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const FEEDBACKS = [
+    {% for fb in feedbacks %}
+    {% set type_label = {'general': '일반', 'progress': '학습 진도', 'behavior': '태도/행동', 'attendance': '출결'} %}
+    {% set type_color = {'general': 'bg-gray-100 text-gray-600', 'progress': 'bg-blue-100 text-blue-700', 'behavior': 'bg-orange-100 text-orange-700', 'attendance': 'bg-purple-100 text-purple-700'} %}
+    {% set priority_icon = {'high': '🔴', 'normal': '🟡', 'low': '🟢'} %}
+    {
+        title: {{ fb.title | tojson }},
+        content: {{ fb.content | tojson }},
+        type_label: {{ type_label.get(fb.feedback_type, fb.feedback_type) | tojson }},
+        type_color: {{ type_color.get(fb.feedback_type, 'bg-gray-100 text-gray-600') | tojson }},
+        priority_icon: {{ priority_icon.get(fb.priority, '🟡') | tojson }},
+        is_read: {{ 'true' if fb.is_read else 'false' }},
+        student: {{ (fb.student.name if fb.student else '-') | tojson }},
+        teacher: {{ (fb.teacher.name if fb.teacher else '-') | tojson }},
+        parent: {{ (fb.parent.name if fb.parent else '-') | tojson }},
+        course: {{ (fb.course.course_name if fb.course else '') | tojson }},
+        created_at: {{ (fb.created_at | kst('%Y.%m.%d %H:%M')) | tojson }},
+    },
+    {% endfor %}
+];
+
+function openFeedback(idx) {
+    const fb = FEEDBACKS[idx];
+    // 뱃지
+    let badges = '<span>' + fb.priority_icon + '</span>';
+    badges += '<span class="text-xs px-2 py-0.5 rounded-full ' + fb.type_color + '">' + fb.type_label + '</span>';
+    badges += fb.is_read
+        ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">읽음</span>'
+        : '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">미읽음</span>';
+    document.getElementById('modal-badges').innerHTML = badges;
+    document.getElementById('modal-title').textContent = fb.title;
+    document.getElementById('modal-content').textContent = fb.content;
+    // 메타
+    let meta = '👤 학생: <strong class="text-gray-700">' + fb.student + '</strong>'
+             + ' &nbsp;·&nbsp; 📚 강사: <strong class="text-gray-700">' + fb.teacher + '</strong>'
+             + ' &nbsp;·&nbsp; 👨‍👩‍👦 학부모: <strong class="text-gray-700">' + fb.parent + '</strong>';
+    if (fb.course) meta += ' &nbsp;·&nbsp; 🏫 ' + fb.course;
+    meta += ' &nbsp;·&nbsp; 📅 ' + fb.created_at;
+    document.getElementById('modal-meta').innerHTML = meta;
+    document.getElementById('feedbackModal').classList.remove('hidden');
+}
+
+function closeFeedback() {
+    document.getElementById('feedbackModal').classList.add('hidden');
+}
+
+document.getElementById('feedbackModal').addEventListener('click', function(e) {
+    if (e.target === this) closeFeedback();
+});
+</script>
 {% endblock %}
