@@ -1655,6 +1655,52 @@ def update_original_text(essay_id):
     })
 
 
+@essays_bp.route('/<essay_id>/reset', methods=['POST'])
+@login_required
+def reset_essay(essay_id):
+    """과제 초기화 — OCR 및 첨삭 결과를 모두 삭제하고 draft 상태로 되돌림"""
+    essay = Essay.query.get_or_404(essay_id)
+    if not _can_access_essay(essay):
+        return jsonify({'success': False, 'message': '접근 권한이 없습니다.'}), 403
+
+    from app.models.essay_score import EssayScore, EssayNote
+    from app.models.essay import EssayVersion, EssayResult, CorrectionAttachment
+
+    # 1. 강사 첨삭 첨부파일 (correction_attachments) 파일 삭제 + DB 삭제
+    for att in essay.correction_attachments:
+        try:
+            if att.file_path and os.path.exists(att.file_path):
+                os.remove(att.file_path)
+        except Exception:
+            pass
+    CorrectionAttachment.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+
+    # 2. 점수, 노트 삭제
+    EssayScore.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+    EssayNote.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+
+    # 3. 결과 삭제 (essay_results)
+    EssayResult.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+
+    # 4. 버전 삭제 (essay_versions)
+    EssayVersion.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+
+    # 5. OCR 히스토리 삭제
+    OCRHistory.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
+
+    # 6. Essay 상태 초기화
+    essay.status = 'draft'
+    essay.is_finalized = False
+    essay.finalized_at = None
+    essay.completed_at = None
+    essay.current_version = 1
+    essay.original_text = ''
+    essay.teacher_guide = None
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': '과제가 초기화되었습니다.'})
+
+
 @essays_bp.route('/<essay_id>/delete', methods=['DELETE'])
 @login_required
 def delete_essay(essay_id):
