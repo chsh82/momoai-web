@@ -1950,9 +1950,14 @@ def delete_material(material_id):
 @requires_role('teacher', 'admin')
 def class_messages():
     """수업 공지/과제 메시지 메인 페이지"""
-    # 내가 담당하는 수업 목록
-    my_courses = Course.query.filter_by(teacher_id=current_user.user_id, status='active')\
-        .order_by(Course.start_date.desc()).all()
+    # 내가 담당하는 수업 목록 (보강수업 completed 포함)
+    from sqlalchemy import or_
+    my_courses = Course.query.filter(
+        Course.teacher_id == current_user.user_id,
+        or_(Course.status == 'active',
+            Course.course_type == '보강수업'),
+        Course.status != 'cancelled'
+    ).order_by(Course.start_date.desc()).all()
 
     # 내가 담당하는 학생 목록
     course_ids = [c.course_id for c in my_courses]

@@ -934,12 +934,16 @@ def start_correction(essay_id):
     from app.models import CourseEnrollment, Course as _Course
     requested_model = request.form.get('correction_model', 'standard')
     if requested_model == 'harkness':
-        is_harkness = db.session.query(CourseEnrollment).join(_Course).filter(
-            CourseEnrollment.student_id == essay.student_id,
-            CourseEnrollment.status == 'active',
-            _Course.course_type == '하크니스'
-        ).count() > 0
-        essay.correction_model = 'harkness' if is_harkness else 'standard'
+        # 관리자는 하크니스 수업 수강 여부 무관하게 항상 사용 가능
+        if current_user.role == 'admin':
+            essay.correction_model = 'harkness'
+        else:
+            is_harkness = db.session.query(CourseEnrollment).join(_Course).filter(
+                CourseEnrollment.student_id == essay.student_id,
+                CourseEnrollment.status == 'active',
+                _Course.course_type == '하크니스'
+            ).count() > 0
+            essay.correction_model = 'harkness' if is_harkness else 'standard'
     elif requested_model == 'elementary':
         essay.correction_model = 'elementary'
     else:
@@ -1307,13 +1311,16 @@ def view_submission(essay_id):
         .order_by(OCRHistory.created_at.desc())\
         .all()
 
-    # 하크니스 수업 수강 여부 (모델 선택 UI용)
-    from app.models import CourseEnrollment, Course as _Course
-    is_harkness_student = db.session.query(CourseEnrollment).join(_Course).filter(
-        CourseEnrollment.student_id == essay.student_id,
-        CourseEnrollment.status == 'active',
-        _Course.course_type == '하크니스'
-    ).count() > 0
+    # 하크니스 수업 수강 여부 (모델 선택 UI용) — 관리자는 항상 허용
+    if current_user.role == 'admin':
+        is_harkness_student = True
+    else:
+        from app.models import CourseEnrollment, Course as _Course
+        is_harkness_student = db.session.query(CourseEnrollment).join(_Course).filter(
+            CourseEnrollment.student_id == essay.student_id,
+            CourseEnrollment.status == 'active',
+            _Course.course_type == '하크니스'
+        ).count() > 0
 
     return render_template('essays/view_submission.html',
                          essay=essay,
