@@ -43,6 +43,42 @@
         </div>
     </div>
 
+    <!-- ── 상태 탭 ── -->
+    <div class="bg-white rounded-lg shadow p-4 mb-3">
+        <p class="text-xs font-medium text-gray-400 mb-2">상태 필터</p>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country_filter, status_filter='') }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
+                      {% if not status_filter %}bg-gray-700 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                전체
+            </a>
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country_filter, status_filter='unenrolled') }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
+                      {% if status_filter == 'unenrolled' %}bg-orange-500 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                미등록
+                {% if status_counts.unenrolled > 0 %}
+                <span class="ml-1 text-xs font-bold {% if status_filter == 'unenrolled' %}text-orange-200{% else %}text-orange-500{% endif %}">{{ status_counts.unenrolled }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country_filter, status_filter='leave') }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
+                      {% if status_filter == 'leave' %}bg-yellow-500 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                휴원
+                {% if status_counts.leave > 0 %}
+                <span class="ml-1 text-xs font-bold {% if status_filter == 'leave' %}text-yellow-200{% else %}text-yellow-600{% endif %}">{{ status_counts.leave }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country_filter, status_filter='withdrawn') }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
+                      {% if status_filter == 'withdrawn' %}bg-gray-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                퇴원
+                {% if status_counts.withdrawn > 0 %}
+                <span class="ml-1 text-xs font-bold {% if status_filter == 'withdrawn' %}text-gray-300{% else %}text-gray-500{% endif %}">{{ status_counts.withdrawn }}</span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
     <!-- ── 학년 탭 ── -->
     <div class="bg-white rounded-lg shadow p-4 mb-3">
         <p class="text-xs font-medium text-gray-400 mb-2">학년 필터</p>
@@ -50,7 +86,7 @@
             {% set grades = ['전체', '초1', '초2', '초3', '초4', '초5', '초6', '중1', '중2', '중3', '고1', '고2', '고3'] %}
             {% for g in grades %}
             {% set gval = '' if g == '전체' else g %}
-            <a href="{{ url_for('students.index', grade_filter=gval, search=search, sort=sort, country_filter=country_filter) }}"
+            <a href="{{ url_for('students.index', grade_filter=gval, search=search, sort=sort, country_filter=country_filter, status_filter=status_filter) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if grade_filter == gval %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 {{ g }}{% if gval and grade_stats.get(gval, 0) > 0 %}<span class="ml-1 text-xs font-bold {% if grade_filter == gval %}text-red-200{% else %}text-red-500{% endif %}">{{ grade_stats.get(gval, 0) }}</span>{% endif %}
@@ -80,13 +116,13 @@
     <div class="bg-white rounded-lg shadow p-4 mb-3">
         <p class="text-xs font-medium text-gray-400 mb-2">거주국 필터</p>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter='') }}"
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter='', status_filter=status_filter) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if not country_filter %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 전체
             </a>
             {% for country in registered_countries %}
-            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country) }}"
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country, status_filter=status_filter) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if country_filter == country %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 {{ country }}
@@ -101,6 +137,7 @@
         <form method="GET" action="{{ url_for('students.index') }}" class="flex flex-wrap gap-3">
             <input type="hidden" name="grade_filter" value="{{ grade_filter }}">
             <input type="hidden" name="country_filter" value="{{ country_filter }}">
+            <input type="hidden" name="status_filter" value="{{ status_filter }}">
             <input type="hidden" name="sort" value="{{ sort }}">
             <div class="flex-1 min-w-[200px]">
                 <input type="text" name="search" value="{{ search }}"
@@ -110,7 +147,7 @@
             <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-lg transition duration-200">
                 검색
             </button>
-            {% if search or grade_filter or country_filter %}
+            {% if search or grade_filter or country_filter or status_filter %}
             <a href="{{ url_for('students.index', sort=sort) }}" class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-5 py-2 rounded-lg transition duration-200">
                 초기화
             </a>
@@ -127,12 +164,12 @@
             {% endif %}
         </div>
         <div class="flex gap-2">
-            <a href="{{ url_for('students.index', grade_filter=grade_filter, country_filter=country_filter, search=search, sort='name') }}"
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, country_filter=country_filter, search=search, sort='name', status_filter=status_filter) }}"
                class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if sort != 'newest' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 가나다순
             </a>
-            <a href="{{ url_for('students.index', grade_filter=grade_filter, country_filter=country_filter, search=search, sort='newest') }}"
+            <a href="{{ url_for('students.index', grade_filter=grade_filter, country_filter=country_filter, search=search, sort='newest', status_filter=status_filter) }}"
                class="px-4 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if sort == 'newest' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 최신순
@@ -148,7 +185,14 @@
              data-name="{{ student.name }}">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">{{ student.name }}</h3>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-xl font-bold {% if student.status == 'withdrawn' %}text-gray-400{% elif student.status == 'leave' %}text-gray-500{% else %}text-gray-800{% endif %}">{{ student.name }}</h3>
+                        {% if student.status == 'leave' %}
+                        <span class="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">휴원</span>
+                        {% elif student.status == 'withdrawn' %}
+                        <span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-500 rounded-full font-medium">퇴원</span>
+                        {% endif %}
+                    </div>
                     <span class="px-3 py-1 text-sm font-medium rounded-full
                         {% if student.grade and student.grade.startswith('초') %}bg-green-100 text-green-800
                         {% elif student.grade and student.grade.startswith('중') %}bg-blue-100 text-blue-800

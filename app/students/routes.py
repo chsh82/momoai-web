@@ -47,6 +47,22 @@ def index():
     grade_list = ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3']
     grade_stats = {g: base_query.filter_by(grade=g).count() for g in grade_list}
 
+    # 상태별 카운트
+    from app.models.course import CourseEnrollment
+    enrolled_ids_subq = db.session.query(
+        CourseEnrollment.student_id
+    ).filter_by(status='active').subquery()
+
+    status_counts = {
+        'unenrolled': base_query.filter(
+            ~Student.student_id.in_(
+                db.session.query(CourseEnrollment.student_id).filter_by(status='active')
+            )
+        ).count(),
+        'leave': base_query.filter_by(status='leave').count(),
+        'withdrawn': base_query.filter_by(status='withdrawn').count(),
+    }
+
     # ── 필터 적용 쿼리 ──
     query = base_query
 
@@ -64,6 +80,20 @@ def index():
     country_filter = request.args.get('country_filter', '').strip()
     if country_filter:
         query = query.filter_by(country=country_filter)
+
+    # 상태 필터
+    status_filter = request.args.get('status_filter', '').strip()
+    if status_filter == 'unenrolled':
+        # 미등록: 활성 수강반이 하나도 없는 학생
+        query = query.filter(
+            ~Student.student_id.in_(
+                db.session.query(CourseEnrollment.student_id).filter_by(status='active')
+            )
+        )
+    elif status_filter == 'leave':
+        query = query.filter_by(status='leave')
+    elif status_filter == 'withdrawn':
+        query = query.filter_by(status='withdrawn')
 
     # 정렬
     sort = request.args.get('sort', 'name')
@@ -84,6 +114,8 @@ def index():
                          search=search,
                          grade_filter=grade_filter,
                          country_filter=country_filter,
+                         status_filter=status_filter,
+                         status_counts=status_counts,
                          registered_countries=registered_countries,
                          sort=sort,
                          total_all=total_all,
