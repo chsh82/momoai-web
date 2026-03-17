@@ -35,6 +35,10 @@ KAKAO_SENDER_KEY = os.environ.get('KAKAO_SENDER_KEY')
 NAVER_CLIENT_ID = os.environ.get('NAVER_CLIENT_ID')
 NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
 
+# 토스 페이먼츠
+TOSS_CLIENT_KEY = os.environ.get('TOSS_CLIENT_KEY')
+TOSS_SECRET_KEY = os.environ.get('TOSS_SECRET_KEY')
+
 # 업로드 제한
 MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB (수동첨삭 이미지 10개 대응)
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
@@ -84,6 +88,8 @@ class Config:
     KAKAO_SENDER_KEY = KAKAO_SENDER_KEY
     NAVER_CLIENT_ID = NAVER_CLIENT_ID
     NAVER_CLIENT_SECRET = NAVER_CLIENT_SECRET
+    TOSS_CLIENT_KEY = TOSS_CLIENT_KEY
+    TOSS_SECRET_KEY = TOSS_SECRET_KEY
 
     # 푸시 알림 (PWA) — env var에서 \n을 실제 줄바꿈으로 복원
     VAPID_PRIVATE_KEY = (os.environ.get('VAPID_PRIVATE_KEY') or '').replace('\\n', '\n') or None

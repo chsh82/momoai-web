@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{% if success %}결제 완료{% else %}결제 실패{% endif %} - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto text-center py-12">
+    {% if success %}
+    <!-- 성공 -->
+    <div class="text-6xl mb-4">✅</div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">결제가 완료되었습니다!</h2>
+    <p class="text-gray-500 mb-8">수강료 납부가 정상적으로 처리되었습니다.</p>
+
+    {% if payment %}
+    <div class="bg-white rounded-xl shadow p-6 text-left mb-6 space-y-3 text-sm">
+        <div class="flex justify-between">
+            <span class="text-gray-500">수강 과목</span>
+            <span class="font-medium">{{ payment.course.course_name if payment.course else '-' }}</span>
+        </div>
+        <div class="flex justify-between">
+            <span class="text-gray-500">결제 금액</span>
+            <span class="font-bold text-blue-700 text-base">{{ "{:,}".format(payment.amount) }}원</span>
+        </div>
+        <div class="flex justify-between">
+            <span class="text-gray-500">결제 방법</span>
+            <span class="font-medium">
+                {% if payment.payment_method == 'card' %}카드
+                {% elif payment.payment_method == 'transfer' %}계좌이체
+                {% else %}{{ payment.payment_method }}{% endif %}
+            </span>
+        </div>
+        {% if payment.paid_at %}
+        <div class="flex justify-between">
+            <span class="text-gray-500">결제 일시</span>
+            <span class="font-medium">{{ payment.paid_at | kst('%Y.%m.%d %H:%M') }}</span>
+        </div>
+        {% endif %}
+        {% if payment.transaction_id %}
+        <div class="flex justify-between">
+            <span class="text-gray-500">거래 번호</span>
+            <span class="font-mono text-xs text-gray-600">{{ payment.transaction_id[:20] }}...</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="flex gap-3 justify-center">
+        {% if current_user.role == 'student' %}
+        <a href="{{ url_for('student.my_payments') }}"
+           class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+            결제 내역 확인
+        </a>
+        <a href="{{ url_for('student.index') }}"
+           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition">
+            홈으로
+        </a>
+        {% else %}
+        <a href="{{ url_for('parent.all_payments') }}"
+           class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+            결제 내역 확인
+        </a>
+        <a href="{{ url_for('parent.index') }}"
+           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition">
+            홈으로
+        </a>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- 실패 -->
+    <div class="text-6xl mb-4">❌</div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">결제에 실패했습니다</h2>
+    <p class="text-gray-500 mb-2">{{ error_message }}</p>
+    {% if error_code %}
+    <p class="text-xs text-gray-400 mb-8">오류 코드: {{ error_code }}</p>
+    {% endif %}
+
+    <div class="flex gap-3 justify-center">
+        {% if payment %}
+        <a href="{{ url_for('payment.checkout', payment_id=payment.payment_id) }}"
+           class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+            다시 시도
+        </a>
+        {% endif %}
+        {% if current_user.role == 'student' %}
+        <a href="{{ url_for('student.my_payments') }}"
+           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition">
+            결제 내역으로
+        </a>
+        {% else %}
+        <a href="{{ url_for('parent.all_payments') }}"
+           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition">
+            결제 내역으로
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

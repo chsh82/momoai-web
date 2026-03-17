@@ -127,7 +127,13 @@
                             {% if payment.status == 'completed' %}
                             <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">납부완료</span>
                             {% elif payment.status == 'pending' %}
-                            <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full">납부대기</span>
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full">납부대기</span>
+                                <a href="{{ url_for('payment.checkout', payment_id=payment.payment_id) }}"
+                                   class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition font-medium">
+                                    결제하기
+                                </a>
+                            </div>
                             {% elif payment.status == 'cancelled' %}
                             <span class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">취소</span>
                             {% else %}

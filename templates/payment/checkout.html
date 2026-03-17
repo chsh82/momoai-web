@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}결제하기 - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="mb-6">
+        <a href="javascript:history.back()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← 뒤로</a>
+        <h2 class="text-2xl font-bold text-gray-800 mt-2">💳 결제하기</h2>
+    </div>
+
+    <!-- 청구서 요약 -->
+    <div class="bg-white rounded-xl shadow p-6 mb-6">
+        <h3 class="font-semibold text-gray-700 mb-4 text-sm uppercase tracking-wide">청구서 내역</h3>
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+                <span class="text-gray-500">학생</span>
+                <span class="font-medium text-gray-800">{{ student.name }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">수강 과목</span>
+                <span class="font-medium text-gray-800">{{ payment.course.course_name if payment.course else '-' }}</span>
+            </div>
+            {% if payment.period_start %}
+            <div class="flex justify-between">
+                <span class="text-gray-500">결제 기간</span>
+                <span class="font-medium text-gray-800">
+                    {{ payment.period_start.strftime('%Y년 %m월') }}
+                    ({{ payment.period_start.strftime('%m/%d') }} ~ {{ payment.period_end.strftime('%m/%d') }})
+                </span>
+            </div>
+            {% endif %}
+            {% if payment.due_date %}
+            <div class="flex justify-between">
+                <span class="text-gray-500">납부 기한</span>
+                <span class="font-medium {% if payment.is_overdue %}text-red-600{% else %}text-gray-800{% endif %}">
+                    {{ payment.due_date.strftime('%Y년 %m월 %d일') }}
+                    {% if payment.is_overdue %}<span class="text-xs">(기한 초과)</span>{% endif %}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="border-t border-gray-100 mt-4 pt-4 flex justify-between items-center">
+            <span class="text-gray-600 font-medium">결제 금액</span>
+            <span class="text-2xl font-bold text-blue-700">{{ "{:,}".format(payment.amount) }}원</span>
+        </div>
+    </div>
+
+    <!-- 결제 수단 선택 -->
+    <div class="bg-white rounded-xl shadow p-6 mb-6">
+        <h3 class="font-semibold text-gray-700 mb-4 text-sm uppercase tracking-wide">결제 수단</h3>
+        <div class="grid grid-cols-2 gap-3">
+            <button type="button" id="btn-card"
+                    onclick="selectMethod('card')"
+                    class="method-btn flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-blue-500 bg-blue-50 transition">
+                <span class="text-2xl">💳</span>
+                <span class="text-sm font-medium text-gray-700">카드</span>
+            </button>
+            <button type="button" id="btn-transfer"
+                    onclick="selectMethod('transfer')"
+                    class="method-btn flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 transition">
+                <span class="text-2xl">🏦</span>
+                <span class="text-sm font-medium text-gray-700">계좌이체</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 결제 버튼 -->
+    <button id="pay-btn" onclick="requestPayment()"
+            class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl transition shadow">
+        {{ "{:,}".format(payment.amount) }}원 결제하기
+    </button>
+    <p class="text-center text-xs text-gray-400 mt-3">토스페이먼츠 보안 결제 · 개인정보 암호화 전송</p>
+</div>
+
+<script src="https://js.tosspayments.com/v2/standard"></script>
+<script>
+const CLIENT_KEY = {{ client_key | tojson }};
+const ORDER_ID   = {{ payment.payment_id | tojson }};
+const ORDER_NAME = {{ order_name | tojson }};
+const AMOUNT     = {{ payment.amount | int }};
+const CUSTOMER_NAME = {{ student.name | tojson }};
+const SUCCESS_URL = window.location.origin + '/payment/success';
+const FAIL_URL    = window.location.origin + '/payment/fail';
+
+let selectedMethod = 'card';  // 기본: 카드
+
+function selectMethod(method) {
+    selectedMethod = method;
+    document.querySelectorAll('.method-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'bg-blue-50');
+        btn.classList.add('border-gray-200', 'bg-white');
+    });
+    const target = document.getElementById('btn-' + method);
+    target.classList.remove('border-gray-200', 'bg-white');
+    target.classList.add('border-blue-500', 'bg-blue-50');
+}
+
+async function requestPayment() {
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = true;
+    btn.textContent = '결제창 열는 중...';
+
+    try {
+        const tossPayments = TossPayments(CLIENT_KEY);
+        const methodMap = { card: '카드', transfer: '계좌이체' };
+
+        await tossPayments.requestPayment(methodMap[selectedMethod], {
+            amount: AMOUNT,
+            orderId: ORDER_ID,
+            orderName: ORDER_NAME,
+            customerName: CUSTOMER_NAME,
+            successUrl: SUCCESS_URL,
+            failUrl: FAIL_URL,
+        });
+    } catch (e) {
+        if (e.code !== 'USER_CANCEL') {
+            alert('결제 중 오류가 발생했습니다: ' + (e.message || ''));
+        }
+        btn.disabled = false;
+        btn.textContent = '{{ "{:,}".format(payment.amount) }}원 결제하기';
+    }
+}
+</script>
+{% endblock %}

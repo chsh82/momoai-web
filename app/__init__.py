@@ -212,6 +212,9 @@ def create_app(config_name='default'):
     from app.messages import messages_bp
     app.register_blueprint(messages_bp)
 
+    from app.payment import payment_bp
+    app.register_blueprint(payment_bp, url_prefix='/payment')
+
     # Context processor: 미읽은 알림 카운트 주입
     @app.context_processor
     def inject_unread_counts():
