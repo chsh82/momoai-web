@@ -1412,11 +1412,17 @@ def download_teaching_material(material_id):
     file_directory = os.path.dirname(os.path.join(upload_folder, material.storage_path))
     file_name = os.path.basename(material.storage_path)
 
+    # original_filename이 확장자만인 경우 제목으로 대체
+    dl_name = material.original_filename or file_name
+    if '.' not in dl_name:
+        ext = os.path.splitext(file_name)[1]
+        dl_name = material.title[:50].replace('/', '_') + ext
+
     return send_from_directory(
         file_directory,
         file_name,
         as_attachment=True,
-        download_name=material.original_filename
+        download_name=dl_name
     )
 
 
