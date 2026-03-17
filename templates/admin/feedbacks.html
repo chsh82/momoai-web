@@ -28,6 +28,55 @@
         </div>
     </div>
 
+    <!-- 강사별 발송 통계 -->
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-gray-800">📊 강사별 피드백 발송 현황</h3>
+            <div class="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+                <button id="btn-week"
+                        onclick="setPeriod('week')"
+                        class="px-4 py-1.5 font-medium transition bg-blue-600 text-white">
+                    주간 (7일)
+                </button>
+                <button id="btn-month"
+                        onclick="setPeriod('month')"
+                        class="px-4 py-1.5 font-medium transition bg-white text-gray-600 hover:bg-gray-50">
+                    월별 ({{ month_label }})
+                </button>
+            </div>
+        </div>
+
+        {% if teacher_stats %}
+        <div class="space-y-2" id="stats-list">
+            {% set max_week = teacher_stats | map(attribute='week') | max %}
+            {% set max_month = teacher_stats | map(attribute='month') | max %}
+            {% for t in teacher_stats %}
+            <div class="flex items-center gap-3">
+                <span class="w-24 text-sm font-medium text-gray-700 shrink-0 truncate">{{ t.name }}</span>
+                <!-- 주간 바 -->
+                <div class="stat-week flex-1 flex items-center gap-2">
+                    <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                        <div class="h-5 rounded-full bg-blue-500 transition-all duration-300"
+                             style="width: {{ (t.week / max_week * 100) | int if max_week > 0 else 0 }}%"></div>
+                    </div>
+                    <span class="text-sm font-semibold text-blue-700 w-8 text-right">{{ t.week }}</span>
+                </div>
+                <!-- 월별 바 -->
+                <div class="stat-month flex-1 flex items-center gap-2 hidden">
+                    <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                        <div class="h-5 rounded-full bg-indigo-500 transition-all duration-300"
+                             style="width: {{ (t.month / max_month * 100) | int if max_month > 0 else 0 }}%"></div>
+                    </div>
+                    <span class="text-sm font-semibold text-indigo-700 w-8 text-right">{{ t.month }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 text-center py-6">발송 기록이 없습니다.</p>
+        {% endif %}
+    </div>
+
     <!-- 검색 필터 -->
     <div class="bg-white rounded-xl shadow p-5 mb-6">
         <form method="GET" action="{{ url_for('admin.feedbacks') }}">
@@ -189,6 +238,14 @@
 </div>
 
 <script>
+function setPeriod(period) {
+    const isWeek = period === 'week';
+    document.getElementById('btn-week').className = 'px-4 py-1.5 font-medium transition ' + (isWeek ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50');
+    document.getElementById('btn-month').className = 'px-4 py-1.5 font-medium transition ' + (!isWeek ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50');
+    document.querySelectorAll('.stat-week').forEach(el => el.classList.toggle('hidden', !isWeek));
+    document.querySelectorAll('.stat-month').forEach(el => el.classList.toggle('hidden', isWeek));
+}
+
 const FEEDBACKS = [
     {% for fb in feedbacks %}
     {% set type_label = {'general': '일반', 'progress': '학습 진도', 'behavior': '태도/행동', 'attendance': '출결'} %}

@@ -5309,9 +5309,40 @@ def feedbacks():
     teachers = User.query.filter(User.role.in_(['teacher', 'admin', 'master_admin'])).order_by(User.name).all()
     students = Student.query.order_by(Student.name).all()
 
-    # 통계
+    # 전체 통계
     total = TeacherFeedback.query.count()
     unread = TeacherFeedback.query.filter_by(is_read=False).count()
+
+    # 강사별 발송 통계 (주간 / 월별)
+    from datetime import timedelta
+    now_utc = datetime.utcnow()
+    week_start = now_utc - timedelta(days=7)
+    month_start = now_utc.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # 강사별 집계: {teacher_id: {'name': ..., 'week': n, 'month': n}}
+    all_teachers = User.query.filter(User.role.in_(['teacher', 'admin', 'master_admin'])).order_by(User.name).all()
+    teacher_stats = []
+    for t in all_teachers:
+        week_count = TeacherFeedback.query.filter(
+            TeacherFeedback.teacher_id == t.user_id,
+            TeacherFeedback.created_at >= week_start
+        ).count()
+        month_count = TeacherFeedback.query.filter(
+            TeacherFeedback.teacher_id == t.user_id,
+            TeacherFeedback.created_at >= month_start
+        ).count()
+        if week_count > 0 or month_count > 0:
+            teacher_stats.append({
+                'name': t.name,
+                'week': week_count,
+                'month': month_count,
+            })
+    # 주간 기준 내림차순 정렬
+    teacher_stats.sort(key=lambda x: x['week'], reverse=True)
+
+    # 이번 달 라벨 (KST 기준)
+    kst_now = now_utc + timedelta(hours=9)
+    month_label = kst_now.strftime('%Y년 %m월')
 
     return render_template('admin/feedbacks.html',
                            feedbacks=feedbacks_list,
@@ -5319,6 +5350,8 @@ def feedbacks():
                            students=students,
                            total=total,
                            unread=unread,
+                           teacher_stats=teacher_stats,
+                           month_label=month_label,
                            filters={
                                'teacher_id': teacher_id,
                                'student_id': student_id,
