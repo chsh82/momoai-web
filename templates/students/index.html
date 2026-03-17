@@ -43,40 +43,6 @@
         </div>
     </div>
 
-    <!-- 학년별 분포 -->
-    {% if total_all > 0 %}
-    <div class="bg-white rounded-xl shadow p-4 mb-5">
-        <p class="text-xs font-medium text-gray-500 mb-2">학년별 분포</p>
-        <div class="flex items-end gap-1 h-12">
-            {% set grade_groups = [
-                (['초1','초2','초3','초4','초5','초6'], 'bg-green-400', '초등'),
-                (['중1','중2','중3'], 'bg-blue-400', '중등'),
-                (['고1','고2','고3'], 'bg-purple-400', '고등')
-            ] %}
-            {% for grades, color, label in grade_groups %}
-                {% for g in grades %}
-                {% set cnt = grade_stats.get(g, 0) %}
-                {% set pct = (cnt / total_all * 100) | int if total_all > 0 else 0 %}
-                <div class="flex-1 flex flex-col items-center group relative">
-                    <div class="{{ color }} rounded-t w-full transition-all duration-300"
-                         style="height: {{ [pct, 4]|max }}%; min-height: 4px; max-height: 100%;"
-                         title="{{ g }}: {{ cnt }}명"></div>
-                    <!-- 툴팁 -->
-                    <div class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
-                        {{ g }}: {{ cnt }}명
-                    </div>
-                </div>
-                {% endfor %}
-            {% endfor %}
-        </div>
-        <div class="flex gap-3 mt-1 text-xs text-gray-500 justify-center">
-            <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded bg-green-400"></span>초등</span>
-            <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded bg-blue-400"></span>중등</span>
-            <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded bg-purple-400"></span>고등</span>
-        </div>
-    </div>
-    {% endif %}
-
     <!-- ── 학년 탭 ── -->
     <div class="bg-white rounded-lg shadow p-4 mb-3">
         <p class="text-xs font-medium text-gray-400 mb-2">학년 필터</p>
@@ -87,7 +53,7 @@
             <a href="{{ url_for('students.index', grade_filter=gval, search=search, sort=sort, country_filter=country_filter) }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
                       {% if grade_filter == gval %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                {{ g }}{% if gval and grade_stats.get(gval, 0) > 0 %}<span class="ml-1 text-xs opacity-70">{{ grade_stats.get(gval, 0) }}</span>{% endif %}
+                {{ g }}{% if gval and grade_stats.get(gval, 0) > 0 %}<span class="ml-1 text-xs font-bold {% if grade_filter == gval %}text-red-200{% else %}text-red-500{% endif %}">{{ grade_stats.get(gval, 0) }}</span>{% endif %}
             </a>
             {% endfor %}
         </div>
