@@ -49,7 +49,7 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country_filter, status_filter='') }}"
                class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-200
-                      {% if not status_filter %}bg-gray-700 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                      {% if not status_filter %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                 전체
             </a>
             <a href="{{ url_for('students.index', grade_filter=grade_filter, search=search, sort=sort, country_filter=country_filter, status_filter='unenrolled') }}"
