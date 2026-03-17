@@ -132,14 +132,45 @@
         <input type="hidden" name="period_id" value="{{ selected_period.period_id }}">
 
         <div class="bg-white rounded-xl shadow overflow-hidden">
+
+            <!-- 검색 + 탭 필터 -->
+            <div class="p-4 border-b border-gray-100">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="relative">
+                        <span class="absolute left-2.5 top-2 text-gray-400 text-sm leading-none">🔍</span>
+                        <input type="text" id="studentSearch" placeholder="학생 이름 검색..."
+                               oninput="applyFilters()"
+                               class="pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <span id="visibleCount" class="text-xs text-gray-400"></span>
+                </div>
+                <div class="flex items-center gap-1 flex-wrap">
+                    <button type="button" class="filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white"
+                            data-tab="all" onclick="switchTab('all', this)">전체</button>
+                    <button type="button" class="filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            data-tab="course-type" onclick="switchTab('course-type', this)">수업형태별</button>
+                    <button type="button" class="filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            data-tab="grade" onclick="switchTab('grade', this)">학년별</button>
+                    <button type="button" class="filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            data-tab="teacher" onclick="switchTab('teacher', this)">강사별</button>
+                    <button type="button" class="filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            data-tab="cycle" onclick="switchTab('cycle', this)">결제주기별</button>
+                </div>
+                <div id="subfilterRow" class="mt-2 hidden flex flex-wrap gap-1.5"></div>
+            </div>
+
             <!-- 테이블 헤더 -->
             <div class="flex items-center justify-between p-4 border-b border-gray-100 flex-wrap gap-2">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="selectAll" onchange="toggleAll(this.checked)"
                                class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         <span class="text-sm text-gray-600">전체 선택</span>
                     </label>
+                    <button type="button" onclick="checkAllVisible()"
+                            class="text-xs px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition font-medium">
+                        ✔ 전체 체크
+                    </button>
                     <span id="selectedCount" class="text-sm text-blue-600 font-medium hidden">0건 선택됨</span>
                 </div>
                 <div class="flex gap-2">
@@ -185,7 +216,12 @@
                         {% set r = row.result %}
                         {% set p = row.existing_payment %}
                         <tr class="hover:bg-gray-50 {% if row.billed %}bg-gray-50/50{% endif %}"
-                            {% if row.billed and p %}data-payment-id="{{ p.payment_id }}"{% endif %}>
+                            {% if row.billed and p %}data-payment-id="{{ p.payment_id }}"{% endif %}
+                            data-student-name="{{ e.student.name if e.student else '' }}"
+                            data-grade="{{ e.student.grade if e.student else '' }}"
+                            data-course-type="{{ e.course.course_type if e.course else '' }}"
+                            data-teacher="{{ e.course.teacher.name if e.course and e.course.teacher else '' }}"
+                            data-cycle="{{ e.payment_cycle or '' }}">
                             <!-- 체크박스 -->
                             <td class="px-3 py-3 text-center">
                                 {% if not row.billed %}
@@ -482,15 +518,33 @@ function selectPeriod() {
     if (pid) window.location.href = '{{ url_for("admin.billing") }}?period_id=' + pid;
 }
 
-// ── 전체 선택 ──
+// ── 전체 선택 (현재 보이는 행만) ──
 function toggleAll(checked) {
-    document.querySelectorAll('.enrollment-cb').forEach(cb => cb.checked = checked);
+    document.querySelectorAll('.enrollment-cb').forEach(cb => {
+        const row = cb.closest('tr');
+        if (!row || row.classList.contains('row-hidden')) return;
+        cb.checked = checked;
+    });
+    updateSelectCount();
+}
+
+function checkAllVisible() {
+    document.querySelectorAll('.enrollment-cb').forEach(cb => {
+        const row = cb.closest('tr');
+        if (!row || row.classList.contains('row-hidden')) return;
+        cb.checked = true;
+    });
     updateSelectCount();
 }
 
 function updateSelectCount() {
+    const allCbs = document.querySelectorAll('.enrollment-cb');
+    const visibleCbs = [...allCbs].filter(cb => {
+        const row = cb.closest('tr');
+        return row && !row.classList.contains('row-hidden');
+    });
     const checked = document.querySelectorAll('.enrollment-cb:checked').length;
-    const total = document.querySelectorAll('.enrollment-cb').length;
+    const visibleChecked = visibleCbs.filter(cb => cb.checked).length;
     const countEl = document.getElementById('selectedCount');
     const createBtn = document.getElementById('createBtn');
     const selectAll = document.getElementById('selectAll');
@@ -498,9 +552,99 @@ function updateSelectCount() {
     countEl.classList.toggle('hidden', checked === 0);
     if (createBtn) createBtn.disabled = checked === 0;
     if (selectAll) {
-        selectAll.indeterminate = checked > 0 && checked < total;
-        selectAll.checked = total > 0 && checked === total;
+        selectAll.indeterminate = visibleChecked > 0 && visibleChecked < visibleCbs.length;
+        selectAll.checked = visibleCbs.length > 0 && visibleChecked === visibleCbs.length;
     }
+}
+
+// ── 탭 + 검색 필터 ──
+let activeTab = 'all';
+let activeSubFilter = null;
+const TAB_ATTR = { 'course-type': 'courseType', 'grade': 'grade', 'teacher': 'teacher', 'cycle': 'cycle' };
+const CYCLE_LABEL = { 'monthly': '월별', 'quarterly': '분기' };
+
+function switchTab(tab, btn) {
+    activeTab = tab;
+    activeSubFilter = null;
+    document.querySelectorAll('.filter-tab').forEach(b => {
+        b.className = 'filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200';
+    });
+    btn.className = 'filter-tab px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white';
+
+    const subRow = document.getElementById('subfilterRow');
+    if (tab === 'all') {
+        subRow.classList.add('hidden');
+        subRow.innerHTML = '';
+    } else {
+        const attr = TAB_ATTR[tab];
+        const values = new Set();
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const v = row.dataset[attr];
+            if (v) values.add(v);
+        });
+        subRow.innerHTML = '';
+        const allPill = document.createElement('button');
+        allPill.type = 'button';
+        allPill.textContent = '전체';
+        allPill.className = 'sub-pill px-2.5 py-1 text-xs rounded-full bg-gray-700 text-white font-medium';
+        allPill.onclick = () => selectSubFilter(null);
+        subRow.appendChild(allPill);
+        const sorted = [...values].sort((a, b) => {
+            if (tab === 'grade') {
+                const gradeOrder = ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'];
+                const ai = gradeOrder.indexOf(a), bi = gradeOrder.indexOf(b);
+                if (ai !== -1 && bi !== -1) return ai - bi;
+            }
+            return a.localeCompare(b, 'ko');
+        });
+        sorted.forEach(v => {
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.textContent = tab === 'cycle' ? (CYCLE_LABEL[v] || v) : v;
+            pill.dataset.value = v;
+            pill.className = 'sub-pill px-2.5 py-1 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium';
+            pill.onclick = () => selectSubFilter(v);
+            subRow.appendChild(pill);
+        });
+        subRow.classList.remove('hidden');
+    }
+    applyFilters();
+}
+
+function selectSubFilter(value) {
+    activeSubFilter = value;
+    document.querySelectorAll('.sub-pill').forEach(p => {
+        const isActive = (value === null && p.textContent === '전체') || p.dataset.value === value;
+        p.className = isActive
+            ? 'sub-pill px-2.5 py-1 text-xs rounded-full bg-blue-600 text-white font-medium'
+            : 'sub-pill px-2.5 py-1 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium';
+    });
+    applyFilters();
+}
+
+function applyFilters() {
+    const search = (document.getElementById('studentSearch')?.value || '').trim().toLowerCase();
+    const attr = TAB_ATTR[activeTab];
+    let visible = 0;
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const name = (row.dataset.studentName || '').toLowerCase();
+        const matchSearch = !search || name.includes(search);
+        let matchTab = true;
+        if (activeTab !== 'all' && activeSubFilter) {
+            matchTab = row.dataset[attr] === activeSubFilter;
+        }
+        const show = matchSearch && matchTab;
+        row.classList.toggle('row-hidden', !show);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    const countEl = document.getElementById('visibleCount');
+    if (countEl) {
+        const isFiltered = search || (activeTab !== 'all' && activeSubFilter);
+        countEl.textContent = isFiltered ? `${visible} / ${rows.length}건 표시` : `전체 ${rows.length}건`;
+    }
+    updateSelectCount();
 }
 
 // ── 청구서 생성 확인 ──
@@ -702,6 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') { closeSettingsModal(); closeSmsModal(); }
     });
+    applyFilters();  // 초기 카운트 표시
 });
 </script>
 {% endblock %}
