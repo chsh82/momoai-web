@@ -38,7 +38,7 @@
                         </span>
                     </span>
                     <span class="text-xs text-gray-400 shrink-0 ml-2">
-                        {{ conv.last_message_at.strftime('%m/%d %H:%M') }}
+                        {{ conv.last_message_at | kst }}
                     </span>
                 </div>
                 {% if last %}

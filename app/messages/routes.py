@@ -3,7 +3,7 @@
 import os, uuid as _uuid
 from flask import render_template, redirect, url_for, request, jsonify, abort, flash, current_app, send_from_directory
 from flask_login import login_required, current_user
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 
 from app.messages import messages_bp
@@ -272,7 +272,7 @@ def poll(conv_id):
         'body': m.body,
         'is_mine': m.sender_id == uid,
         'sender_name': m.sender.name if m.sender else '',
-        'created_at': m.created_at.strftime('%m/%d %H:%M'),
+        'created_at': (m.created_at + timedelta(hours=9)).strftime('%m/%d %H:%M'),
         'is_read': m.is_read,
     } for m in new_msgs])
 

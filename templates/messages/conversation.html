@@ -45,7 +45,7 @@
                     {% endif %}
                 </div>
                 <span class="text-xs text-gray-400 mt-1 px-1">
-                    {{ msg.created_at.strftime('%m/%d %H:%M') }}
+                    {{ msg.created_at | kst }}
                     {% if is_mine %}
                     · {% if msg.is_read %}<span class="text-blue-400">읽음</span>{% else %}미읽음{% endif %}
                     {% endif %}

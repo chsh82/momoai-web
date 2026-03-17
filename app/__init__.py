@@ -89,6 +89,14 @@ def create_app(config_name='default'):
         """Extract basename from path"""
         return Path(path).name
 
+    @app.template_filter('kst')
+    def to_kst_filter(dt, fmt='%m/%d %H:%M'):
+        """UTC datetime → KST(+9) 변환 후 포맷"""
+        from datetime import timedelta
+        if dt is None:
+            return ''
+        return (dt + timedelta(hours=9)).strftime(fmt)
+
     # Jinja2 global functions
     from flask_wtf.csrf import generate_csrf
     app.jinja_env.globals.update(now=datetime.now, csrf_token=generate_csrf)
