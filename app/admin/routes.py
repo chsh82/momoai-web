@@ -5253,6 +5253,84 @@ def zoom_access_logs():
                          })
 
 
+# ==================== 피드백 관리 ====================
+
+@admin_bp.route('/feedbacks')
+@login_required
+@requires_permission_level(2)
+def feedbacks():
+    """강사 발송 피드백 전체 목록 (검색/필터)"""
+    from app.models.teacher_feedback import TeacherFeedback
+
+    teacher_id = request.args.get('teacher_id', '').strip()
+    student_id = request.args.get('student_id', '').strip()
+    feedback_type = request.args.get('feedback_type', '').strip()
+    priority = request.args.get('priority', '').strip()
+    is_read = request.args.get('is_read', '').strip()
+    keyword = request.args.get('keyword', '').strip()
+    date_from = request.args.get('date_from', '').strip()
+    date_to = request.args.get('date_to', '').strip()
+
+    query = TeacherFeedback.query
+
+    if teacher_id:
+        query = query.filter_by(teacher_id=teacher_id)
+    if student_id:
+        query = query.filter_by(student_id=student_id)
+    if feedback_type:
+        query = query.filter_by(feedback_type=feedback_type)
+    if priority:
+        query = query.filter_by(priority=priority)
+    if is_read == '1':
+        query = query.filter_by(is_read=True)
+    elif is_read == '0':
+        query = query.filter_by(is_read=False)
+    if keyword:
+        query = query.filter(
+            db.or_(
+                TeacherFeedback.title.contains(keyword),
+                TeacherFeedback.content.contains(keyword)
+            )
+        )
+    if date_from:
+        try:
+            query = query.filter(TeacherFeedback.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
+        except Exception:
+            pass
+    if date_to:
+        try:
+            from datetime import timedelta
+            query = query.filter(TeacherFeedback.created_at < datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1))
+        except Exception:
+            pass
+
+    feedbacks_list = query.order_by(TeacherFeedback.created_at.desc()).all()
+
+    teachers = User.query.filter(User.role.in_(['teacher', 'admin', 'master_admin'])).order_by(User.name).all()
+    students = Student.query.order_by(Student.name).all()
+
+    # 통계
+    total = TeacherFeedback.query.count()
+    unread = TeacherFeedback.query.filter_by(is_read=False).count()
+
+    return render_template('admin/feedbacks.html',
+                           feedbacks=feedbacks_list,
+                           teachers=teachers,
+                           students=students,
+                           total=total,
+                           unread=unread,
+                           filters={
+                               'teacher_id': teacher_id,
+                               'student_id': student_id,
+                               'feedback_type': feedback_type,
+                               'priority': priority,
+                               'is_read': is_read,
+                               'keyword': keyword,
+                               'date_from': date_from,
+                               'date_to': date_to,
+                           })
+
+
 # ==================== 상담 기록 관리 ====================
 
 @admin_bp.route('/consultations')

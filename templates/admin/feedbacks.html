@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}피드백 관리 - MOMOAI 관리자{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">💬 피드백 관리</h2>
+        <p class="text-gray-500 text-sm mt-1">강사가 학부모에게 발송한 수업 피드백을 조회합니다.</p>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-white rounded-xl shadow px-5 py-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl">💬</div>
+            <div>
+                <p class="text-xs text-gray-500">전체 피드백</p>
+                <p class="text-2xl font-bold text-gray-800">{{ total }}</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow px-5 py-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xl">📭</div>
+            <div>
+                <p class="text-xs text-gray-500">미읽음</p>
+                <p class="text-2xl font-bold text-gray-800">{{ unread }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 검색 필터 -->
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+        <form method="GET" action="{{ url_for('admin.feedbacks') }}">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <!-- 키워드 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">키워드</label>
+                    <input type="text" name="keyword" value="{{ filters.keyword }}"
+                           placeholder="제목 또는 내용 검색"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <!-- 강사 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">강사</label>
+                    <select name="teacher_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">전체 강사</option>
+                        {% for t in teachers %}
+                        <option value="{{ t.user_id }}" {% if filters.teacher_id == t.user_id %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- 학생 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">학생</label>
+                    <select name="student_id" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">전체 학생</option>
+                        {% for s in students %}
+                        <option value="{{ s.student_id }}" {% if filters.student_id == s.student_id %}selected{% endif %}>{{ s.name }} ({{ s.grade }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- 유형 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">피드백 유형</label>
+                    <select name="feedback_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">전체 유형</option>
+                        <option value="general" {% if filters.feedback_type == 'general' %}selected{% endif %}>일반</option>
+                        <option value="progress" {% if filters.feedback_type == 'progress' %}selected{% endif %}>학습 진도</option>
+                        <option value="behavior" {% if filters.feedback_type == 'behavior' %}selected{% endif %}>태도/행동</option>
+                        <option value="attendance" {% if filters.feedback_type == 'attendance' %}selected{% endif %}>출결</option>
+                    </select>
+                </div>
+                <!-- 중요도 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">중요도</label>
+                    <select name="priority" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">전체</option>
+                        <option value="high" {% if filters.priority == 'high' %}selected{% endif %}>🔴 높음</option>
+                        <option value="normal" {% if filters.priority == 'normal' %}selected{% endif %}>🟡 보통</option>
+                        <option value="low" {% if filters.priority == 'low' %}selected{% endif %}>🟢 낮음</option>
+                    </select>
+                </div>
+                <!-- 읽음 여부 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">읽음 여부</label>
+                    <select name="is_read" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">전체</option>
+                        <option value="0" {% if filters.is_read == '0' %}selected{% endif %}>미읽음</option>
+                        <option value="1" {% if filters.is_read == '1' %}selected{% endif %}>읽음</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">발송일 (시작)</label>
+                    <input type="date" name="date_from" value="{{ filters.date_from }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">발송일 (종료)</label>
+                    <input type="date" name="date_to" value="{{ filters.date_to }}"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    🔍 검색
+                </button>
+                <a href="{{ url_for('admin.feedbacks') }}"
+                   class="px-5 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition text-sm">
+                    초기화
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 결과 목록 -->
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700">총 <strong>{{ feedbacks|length }}</strong>건</span>
+        </div>
+
+        {% if feedbacks %}
+        <div class="divide-y divide-gray-100">
+            {% for fb in feedbacks %}
+            {% set type_label = {'general': '일반', 'progress': '학습 진도', 'behavior': '태도/행동', 'attendance': '출결'} %}
+            {% set type_color = {'general': 'bg-gray-100 text-gray-600', 'progress': 'bg-blue-100 text-blue-700', 'behavior': 'bg-orange-100 text-orange-700', 'attendance': 'bg-purple-100 text-purple-700'} %}
+            {% set priority_icon = {'high': '🔴', 'normal': '🟡', 'low': '🟢'} %}
+            <div class="px-5 py-4 hover:bg-gray-50 transition">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                            <!-- 중요도 -->
+                            <span class="text-sm">{{ priority_icon.get(fb.priority, '🟡') }}</span>
+                            <!-- 유형 뱃지 -->
+                            <span class="text-xs px-2 py-0.5 rounded-full {{ type_color.get(fb.feedback_type, 'bg-gray-100 text-gray-600') }}">
+                                {{ type_label.get(fb.feedback_type, fb.feedback_type) }}
+                            </span>
+                            <!-- 읽음 여부 -->
+                            {% if fb.is_read %}
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">읽음</span>
+                            {% else %}
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">미읽음</span>
+                            {% endif %}
+                        </div>
+                        <!-- 제목 -->
+                        <p class="font-semibold text-gray-800 truncate">{{ fb.title }}</p>
+                        <!-- 내용 미리보기 -->
+                        <p class="text-sm text-gray-500 mt-0.5 line-clamp-2">{{ fb.content }}</p>
+                        <!-- 메타 정보 -->
+                        <div class="flex items-center gap-3 mt-2 text-xs text-gray-400 flex-wrap">
+                            <span>👤 학생: <strong class="text-gray-600">{{ fb.student.name if fb.student else '-' }}</strong></span>
+                            <span>📚 강사: <strong class="text-gray-600">{{ fb.teacher.name if fb.teacher else '-' }}</strong></span>
+                            <span>👨‍👩‍👦 학부모: <strong class="text-gray-600">{{ fb.parent.name if fb.parent else '-' }}</strong></span>
+                            {% if fb.course %}
+                            <span>🏫 수업: {{ fb.course.course_name }}</span>
+                            {% endif %}
+                            <span>📅 {{ fb.created_at | kst('%Y.%m.%d %H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="py-16 text-center">
+            <span class="text-4xl block mb-3">💬</span>
+            <p class="text-gray-400 text-sm">검색 결과가 없습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

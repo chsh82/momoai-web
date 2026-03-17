@@ -352,9 +352,13 @@
                             </svg>
                         </button>
                         <div x-show="consultation" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.feedbacks') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'admin.feedbacks' %}text-purple-600 bg-purple-50{% endif %}">
+                                💬 피드백 관리
+                            </a>
                             <a href="{{ url_for('admin.consultations') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.consultation' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                📋 상담 내용 관리
+                                📋 상담 관리
                             </a>
                             <a href="{{ url_for('inquiry.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
