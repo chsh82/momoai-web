@@ -1061,7 +1061,13 @@ def serve_correction_attachment(attachment_id):
     attach = CorrectionAttachment.query.get_or_404(attachment_id)
     essay = attach.essay
 
-    if not _can_access_essay(essay):
+    # 학생 본인 접근 허용 (완료된 첨삭)
+    if current_user.role == 'student':
+        student = Student.query.filter_by(email=current_user.email).first()
+        if not student or essay.student_id != student.student_id or not essay.is_finalized:
+            flash('접근 권한이 없습니다.', 'error')
+            return redirect(url_for('student.my_essays'))
+    elif not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
