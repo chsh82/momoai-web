@@ -1831,6 +1831,8 @@
     </div>
 
     <script>
+    let _zoomClasses = [];
+
     async function enterZoomClass() {
         try {
             const res = await fetch('{{ url_for("student.zoom_classes") }}');
@@ -1842,13 +1844,19 @@
                 return;
             }
             if (classes.length === 1) {
+                fetch('{{ url_for("student.zoom_log") }}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({teacher_id: classes[0].teacher_id, course_id: classes[0].course_id})
+                });
                 window.open(classes[0].zoom_url, '_blank');
                 return;
             }
             // 2개 이상: 모달 표시
+            _zoomClasses = classes;
             const list = document.getElementById('zoomClassList');
-            list.innerHTML = classes.map(c => `
-                <button onclick="selectZoomClass('${c.zoom_url}', '${c.teacher_id}', '${c.course_id}')"
+            list.innerHTML = classes.map((c, i) => `
+                <button onclick="selectZoomClass(${i})"
                         class="w-full text-left flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition">
                     <span class="text-2xl">📹</span>
                     <div>
@@ -1863,14 +1871,15 @@
         }
     }
 
-    function selectZoomClass(url, teacherId, courseId) {
+    function selectZoomClass(index) {
+        const c = _zoomClasses[index];
         closeZoomModal();
         fetch('{{ url_for("student.zoom_log") }}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({teacher_id: teacherId, course_id: courseId})
+            body: JSON.stringify({teacher_id: c.teacher_id, course_id: c.course_id})
         });
-        window.open(url, '_blank');
+        window.open(c.zoom_url, '_blank');
     }
 
     function closeZoomModal() {
