@@ -176,8 +176,9 @@
                     <span class="ml-2 text-xs text-gray-400">강사: {{ enrollment.course.teacher.name }}</span>
                     {% endif %}
                     <div class="text-xs text-gray-500 mt-0.5">
-                        등록일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }} |
-                        출석률: {{ "%.0f"|format(enrollment.attendance_rate) }}%
+                        등록일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}
+                        {% set acs = attendance_by_course | selectattr('enrollment.enrollment_id', 'equalto', enrollment.enrollment_id) | first %}
+                        {% if acs and acs.total > 0 %} | 출석률: {{ acs.rate }}%{% endif %}
                     </div>
                 </div>
                 <form method="POST"
@@ -240,6 +241,81 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- 출결 현황 -->
+    {% if attendance_by_course %}
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-5">✅ 출결 현황</h3>
+        <div class="space-y-5">
+            {% for acs in attendance_by_course %}
+            {% if acs.total > 0 %}
+            <div class="border border-gray-200 rounded-lg p-4">
+                <!-- 수업명 -->
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <span class="font-semibold text-gray-800">{{ acs.course.course_name }}</span>
+                        {% if acs.course.teacher %}
+                        <span class="ml-2 text-xs text-gray-500">{{ acs.course.teacher.name }} 강사</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-sm font-bold {% if acs.rate >= 80 %}text-green-600{% elif acs.rate >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        출석률 {{ acs.rate }}%
+                    </span>
+                </div>
+                <!-- 통계 카드 -->
+                <div class="grid grid-cols-4 gap-2 mb-3">
+                    <div class="bg-gray-50 rounded p-2 text-center">
+                        <p class="text-xs text-gray-500">진행</p>
+                        <p class="font-bold text-gray-800">{{ acs.total }}</p>
+                    </div>
+                    <div class="bg-green-50 rounded p-2 text-center">
+                        <p class="text-xs text-green-600">출석</p>
+                        <p class="font-bold text-green-800">{{ acs.attended }}</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded p-2 text-center">
+                        <p class="text-xs text-yellow-600">지각</p>
+                        <p class="font-bold text-yellow-800">{{ acs.late }}</p>
+                    </div>
+                    <div class="bg-red-50 rounded p-2 text-center">
+                        <p class="text-xs text-red-600">결석</p>
+                        <p class="font-bold text-red-800">{{ acs.absent }}</p>
+                    </div>
+                </div>
+                <!-- 최근 출결 기록 -->
+                {% if acs.records %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-gray-600">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-1 pr-3">날짜</th>
+                                <th class="text-left py-1 pr-3">상태</th>
+                                <th class="text-left py-1">비고</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in acs.records %}
+                            <tr class="border-b border-gray-100">
+                                <td class="py-1 pr-3">{{ rec.session.session_date.strftime('%m/%d') }}</td>
+                                <td class="py-1 pr-3">
+                                    {% if rec.status == 'present' %}<span class="text-green-600 font-medium">출석</span>
+                                    {% elif rec.status == 'late' %}<span class="text-yellow-600 font-medium">지각{% if rec.late_minutes %} ({{ rec.late_minutes }}분){% endif %}</span>
+                                    {% elif rec.status == 'absent' %}<span class="text-red-600 font-medium">결석</span>
+                                    {% elif rec.status == 'excused' %}<span class="text-blue-600 font-medium">인정결석</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-1 text-gray-400">{{ rec.notes or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Phase 2: Score Growth Chart -->
     {% if score_data.has_data %}

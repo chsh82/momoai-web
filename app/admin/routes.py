@@ -2444,7 +2444,30 @@ def message_detail(message_id):
 def attendance_status():
     """전체 출석 현황"""
     from datetime import timedelta
+    import calendar as cal_module
     from sqlalchemy import func
+
+    # 주간/월별 통계 (항상 계산)
+    today = datetime.utcnow().date()
+    week_start = today - timedelta(days=today.weekday())  # 이번 주 월요일
+    week_end = week_start + timedelta(days=6)             # 이번 주 일요일
+    month_start = today.replace(day=1)
+    month_end = today.replace(day=cal_module.monthrange(today.year, today.month)[1])
+
+    def _calc_stats(d_from, d_to):
+        q = Attendance.query\
+            .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
+            .filter(CourseSession.session_date >= d_from, CourseSession.session_date <= d_to)
+        t = q.count()
+        p = q.filter(Attendance.status == 'present').count()
+        l = q.filter(Attendance.status == 'late').count()
+        a = q.filter(Attendance.status == 'absent').count()
+        e = q.filter(Attendance.status == 'excused').count()
+        return {'total': t, 'present': p, 'late': l, 'absent': a, 'excused': e,
+                'rate': round(p / t * 100, 1) if t > 0 else 0}
+
+    weekly_stats = _calc_stats(week_start, week_end)
+    monthly_stats = _calc_stats(month_start, month_end)
 
     # 필터 파라미터
     course_filter = request.args.get('course_id', '').strip()
@@ -2455,7 +2478,6 @@ def attendance_status():
     status_filter = request.args.get('status', '').strip()
 
     # 기본 날짜 범위 (최근 30일)
-    today = datetime.utcnow().date()
     if not date_from:
         date_from = (today - timedelta(days=30)).strftime('%Y-%m-%d')
     if not date_to:
@@ -2594,7 +2616,13 @@ def attendance_status():
                          excused_count=excused_count,
                          attendance_rate=attendance_rate,
                          course_stats=course_stats,
-                         student_stats=student_stats)
+                         student_stats=student_stats,
+                         weekly_stats=weekly_stats,
+                         monthly_stats=monthly_stats,
+                         week_start=week_start,
+                         week_end=week_end,
+                         month_start=month_start,
+                         month_end=month_end)
 
 
 @admin_bp.route('/all-schedule')

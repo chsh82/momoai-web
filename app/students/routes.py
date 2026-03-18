@@ -234,13 +234,44 @@ def detail(student_id):
         Course.is_terminated == False
     ).order_by(Course.grade, Course.course_name).all()
 
+    # 출결 현황 (진행된 세션만)
+    from app.models.course import CourseSession
+    from app.models.attendance import Attendance
+    from datetime import date
+    today = date.today()
+    attendance_by_course = []
+    for enrollment in current_enrollments:
+        records = Attendance.query.filter_by(
+            enrollment_id=enrollment.enrollment_id
+        ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
+            CourseSession.session_date <= today
+        ).order_by(CourseSession.session_date.desc()).all()
+        attended = sum(1 for a in records if a.status == 'present')
+        late = sum(1 for a in records if a.status == 'late')
+        absent = sum(1 for a in records if a.status == 'absent')
+        excused = sum(1 for a in records if a.status == 'excused')
+        total = attended + late + absent + excused
+        rate = round((attended + late * 0.5) / total * 100, 1) if total > 0 else 0
+        attendance_by_course.append({
+            'enrollment': enrollment,
+            'course': enrollment.course,
+            'records': records[:10],  # 최근 10회만
+            'attended': attended,
+            'late': late,
+            'absent': absent,
+            'excused': excused,
+            'total': total,
+            'rate': rate,
+        })
+
     return render_template('students/detail.html',
                          student=student,
                          essays=essays,
                          score_data=score_data,
                          radar_data=radar_data,
                          current_enrollments=current_enrollments,
-                         available_courses=available_courses)
+                         available_courses=available_courses,
+                         attendance_by_course=attendance_by_course)
 
 
 @students_bp.route('/<student_id>/enroll', methods=['POST'])

@@ -16,33 +16,94 @@
         <h2 class="text-2xl font-bold text-gray-800">📊 전체 출석 현황</h2>
     </div>
 
-    <!-- 전체 통계 (상단) -->
-    <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
-        <div class="bg-white rounded-lg shadow p-3 text-center">
-            <p class="text-xs text-gray-500 mb-0.5">전체</p>
-            <p class="text-xl font-bold text-gray-800">{{ total_count }}</p>
+    <!-- 상단 통계 (주간/월별 토글) -->
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <!-- 토글 버튼 -->
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
+                <button id="btn-weekly" onclick="switchStat('weekly')"
+                        class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-blue-600 text-white">
+                    주간
+                </button>
+                <button id="btn-monthly" onclick="switchStat('monthly')"
+                        class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-600 hover:bg-gray-200">
+                    월별
+                </button>
+            </div>
+            <span id="stat-period" class="text-xs text-gray-500">
+                {{ week_start.strftime('%m/%d') }} ~ {{ week_end.strftime('%m/%d') }} (이번 주)
+            </span>
         </div>
-        <div class="bg-green-50 rounded-lg shadow p-3 text-center">
-            <p class="text-xs text-green-600 mb-0.5">출석</p>
-            <p class="text-xl font-bold text-green-800">{{ present_count }}</p>
+
+        <!-- 주간 통계 -->
+        <div id="stats-weekly" class="grid grid-cols-3 md:grid-cols-6 gap-3">
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-gray-500 mb-0.5">전체</p>
+                <p class="text-xl font-bold text-gray-800">{{ weekly_stats.total }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-green-600 mb-0.5">출석</p>
+                <p class="text-xl font-bold text-green-800">{{ weekly_stats.present }}</p>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-yellow-600 mb-0.5">지각</p>
+                <p class="text-xl font-bold text-yellow-800">{{ weekly_stats.late }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-red-600 mb-0.5">결석</p>
+                <p class="text-xl font-bold text-red-800">{{ weekly_stats.absent }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-blue-600 mb-0.5">인정결석</p>
+                <p class="text-xl font-bold text-blue-800">{{ weekly_stats.excused }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-purple-600 mb-0.5">출석률</p>
+                <p class="text-xl font-bold text-purple-800">{{ weekly_stats.rate }}%</p>
+            </div>
         </div>
-        <div class="bg-yellow-50 rounded-lg shadow p-3 text-center">
-            <p class="text-xs text-yellow-600 mb-0.5">지각</p>
-            <p class="text-xl font-bold text-yellow-800">{{ late_count }}</p>
-        </div>
-        <div class="bg-red-50 rounded-lg shadow p-3 text-center">
-            <p class="text-xs text-red-600 mb-0.5">결석</p>
-            <p class="text-xl font-bold text-red-800">{{ absent_count }}</p>
-        </div>
-        <div class="bg-blue-50 rounded-lg shadow p-3 text-center">
-            <p class="text-xs text-blue-600 mb-0.5">인정결석</p>
-            <p class="text-xl font-bold text-blue-800">{{ excused_count }}</p>
-        </div>
-        <div class="bg-purple-50 rounded-lg shadow p-3 text-center">
-            <p class="text-xs text-purple-600 mb-0.5">출석률</p>
-            <p class="text-xl font-bold text-purple-800">{{ "%.1f"|format(attendance_rate) }}%</p>
+
+        <!-- 월별 통계 -->
+        <div id="stats-monthly" class="grid grid-cols-3 md:grid-cols-6 gap-3 hidden">
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-gray-500 mb-0.5">전체</p>
+                <p class="text-xl font-bold text-gray-800">{{ monthly_stats.total }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-green-600 mb-0.5">출석</p>
+                <p class="text-xl font-bold text-green-800">{{ monthly_stats.present }}</p>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-yellow-600 mb-0.5">지각</p>
+                <p class="text-xl font-bold text-yellow-800">{{ monthly_stats.late }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-red-600 mb-0.5">결석</p>
+                <p class="text-xl font-bold text-red-800">{{ monthly_stats.absent }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-blue-600 mb-0.5">인정결석</p>
+                <p class="text-xl font-bold text-blue-800">{{ monthly_stats.excused }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-purple-600 mb-0.5">출석률</p>
+                <p class="text-xl font-bold text-purple-800">{{ monthly_stats.rate }}%</p>
+            </div>
         </div>
     </div>
+
+    <script>
+    const WEEKLY_PERIOD = '{{ week_start.strftime("%m/%d") }} ~ {{ week_end.strftime("%m/%d") }} (이번 주)';
+    const MONTHLY_PERIOD = '{{ month_start.strftime("%Y년 %m월") }} ({{ month_start.strftime("%m/%d") }} ~ {{ month_end.strftime("%m/%d") }})';
+    function switchStat(mode) {
+        const isWeekly = mode === 'weekly';
+        document.getElementById('stats-weekly').classList.toggle('hidden', !isWeekly);
+        document.getElementById('stats-monthly').classList.toggle('hidden', isWeekly);
+        document.getElementById('btn-weekly').className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all ' + (isWeekly ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200');
+        document.getElementById('btn-monthly').className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-all ' + (!isWeekly ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200');
+        document.getElementById('stat-period').textContent = isWeekly ? WEEKLY_PERIOD : MONTHLY_PERIOD;
+    }
+    </script>
 
     <!-- 조건별 검색 (통계 아래) -->
     <div class="bg-white rounded-lg shadow px-4 py-3 mb-5">
