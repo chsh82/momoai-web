@@ -1075,11 +1075,12 @@ def create_feedback():
 
     if student_id:
         # 특정 학생 선택됨
-        students = [Student.query.get(student_id)]
+        s = Student.query.get(student_id)
+        students = [s] if s else []
     elif course_id:
         # 특정 수업의 학생들
         enrollments = CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
-        students = [e.student for e in enrollments]
+        students = [e.student for e in enrollments if e.student is not None]
     else:
         # 내가 담당하는 모든 학생
         my_courses = Course.query.filter_by(teacher_id=current_user.user_id).all()
@@ -1088,7 +1089,7 @@ def create_feedback():
             CourseEnrollment.course_id.in_(course_ids),
             CourseEnrollment.status == 'active'
         ).all()
-        students = list(set([e.student for e in enrollments]))
+        students = list(set([e.student for e in enrollments if e.student is not None]))
 
     form.student_id.choices = [('', '-- 학생 선택 --')] + [
         (s.student_id, s.name) for s in sorted(students, key=lambda x: x.name)
