@@ -524,77 +524,91 @@ function confirmDelete() {
     }
 }
 
-// Phase 2: Score Growth Chart
+// Phase 2: Score Growth Chart (막대 + 선 혼합)
 {% if score_data.has_data %}
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('scoreChart');
+    if (!ctx) return;
 
-    if (ctx) {
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {{ score_data.labels | tojson }},
-                datasets: [{
-                    label: '총점',
-                    data: {{ score_data.total_scores | tojson }},
-                    borderColor: '#3B82F6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
+    const scores = {{ score_data.total_scores | tojson }};
+    const labels = {{ score_data.labels | tojson }};
+
+    // 점수대별 막대 색상
+    const barColors = scores.map(s =>
+        s >= 90 ? 'rgba(139, 92, 246, 0.7)' :
+        s >= 80 ? 'rgba(59, 130, 246, 0.7)' :
+        s >= 70 ? 'rgba(34, 197, 94, 0.7)' :
+                  'rgba(234, 179, 8, 0.7)'
+    );
+    const barBorderColors = scores.map(s =>
+        s >= 90 ? '#7C3AED' : s >= 80 ? '#2563EB' : s >= 70 ? '#16A34A' : '#CA8A04'
+    );
+
+    new Chart(ctx, {
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: '점수',
+                    data: scores,
+                    backgroundColor: barColors,
+                    borderColor: barBorderColors,
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    order: 2
+                },
+                {
+                    type: 'line',
+                    label: '추이',
+                    data: scores,
+                    borderColor: '#F97316',
+                    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                    borderWidth: 2.5,
+                    tension: 0.3,
                     pointRadius: 5,
                     pointHoverRadius: 7,
-                    pointBackgroundColor: '#3B82F6',
+                    pointBackgroundColor: '#F97316',
                     pointBorderColor: '#FFFFFF',
-                    pointBorderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#FFFFFF',
-                        bodyColor: '#FFFFFF',
-                        borderColor: '#3B82F6',
-                        borderWidth: 1,
-                        padding: 12,
-                        callbacks: {
-                            label: function(context) {
-                                return '총점: ' + context.parsed.y.toFixed(1) + '점';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 0,
-                        max: 100,
-                        ticks: {
-                            stepSize: 10,
-                            callback: function(value) {
-                                return value + '점';
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
+                    pointBorderWidth: 2,
+                    fill: false,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: 'top' },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.type === 'bar'
+                                ? '점수: ' + context.parsed.y.toFixed(1) + '점'
+                                : '추이: ' + context.parsed.y.toFixed(1) + '점';
                         }
                     }
                 }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 10,
+                        callback: v => v + '점'
+                    },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: { grid: { display: false } }
             }
-        });
-    }
+        }
+    });
 });
 {% endif %}
 
