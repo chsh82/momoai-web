@@ -55,6 +55,7 @@ def index():
 
     status_counts = {
         'unenrolled': base_query.filter(
+            Student.status == 'active',
             ~Student.student_id.in_(
                 db.session.query(CourseEnrollment.student_id).filter_by(status='active')
             )
@@ -84,8 +85,9 @@ def index():
     # 상태 필터
     status_filter = request.args.get('status_filter', '').strip()
     if status_filter == 'unenrolled':
-        # 미등록: 활성 수강반이 하나도 없는 학생
+        # 미등록: status=active이면서 활성 수강반이 없는 학생 (휴원/퇴원 제외)
         query = query.filter(
+            Student.status == 'active',
             ~Student.student_id.in_(
                 db.session.query(CourseEnrollment.student_id).filter_by(status='active')
             )
