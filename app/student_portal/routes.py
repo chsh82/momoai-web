@@ -111,6 +111,7 @@ def index():
     # ===== 차트 데이터 생성 =====
     from sqlalchemy import func, extract
     from app.models.essay import EssayResult
+    from app.models.essay_score import EssayScore
     import json
 
     # 1. 월별 내 첨삭 수 추이 (최근 6개월)
@@ -153,6 +154,26 @@ def index():
     course_names = [item['course_name'] for item in attendance_by_course]
     attendance_rates = [item['rate'] for item in attendance_by_course]
 
+    # 4. 최신 첨삭 분석 (레이더 차트용)
+    radar_data = {'thinking_types': {}, 'integrated_indicators': {}, 'has_data': False}
+    latest_with_scores = db.session.query(Essay, EssayResult)\
+        .join(EssayResult, Essay.essay_id == EssayResult.essay_id)\
+        .filter(Essay.student_id == student.student_id)\
+        .order_by(Essay.completed_at.desc()).first()
+    if latest_with_scores:
+        latest_essay, latest_result = latest_with_scores
+        scores = EssayScore.query.filter_by(
+            essay_id=latest_essay.essay_id,
+            version_id=latest_result.version_id
+        ).all()
+        for s in scores:
+            if s.category == '사고유형':
+                radar_data['thinking_types'][s.indicator_name] = float(s.score)
+            elif s.category == '통합지표':
+                radar_data['integrated_indicators'][s.indicator_name] = float(s.score)
+        if radar_data['thinking_types'] or radar_data['integrated_indicators']:
+            radar_data['has_data'] = True
+
     return render_template('student/index.html',
                          student=student,
                          enrollments=enrollments,
@@ -166,7 +187,8 @@ def index():
                          score_labels=json.dumps(score_labels),
                          score_data=json.dumps(score_data),
                          course_names=json.dumps(course_names),
-                         attendance_rates=json.dumps(attendance_rates))
+                         attendance_rates=json.dumps(attendance_rates),
+                         radar_data=radar_data)
 
 
 @student_bp.route('/courses')

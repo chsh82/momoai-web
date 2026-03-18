@@ -2,6 +2,10 @@
 
 {% block title %}{{ current_user.name }}의 마이 페이지 - MOMOAI v4.0{% endblock %}
 
+{% block chart_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block page_title %}🏠 {{ current_user.name }}의 마이 페이지{% endblock %}
 
 {% block page_subtitle %}
@@ -122,7 +126,7 @@
         <!-- 평균 점수 추이 -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">평균 점수 추이</h3>
+                <h3 class="text-xl font-bold text-gray-800">점수 변화 추이</h3>
                 <p class="text-sm text-gray-600 mt-1">최근 10개 첨삭 점수</p>
             </div>
             <div class="p-6">
@@ -130,6 +134,32 @@
             </div>
         </div>
     </div>
+
+    <!-- 최신 첨삭 분석 (레이더 차트) -->
+    {% if radar_data.has_data %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">🎯 최신 첨삭 분석</h3>
+            <p class="text-sm text-gray-600 mt-1">최근 완료된 첨삭의 18개 지표 분석</p>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-base font-semibold text-gray-700 mb-3 text-center">📚 사고유형 분석</h4>
+                    <div class="relative" style="height: 280px;">
+                        <canvas id="thinkingRadar"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-base font-semibold text-gray-700 mb-3 text-center">🔍 통합지표 분석</h4>
+                    <div class="relative" style="height: 280px;">
+                        <canvas id="integratedRadar"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- 수업별 출석률 차트 -->
     <div class="bg-white rounded-lg shadow mb-6">
@@ -314,39 +344,49 @@ new Chart(essayCtx, {
     }
 });
 
-// 평균 점수 추이 차트
+// 점수 변화 추이 (막대 + 선 혼합)
 const scoreCtx = document.getElementById('scoreTrendChart').getContext('2d');
+const scoreValues = {{ score_data|safe }};
+const scoreBarColors = scoreValues.map(s =>
+    s >= 90 ? 'rgba(139,92,246,0.7)' : s >= 80 ? 'rgba(59,130,246,0.7)' : s >= 70 ? 'rgba(34,197,94,0.7)' : 'rgba(234,179,8,0.7)'
+);
 new Chart(scoreCtx, {
-    type: 'line',
     data: {
         labels: {{ score_labels|safe }},
-        datasets: [{
-            label: '평균 점수',
-            data: {{ score_data|safe }},
-            backgroundColor: 'rgba(147, 51, 234, 0.1)',
-            borderColor: 'rgba(147, 51, 234, 1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true
-        }]
+        datasets: [
+            { type: 'bar', label: '점수', data: scoreValues, backgroundColor: scoreBarColors, borderRadius: 5, order: 2 },
+            { type: 'line', label: '추이', data: scoreValues, borderColor: '#F97316', borderWidth: 2, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#F97316', pointBorderColor: '#fff', pointBorderWidth: 2, fill: false, order: 1 }
+        ]
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100
-            }
-        }
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'top' } },
+        scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '점' } }, x: { grid: { display: false } } }
     }
 });
+
+{% if radar_data.has_data %}
+// 최신 첨삭 분석 레이더 차트
+const radarOptions = {
+    responsive: true, maintainAspectRatio: false,
+    scales: { r: { min: 0, max: 10, ticks: { stepSize: 2, font: { size: 10 } }, pointLabels: { font: { size: 11 } } } },
+    plugins: { legend: { display: false } }
+};
+const thinkingTypes = {{ radar_data.thinking_types | tojson }};
+const thinkingLabels = ['요약','비교','적용','평가','비판','문제해결','자료해석','견해제시','종합'];
+new Chart(document.getElementById('thinkingRadar'), {
+    type: 'radar',
+    data: { labels: thinkingLabels, datasets: [{ label: '사고유형', data: thinkingLabels.map(l => thinkingTypes[l] || 0), backgroundColor: 'rgba(217,70,239,0.2)', borderColor: '#D946EF', borderWidth: 2, pointBackgroundColor: '#D946EF', pointBorderColor: '#fff', pointRadius: 4 }] },
+    options: radarOptions
+});
+const integratedIndicators = {{ radar_data.integrated_indicators | tojson }};
+const integratedLabels = ['결론','구조/논리성','표현/명료성','문제인식','개념/정보','목적/적절성','관점/다각성','심층성','완전성'];
+new Chart(document.getElementById('integratedRadar'), {
+    type: 'radar',
+    data: { labels: integratedLabels, datasets: [{ label: '통합지표', data: integratedLabels.map(l => integratedIndicators[l] || 0), backgroundColor: 'rgba(6,182,212,0.2)', borderColor: '#06B6D4', borderWidth: 2, pointBackgroundColor: '#06B6D4', pointBorderColor: '#fff', pointRadius: 4 }] },
+    options: radarOptions
+});
+{% endif %}
 
 // 수업별 출석률 차트
 const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
