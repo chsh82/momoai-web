@@ -322,16 +322,24 @@
     {% endif %}
 
     <!-- Phase 2: Score Growth Chart -->
-    {% if score_data.has_data %}
     <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-6">📈 점수 변화 추이</h3>
+        <h3 class="text-xl font-bold text-gray-800 mb-4">📈 점수 변화 추이</h3>
+        {% if score_data.has_data %}
         <div class="relative" style="height: 300px;">
             <canvas id="scoreChart"></canvas>
         </div>
+        {% else %}
+        <div class="text-center py-10 text-gray-400">
+            <div class="text-4xl mb-3">📊</div>
+            <p class="text-sm">아직 점수 데이터가 없습니다.</p>
+            <p class="text-xs mt-1">첨삭 완료 후 점수가 파싱되면 자동으로 표시됩니다.</p>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 
     <!-- Phase 2: 18개 지표 레이더 차트 -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">🎯 최신 첨삭 분석 (18개 지표)</h3>
     {% if radar_data.has_data %}
     <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-6">🎯 최신 첨삭 분석 (18개 지표)</h3>
@@ -371,7 +379,14 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="text-center py-10 text-gray-400">
+        <div class="text-4xl mb-3">🎯</div>
+        <p class="text-sm">아직 지표 분석 데이터가 없습니다.</p>
+        <p class="text-xs mt-1">첨삭 완료 후 18개 지표가 파싱되면 자동으로 표시됩니다.</p>
+    </div>
     {% endif %}
+    </div>
 
     <!-- Essay History -->
     <div class="bg-white rounded-lg shadow-lg p-8">
