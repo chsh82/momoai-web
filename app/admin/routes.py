@@ -3815,7 +3815,8 @@ def approve_parent_link_request(request_id):
     db.session.add(notification)
     db.session.commit()
 
-    flash(f'{link_request.parent.name}님과 {student.name} 학생이 연결되었습니다.', 'success')
+    parent_name = parent_user.name if parent_user else '학부모'
+    flash(f'{parent_name}님과 {student.name} 학생이 연결되었습니다.', 'success')
     return redirect(url_for('admin.parent_link_requests'))
 
 

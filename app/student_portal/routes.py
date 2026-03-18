@@ -188,9 +188,32 @@ def courses():
         status='active'
     ).all()
 
+    # 진행된 세션(오늘 이전)만으로 출결 통계 계산
+    enrollment_stats = {}
+    today = date.today()
+    for enrollment in enrollments:
+        records = Attendance.query.filter_by(
+            enrollment_id=enrollment.enrollment_id
+        ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
+            CourseSession.session_date <= today
+        ).all()
+        attended = sum(1 for a in records if a.status == 'present')
+        absent = sum(1 for a in records if a.status == 'absent')
+        late = sum(1 for a in records if a.status == 'late')
+        total = attended + absent + late
+        rate = round((attended + late * 0.5) / total * 100, 1) if total > 0 else 0
+        enrollment_stats[enrollment.enrollment_id] = {
+            'attended': attended,
+            'absent': absent,
+            'late': late,
+            'total': total,
+            'rate': rate,
+        }
+
     return render_template('student/courses.html',
                          student=student,
-                         enrollments=enrollments)
+                         enrollments=enrollments,
+                         enrollment_stats=enrollment_stats)
 
 
 @student_bp.route('/courses/<course_id>')

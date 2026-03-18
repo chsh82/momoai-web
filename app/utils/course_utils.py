@@ -179,8 +179,14 @@ def update_enrollment_attendance_stats(enrollment_id):
     if not enrollment:
         return None
 
-    # 출석 레코드 조회
-    attendance_records = Attendance.query.filter_by(enrollment_id=enrollment_id).all()
+    # 출석 레코드 조회 (오늘 이전 진행된 세션만)
+    from app.models.course import CourseSession
+    from datetime import date
+    attendance_records = Attendance.query.filter_by(
+        enrollment_id=enrollment_id
+    ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
+        CourseSession.session_date <= date.today()
+    ).all()
 
     attended = sum(1 for a in attendance_records if a.status == 'present')
     absent = sum(1 for a in attendance_records if a.status == 'absent')

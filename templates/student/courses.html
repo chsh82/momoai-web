@@ -45,21 +45,24 @@
                     </div>
                 </div>
 
-                <!-- 출석 통계 -->
+                <!-- 출석 통계 (진행된 수업만) -->
+                {% set stats = enrollment_stats.get(enrollment.enrollment_id, {}) %}
+                {% if stats.get('total', 0) > 0 %}
                 <div class="grid grid-cols-3 gap-3 mb-4">
                     <div class="bg-green-50 rounded-lg p-3 text-center">
                         <p class="text-xs text-gray-600 mb-1">출석률</p>
-                        <p class="text-lg font-bold text-green-600">{{ "%.1f"|format(enrollment.attendance_rate) }}%</p>
+                        <p class="text-lg font-bold text-green-600">{{ stats.rate }}%</p>
                     </div>
                     <div class="bg-blue-50 rounded-lg p-3 text-center">
                         <p class="text-xs text-gray-600 mb-1">출석</p>
-                        <p class="text-lg font-bold text-blue-600">{{ enrollment.attended_sessions }}</p>
+                        <p class="text-lg font-bold text-blue-600">{{ stats.attended }}</p>
                     </div>
                     <div class="bg-red-50 rounded-lg p-3 text-center">
                         <p class="text-xs text-gray-600 mb-1">결석</p>
-                        <p class="text-lg font-bold text-red-600">{{ enrollment.absent_sessions }}</p>
+                        <p class="text-lg font-bold text-red-600">{{ stats.absent }}</p>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- 수업 정보 -->
                 <div class="border-t border-gray-200 pt-4 space-y-2 text-sm">
@@ -78,10 +81,10 @@
                         <span class="font-medium text-gray-800">{{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}</span>
                     </div>
 
-                    {% if enrollment.course.total_sessions %}
+                    {% if stats.get('total', 0) > 0 %}
                     <div class="flex items-center justify-between">
-                        <span class="text-gray-600">전체 회차</span>
-                        <span class="font-medium text-gray-800">{{ enrollment.course.total_sessions }}회</span>
+                        <span class="text-gray-600">진행된 회차</span>
+                        <span class="font-medium text-gray-800">{{ stats.total }}회</span>
                     </div>
                     {% endif %}
                 </div>
