@@ -935,6 +935,9 @@ def students():
         student_id = enrollment.student_id
         student = enrollment.student
 
+        if student is None:
+            continue
+
         # 이름/ID 검색 필터
         if search and search.lower() not in student.name.lower() and search not in student.student_id:
             continue
@@ -1215,7 +1218,7 @@ def edit_feedback(feedback_id):
         CourseEnrollment.course_id.in_(course_ids),
         CourseEnrollment.status == 'active'
     ).all()
-    students = list(set([e.student for e in enrollments]))
+    students = list(set([e.student for e in enrollments if e.student is not None]))
     # 원래 학생이 목록에 없을 경우 추가
     if feedback.student and feedback.student not in students:
         students.append(feedback.student)
