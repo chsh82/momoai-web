@@ -203,7 +203,7 @@
                                     {% if feedback.feedback_type == 'positive' %}칭찬{% elif feedback.feedback_type == 'improvement' %}개선{% else %}일반{% endif %}
                                 </span>
                             </div>
-                            <div class="text-gray-700 mb-2">{{ feedback.content }}</div>
+                            <div class="text-gray-700 mb-2 whitespace-pre-wrap">{{ feedback.content }}</div>
                             {% if feedback.hidden_from_student %}
                             <div class="text-xs text-gray-500 flex items-center gap-1">
                                 <span>🔒</span>
