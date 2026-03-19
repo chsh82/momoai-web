@@ -6967,6 +6967,21 @@ def action_item_new():
         )
         db.session.add(item)
         db.session.commit()
+
+        # 담당자(강사)에게 알림 발송
+        if assigned:
+            from app.models.notification import Notification
+            Notification.create_notification(
+                user_id=assigned,
+                notification_type='action_item',
+                title='📋 새 업무가 부여되었습니다',
+                message=f'[{item.category}] {item.title}',
+                link_url=f'/teacher/action-items/{item.item_id}',
+                related_user_id=current_user.user_id,
+                related_entity_type='action_item',
+                related_entity_id=str(item.item_id),
+            )
+
         flash('업무가 등록되었습니다.', 'success')
         return redirect(url_for('admin.action_items'))
 
@@ -6994,6 +7009,8 @@ def action_item_edit(item_id):
     from app.models.action_item import ActionItem
     item = ActionItem.query.get_or_404(item_id)
 
+    prev_assigned = item.assigned_to  # 변경 전 담당자 기억
+
     item.title    = request.form.get('title', item.title).strip()
     item.content  = request.form.get('content', item.content or '').strip()
     item.category = request.form.get('category', item.category)
@@ -7015,6 +7032,21 @@ def action_item_edit(item_id):
     from datetime import datetime
     item.updated_at = datetime.utcnow()
     db.session.commit()
+
+    # 담당자가 새로 지정되거나 변경된 경우 알림 발송
+    if item.assigned_to and item.assigned_to != prev_assigned:
+        from app.models.notification import Notification
+        Notification.create_notification(
+            user_id=item.assigned_to,
+            notification_type='action_item',
+            title='📋 업무가 부여되었습니다',
+            message=f'[{item.category}] {item.title}',
+            link_url=f'/teacher/action-items/{item.item_id}',
+            related_user_id=current_user.user_id,
+            related_entity_type='action_item',
+            related_entity_id=str(item.item_id),
+        )
+
     flash('업무가 수정되었습니다.', 'success')
     return redirect(url_for('admin.action_item_detail', item_id=item_id))
 
