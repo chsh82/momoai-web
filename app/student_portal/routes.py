@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date
 from sqlalchemy import desc, and_
 from werkzeug.utils import secure_filename
+from app.utils.file_utils import safe_original_filename
 import os
 import uuid
 
@@ -377,9 +378,9 @@ def submit_essay():
                     upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
                     os.makedirs(upload_folder, exist_ok=True)
 
-                    # 안전한 파일명 생성 (확장자는 원본에서 추출)
+                    # 안전한 파일명 생성 (확장자는 원본에서 추출, 한글 파일명 보존)
                     raw_ext = os.path.splitext(file.filename)[1]
-                    original_filename = secure_filename(file.filename) or f"file{raw_ext}"
+                    original_filename = safe_original_filename(file.filename) or f"file{raw_ext}"
                     stored_filename = f"{uuid.uuid4().hex}{raw_ext}"
                     file_path = os.path.join(upload_folder, stored_filename)
 
@@ -892,9 +893,9 @@ def submit_assignment(assignment_id):
             upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'assignments')
             os.makedirs(upload_folder, exist_ok=True)
 
-            # 안전한 파일명 생성
-            original_filename = secure_filename(file.filename)
-            file_ext = os.path.splitext(original_filename)[1]
+            # 안전한 파일명 생성 (한글 파일명 보존)
+            file_ext = os.path.splitext(file.filename)[1]
+            original_filename = safe_original_filename(file.filename) or f"file{file_ext}"
             stored_filename = f"{uuid.uuid4().hex}{file_ext}"
             file_path = os.path.join(upload_folder, stored_filename)
 

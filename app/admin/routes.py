@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, case
 from werkzeug.utils import secure_filename
+from app.utils.file_utils import safe_original_filename
 import os
 import uuid
 import json
@@ -3120,7 +3121,7 @@ def create_teaching_material():
         # 첫 번째 파일 정보로 TeachingMaterial 레코드 생성 (backward compat)
         first_file = uploaded_files[0]
         _, first_raw_ext = os.path.splitext(first_file.filename)
-        first_name = secure_filename(first_file.filename) or f"file{first_raw_ext}"
+        first_name = safe_original_filename(first_file.filename) or f"file{first_raw_ext}"
         first_ext = first_raw_ext
         first_stored = f"{uuid.uuid4().hex}{first_ext}"
 
@@ -3147,7 +3148,7 @@ def create_teaching_material():
         total_size = 0
         for idx, file in enumerate(uploaded_files):
             _, raw_file_ext = os.path.splitext(file.filename)
-            orig_name = secure_filename(file.filename) or f"file{raw_file_ext}"
+            orig_name = safe_original_filename(file.filename) or f"file{raw_file_ext}"
             file_ext = raw_file_ext
             stored_name = f"{uuid.uuid4().hex}{file_ext}" if idx > 0 else first_stored
             file_path = os.path.join(upload_folder, stored_name)
@@ -3271,7 +3272,7 @@ def edit_teaching_material(material_id):
                 if ext not in ALLOWED_MATERIAL_EXTENSIONS:
                     flash(f'허용되지 않는 파일 형식: {file.filename}', 'danger')
                     continue
-                orig_name = secure_filename(file.filename) or f"file{raw_ext}"
+                orig_name = safe_original_filename(file.filename) or f"file{raw_ext}"
                 file_ext = raw_ext
                 stored_name = f"{uuid.uuid4().hex}{file_ext}"
                 file_path = os.path.join(upload_folder, stored_name)

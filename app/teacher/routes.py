@@ -1828,9 +1828,10 @@ def upload_material():
             return redirect(request.url)
 
         # 파일 확장자 체크 (원본 파일명에서 추출 - 한글 파일명 대응)
+        from app.utils.file_utils import safe_original_filename
         _, raw_ext = os.path.splitext(file.filename)
         file_ext = raw_ext.lstrip('.').lower()
-        filename = secure_filename(file.filename) or f"file{raw_ext}"
+        filename = safe_original_filename(file.filename) or f"file{raw_ext}"
 
         from config import ALLOWED_MATERIAL_EXTENSIONS
         if file_ext not in ALLOWED_MATERIAL_EXTENSIONS:
@@ -2413,6 +2414,7 @@ def board_new():
     """강사 게시판 글 작성"""
     from app.models.teacher_board import TeacherBoard, TeacherBoardAttachment
     from werkzeug.utils import secure_filename
+    from app.utils.file_utils import safe_original_filename
     import os
     import uuid as uuid_module
 
@@ -2447,8 +2449,8 @@ def board_new():
         uploaded_count = 0
         for file in files[:10]:  # 최대 10개
             if file and file.filename:
-                original_filename = secure_filename(file.filename)
-                ext = os.path.splitext(original_filename)[1].lower()
+                ext = os.path.splitext(file.filename)[1].lower()
+                original_filename = safe_original_filename(file.filename) or f"file{ext}"
                 stored_filename = f"{uuid_module.uuid4().hex}{ext}"
                 file_path = os.path.join(upload_folder, stored_filename)
 
@@ -2486,6 +2488,7 @@ def board_edit(board_id):
     """강사 게시판 글 수정"""
     from app.models.teacher_board import TeacherBoard, TeacherBoardAttachment
     from werkzeug.utils import secure_filename
+    from app.utils.file_utils import safe_original_filename
     import os
     import uuid as uuid_module
 
@@ -2530,8 +2533,8 @@ def board_edit(board_id):
         remaining_slots = 10 - current_count
         for file in files[:remaining_slots]:
             if file and file.filename:
-                original_filename = secure_filename(file.filename)
-                ext = os.path.splitext(original_filename)[1].lower()
+                ext = os.path.splitext(file.filename)[1].lower()
+                original_filename = safe_original_filename(file.filename) or f"file{ext}"
                 stored_filename = f"{uuid_module.uuid4().hex}{ext}"
                 file_path = os.path.join(upload_folder, stored_filename)
 

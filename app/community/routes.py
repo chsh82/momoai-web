@@ -3,6 +3,7 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify, send_from_directory, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+from app.utils.file_utils import safe_original_filename
 from pathlib import Path
 import uuid
 
@@ -96,9 +97,9 @@ def new():
             upload_folder = Path(current_app.config['POST_FILES_FOLDER'])
             for file in form.files.data:
                 if file and file.filename:
-                    # 안전한 파일명 생성
-                    original_filename = secure_filename(file.filename)
-                    file_ext = Path(original_filename).suffix
+                    # 안전한 파일명 생성 (한글 파일명 보존)
+                    file_ext = Path(file.filename).suffix
+                    original_filename = safe_original_filename(file.filename) or f"file{file_ext}"
                     stored_filename = f"{uuid.uuid4()}{file_ext}"
 
                     # 파일 저장

@@ -4,6 +4,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, c
 from flask_login import login_required, current_user
 from pathlib import Path
 from werkzeug.utils import secure_filename
+from app.utils.file_utils import safe_original_filename
 import os
 import uuid
 import threading
@@ -338,9 +339,9 @@ def new():
                 upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
                 os.makedirs(upload_folder, exist_ok=True)
 
-                # 안전한 파일명 생성 (확장자는 원본에서 추출)
+                # 안전한 파일명 생성 (확장자는 원본에서 추출, 한글 파일명 보존)
                 raw_ext = os.path.splitext(file.filename)[1]
-                original_filename = secure_filename(file.filename) or f"file{raw_ext}"
+                original_filename = safe_original_filename(file.filename) or f"file{raw_ext}"
                 stored_filename = f"{uuid.uuid4().hex}{raw_ext}"
                 file_path = os.path.join(upload_folder, stored_filename)
 
@@ -437,7 +438,7 @@ def quick():
             upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
             os.makedirs(upload_folder, exist_ok=True)
             raw_ext = os.path.splitext(file.filename)[1]
-            original_filename = secure_filename(file.filename) or f"file{raw_ext}"
+            original_filename = safe_original_filename(file.filename) or f"file{raw_ext}"
             stored_filename = f"{uuid.uuid4().hex}{raw_ext}"
             file.save(os.path.join(upload_folder, stored_filename))
             attachment_filename = original_filename
@@ -868,7 +869,8 @@ def manual_correction(essay_id):
             attach_folder.mkdir(parents=True, exist_ok=True)
             import uuid as _uuid
             for f, ext in valid_files:
-                stored_name = f"{essay.essay_id}_{_uuid.uuid4().hex[:8]}_{secure_filename(f.filename)}"
+                _, _raw_ext = os.path.splitext(f.filename)
+                stored_name = f"{essay.essay_id}_{_uuid.uuid4().hex[:8]}{_raw_ext}"
                 save_path = attach_folder / stored_name
                 f.save(str(save_path))
                 file_type = 'pdf' if ext == 'pdf' else 'image'
@@ -1377,8 +1379,8 @@ def ocr_upload():
                 continue
 
             try:
-                original_filename = secure_filename(file.filename)
-                file_ext = os.path.splitext(original_filename)[1]
+                file_ext = os.path.splitext(file.filename)[1]
+                original_filename = safe_original_filename(file.filename) or f"file{file_ext}"
                 stored_filename = f"{uuid.uuid4().hex}{file_ext}"
                 file_path = os.path.join(upload_folder, stored_filename)
                 file.save(file_path)

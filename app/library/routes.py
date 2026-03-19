@@ -4,6 +4,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, s
 from flask_login import login_required, current_user
 from datetime import datetime, date
 from werkzeug.utils import secure_filename
+from app.utils.file_utils import safe_original_filename
 import uuid
 import os
 
@@ -605,8 +606,8 @@ def create_hall_of_fame():
                     upload_folder = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'hall_of_fame')
                     os.makedirs(upload_folder, exist_ok=True)
 
-                    original_filename = secure_filename(file.filename)
-                    ext = os.path.splitext(original_filename)[1]
+                    ext = os.path.splitext(file.filename)[1]
+                    original_filename = safe_original_filename(file.filename) or f"file{ext}"
                     stored_filename = f"{uuid.uuid4().hex}{ext}"
 
                     file_full_path = os.path.join(upload_folder, stored_filename)
@@ -682,8 +683,8 @@ def edit_hall_of_fame(post_id):
                     upload_folder = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'hall_of_fame')
                     os.makedirs(upload_folder, exist_ok=True)
 
-                    original_filename = secure_filename(file.filename)
-                    ext = os.path.splitext(original_filename)[1]
+                    ext = os.path.splitext(file.filename)[1]
+                    original_filename = safe_original_filename(file.filename) or f"file{ext}"
                     stored_filename = f"{uuid.uuid4().hex}{ext}"
 
                     file_full_path = os.path.join(upload_folder, stored_filename)
@@ -773,8 +774,8 @@ def create_admission_info():
                     upload_folder = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'admission_info')
                     os.makedirs(upload_folder, exist_ok=True)
 
-                    original_filename = secure_filename(file.filename)
-                    ext = os.path.splitext(original_filename)[1]
+                    ext = os.path.splitext(file.filename)[1]
+                    original_filename = safe_original_filename(file.filename) or f"file{ext}"
                     stored_filename = f"{uuid.uuid4().hex}{ext}"
 
                     file_full_path = os.path.join(upload_folder, stored_filename)
@@ -858,8 +859,8 @@ def edit_admission_info(post_id):
                     upload_folder = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'admission_info')
                     os.makedirs(upload_folder, exist_ok=True)
 
-                    original_filename = secure_filename(file.filename)
-                    ext = os.path.splitext(original_filename)[1]
+                    ext = os.path.splitext(file.filename)[1]
+                    original_filename = safe_original_filename(file.filename) or f"file{ext}"
                     stored_filename = f"{uuid.uuid4().hex}{ext}"
 
                     file_full_path = os.path.join(upload_folder, stored_filename)

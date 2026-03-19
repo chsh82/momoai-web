@@ -908,6 +908,7 @@ def submit_essay():
     """자녀 대신 글 제출"""
     import uuid
     from werkzeug.utils import secure_filename
+    from app.utils.file_utils import safe_original_filename
     from app.models.course import Course
 
     # 내 자녀 목록
@@ -985,8 +986,8 @@ def submit_essay():
                 if file and file.filename:
                     upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'essays')
                     os.makedirs(upload_folder, exist_ok=True)
-                    original_filename = secure_filename(file.filename)
-                    file_ext = os.path.splitext(original_filename)[1]
+                    file_ext = os.path.splitext(file.filename)[1]
+                    original_filename = safe_original_filename(file.filename) or f"file{file_ext}"
                     stored_filename = f"{uuid.uuid4().hex}{file_ext}"
                     file_path = os.path.join(upload_folder, stored_filename)
                     file.save(file_path)
