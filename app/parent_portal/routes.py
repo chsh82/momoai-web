@@ -41,6 +41,8 @@ def index():
 
     for pr in parent_relations:
         child = pr.student
+        if child is None:
+            continue
 
         # 수강 중인 수업
         active_enrollments = CourseEnrollment.query.filter_by(
@@ -1381,7 +1383,7 @@ def link_child():
         # 학부모가 입력한 자녀 정보
         link_request = ParentLinkRequest(
             parent_id=current_user.user_id,
-            student_name=request.form.get('student_name').strip(),
+            student_name=(request.form.get('student_name') or '').strip(),
             student_birth_date=birth_date,
             student_grade=request.form.get('student_grade'),
             student_school=request.form.get('student_school').strip() if request.form.get('student_school') else None,
@@ -1431,6 +1433,8 @@ def link_requests():
     linked_children_data = []
     for pr in linked_relations:
         child = pr.student
+        if child is None:
+            continue
         enrollments = CourseEnrollment.query.filter_by(
             student_id=child.student_id,
             status='active'
