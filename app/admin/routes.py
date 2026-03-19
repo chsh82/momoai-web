@@ -6830,3 +6830,201 @@ def trigger_reminder_now():
     except Exception as e:
         flash(f'실행 오류: {e}', 'danger')
     return redirect(url_for('admin.push_notification_dashboard'))
+
+
+# ─────────────────────────────────────────────
+#  처리 대기 업무 (Action Items) CRUD
+# ─────────────────────────────────────────────
+
+@admin_bp.route('/action-items')
+@login_required
+@requires_permission_level(2)
+def action_items():
+    """처리 대기 업무 목록"""
+    from app.models.action_item import ActionItem
+
+    status_filter   = request.args.get('status', '')
+    priority_filter = request.args.get('priority', '')
+    category_filter = request.args.get('category', '')
+
+    q = ActionItem.query
+
+    if status_filter:
+        q = q.filter(ActionItem.status == status_filter)
+    else:
+        # 기본: 미완료만 표시
+        q = q.filter(ActionItem.status != 'completed')
+
+    if priority_filter:
+        q = q.filter(ActionItem.priority == priority_filter)
+
+    if category_filter:
+        q = q.filter(ActionItem.category == category_filter)
+
+    # 우선순위 순 정렬 (high → medium → low), 마감일 오름차순
+    from sqlalchemy import case as sa_case
+    priority_order = sa_case(
+        {'high': 1, 'medium': 2, 'low': 3},
+        value=ActionItem.priority,
+        else_=4
+    )
+    items = q.order_by(priority_order, ActionItem.due_date.asc().nullslast(), ActionItem.created_at.desc()).all()
+
+    # 완료된 항목 별도 조회 (최근 20개)
+    completed_items = ActionItem.query.filter_by(status='completed')\
+        .order_by(ActionItem.completed_at.desc()).limit(20).all()
+
+    # 통계
+    from sqlalchemy import func as sqlfunc
+    stats = {
+        'pending':     ActionItem.query.filter_by(status='pending').count(),
+        'in_progress': ActionItem.query.filter_by(status='in_progress').count(),
+        'completed':   ActionItem.query.filter_by(status='completed').count(),
+    }
+
+    staff_list = User.query.filter(
+        User.role.in_(['admin', 'teacher']),
+        User.is_deleted == False
+    ).order_by(User.name).all()
+
+    return render_template(
+        'admin/action_items/index.html',
+        items=items,
+        completed_items=completed_items,
+        stats=stats,
+        staff_list=staff_list,
+        status_filter=status_filter,
+        priority_filter=priority_filter,
+        category_filter=category_filter,
+    )
+
+
+@admin_bp.route('/action-items/new', methods=['GET', 'POST'])
+@login_required
+@requires_permission_level(2)
+def action_item_new():
+    """처리 대기 업무 생성"""
+    from app.models.action_item import ActionItem
+    from app.models.student import Student as StudentModel
+
+    staff_list   = User.query.filter(User.role.in_(['admin', 'teacher']), User.is_deleted == False).order_by(User.name).all()
+    student_list = StudentModel.query.filter_by(status='active').order_by(StudentModel.name).all()
+
+    if request.method == 'POST':
+        title    = request.form.get('title', '').strip()
+        content  = request.form.get('content', '').strip()
+        category = request.form.get('category', '기타')
+        priority = request.form.get('priority', 'medium')
+        assigned = request.form.get('assigned_to') or None
+        due_raw  = request.form.get('due_date', '').strip()
+        student  = request.form.get('student_id') or None
+
+        if not title:
+            flash('제목을 입력해주세요.', 'error')
+            return render_template('admin/action_items/form.html', staff_list=staff_list, student_list=student_list)
+
+        due_date = None
+        if due_raw:
+            try:
+                from datetime import date
+                due_date = date.fromisoformat(due_raw)
+            except ValueError:
+                pass
+
+        item = ActionItem(
+            title=title,
+            content=content,
+            category=category,
+            priority=priority,
+            created_by=current_user.user_id,
+            assigned_to=assigned,
+            student_id=int(student) if student else None,
+            due_date=due_date,
+        )
+        db.session.add(item)
+        db.session.commit()
+        flash('업무가 등록되었습니다.', 'success')
+        return redirect(url_for('admin.action_items'))
+
+    return render_template('admin/action_items/form.html', staff_list=staff_list, student_list=student_list)
+
+
+@admin_bp.route('/action-items/<int:item_id>')
+@login_required
+@requires_permission_level(2)
+def action_item_detail(item_id):
+    """처리 대기 업무 상세"""
+    from app.models.action_item import ActionItem
+    item = ActionItem.query.get_or_404(item_id)
+    staff_list = User.query.filter(User.role.in_(['admin', 'teacher']), User.is_deleted == False).order_by(User.name).all()
+    from app.models.student import Student as StudentModel
+    student_list = StudentModel.query.filter_by(status='active').order_by(StudentModel.name).all()
+    return render_template('admin/action_items/detail.html', item=item, staff_list=staff_list, student_list=student_list)
+
+
+@admin_bp.route('/action-items/<int:item_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def action_item_edit(item_id):
+    """처리 대기 업무 수정"""
+    from app.models.action_item import ActionItem
+    item = ActionItem.query.get_or_404(item_id)
+
+    item.title    = request.form.get('title', item.title).strip()
+    item.content  = request.form.get('content', item.content or '').strip()
+    item.category = request.form.get('category', item.category)
+    item.priority = request.form.get('priority', item.priority)
+    item.assigned_to = request.form.get('assigned_to') or None
+    student_id = request.form.get('student_id')
+    item.student_id = int(student_id) if student_id else None
+
+    due_raw = request.form.get('due_date', '').strip()
+    if due_raw:
+        try:
+            from datetime import date
+            item.due_date = date.fromisoformat(due_raw)
+        except ValueError:
+            pass
+    else:
+        item.due_date = None
+
+    from datetime import datetime
+    item.updated_at = datetime.utcnow()
+    db.session.commit()
+    flash('업무가 수정되었습니다.', 'success')
+    return redirect(url_for('admin.action_item_detail', item_id=item_id))
+
+
+@admin_bp.route('/action-items/<int:item_id>/status', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def action_item_status(item_id):
+    """처리 상태 변경"""
+    from app.models.action_item import ActionItem
+    item = ActionItem.query.get_or_404(item_id)
+    new_status = request.form.get('status')
+    if new_status in ('pending', 'in_progress', 'completed'):
+        if new_status == 'completed':
+            item.complete()
+        else:
+            item.status = new_status
+            item.completed_at = None
+        from datetime import datetime
+        item.updated_at = datetime.utcnow()
+        db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'status': new_status, 'status_label': item.status_label})
+    return redirect(request.referrer or url_for('admin.action_items'))
+
+
+@admin_bp.route('/action-items/<int:item_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def action_item_delete(item_id):
+    """처리 대기 업무 삭제"""
+    from app.models.action_item import ActionItem
+    item = ActionItem.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+    flash('업무가 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.action_items'))

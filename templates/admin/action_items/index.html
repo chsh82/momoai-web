@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}처리 대기 업무 - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+    <!-- 헤더 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">📋 처리 대기 업무</h1>
+            <p class="text-sm text-gray-500 mt-1">완료되지 않은 중요 업무를 관리합니다.</p>
+        </div>
+        <a href="{{ url_for('admin.action_item_new') }}"
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">
+            + 업무 등록
+        </a>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+            <div class="text-3xl">⏳</div>
+            <div>
+                <p class="text-xs text-gray-500">대기중</p>
+                <p class="text-2xl font-bold text-gray-700">{{ stats.pending }}</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+            <div class="text-3xl">🔄</div>
+            <div>
+                <p class="text-xs text-gray-500">처리중</p>
+                <p class="text-2xl font-bold text-blue-600">{{ stats.in_progress }}</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+            <div class="text-3xl">✅</div>
+            <div>
+                <p class="text-xs text-gray-500">완료</p>
+                <p class="text-2xl font-bold text-green-600">{{ stats.completed }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 필터 -->
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <form method="get" class="flex flex-wrap gap-3 items-end">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">상태</label>
+                <select name="status" class="text-sm border border-gray-300 rounded px-3 py-1.5">
+                    <option value="" {% if not status_filter %}selected{% endif %}>미완료 전체</option>
+                    <option value="pending"     {% if status_filter == 'pending' %}selected{% endif %}>대기중</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>처리중</option>
+                    <option value="completed"   {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">우선순위</label>
+                <select name="priority" class="text-sm border border-gray-300 rounded px-3 py-1.5">
+                    <option value="" {% if not priority_filter %}selected{% endif %}>전체</option>
+                    <option value="high"   {% if priority_filter == 'high' %}selected{% endif %}>🔴 높음</option>
+                    <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>🟡 보통</option>
+                    <option value="low"    {% if priority_filter == 'low' %}selected{% endif %}>🟢 낮음</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">카테고리</label>
+                <select name="category" class="text-sm border border-gray-300 rounded px-3 py-1.5">
+                    <option value="" {% if not category_filter %}selected{% endif %}>전체</option>
+                    {% for cat in ['상담처리','민원','결제','행정','기타'] %}
+                    <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-1.5 rounded transition">
+                필터 적용
+            </button>
+            <a href="{{ url_for('admin.action_items') }}" class="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5">초기화</a>
+        </form>
+    </div>
+
+    <!-- 업무 목록 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        {% if items %}
+        <div class="divide-y divide-gray-100">
+            {% for item in items %}
+            <div class="p-4 hover:bg-gray-50 transition flex items-start gap-4">
+                <!-- 우선순위 아이콘 -->
+                <div class="text-xl mt-0.5 shrink-0">{{ item.priority_icon }}</div>
+
+                <!-- 내용 -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <a href="{{ url_for('admin.action_item_detail', item_id=item.item_id) }}"
+                           class="font-medium text-gray-800 hover:text-blue-600 truncate">
+                            {{ item.title }}
+                        </a>
+                        {% if item.is_overdue %}
+                        <span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">기한초과</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                        <span class="px-1.5 py-0.5 rounded bg-gray-100">{{ item.category }}</span>
+                        {% if item.student %}
+                        <span>👤 {{ item.student.name }}</span>
+                        {% endif %}
+                        {% if item.assignee %}
+                        <span>담당: {{ item.assignee.name }}</span>
+                        {% endif %}
+                        {% if item.due_date %}
+                        <span class="{{ 'text-red-500 font-medium' if item.is_overdue else '' }}">
+                            마감 {{ item.due_date.strftime('%Y-%m-%d') }}
+                        </span>
+                        {% endif %}
+                        <span class="text-gray-400">{{ item.created_at.strftime('%m/%d') }} 등록</span>
+                    </div>
+                </div>
+
+                <!-- 상태 변경 -->
+                <div class="shrink-0 flex items-center gap-2">
+                    <form method="post" action="{{ url_for('admin.action_item_status', item_id=item.item_id) }}">
+                        <select name="status" onchange="this.form.submit()"
+                                class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                            <option value="pending"     {% if item.status == 'pending' %}selected{% endif %}>대기중</option>
+                            <option value="in_progress" {% if item.status == 'in_progress' %}selected{% endif %}>처리중</option>
+                            <option value="completed"   {% if item.status == 'completed' %}selected{% endif %}>완료</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16 text-gray-400">
+            <div class="text-5xl mb-3">✅</div>
+            <p class="text-lg font-medium">미완료 업무가 없습니다.</p>
+            <p class="text-sm mt-1">새 업무를 등록하거나 필터를 변경해보세요.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 최근 완료 -->
+    {% if completed_items %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h3 class="text-sm font-medium text-gray-600">최근 완료된 업무</h3>
+        </div>
+        <div class="divide-y divide-gray-50">
+            {% for item in completed_items %}
+            <div class="px-5 py-3 flex items-center gap-3 text-sm text-gray-500">
+                <span class="text-green-500">✅</span>
+                <a href="{{ url_for('admin.action_item_detail', item_id=item.item_id) }}"
+                   class="hover:text-blue-600 flex-1 truncate line-through text-gray-400">{{ item.title }}</a>
+                <span class="text-xs shrink-0">{{ item.completed_at.strftime('%m/%d') if item.completed_at else '' }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

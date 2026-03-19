@@ -403,6 +403,46 @@ def create_app(config_name='default'):
             'message': '읽음 처리되었습니다.'
         })
 
+    # API: 처리 대기 업무 팝업 확인
+    @app.route('/api/action-items/pending')
+    @login_required
+    def api_action_items_pending():
+        """오늘 팝업용 미완료 업무 목록 조회 (admin/teacher만)"""
+        from flask import jsonify
+        from app.models.action_item import ActionItem
+        from sqlalchemy import case as sa_case
+
+        if current_user.role not in ('admin', 'master_admin', 'teacher'):
+            return jsonify({'success': True, 'items': []})
+
+        priority_order = sa_case(
+            {'high': 1, 'medium': 2, 'low': 3},
+            value=ActionItem.priority,
+            else_=4
+        )
+        items = ActionItem.query.filter(
+            ActionItem.status != 'completed'
+        ).order_by(priority_order, ActionItem.due_date.asc().nullslast()).limit(20).all()
+
+        from datetime import date
+        result = []
+        for item in items:
+            result.append({
+                'item_id':        item.item_id,
+                'title':          item.title,
+                'category':       item.category,
+                'priority':       item.priority,
+                'priority_icon':  item.priority_icon,
+                'priority_label': item.priority_label,
+                'status':         item.status,
+                'status_label':   item.status_label,
+                'is_overdue':     item.is_overdue,
+                'due_date':       item.due_date.strftime('%m/%d') if item.due_date else None,
+                'student_name':   item.student.name if item.student else None,
+            })
+
+        return jsonify({'success': True, 'items': result, 'total': len(result)})
+
     # API: 파일 다운로드
     @app.route('/api/download/<path:filename>')
     @login_required
