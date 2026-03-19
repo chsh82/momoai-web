@@ -6847,7 +6847,20 @@ def action_items():
     priority_filter = request.args.get('priority', '')
     category_filter = request.args.get('category', '')
 
-    q = ActionItem.query
+    # 관리자(admin/master_admin)가 생성한 항목만 관리자 탭에 표시
+    admin_ids = [u.user_id for u in User.query.filter(
+        User.role.in_(['admin', 'master_admin']),
+        User.is_deleted == False
+    ).all()]
+
+    from sqlalchemy import case as sa_case
+    priority_order = sa_case(
+        {'high': 1, 'medium': 2, 'low': 3},
+        value=ActionItem.priority,
+        else_=4
+    )
+
+    q = ActionItem.query.filter(ActionItem.created_by.in_(admin_ids))
 
     if status_filter:
         q = q.filter(ActionItem.status == status_filter)
@@ -6861,25 +6874,19 @@ def action_items():
     if category_filter:
         q = q.filter(ActionItem.category == category_filter)
 
-    # 우선순위 순 정렬 (high → medium → low), 마감일 오름차순
-    from sqlalchemy import case as sa_case
-    priority_order = sa_case(
-        {'high': 1, 'medium': 2, 'low': 3},
-        value=ActionItem.priority,
-        else_=4
-    )
     items = q.order_by(priority_order, ActionItem.due_date.asc().nullslast(), ActionItem.created_at.desc()).all()
 
-    # 완료된 항목 별도 조회 (최근 20개)
-    completed_items = ActionItem.query.filter_by(status='completed')\
-        .order_by(ActionItem.completed_at.desc()).limit(20).all()
+    # 완료된 관리자 항목 별도 조회 (최근 20개)
+    completed_items = ActionItem.query.filter(
+        ActionItem.created_by.in_(admin_ids),
+        ActionItem.status == 'completed'
+    ).order_by(ActionItem.completed_at.desc()).limit(20).all()
 
-    # 통계
-    from sqlalchemy import func as sqlfunc
+    # 통계 (관리자 생성 항목 기준)
     stats = {
-        'pending':     ActionItem.query.filter_by(status='pending').count(),
-        'in_progress': ActionItem.query.filter_by(status='in_progress').count(),
-        'completed':   ActionItem.query.filter_by(status='completed').count(),
+        'pending':     ActionItem.query.filter(ActionItem.created_by.in_(admin_ids), ActionItem.status == 'pending').count(),
+        'in_progress': ActionItem.query.filter(ActionItem.created_by.in_(admin_ids), ActionItem.status == 'in_progress').count(),
+        'completed':   ActionItem.query.filter(ActionItem.created_by.in_(admin_ids), ActionItem.status == 'completed').count(),
     }
 
     staff_list = User.query.filter(
@@ -6887,7 +6894,7 @@ def action_items():
         User.is_deleted == False
     ).order_by(User.name).all()
 
-    # 강사 탭: teacher 역할 계정이 만든 미완료 업무
+    # 강사 탭: teacher 역할 계정이 만든 미완료 업무 (관리자는 열람 가능)
     teacher_ids = [u.user_id for u in staff_list if u.role == 'teacher']
     teacher_items = ActionItem.query.filter(
         ActionItem.created_by.in_(teacher_ids),

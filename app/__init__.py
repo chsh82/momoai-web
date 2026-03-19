@@ -425,8 +425,25 @@ def create_app(config_name='default'):
             value=ActionItem.priority,
             else_=4
         )
+
+        from sqlalchemy import or_
+        from app.models.user import User as UserModel
+        if current_user.role in ('admin', 'master_admin'):
+            # 관리자: 관리자가 생성한 항목만
+            admin_ids = [u.user_id for u in db.session.query(UserModel).filter(
+                UserModel.role.in_(['admin', 'master_admin']), UserModel.is_deleted == False
+            ).all()]
+            visibility = ActionItem.created_by.in_(admin_ids)
+        else:
+            # 강사: 본인 생성 + 관리자 부여 항목
+            visibility = or_(
+                ActionItem.created_by == current_user.user_id,
+                ActionItem.assigned_to == current_user.user_id,
+            )
+
         items = ActionItem.query.filter(
-            ActionItem.status != 'completed'
+            ActionItem.status != 'completed',
+            visibility
         ).order_by(priority_order, ActionItem.due_date.asc().nullslast()).limit(20).all()
 
         from datetime import date

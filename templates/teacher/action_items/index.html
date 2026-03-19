@@ -86,6 +86,9 @@
                     <div class="flex items-center gap-2 flex-wrap mb-1">
                         <a href="{{ url_for('teacher.action_item_detail', item_id=item.item_id) }}"
                            class="font-medium text-gray-800 hover:text-blue-600 truncate">{{ item.title }}</a>
+                        {% if item.assigned_to == current_user.user_id and item.created_by != current_user.user_id %}
+                        <span class="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">📌 관리자 부여</span>
+                        {% endif %}
                         {% if item.is_overdue %}
                         <span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">기한초과</span>
                         {% endif %}
@@ -134,7 +137,7 @@
                 <span class="text-green-500">✅</span>
                 <a href="{{ url_for('teacher.action_item_detail', item_id=item.item_id) }}"
                    class="hover:text-blue-600 flex-1 truncate line-through text-gray-400">{{ item.title }}</a>
-                <span class="text-xs shrink-0">{{ item.completed_at.strftime('%m/%d') if item.completed_at else '' }}</span>
+                <span class="text-xs shrink-0">{{ item.completed_at | kst('%m/%d') if item.completed_at else '' }}</span>
             </div>
             {% endfor %}
         </div>

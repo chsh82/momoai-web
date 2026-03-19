@@ -4218,15 +4218,21 @@ def teacher_sms():
 @login_required
 @requires_role('teacher', 'admin')
 def action_items():
-    """처리 대기 업무 목록 (본인 생성 항목만)"""
+    """처리 대기 업무 목록 (본인 생성 + 관리자가 부여한 항목)"""
     from app.models.action_item import ActionItem
-    from sqlalchemy import case as sa_case
+    from sqlalchemy import case as sa_case, or_
 
     status_filter   = request.args.get('status', '')
     priority_filter = request.args.get('priority', '')
     category_filter = request.args.get('category', '')
 
-    q = ActionItem.query.filter_by(created_by=current_user.user_id)
+    # 본인이 만든 항목 OR 관리자가 나에게 부여한 항목
+    visible_filter = or_(
+        ActionItem.created_by == current_user.user_id,
+        ActionItem.assigned_to == current_user.user_id,
+    )
+
+    q = ActionItem.query.filter(visible_filter)
 
     if status_filter:
         q = q.filter(ActionItem.status == status_filter)
@@ -4244,14 +4250,15 @@ def action_items():
     )
     items = q.order_by(priority_order, ActionItem.due_date.asc().nullslast(), ActionItem.created_at.desc()).all()
 
-    completed_items = ActionItem.query.filter_by(
-        created_by=current_user.user_id, status='completed'
+    completed_items = ActionItem.query.filter(
+        visible_filter,
+        ActionItem.status == 'completed'
     ).order_by(ActionItem.completed_at.desc()).limit(20).all()
 
     stats = {
-        'pending':     ActionItem.query.filter_by(created_by=current_user.user_id, status='pending').count(),
-        'in_progress': ActionItem.query.filter_by(created_by=current_user.user_id, status='in_progress').count(),
-        'completed':   ActionItem.query.filter_by(created_by=current_user.user_id, status='completed').count(),
+        'pending':     ActionItem.query.filter(visible_filter, ActionItem.status == 'pending').count(),
+        'in_progress': ActionItem.query.filter(visible_filter, ActionItem.status == 'in_progress').count(),
+        'completed':   ActionItem.query.filter(visible_filter, ActionItem.status == 'completed').count(),
     }
 
     return render_template(
@@ -4313,9 +4320,17 @@ def action_item_new():
 def action_item_detail(item_id):
     from app.models.action_item import ActionItem
     from app.models.student import Student as StudentModel
-    item = ActionItem.query.filter_by(item_id=item_id, created_by=current_user.user_id).first_or_404()
+    from sqlalchemy import or_
+    # 본인이 만든 항목 또는 관리자가 나에게 부여한 항목만 접근 가능
+    item = ActionItem.query.filter(
+        ActionItem.item_id == item_id,
+        or_(ActionItem.created_by == current_user.user_id,
+            ActionItem.assigned_to == current_user.user_id)
+    ).first_or_404()
     my_students = StudentModel.query.filter_by(teacher_id=current_user.user_id, status='active').order_by(StudentModel.name).all()
-    return render_template('teacher/action_items/detail.html', item=item, student_list=my_students)
+    # 관리자가 부여한 항목은 수정/삭제 불가
+    is_assigned = item.created_by != current_user.user_id
+    return render_template('teacher/action_items/detail.html', item=item, student_list=my_students, is_assigned=is_assigned)
 
 
 @teacher_bp.route('/action-items/<int:item_id>/edit', methods=['POST'])
@@ -4357,7 +4372,13 @@ def action_item_status(item_id):
     from app.models.action_item import ActionItem
     from app.models import db
     from flask import jsonify
-    item = ActionItem.query.filter_by(item_id=item_id, created_by=current_user.user_id).first_or_404()
+    from sqlalchemy import or_
+    # 본인 생성 또는 부여받은 항목 모두 상태 변경 가능
+    item = ActionItem.query.filter(
+        ActionItem.item_id == item_id,
+        or_(ActionItem.created_by == current_user.user_id,
+            ActionItem.assigned_to == current_user.user_id)
+    ).first_or_404()
     new_status = request.form.get('status')
     if new_status in ('pending', 'in_progress', 'completed'):
         if new_status == 'completed':
