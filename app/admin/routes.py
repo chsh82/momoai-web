@@ -6962,7 +6962,7 @@ def action_item_new():
             priority=priority,
             created_by=current_user.user_id,
             assigned_to=assigned,
-            student_id=int(student) if student else None,
+            student_id=student if student else None,
             due_date=due_date,
         )
         db.session.add(item)
@@ -7000,7 +7000,7 @@ def action_item_edit(item_id):
     item.priority = request.form.get('priority', item.priority)
     item.assigned_to = request.form.get('assigned_to') or None
     student_id = request.form.get('student_id')
-    item.student_id = int(student_id) if student_id else None
+    item.student_id = student_id if student_id else None
 
     due_raw = request.form.get('due_date', '').strip()
     if due_raw:

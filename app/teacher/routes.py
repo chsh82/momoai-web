@@ -4302,7 +4302,7 @@ def action_item_new():
         item = ActionItem(
             title=title, content=content, category=category, priority=priority,
             created_by=current_user.user_id,
-            student_id=int(student) if student else None,
+            student_id=student if student else None,
             due_date=due_date,
         )
         from app.models import db
@@ -4346,7 +4346,7 @@ def action_item_edit(item_id):
     item.category = request.form.get('category', item.category)
     item.priority = request.form.get('priority', item.priority)
     student_id = request.form.get('student_id')
-    item.student_id = int(student_id) if student_id else None
+    item.student_id = student_id if student_id else None
 
     due_raw = request.form.get('due_date', '').strip()
     if due_raw:

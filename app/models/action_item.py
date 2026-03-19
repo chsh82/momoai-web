@@ -16,7 +16,7 @@ class ActionItem(db.Model):
 
     created_by = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
     assigned_to = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.student_id', ondelete='SET NULL'), nullable=True)
+    student_id = db.Column(db.String(36), db.ForeignKey('students.student_id', ondelete='SET NULL'), nullable=True)
 
     due_date = db.Column(db.Date, nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
