@@ -2,21 +2,20 @@
 {% block title %}처리 대기 업무 - MOMOAI{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
+<div class="max-w-4xl mx-auto">
 
-    <!-- 헤더 -->
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">📋 처리 대기 업무</h1>
-            <p class="text-sm text-gray-500 mt-1">완료되지 않은 중요 업무를 관리합니다.</p>
+            <p class="text-sm text-gray-500 mt-1">나의 미완료 업무를 관리합니다.</p>
         </div>
-        <a href="{{ url_for('admin.action_item_new') }}"
+        <a href="{{ url_for('teacher.action_item_new') }}"
            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">
             + 업무 등록
         </a>
     </div>
 
-    <!-- 통계 카드 -->
+    <!-- 통계 -->
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4 flex items-center gap-4">
             <div class="text-3xl">⏳</div>
@@ -41,34 +40,9 @@
         </div>
     </div>
 
-    <!-- 탭 -->
-    <div class="flex border-b border-gray-200 mb-4">
-        <a href="{{ url_for('admin.action_items', tab='mine', status=status_filter, priority=priority_filter, category=category_filter) }}"
-           class="px-5 py-3 text-sm font-medium border-b-2 transition
-                  {{ 'border-blue-600 text-blue-600' if active_tab == 'mine' else 'border-transparent text-gray-500 hover:text-gray-700' }}">
-            📋 관리자 업무
-            {% set my_count = items|length %}
-            {% if my_count > 0 %}
-            <span class="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{{ my_count }}</span>
-            {% endif %}
-        </a>
-        <a href="{{ url_for('admin.action_items', tab='teachers') }}"
-           class="px-5 py-3 text-sm font-medium border-b-2 transition
-                  {{ 'border-purple-600 text-purple-600' if active_tab == 'teachers' else 'border-transparent text-gray-500 hover:text-gray-700' }}">
-            👨‍🏫 강사 업무
-            {% if teacher_items|length > 0 %}
-            <span class="ml-1.5 bg-purple-100 text-purple-700 text-xs px-1.5 py-0.5 rounded-full">{{ teacher_items|length }}</span>
-            {% endif %}
-        </a>
-    </div>
-
-    {% if active_tab == 'mine' %}
-    <!-- ── 관리자 탭 ── -->
-
     <!-- 필터 -->
     <div class="bg-white rounded-lg shadow p-4 mb-4">
         <form method="get" class="flex flex-wrap gap-3 items-end">
-            <input type="hidden" name="tab" value="mine">
             <div>
                 <label class="block text-xs text-gray-500 mb-1">상태</label>
                 <select name="status" class="text-sm border border-gray-300 rounded px-3 py-1.5">
@@ -81,7 +55,7 @@
             <div>
                 <label class="block text-xs text-gray-500 mb-1">우선순위</label>
                 <select name="priority" class="text-sm border border-gray-300 rounded px-3 py-1.5">
-                    <option value="" {% if not priority_filter %}selected{% endif %}>전체</option>
+                    <option value="">전체</option>
                     <option value="high"   {% if priority_filter == 'high' %}selected{% endif %}>🔴 높음</option>
                     <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>🟡 보통</option>
                     <option value="low"    {% if priority_filter == 'low' %}selected{% endif %}>🟢 낮음</option>
@@ -90,48 +64,27 @@
             <div>
                 <label class="block text-xs text-gray-500 mb-1">카테고리</label>
                 <select name="category" class="text-sm border border-gray-300 rounded px-3 py-1.5">
-                    <option value="" {% if not category_filter %}selected{% endif %}>전체</option>
+                    <option value="">전체</option>
                     {% for cat in ['상담처리','민원','결제','행정','기타'] %}
                     <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
                     {% endfor %}
                 </select>
             </div>
             <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-1.5 rounded transition">필터 적용</button>
-            <a href="{{ url_for('admin.action_items') }}" class="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5">초기화</a>
+            <a href="{{ url_for('teacher.action_items') }}" class="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5">초기화</a>
         </form>
     </div>
 
-    {% include 'admin/action_items/_item_list.html' with context %}
-
-    {% if completed_items %}
-    <div class="bg-white rounded-lg shadow mt-4">
-        <div class="px-5 py-3 border-b border-gray-100">
-            <h3 class="text-sm font-medium text-gray-600">최근 완료된 업무</h3>
-        </div>
-        <div class="divide-y divide-gray-50">
-            {% for item in completed_items %}
-            <div class="px-5 py-3 flex items-center gap-3 text-sm text-gray-500">
-                <span class="text-green-500">✅</span>
-                <a href="{{ url_for('admin.action_item_detail', item_id=item.item_id) }}"
-                   class="hover:text-blue-600 flex-1 truncate line-through text-gray-400">{{ item.title }}</a>
-                <span class="text-xs shrink-0">{{ item.completed_at.strftime('%m/%d') if item.completed_at else '' }}</span>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% else %}
-    <!-- ── 강사 탭 ── -->
-    <div class="bg-white rounded-lg shadow mb-4">
-        {% if teacher_items %}
+    <!-- 업무 목록 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        {% if items %}
         <div class="divide-y divide-gray-100">
-            {% for item in teacher_items %}
+            {% for item in items %}
             <div class="p-4 hover:bg-gray-50 transition flex items-start gap-4">
                 <div class="text-xl mt-0.5 shrink-0">{{ item.priority_icon }}</div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap mb-1">
-                        <a href="{{ url_for('admin.action_item_detail', item_id=item.item_id) }}"
+                        <a href="{{ url_for('teacher.action_item_detail', item_id=item.item_id) }}"
                            class="font-medium text-gray-800 hover:text-blue-600 truncate">{{ item.title }}</a>
                         {% if item.is_overdue %}
                         <span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">기한초과</span>
@@ -139,7 +92,6 @@
                     </div>
                     <div class="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
                         <span class="px-1.5 py-0.5 rounded bg-gray-100">{{ item.category }}</span>
-                        <span class="text-purple-600 font-medium">👨‍🏫 {{ item.creator.name }}</span>
                         {% if item.student %}<span>👤 {{ item.student.name }}</span>{% endif %}
                         {% if item.due_date %}
                         <span class="{{ 'text-red-500 font-medium' if item.is_overdue else '' }}">
@@ -149,13 +101,15 @@
                         <span class="text-gray-400">{{ item.created_at.strftime('%m/%d') }} 등록</span>
                     </div>
                 </div>
-                <div class="shrink-0 flex items-center gap-2">
-                    <span class="text-xs px-2 py-1 rounded
-                        {% if item.status == 'pending' %}bg-gray-100 text-gray-600
-                        {% elif item.status == 'in_progress' %}bg-blue-100 text-blue-700
-                        {% else %}bg-green-100 text-green-700{% endif %}">
-                        {{ item.status_label }}
-                    </span>
+                <div class="shrink-0">
+                    <form method="post" action="{{ url_for('teacher.action_item_status', item_id=item.item_id) }}">
+                        <select name="status" onchange="this.form.submit()"
+                                class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                            <option value="pending"     {% if item.status == 'pending' %}selected{% endif %}>대기중</option>
+                            <option value="in_progress" {% if item.status == 'in_progress' %}selected{% endif %}>처리중</option>
+                            <option value="completed"   {% if item.status == 'completed' %}selected{% endif %}>완료</option>
+                        </select>
+                    </form>
                 </div>
             </div>
             {% endfor %}
@@ -163,29 +117,28 @@
         {% else %}
         <div class="text-center py-16 text-gray-400">
             <div class="text-5xl mb-3">✅</div>
-            <p class="text-lg font-medium">강사가 등록한 미완료 업무가 없습니다.</p>
+            <p class="text-lg font-medium">미완료 업무가 없습니다.</p>
         </div>
         {% endif %}
     </div>
 
-    {% if teacher_completed %}
+    <!-- 최근 완료 -->
+    {% if completed_items %}
     <div class="bg-white rounded-lg shadow">
         <div class="px-5 py-3 border-b border-gray-100">
-            <h3 class="text-sm font-medium text-gray-600">강사 최근 완료 업무</h3>
+            <h3 class="text-sm font-medium text-gray-600">최근 완료된 업무</h3>
         </div>
         <div class="divide-y divide-gray-50">
-            {% for item in teacher_completed %}
+            {% for item in completed_items %}
             <div class="px-5 py-3 flex items-center gap-3 text-sm text-gray-500">
                 <span class="text-green-500">✅</span>
-                <span class="text-xs text-purple-500 shrink-0">{{ item.creator.name }}</span>
-                <a href="{{ url_for('admin.action_item_detail', item_id=item.item_id) }}"
+                <a href="{{ url_for('teacher.action_item_detail', item_id=item.item_id) }}"
                    class="hover:text-blue-600 flex-1 truncate line-through text-gray-400">{{ item.title }}</a>
                 <span class="text-xs shrink-0">{{ item.completed_at.strftime('%m/%d') if item.completed_at else '' }}</span>
             </div>
             {% endfor %}
         </div>
     </div>
-    {% endif %}
     {% endif %}
 
 </div>

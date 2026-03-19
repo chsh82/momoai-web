@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}업무 등록 - MOMOAI{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex items-center gap-3 mb-6">
+        <a href="{{ url_for('teacher.action_items') }}" class="text-gray-400 hover:text-gray-600">←</a>
+        <h1 class="text-xl font-bold text-gray-800">📋 업무 등록</h1>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">제목 <span class="text-red-500">*</span></label>
+                <input type="text" name="title" required
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="처리해야 할 업무를 간략히 입력하세요">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
+                    <select name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for cat in ['상담처리','민원','결제','행정','기타'] %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">우선순위</label>
+                    <select name="priority" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="high">🔴 높음</option>
+                        <option value="medium" selected>🟡 보통</option>
+                        <option value="low">🟢 낮음</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">마감일</label>
+                    <input type="date" name="due_date"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">관련 학생 (선택)</label>
+                    <select name="student_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">없음</option>
+                        {% for student in student_list %}
+                        <option value="{{ student.student_id }}">{{ student.name }} ({{ student.grade }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">상세 내용</label>
+                <textarea name="content" rows="6"
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+                          placeholder="상세한 내용이나 처리 방법을 입력하세요..."></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">등록</button>
+                <a href="{{ url_for('teacher.action_items') }}"
+                   class="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition text-center">취소</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

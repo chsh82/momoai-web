@@ -6887,6 +6887,20 @@ def action_items():
         User.is_deleted == False
     ).order_by(User.name).all()
 
+    # 강사 탭: teacher 역할 계정이 만든 미완료 업무
+    teacher_ids = [u.user_id for u in staff_list if u.role == 'teacher']
+    teacher_items = ActionItem.query.filter(
+        ActionItem.created_by.in_(teacher_ids),
+        ActionItem.status != 'completed'
+    ).order_by(priority_order, ActionItem.due_date.asc().nullslast(), ActionItem.created_at.desc()).all() if teacher_ids else []
+
+    teacher_completed = ActionItem.query.filter(
+        ActionItem.created_by.in_(teacher_ids),
+        ActionItem.status == 'completed'
+    ).order_by(ActionItem.completed_at.desc()).limit(20).all() if teacher_ids else []
+
+    active_tab = request.args.get('tab', 'mine')
+
     return render_template(
         'admin/action_items/index.html',
         items=items,
@@ -6896,6 +6910,9 @@ def action_items():
         status_filter=status_filter,
         priority_filter=priority_filter,
         category_filter=category_filter,
+        teacher_items=teacher_items,
+        teacher_completed=teacher_completed,
+        active_tab=active_tab,
     )
 
 

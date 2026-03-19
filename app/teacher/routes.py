@@ -4208,3 +4208,177 @@ def teacher_sms():
                            parents_with_children=parents_with_children,
                            courses=courses,
                            history=history)
+
+
+# ─────────────────────────────────────────────
+#  처리 대기 업무 (Action Items) - 강사용
+# ─────────────────────────────────────────────
+
+@teacher_bp.route('/action-items')
+@login_required
+@requires_role('teacher', 'admin')
+def action_items():
+    """처리 대기 업무 목록 (본인 생성 항목만)"""
+    from app.models.action_item import ActionItem
+    from sqlalchemy import case as sa_case
+
+    status_filter   = request.args.get('status', '')
+    priority_filter = request.args.get('priority', '')
+    category_filter = request.args.get('category', '')
+
+    q = ActionItem.query.filter_by(created_by=current_user.user_id)
+
+    if status_filter:
+        q = q.filter(ActionItem.status == status_filter)
+    else:
+        q = q.filter(ActionItem.status != 'completed')
+
+    if priority_filter:
+        q = q.filter(ActionItem.priority == priority_filter)
+    if category_filter:
+        q = q.filter(ActionItem.category == category_filter)
+
+    priority_order = sa_case(
+        {'high': 1, 'medium': 2, 'low': 3},
+        value=ActionItem.priority, else_=4
+    )
+    items = q.order_by(priority_order, ActionItem.due_date.asc().nullslast(), ActionItem.created_at.desc()).all()
+
+    completed_items = ActionItem.query.filter_by(
+        created_by=current_user.user_id, status='completed'
+    ).order_by(ActionItem.completed_at.desc()).limit(20).all()
+
+    stats = {
+        'pending':     ActionItem.query.filter_by(created_by=current_user.user_id, status='pending').count(),
+        'in_progress': ActionItem.query.filter_by(created_by=current_user.user_id, status='in_progress').count(),
+        'completed':   ActionItem.query.filter_by(created_by=current_user.user_id, status='completed').count(),
+    }
+
+    return render_template(
+        'teacher/action_items/index.html',
+        items=items, completed_items=completed_items, stats=stats,
+        status_filter=status_filter, priority_filter=priority_filter, category_filter=category_filter,
+    )
+
+
+@teacher_bp.route('/action-items/new', methods=['GET', 'POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def action_item_new():
+    from app.models.action_item import ActionItem
+    from app.models.student import Student as StudentModel
+
+    my_students = StudentModel.query.filter_by(
+        teacher_id=current_user.user_id, status='active'
+    ).order_by(StudentModel.name).all()
+
+    if request.method == 'POST':
+        title    = request.form.get('title', '').strip()
+        content  = request.form.get('content', '').strip()
+        category = request.form.get('category', '기타')
+        priority = request.form.get('priority', 'medium')
+        due_raw  = request.form.get('due_date', '').strip()
+        student  = request.form.get('student_id') or None
+
+        if not title:
+            flash('제목을 입력해주세요.', 'error')
+            return render_template('teacher/action_items/form.html', student_list=my_students)
+
+        due_date = None
+        if due_raw:
+            try:
+                from datetime import date
+                due_date = date.fromisoformat(due_raw)
+            except ValueError:
+                pass
+
+        item = ActionItem(
+            title=title, content=content, category=category, priority=priority,
+            created_by=current_user.user_id,
+            student_id=int(student) if student else None,
+            due_date=due_date,
+        )
+        from app.models import db
+        db.session.add(item)
+        db.session.commit()
+        flash('업무가 등록되었습니다.', 'success')
+        return redirect(url_for('teacher.action_items'))
+
+    return render_template('teacher/action_items/form.html', student_list=my_students)
+
+
+@teacher_bp.route('/action-items/<int:item_id>')
+@login_required
+@requires_role('teacher', 'admin')
+def action_item_detail(item_id):
+    from app.models.action_item import ActionItem
+    from app.models.student import Student as StudentModel
+    item = ActionItem.query.filter_by(item_id=item_id, created_by=current_user.user_id).first_or_404()
+    my_students = StudentModel.query.filter_by(teacher_id=current_user.user_id, status='active').order_by(StudentModel.name).all()
+    return render_template('teacher/action_items/detail.html', item=item, student_list=my_students)
+
+
+@teacher_bp.route('/action-items/<int:item_id>/edit', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def action_item_edit(item_id):
+    from app.models.action_item import ActionItem
+    from app.models import db
+    item = ActionItem.query.filter_by(item_id=item_id, created_by=current_user.user_id).first_or_404()
+
+    item.title    = request.form.get('title', item.title).strip()
+    item.content  = request.form.get('content', '').strip()
+    item.category = request.form.get('category', item.category)
+    item.priority = request.form.get('priority', item.priority)
+    student_id = request.form.get('student_id')
+    item.student_id = int(student_id) if student_id else None
+
+    due_raw = request.form.get('due_date', '').strip()
+    if due_raw:
+        try:
+            from datetime import date
+            item.due_date = date.fromisoformat(due_raw)
+        except ValueError:
+            pass
+    else:
+        item.due_date = None
+
+    from datetime import datetime
+    item.updated_at = datetime.utcnow()
+    db.session.commit()
+    flash('업무가 수정되었습니다.', 'success')
+    return redirect(url_for('teacher.action_item_detail', item_id=item_id))
+
+
+@teacher_bp.route('/action-items/<int:item_id>/status', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def action_item_status(item_id):
+    from app.models.action_item import ActionItem
+    from app.models import db
+    from flask import jsonify
+    item = ActionItem.query.filter_by(item_id=item_id, created_by=current_user.user_id).first_or_404()
+    new_status = request.form.get('status')
+    if new_status in ('pending', 'in_progress', 'completed'):
+        if new_status == 'completed':
+            item.complete()
+        else:
+            item.status = new_status
+            item.completed_at = None
+        from datetime import datetime
+        item.updated_at = datetime.utcnow()
+        db.session.commit()
+    return redirect(request.referrer or url_for('teacher.action_items'))
+
+
+@teacher_bp.route('/action-items/<int:item_id>/delete', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def action_item_delete(item_id):
+    from app.models.action_item import ActionItem
+    from app.models import db
+    item = ActionItem.query.filter_by(item_id=item_id, created_by=current_user.user_id).first_or_404()
+    db.session.delete(item)
+    db.session.commit()
+    flash('업무가 삭제되었습니다.', 'success')
+    return redirect(url_for('teacher.action_items'))

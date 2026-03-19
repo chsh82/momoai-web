@@ -681,6 +681,11 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 📬 문의 관리
                             </a>
+                            <a href="{{ url_for('teacher.action_items') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'teacher.action_item' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                <span>📋 처리 대기 업무</span>
+                                <span id="teacherActionBadge" class="hidden bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full"></span>
+                            </a>
                         </div>
                     </div>
 
@@ -1574,8 +1579,9 @@
             .then(data => {
                 if (!data.success || !data.items || data.items.length === 0) return;
 
-                // 사이드바 배지 업데이트
-                const badge = document.getElementById('actionItemsBadge');
+                // 사이드바 배지 업데이트 (역할에 따라 다른 배지)
+                const badgeId = '{{ current_user.role }}' === 'teacher' ? 'teacherActionBadge' : 'actionItemsBadge';
+                const badge = document.getElementById(badgeId);
                 if (badge) {
                     badge.textContent = data.total;
                     badge.classList.remove('hidden');

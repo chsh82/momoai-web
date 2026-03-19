@@ -1,0 +1,47 @@
+<div class="bg-white rounded-lg shadow">
+    {% if items %}
+    <div class="divide-y divide-gray-100">
+        {% for item in items %}
+        <div class="p-4 hover:bg-gray-50 transition flex items-start gap-4">
+            <div class="text-xl mt-0.5 shrink-0">{{ item.priority_icon }}</div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <a href="{{ url_for('admin.action_item_detail', item_id=item.item_id) }}"
+                       class="font-medium text-gray-800 hover:text-blue-600 truncate">{{ item.title }}</a>
+                    {% if item.is_overdue %}
+                    <span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">기한초과</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                    <span class="px-1.5 py-0.5 rounded bg-gray-100">{{ item.category }}</span>
+                    {% if item.student %}<span>👤 {{ item.student.name }}</span>{% endif %}
+                    {% if item.assignee %}<span>담당: {{ item.assignee.name }}</span>{% endif %}
+                    {% if item.due_date %}
+                    <span class="{{ 'text-red-500 font-medium' if item.is_overdue else '' }}">
+                        마감 {{ item.due_date.strftime('%Y-%m-%d') }}
+                    </span>
+                    {% endif %}
+                    <span class="text-gray-400">{{ item.created_at.strftime('%m/%d') }} 등록</span>
+                </div>
+            </div>
+            <div class="shrink-0">
+                <form method="post" action="{{ url_for('admin.action_item_status', item_id=item.item_id) }}">
+                    <select name="status" onchange="this.form.submit()"
+                            class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="pending"     {% if item.status == 'pending' %}selected{% endif %}>대기중</option>
+                        <option value="in_progress" {% if item.status == 'in_progress' %}selected{% endif %}>처리중</option>
+                        <option value="completed"   {% if item.status == 'completed' %}selected{% endif %}>완료</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16 text-gray-400">
+        <div class="text-5xl mb-3">✅</div>
+        <p class="text-lg font-medium">미완료 업무가 없습니다.</p>
+        <p class="text-sm mt-1">새 업무를 등록하거나 필터를 변경해보세요.</p>
+    </div>
+    {% endif %}
+</div>
