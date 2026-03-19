@@ -44,7 +44,7 @@
                 <div class="space-y-3 mb-6">
                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <span class="text-gray-600 font-medium">가입일</span>
-                        <span class="text-gray-800">{{ user.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span class="text-gray-800">{{ user.created_at | kst('%Y-%m-%d') }}</span>
                     </div>
                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <span class="text-gray-600 font-medium">최근 접속</span>
@@ -127,7 +127,7 @@
                         <div class="flex-1">
                             <div class="font-medium text-gray-800">{{ activity.title }}</div>
                             <div class="text-sm text-gray-600 mt-1">
-                                {{ activity.time.strftime('%Y-%m-%d %H:%M') }}
+                                {{ activity.time | kst('%Y-%m-%d %H:%M') }}
                             </div>
                         </div>
                         {% if activity.link %}

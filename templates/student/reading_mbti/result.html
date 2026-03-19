@@ -19,7 +19,7 @@
                 ← 테스트 목록
             </a>
             <div class="text-sm text-gray-600">
-                검사일: {{ result.created_at.strftime('%Y년 %m월 %d일') }}
+                검사일: {{ result.created_at | kst('%Y년 %m월 %d일') }}
             </div>
         </div>
     </div>

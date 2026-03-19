@@ -62,9 +62,9 @@
                         </td>
                         <td class="px-4 py-3">
                             {% if payment.period_start %}
-                            <div class="text-gray-700">{{ payment.period_start.strftime('%Y.%m.%d') }}</div>
+                            <div class="text-gray-700">{{ payment.period_start | kst('%Y.%m.%d') }}</div>
                             {% if payment.period_end %}
-                            <div class="text-xs text-gray-400">~ {{ payment.period_end.strftime('%m.%d') }}</div>
+                            <div class="text-xs text-gray-400">~ {{ payment.period_end | kst('%m.%d') }}</div>
                             {% endif %}
                             {% else %}
                             <span class="text-gray-400">-</span>

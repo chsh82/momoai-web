@@ -16,7 +16,7 @@
                 </h2>
                 <p class="text-gray-600 mt-1">
                     {{ student.name }} ({{ student.grade }}) ·
-                    {{ essay.created_at.strftime('%Y-%m-%d %H:%M') }} ·
+                    {{ essay.created_at | kst('%Y-%m-%d %H:%M') }} ·
                     버전 v{{ essay.current_version }}
                 </p>
             </div>

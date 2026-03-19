@@ -93,7 +93,7 @@
 
                     <div class="flex items-start pt-3 border-t border-gray-200">
                         <span class="text-gray-600 font-medium w-20">등록일</span>
-                        <span class="text-gray-800 flex-1">{{ book.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span class="text-gray-800 flex-1">{{ book.created_at | kst('%Y-%m-%d') }}</span>
                     </div>
 
                     <div class="flex items-start">
@@ -143,7 +143,7 @@
                                     </span>
                                 </div>
                                 <div class="text-sm text-gray-600">
-                                    👤 {{ essay.student.name }} · 📅 {{ essay.created_at.strftime('%Y-%m-%d') }}
+                                    👤 {{ essay.student.name }} · 📅 {{ essay.created_at | kst('%Y-%m-%d') }}
                                 </div>
                             </div>
                             {% if essay.status in ['reviewing', 'completed'] %}

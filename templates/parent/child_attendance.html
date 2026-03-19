@@ -90,7 +90,7 @@
                                 {{ data.session.session_date.strftime('%Y-%m-%d') }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">
-                                {% if data.session.start_time %}{{ data.session.start_time.strftime('%H:%M') }}{% endif %}
+                                {% if data.session.start_time %}{{ data.session.start_time | kst('%H:%M') }}{% endif %}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">
                                 {{ data.session.topic or '-' }}

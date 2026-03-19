@@ -204,7 +204,7 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 mb-3">
                             <div><span class="font-medium">👤 학생:</span> {{ essay.student.name }}</div>
                             <div><span class="font-medium">🎓 학년:</span> {{ essay.student.grade }}</div>
-                            <div><span class="font-medium">📅 작성일:</span> {{ essay.created_at.strftime('%m/%d %H:%M') }}</div>
+                            <div><span class="font-medium">📅 작성일:</span> {{ essay.created_at | kst('%m/%d %H:%M') }}</div>
                             <div><span class="font-medium">📄 버전:</span> v{{ essay.current_version }}</div>
                         </div>
 

@@ -163,10 +163,10 @@
                         </td>
                         <td class="px-6 py-4 text-center text-sm text-gray-600">
                             {% if message.sent_at %}
-                            {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}
+                            {{ message.sent_at | kst('%Y-%m-%d %H:%M') }}
                             {% elif message.is_scheduled and message.scheduled_at %}
                             <span class="text-orange-600">
-                                {{ message.scheduled_at.strftime('%Y-%m-%d %H:%M') }} 예약
+                                {{ message.scheduled_at | kst('%Y-%m-%d %H:%M') }} 예약
                             </span>
                             {% else %}
                             -

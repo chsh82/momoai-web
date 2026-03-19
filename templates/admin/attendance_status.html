@@ -31,7 +31,7 @@
                 </button>
             </div>
             <span id="stat-period" class="text-xs text-gray-500">
-                {{ week_start.strftime('%m/%d') }} ~ {{ week_end.strftime('%m/%d') }} (이번 주)
+                {{ week_start | kst('%m/%d') }} ~ {{ week_end | kst('%m/%d') }} (이번 주)
             </span>
         </div>
 
@@ -93,8 +93,8 @@
     </div>
 
     <script>
-    const WEEKLY_PERIOD = '{{ week_start.strftime("%m/%d") }} ~ {{ week_end.strftime("%m/%d") }} (이번 주)';
-    const MONTHLY_PERIOD = '{{ month_start.strftime("%Y년 %m월") }} ({{ month_start.strftime("%m/%d") }} ~ {{ month_end.strftime("%m/%d") }})';
+    const WEEKLY_PERIOD = '{{ week_start | kst("%m/%d") }} ~ {{ week_end | kst("%m/%d") }} (이번 주)';
+    const MONTHLY_PERIOD = '{{ month_start | kst("%Y년 %m월") }} ({{ month_start | kst("%m/%d") }} ~ {{ month_end | kst("%m/%d") }})';
     function switchStat(mode) {
         const isWeekly = mode === 'weekly';
         document.getElementById('stats-weekly').classList.toggle('hidden', !isWeekly);

@@ -51,7 +51,7 @@
                 </h3>
                 <!-- 메타 정보 -->
                 <div class="text-xs text-gray-500 space-y-0.5">
-                    <div>👤 {{ post.author.name }} · 📅 {{ post.created_at.strftime('%m/%d %H:%M') }}</div>
+                    <div>👤 {{ post.author.name }} · 📅 {{ post.created_at | kst('%m/%d %H:%M') }}</div>
                     <div>👁️ {{ post.view_count }} · 💬 {{ post.comment_count }}</div>
                 </div>
             </a>

@@ -100,7 +100,7 @@
                         {% else %}bg-gray-100 text-gray-800{% endif %}">
                         {{ consultation.major_category }}
                     </span>
-                    <span class="text-xs text-gray-400">{{ consultation.consultation_date.strftime('%y.%m.%d') }}</span>
+                    <span class="text-xs text-gray-400">{{ consultation.consultation_date | kst('%y.%m.%d') }}</span>
                 </div>
                 <!-- 제목 -->
                 <h3 class="font-bold text-gray-800 text-sm mb-2 line-clamp-2">{{ consultation.title }}</h3>

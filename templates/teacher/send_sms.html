@@ -175,7 +175,7 @@
                     {% for msg in history %}
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 pr-3 text-gray-500 whitespace-nowrap">
-                            {{ msg.created_at.strftime('%m/%d %H:%M') }}
+                            {{ msg.created_at | kst('%m/%d %H:%M') }}
                         </td>
                         <td class="py-2 pr-3">
                             <span class="px-2 py-0.5 rounded text-xs font-medium

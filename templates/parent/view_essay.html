@@ -15,7 +15,7 @@
                 <h2 class="text-3xl font-bold text-gray-800 mb-2">{{ essay.title }}</h2>
                 <div class="flex items-center gap-3 text-sm text-gray-600">
                     <span>👤 {{ student.name }}</span>
-                    <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일') }}</span>
+                    <span>📅 {{ essay.created_at | kst('%Y년 %m월 %d일') }}</span>
                     <span>👨‍🏫 {{ essay.user.name }} 강사</span>
                 </div>
             </div>
@@ -150,12 +150,12 @@
                     </div>
                     <div>
                         <span class="text-gray-600">제출일</span>
-                        <div class="font-medium text-gray-800">{{ essay.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</div>
+                        <div class="font-medium text-gray-800">{{ essay.created_at | kst('%Y년 %m월 %d일 %H:%M') }}</div>
                     </div>
                     {% if essay.is_finalized %}
                     <div>
                         <span class="text-gray-600">완료일</span>
-                        <div class="font-medium text-gray-800">{{ essay.finalized_at.strftime('%Y년 %m월 %d일 %H:%M') }}</div>
+                        <div class="font-medium text-gray-800">{{ essay.finalized_at | kst('%Y년 %m월 %d일 %H:%M') }}</div>
                     </div>
                     {% endif %}
                 </div>

@@ -109,7 +109,7 @@
                     {% if view_mode == 'daily' %}
                     {{ target_date.strftime('%Y.%m.%d') }}
                     {% elif view_mode == 'weekly' %}
-                    {{ week_start.strftime('%m.%d') }} ~ {{ week_end.strftime('%m.%d') }}
+                    {{ week_start | kst('%m.%d') }} ~ {{ week_end | kst('%m.%d') }}
                     {% else %}
                     {{ base_year }}년 {{ base_month }}월
                     {% endif %}
@@ -130,7 +130,7 @@
     <div style="display:none;" class="print-header mb-3 text-center">
         <p class="text-lg font-bold text-gray-800">
             {{ selected_teacher.name if selected_teacher else '' }} 수업 시간표
-            {% if view_mode == 'weekly' %} · {{ week_start.strftime('%Y.%m.%d') }} ~ {{ week_end.strftime('%m.%d') }}{% endif %}
+            {% if view_mode == 'weekly' %} · {{ week_start | kst('%Y.%m.%d') }} ~ {{ week_end | kst('%m.%d') }}{% endif %}
         </p>
     </div>
 
@@ -227,8 +227,8 @@
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-gray-800">{{ session.course.course_name }}</p>
                         <p class="text-sm text-gray-600 mt-1">
-                            {% if session.start_time %}🕐 {{ session.start_time.strftime('%H:%M') }}{% endif %}
-                            {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            {% if session.start_time %}🕐 {{ session.start_time | kst('%H:%M') }}{% endif %}
+                            {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                             {% if session.course.grade %} · 📚 {{ session.course.grade }}{% endif %}
                             · 👥 {{ session.course.enrolled_count }}명
                         </p>
@@ -290,7 +290,7 @@
                         {{ days[i] }}요일
                     </div>
                     <div class="text-xs mt-0.5 {% if current_date == today %}text-blue-600 font-medium{% else %}text-gray-500{% endif %}">
-                        {{ current_date.strftime('%m/%d') }}
+                        {{ current_date | kst('%m/%d') }}
                     </div>
                 </div>
                 {% endfor %}
@@ -346,14 +346,14 @@
                               {% elif session.status == 'cancelled' %}bg-red-100 border border-red-400 text-red-900
                               {% else %}bg-gray-100 border border-gray-400 text-gray-900{% endif %}"
                        style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px;"
-                       title="{{ session.course.course_name }} | {{ session.start_time.strftime('%H:%M') }}{% if session.end_time %} ~ {{ session.end_time.strftime('%H:%M') }}{% endif %}{% if wd_mismatch %} ⚠️ 요일불일치{% endif %}">
+                       title="{{ session.course.course_name }} | {{ session.start_time | kst('%H:%M') }}{% if session.end_time %} ~ {{ session.end_time | kst('%H:%M') }}{% endif %}{% if wd_mismatch %} ⚠️ 요일불일치{% endif %}">
                         {% set active_enr = session.course.enrollments | selectattr('status', 'equalto', 'active') | list %}
                         <div class="px-1 pt-0.5 leading-tight h-full flex flex-col overflow-hidden">
                             {% if wd_mismatch %}<div class="text-orange-600 font-bold text-xs">⚠️ 요일불일치</div>{% endif %}
                             <div class="font-semibold truncate">{{ session.course.course_name }}</div>
                             {% if h_px >= 36 %}
                             <div class="opacity-75 mt-0.5 truncate">
-                                {{ session.start_time.strftime('%H:%M') }}{% if session.end_time %}&nbsp;–&nbsp;{{ session.end_time.strftime('%H:%M') }}{% endif %}
+                                {{ session.start_time | kst('%H:%M') }}{% if session.end_time %}&nbsp;–&nbsp;{{ session.end_time | kst('%H:%M') }}{% endif %}
                             </div>
                             {% endif %}
                             {% if h_px >= 52 %}
@@ -391,13 +391,13 @@
                               bg-gray-100 border border-dashed border-gray-400 text-gray-600
                               hover:shadow-md hover:z-20 transition"
                        style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;"
-                       title="{{ course.course_name }} | {{ course.start_time.strftime('%H:%M') }} (세션 미생성)">
+                       title="{{ course.course_name }} | {{ course.start_time | kst('%H:%M') }} (세션 미생성)">
                         {% set active_enr = course.enrollments | selectattr('status', 'equalto', 'active') | list %}
                         <div class="px-1 pt-0.5 leading-tight h-full flex flex-col overflow-hidden">
                             <div class="font-semibold truncate">{{ course.course_name }}</div>
                             {% if h_px >= 36 %}
                             <div class="opacity-75 mt-0.5 truncate">
-                                {{ course.start_time.strftime('%H:%M') }}{% if course.end_time %}&nbsp;–&nbsp;{{ course.end_time.strftime('%H:%M') }}{% endif %}
+                                {{ course.start_time | kst('%H:%M') }}{% if course.end_time %}&nbsp;–&nbsp;{{ course.end_time | kst('%H:%M') }}{% endif %}
                             </div>
                             {% endif %}
                             {% if h_px >= 52 %}
@@ -471,8 +471,8 @@
                                   {% elif session.status == 'completed' %}bg-green-100 text-green-800
                                   {% elif session.status == 'cancelled' %}bg-red-100 text-red-800
                                   {% else %}bg-gray-100 text-gray-800{% endif %}"
-                           title="{{ session.course.course_name }}{% if session.start_time %} {{ session.start_time.strftime('%H:%M') }}{% endif %}">
-                            {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }} {% endif %}{{ session.course.course_name[:10] }}
+                           title="{{ session.course.course_name }}{% if session.start_time %} {{ session.start_time | kst('%H:%M') }}{% endif %}">
+                            {% if session.start_time %}{{ session.start_time | kst('%H:%M') }} {% endif %}{{ session.course.course_name[:10] }}
                         </a>
                         {% endfor %}
                         {% endif %}
@@ -530,7 +530,7 @@ async function saveAsImage() {
         const link = document.createElement('a');
         const teacherName = '{{ selected_teacher.name if selected_teacher else "시간표" }}';
         {% if view_mode == 'weekly' %}
-        const label = '{{ week_start.strftime("%m%d") }}_{{ week_end.strftime("%m%d") }}';
+        const label = '{{ week_start | kst("%m%d") }}_{{ week_end | kst("%m%d") }}';
         {% elif view_mode == 'daily' %}
         const label = '{{ target_date.strftime("%m%d") }}';
         {% else %}

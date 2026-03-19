@@ -68,8 +68,8 @@
                             </span>
                             {% if session.start_time %}
                             <span class="text-sm text-gray-500">
-                                {{ session.start_time.strftime('%H:%M') }}
-                                {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                                {{ session.start_time | kst('%H:%M') }}
+                                {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                             </span>
                             {% endif %}
 

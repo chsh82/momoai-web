@@ -34,7 +34,7 @@
                             <div class="flex-1">
                                 <h3 class="text-xl font-bold text-gray-800">{{ record.original_filename }}</h3>
                                 <div class="flex items-center gap-3 text-sm text-gray-600 mt-1">
-                                    <span>📅 {{ record.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                    <span>📅 {{ record.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                                     <span>⏱️ {{ "%.2f"|format(record.processing_time) }}초</span>
                                     <span>📝 {{ record.character_count }}자</span>
                                     <span>👤 {{ record.user.name }}</span>

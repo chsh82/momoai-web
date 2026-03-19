@@ -57,7 +57,7 @@
                 </div>
                 <div>
                     <div class="font-medium text-gray-800">{{ post.user.name }}</div>
-                    <div class="text-sm text-gray-500">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <div class="text-sm text-gray-500">{{ post.created_at | kst('%Y-%m-%d %H:%M') }}</div>
                 </div>
             </div>
             <div class="flex items-center gap-4 text-sm text-gray-600">
@@ -178,7 +178,7 @@
                         <div class="flex items-center justify-between mb-2">
                             <div class="font-medium text-gray-800">{{ comment.user.name }}</div>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-500">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                <span class="text-xs text-gray-500">{{ comment.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                                 {% if comment.user_id == current_user.user_id %}
                                 <button onclick="deleteComment('{{ comment.comment_id }}')"
                                         class="text-xs text-red-600 hover:text-red-800">
@@ -203,7 +203,7 @@
                                     <div class="flex items-center justify-between mb-2">
                                         <div class="text-sm font-medium text-gray-800">{{ reply.user.name }}</div>
                                         <div class="flex items-center gap-2">
-                                            <span class="text-xs text-gray-500">{{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                            <span class="text-xs text-gray-500">{{ reply.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                                             {% if reply.user_id == current_user.user_id %}
                                             <button onclick="deleteComment('{{ reply.comment_id }}')"
                                                     class="text-xs text-red-600 hover:text-red-800">

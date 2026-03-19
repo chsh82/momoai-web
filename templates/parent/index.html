@@ -216,7 +216,7 @@
                                     {{ feedback.student.name }} | {{ feedback.teacher.name }} 강사
                                 </p>
                                 <p class="text-xs text-gray-500 mt-1">
-                                    {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    {{ feedback.created_at | kst('%Y-%m-%d %H:%M') }}
                                 </p>
                             </div>
                         </div>

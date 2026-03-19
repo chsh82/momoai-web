@@ -198,7 +198,7 @@
                     </div>
                     <div class="min-w-0">
                         <p class="font-medium text-gray-800 truncate">{{ essay.title }}</p>
-                        <p class="text-xs text-gray-400 mt-0.5">{{ essay.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ essay.created_at | kst('%Y-%m-%d %H:%M') }}</p>
                     </div>
                 </div>
                 <div class="flex-shrink-0 ml-4">

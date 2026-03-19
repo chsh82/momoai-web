@@ -119,7 +119,7 @@
                 {% endif %}
 
                 <div class="text-xs text-gray-500 mb-3">
-                    📅 {{ book.created_at.strftime('%Y-%m-%d') }}
+                    📅 {{ book.created_at | kst('%Y-%m-%d') }}
                 </div>
 
                 <a href="{{ url_for('books.detail', book_id=book.book_id) }}"

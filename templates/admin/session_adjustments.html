@@ -72,7 +72,7 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-xs text-gray-400">
-                        {{ adj.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        {{ adj.created_at | kst('%Y-%m-%d %H:%M') }}
                     </span>
                     <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">강사 인정결석</span>
                     <!-- 분류 버튼 -->
@@ -130,7 +130,7 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for adj in items %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ adj.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ adj.created_at | kst('%Y-%m-%d') }}</td>
                         <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ adj.student.name }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">
                             {{ adj.enrollment.course.course_name if adj.enrollment and adj.enrollment.course else '-' }}
@@ -187,7 +187,7 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for adj in items %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ adj.updated_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ adj.updated_at | kst('%Y-%m-%d') }}</td>
                         <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ adj.student.name }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">
                             {{ adj.enrollment.course.course_name if adj.enrollment and adj.enrollment.course else '-' }}

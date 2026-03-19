@@ -13,7 +13,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-3xl font-bold text-gray-800">{{ student.name }} 학생 리포트</h2>
-                <p class="text-gray-600 mt-1">{{ period_name }} ({{ report.period.start.strftime('%Y-%m-%d') }} ~ {{ report.period.end.strftime('%Y-%m-%d') }})</p>
+                <p class="text-gray-600 mt-1">{{ period_name }} ({{ report.period.start | kst('%Y-%m-%d') }} ~ {{ report.period.end | kst('%Y-%m-%d') }})</p>
             </div>
             <div class="flex gap-2">
                 <!-- 기간 선택 -->

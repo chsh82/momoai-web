@@ -68,7 +68,7 @@
                         {% for req in all_requests %}
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
-                                {{ req.request_date.strftime('%Y-%m-%d %H:%M') }}
+                                {{ req.request_date | kst('%Y-%m-%d %H:%M') }}
                             </td>
                             <td class="px-4 py-3">
                                 <p class="font-medium text-gray-800">{{ req.requested_course.course_name }}</p>

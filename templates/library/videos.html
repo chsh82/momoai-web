@@ -46,7 +46,7 @@
                     </h3>
                     <div class="flex items-center justify-between text-sm text-gray-500">
                         <span>조회수 {{ video.view_count }}</span>
-                        <span>{{ video.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span>{{ video.created_at | kst('%Y-%m-%d') }}</span>
                     </div>
                 </div>
             </div>

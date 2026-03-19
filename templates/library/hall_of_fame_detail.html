@@ -32,7 +32,7 @@
             {% if post.grade %}
             <span>📚 {{ post.grade }}</span>
             {% endif %}
-            <span>📅 {{ post.created_at.strftime('%Y-%m-%d') }}</span>
+            <span>📅 {{ post.created_at | kst('%Y-%m-%d') }}</span>
             <span>👁️ 조회수 {{ post.view_count }}</span>
         </div>
     </div>

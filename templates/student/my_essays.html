@@ -27,10 +27,10 @@
                             {{ essay.title }}
                         </h3>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
-                            <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일') }}</span>
+                            <span>📅 {{ essay.created_at | kst('%Y년 %m월 %d일') }}</span>
                             <span>👨‍🏫 {{ essay.user.name }} 강사</span>
                             {% if essay.is_finalized %}
-                            <span>✅ {{ essay.finalized_at.strftime('%Y년 %m월 %d일') }} 완료</span>
+                            <span>✅ {{ essay.finalized_at | kst('%Y년 %m월 %d일') }} 완료</span>
                             {% endif %}
                         </div>
                     </div>

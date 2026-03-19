@@ -78,7 +78,7 @@
                         {% if post.grade %}
                         <span>📚 {{ post.grade }}</span>
                         {% endif %}
-                        <span>📅 {{ post.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span>📅 {{ post.created_at | kst('%Y-%m-%d') }}</span>
                         <span>👁️ {{ post.view_count }}</span>
                     </div>
                 </div>

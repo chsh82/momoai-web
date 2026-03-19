@@ -71,14 +71,14 @@
                         <span class="text-gray-600">수업 시간</span>
                         <span class="font-medium text-gray-800">
                             매주 {{ ['월', '화', '수', '목', '금', '토', '일'][enrollment.course.weekday] }}요일
-                            {% if enrollment.course.start_time %}{{ enrollment.course.start_time.strftime('%H:%M') }}{% endif %}
+                            {% if enrollment.course.start_time %}{{ enrollment.course.start_time | kst('%H:%M') }}{% endif %}
                         </span>
                     </div>
                     {% endif %}
 
                     <div class="flex items-center justify-between">
                         <span class="text-gray-600">등록일</span>
-                        <span class="font-medium text-gray-800">{{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}</span>
+                        <span class="font-medium text-gray-800">{{ enrollment.enrolled_at | kst('%Y-%m-%d') }}</span>
                     </div>
 
                     {% if enrollment.course.total_sessions %}

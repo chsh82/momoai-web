@@ -58,7 +58,7 @@
                 {% for fb in feedbacks %}
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {{ fb.created_at.strftime('%Y-%m-%d') }}
+                        {{ fb.created_at | kst('%Y-%m-%d') }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
                         {{ fb.student.name if fb.student else '알 수 없음' }}
@@ -91,7 +91,7 @@
                                 ✓ 읽음
                             </span>
                             {% if fb.read_at %}
-                            <div class="text-xs text-gray-400 mt-1">{{ fb.read_at.strftime('%m/%d %H:%M') }}</div>
+                            <div class="text-xs text-gray-400 mt-1">{{ fb.read_at | kst('%m/%d %H:%M') }}</div>
                             {% endif %}
                         </div>
                         {% else %}

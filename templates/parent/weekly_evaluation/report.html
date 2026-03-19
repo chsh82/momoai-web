@@ -158,7 +158,7 @@
                 <tbody>
                     {% for eval in evaluations|reverse %}
                     <tr>
-                        <td>{{ eval.eval_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ eval.eval_date | kst('%Y-%m-%d') }}</td>
                         <td>{{ eval.week_number }}주</td>
                         <td>{{ eval.book_title or '-' }}</td>
                         <td class="font-bold" style="color: {{ '#10B981' if eval.score >= 80 else '#F59E0B' if eval.score >= 60 else '#EF4444' }}">
@@ -200,7 +200,7 @@
 <script>
 {% if evaluations %}
 // 데이터 준비
-const labels = [{% for eval in evaluations %}'{{ eval.eval_date.strftime("%m/%d") }} ({{ eval.week_number }}주)'{{ ',' if not loop.last else '' }}{% endfor %}];
+const labels = [{% for eval in evaluations %}'{{ eval.eval_date | kst("%m/%d") }} ({{ eval.week_number }}주)'{{ ',' if not loop.last else '' }}{% endfor %}];
 const scores = [{% for eval in evaluations %}{{ eval.score }}{{ ',' if not loop.last else '' }}{% endfor %}];
 const participation = [{% for eval in evaluations %}{{ eval.participation_score * 20 }}{{ ',' if not loop.last else '' }}{% endfor %}];
 const understanding = [{% for eval in evaluations %}{{ eval.understanding_score * 20 }}{{ ',' if not loop.last else '' }}{% endfor %}];

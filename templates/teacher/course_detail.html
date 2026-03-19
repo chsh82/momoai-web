@@ -104,8 +104,8 @@
                         <p class="text-sm text-gray-700 mb-2">{{ session.topic }}</p>
                         {% endif %}
                         <p class="text-sm text-gray-600">
-                            {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
-                            {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
+                            {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                         </p>
                     </div>
                     {% endfor %}

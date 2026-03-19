@@ -8,7 +8,7 @@
     <div class="mb-6">
         <h2 class="text-3xl font-bold text-gray-800 mb-2">{{ video.title }}</h2>
         <div class="flex items-center space-x-4 text-sm text-gray-600">
-            <span>📅 {{ video.created_at.strftime('%Y-%m-%d') }}</span>
+            <span>📅 {{ video.created_at | kst('%Y-%m-%d') }}</span>
             <span>👁️ 조회수 {{ video.view_count }}</span>
         </div>
     </div>

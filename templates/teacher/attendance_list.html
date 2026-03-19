@@ -154,8 +154,8 @@
                     <span class="text-orange-600 text-xs font-medium">{{ enrolled_names }}</span>
                     {% endif %}
                     <span class="text-gray-400 text-xs">
-                        {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
-                        {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                        {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
+                        {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                     </span>
                 </div>
                 <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
@@ -196,8 +196,8 @@
                     <span class="text-xs text-gray-400">#{{ session.session_number }}</span>
                     <!-- 시간 -->
                     <span class="text-xs text-gray-500">
-                        {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
-                        {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                        {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
+                        {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                     </span>
                     <!-- 학생 수 -->
                     <span class="text-xs text-gray-400">👥 {{ attendances|length }}명</span>

@@ -146,9 +146,9 @@
                     <!-- 하단: 신청일 + 액션 -->
                     <div class="flex items-center justify-between">
                         <div class="text-xs text-gray-400 flex items-center gap-3">
-                            <span>📅 {{ req.created_at.strftime('%Y.%m.%d %H:%M') }}</span>
+                            <span>📅 {{ req.created_at | kst('%Y.%m.%d %H:%M') }}</span>
                             {% if req.student_birth_date %}
-                            <span>🎂 {{ req.student_birth_date.strftime('%Y.%m.%d') }}</span>
+                            <span>🎂 {{ req.student_birth_date | kst('%Y.%m.%d') }}</span>
                             {% endif %}
                         </div>
                         <div>

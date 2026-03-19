@@ -106,7 +106,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-gray-400 shrink-0">🕐</span>
-                            <span>{% if user.last_login %}{{ user.last_login.strftime('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}</span>
+                            <span>{% if user.last_login %}{{ user.last_login | kst('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}</span>
                         </div>
                     </div>
                     <div class="pt-2 border-t border-gray-100">

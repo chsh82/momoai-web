@@ -86,7 +86,7 @@
                         <!-- 오른쪽: 날짜/통계 -->
                         <div class="flex-shrink-0 text-right">
                             <div class="text-xs text-gray-400">
-                                {{ post.created_at.strftime('%Y-%m-%d') }}
+                                {{ post.created_at | kst('%Y-%m-%d') }}
                             </div>
                             <div class="flex items-center justify-end gap-3 mt-1 text-xs text-gray-500">
                                 <span>💬 {{ post.comment_count }}</span>

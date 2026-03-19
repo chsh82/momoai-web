@@ -43,7 +43,7 @@
                         {% for req in my_requests %}
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm text-gray-700">
-                                {{ req.request_date.strftime('%Y-%m-%d %H:%M') }}
+                                {{ req.request_date | kst('%Y-%m-%d %H:%M') }}
                             </td>
                             <td class="px-4 py-3">
                                 <p class="font-medium text-gray-800">{{ req.requested_course.course_name if req.requested_course else '(삭제된 수업)' }}</p>
@@ -119,7 +119,7 @@
                         <p>📅 매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일</p>
                         {% endif %}
                         {% if course.start_time and course.end_time %}
-                        <p>🕐 {{ course.start_time.strftime('%H:%M') }} - {{ course.end_time.strftime('%H:%M') }}</p>
+                        <p>🕐 {{ course.start_time | kst('%H:%M') }} - {{ course.end_time | kst('%H:%M') }}</p>
                         {% endif %}
                         <p>👥 {{ course.enrolled_count }}/{{ course.max_students }}명</p>
                     </div>

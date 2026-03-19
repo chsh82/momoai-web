@@ -165,7 +165,7 @@
             <tbody>
                 {% for eval in weekly_evals[:10] %}
                 <tr>
-                    <td>{{ eval.eval_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ eval.eval_date | kst('%Y-%m-%d') }}</td>
                     <td>{{ eval.week_number }}주차</td>
                     <td>{{ eval.book_title or '-' }}</td>
                     <td>{{ eval.class_type or '-' }}</td>

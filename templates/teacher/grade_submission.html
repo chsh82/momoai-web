@@ -136,7 +136,7 @@
         <h4 class="font-bold text-yellow-800 mb-2">이전 채점 내역</h4>
         <div class="text-sm text-yellow-700">
             <p><strong>점수:</strong> {{ submission.score }}/{{ assignment.max_score }}점</p>
-            <p><strong>채점일:</strong> {{ submission.graded_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            <p><strong>채점일:</strong> {{ submission.graded_at | kst('%Y-%m-%d %H:%M') }}</p>
             <p class="mt-2"><strong>피드백:</strong></p>
             <p class="whitespace-pre-wrap mt-1">{{ submission.feedback }}</p>
         </div>
@@ -162,7 +162,7 @@
                             {{ hist.assignment.title }}
                         </a>
                         <p class="text-xs text-gray-400 mt-0.5">
-                            채점일: {{ hist.graded_at.strftime('%Y-%m-%d %H:%M') }}
+                            채점일: {{ hist.graded_at | kst('%Y-%m-%d %H:%M') }}
                             {% if hist.is_late %}<span class="text-red-500 ml-1">(지각)</span>{% endif %}
                         </p>
                     </div>

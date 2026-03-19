@@ -31,7 +31,7 @@
                     <div class="flex items-center gap-4 text-sm text-gray-600">
                         <span>👨‍🏫 {{ feedback.teacher.name if feedback.teacher else '미배정' }} 강사</span>
                         <span>👨‍🎓 {{ feedback.student.name if feedback.student else '-' }} 학생</span>
-                        <span>📅 {{ feedback.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                        <span>📅 {{ feedback.created_at | kst('%Y년 %m월 %d일 %H:%M') }}</span>
                     </div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
                 {% endif %}
                 {% if feedback.is_read %}
                 <span class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-600 rounded-full">
-                    읽음: {{ feedback.read_at.strftime('%m/%d %H:%M') }}
+                    읽음: {{ feedback.read_at | kst('%m/%d %H:%M') }}
                 </span>
                 {% endif %}
             </div>
@@ -73,7 +73,7 @@
                 <div class="text-sm text-gray-600">
                     <p class="mb-1">🔒 이 피드백은 학부모님께만 전달되며, 학생은 볼 수 없습니다.</p>
                     {% if feedback.updated_at and feedback.updated_at != feedback.created_at %}
-                    <p class="text-xs text-gray-500">마지막 수정: {{ feedback.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p class="text-xs text-gray-500">마지막 수정: {{ feedback.updated_at | kst('%Y-%m-%d %H:%M') }}</p>
                     {% endif %}
                 </div>
                 <a href="{{ url_for('parent.child_feedback', student_id=feedback.student_id) }}"

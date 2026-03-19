@@ -78,7 +78,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-gray-400 shrink-0">📅</span>
-                        <span class="text-xs text-gray-600">{{ user.created_at.strftime('%Y.%m.%d %H:%M') }} 가입</span>
+                        <span class="text-xs text-gray-600">{{ user.created_at | kst('%Y.%m.%d %H:%M') }} 가입</span>
                     </div>
                 </div>
                 <div class="flex gap-2 pt-2 border-t border-gray-100">

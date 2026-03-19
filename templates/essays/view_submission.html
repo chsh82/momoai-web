@@ -16,7 +16,7 @@
                 <div class="flex items-center gap-3 text-sm text-gray-600">
                     <span>👤 {{ student.name }}</span>
                     <span>🎓 {{ student.grade }}</span>
-                    <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                    <span>📅 {{ essay.created_at | kst('%Y년 %m월 %d일 %H:%M') }}</span>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -404,7 +404,7 @@
                             {% endif %}
                         </div>
                         <div class="text-sm text-gray-500 flex items-center gap-3">
-                            <span>📅 {{ ocr.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            <span>📅 {{ ocr.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                             <span>📝 {{ ocr.character_count }}자</span>
                         </div>
                     </div>

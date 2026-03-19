@@ -119,7 +119,7 @@
                         </h2>
                     </div>
                     <div class="text-sm text-gray-600">
-                        {{ now().strftime('%Y년 %m월 %d일') }}
+                        {{ now() | kst('%Y년 %m월 %d일') }}
                     </div>
                 </div>
             </header>

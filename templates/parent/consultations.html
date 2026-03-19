@@ -70,9 +70,9 @@
 
                         <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
                             <span>👨‍🏫 {{ consultation.counselor.name if consultation.counselor else '미배정' }}</span>
-                            <span>📅 {{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}</span>
+                            <span>📅 {{ consultation.consultation_date | kst('%Y년 %m월 %d일') }}</span>
                             {% if consultation.parent_shared_at %}
-                            <span class="text-green-600">✓ {{ consultation.parent_shared_at.strftime('%m/%d %H:%M') }} 공유됨</span>
+                            <span class="text-green-600">✓ {{ consultation.parent_shared_at | kst('%m/%d %H:%M') }} 공유됨</span>
                             {% endif %}
                         </div>
 

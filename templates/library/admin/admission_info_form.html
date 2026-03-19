@@ -126,7 +126,7 @@
                 </label>
                 <input type="date"
                        name="expire_date"
-                       value="{% if post and post.expire_date %}{{ post.expire_date.strftime('%Y-%m-%d') }}{% endif %}"
+                       value="{% if post and post.expire_date %}{{ post.expire_date | kst('%Y-%m-%d') }}{% endif %}"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <p class="text-xs text-gray-500 mt-1">비워두면 무제한 게시됩니다</p>
             </div>

@@ -134,7 +134,7 @@
                         <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">취소됨</span>
                         {% endif %}
                     </div>
-                    <span class="text-xs text-gray-400">{{ req.created_at.strftime('%y.%m.%d %H:%M') }}</span>
+                    <span class="text-xs text-gray-400">{{ req.created_at | kst('%y.%m.%d %H:%M') }}</span>
                 </div>
 
                 <!-- 학부모 / 학생 정보 -->
@@ -168,7 +168,7 @@
                         <span class="text-gray-400 shrink-0">👤</span>
                         <span>{{ req.reviewed_by_user.name }}
                             {% if req.reviewed_at %}
-                            <span class="text-gray-400">({{ req.reviewed_at.strftime('%y.%m.%d') }})</span>
+                            <span class="text-gray-400">({{ req.reviewed_at | kst('%y.%m.%d') }})</span>
                             {% endif %}
                         </span>
                     </div>

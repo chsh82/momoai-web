@@ -29,7 +29,7 @@
                 <div class="form-group">
                     <label class="text-label">평가 날짜</label>
                     <input type="date" name="eval_date" class="input-momo w-full"
-                           value="{{ eval.eval_date.strftime('%Y-%m-%d') }}" required>
+                           value="{{ eval.eval_date | kst('%Y-%m-%d') }}" required>
                 </div>
 
                 <!-- 주차 -->

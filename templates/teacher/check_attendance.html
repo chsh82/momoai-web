@@ -31,8 +31,8 @@
                     <p><span class="text-gray-600">날짜:</span> <span class="font-medium">{{ session.session_date.strftime('%Y년 %m월 %d일 (%A)')|replace('Monday', '월요일')|replace('Tuesday', '화요일')|replace('Wednesday', '수요일')|replace('Thursday', '목요일')|replace('Friday', '금요일')|replace('Saturday', '토요일')|replace('Sunday', '일요일') }}</span></p>
                     <p><span class="text-gray-600">시간:</span>
                         <span class="font-medium">
-                            {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
-                            {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
+                            {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                         </span>
                     </p>
                 </div>

@@ -116,7 +116,7 @@
                             {% else %}{% for t in teachers %}{% if t.user_id == n.related_user_id %}{{ t.name }}{% endif %}{% endfor %}
                             {% endif %}
                         {% else %}-{% endif %}
-                        · 📅 {{ n.created_at.strftime('%m/%d %H:%M') }}
+                        · 📅 {{ n.created_at | kst('%m/%d %H:%M') }}
                     </div>
                     <div>
                         🎯

@@ -127,7 +127,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {% if data.last_access %}
-                            {{ data.last_access.strftime('%Y-%m-%d %H:%M') }}
+                            {{ data.last_access | kst('%Y-%m-%d %H:%M') }}
                         {% else %}
                             <span class="text-gray-400">-</span>
                         {% endif %}

@@ -63,8 +63,8 @@
                                 <span class="text-xs text-gray-500">{{ session.session_date.strftime('%A')|replace('Monday', '월요일')|replace('Tuesday', '화요일')|replace('Wednesday', '수요일')|replace('Thursday', '목요일')|replace('Friday', '금요일')|replace('Saturday', '토요일')|replace('Sunday', '일요일') }}</span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">
-                                {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
-                                {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                                {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
+                                {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">
                                 {{ session.topic or '-' }}

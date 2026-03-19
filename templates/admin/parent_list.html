@@ -97,7 +97,7 @@
                             <span class="text-gray-400 font-normal text-xs ml-1">({{ item.children | map(attribute='name') | join(', ') }}) 학부모</span>
                             {% endif %}
                         </h3>
-                        <p class="text-xs text-gray-400 mt-0.5">{{ item.user.created_at.strftime('%Y.%m.%d') }} 가입</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ item.user.created_at | kst('%Y.%m.%d') }} 가입</p>
                     </div>
                     {% if item.user.is_active %}
                     <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">활성</span>
@@ -119,7 +119,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-gray-400 shrink-0">🕐</span>
                         <span class="text-xs">
-                            {% if item.user.last_login %}{{ item.user.last_login.strftime('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}
+                            {% if item.user.last_login %}{{ item.user.last_login | kst('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}
                         </span>
                     </div>
                 </div>

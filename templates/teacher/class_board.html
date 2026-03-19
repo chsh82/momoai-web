@@ -28,7 +28,7 @@
 
                 <div class="text-sm text-gray-600 mb-3">
                     <p>👥 학생 {{ item.course.enrolled_count }}명</p>
-                    <p>📅 {{ item.course.weekday_korean }} {{ item.course.start_time.strftime('%H:%M') }}</p>
+                    <p>📅 {{ item.course.weekday_korean }} {{ item.course.start_time | kst('%H:%M') }}</p>
                 </div>
 
                 {% if item.latest_post %}
@@ -36,7 +36,7 @@
                     <p class="text-xs text-gray-500 mb-1">최근 게시글</p>
                     <p class="text-sm text-gray-700 truncate">{{ item.latest_post.title }}</p>
                     <p class="text-xs text-gray-500 mt-1">
-                        {{ item.latest_post.author.name }} · {{ item.latest_post.created_at.strftime('%m/%d %H:%M') }}
+                        {{ item.latest_post.author.name }} · {{ item.latest_post.created_at | kst('%m/%d %H:%M') }}
                     </p>
                 </div>
                 {% else %}

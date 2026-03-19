@@ -227,7 +227,7 @@
                     <div class="flex items-center justify-between mt-2">
                         <span class="text-xs text-gray-400">
                             {% if student.student_id in latest_results %}
-                            {{ latest_results[student.student_id].created_at.strftime('%Y-%m-%d') }}
+                            {{ latest_results[student.student_id].created_at | kst('%Y-%m-%d') }}
                             {% else %}
                             검사 기록 없음
                             {% endif %}

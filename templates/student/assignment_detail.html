@@ -115,7 +115,7 @@
             </button>
             {% else %}
             <p class="text-center text-sm text-gray-600">
-                제출 완료: {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}
+                제출 완료: {{ submission.submitted_at | kst('%Y-%m-%d %H:%M') }}
                 {% if submission.is_late %}
                 <span class="text-red-600">(지각 제출)</span>
                 {% endif %}
@@ -151,7 +151,7 @@
         </div>
 
         <p class="text-sm text-gray-500 text-center mt-4">
-            채점일: {{ submission.graded_at.strftime('%Y-%m-%d %H:%M') }}
+            채점일: {{ submission.graded_at | kst('%Y-%m-%d %H:%M') }}
         </p>
     </div>
     {% endif %}

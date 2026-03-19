@@ -191,7 +191,7 @@
                             <h4 class="font-semibold text-gray-800">{{ post.title }}</h4>
                         </div>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
-                            <span>📅 {{ post.created_at.strftime('%Y-%m-%d') }}</span>
+                            <span>📅 {{ post.created_at | kst('%Y-%m-%d') }}</span>
                             <span>👁️ {{ post.view_count }}</span>
                         </div>
                     </div>

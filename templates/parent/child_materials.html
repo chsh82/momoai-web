@@ -97,7 +97,7 @@
                                 </div>
 
                                 <p class="text-xs text-gray-500">
-                                    업로드: {{ material.created_at.strftime('%Y-%m-%d') }} | 다운로드: {{ material.download_count }}회
+                                    업로드: {{ material.created_at | kst('%Y-%m-%d') }} | 다운로드: {{ material.download_count }}회
                                 </p>
                             </div>
 

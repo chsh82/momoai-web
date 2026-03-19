@@ -90,7 +90,7 @@
                     <p class="text-sm text-gray-600 mb-1">수업 시간</p>
                     <p class="text-gray-800 font-medium">
                         매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일
-                        {% if course.start_time %}{{ course.start_time.strftime('%H:%M') }}{% endif %}
+                        {% if course.start_time %}{{ course.start_time | kst('%H:%M') }}{% endif %}
                     </p>
                 </div>
                 {% endif %}
@@ -104,7 +104,7 @@
 
                 <div>
                     <p class="text-sm text-gray-600 mb-1">등록일</p>
-                    <p class="text-gray-800 font-medium">{{ enrollment.enrolled_at.strftime('%Y년 %m월 %d일') }}</p>
+                    <p class="text-gray-800 font-medium">{{ enrollment.enrolled_at | kst('%Y년 %m월 %d일') }}</p>
                 </div>
 
                 <div>
@@ -154,7 +154,7 @@
                     <div class="flex items-center gap-3 text-xs text-gray-400 flex-shrink-0">
                         <span>💬 {{ post.comment_count }}</span>
                         <span>👁 {{ post.view_count }}</span>
-                        <span>{{ post.created_at.strftime('%m/%d') }}</span>
+                        <span>{{ post.created_at | kst('%m/%d') }}</span>
                     </div>
                 </a>
                 {% endfor %}

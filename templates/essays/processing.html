@@ -61,7 +61,7 @@
             </div>
             <div class="bg-gray-50 p-3 rounded">
                 <div class="font-medium text-gray-700">시작 시간</div>
-                <div>{{ essay.created_at.strftime('%H:%M:%S') }}</div>
+                <div>{{ essay.created_at | kst('%H:%M:%S') }}</div>
             </div>
             <div class="bg-gray-50 p-3 rounded">
                 <div class="font-medium text-gray-700">버전</div>

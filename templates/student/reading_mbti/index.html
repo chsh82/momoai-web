@@ -60,7 +60,7 @@
                     <div class="text-sm text-purple-100 mb-1">최근 진단 결과</div>
                     <div class="text-xl font-bold">{{ latest_result.mbti_type.type_name }}</div>
                     <div class="text-sm text-purple-100">
-                        {{ latest_result.created_at.strftime('%Y년 %m월 %d일') }}
+                        {{ latest_result.created_at | kst('%Y년 %m월 %d일') }}
                     </div>
                 </div>
                 <a href="{{ url_for('student.view_mbti_result', result_id=latest_result.result_id) }}"
@@ -127,7 +127,7 @@
                     <div class="flex items-center justify-between mb-2">
                         <div class="font-medium text-gray-800">{{ result.mbti_type.type_name }}</div>
                         <span class="text-xs text-gray-500">
-                            {{ result.created_at.strftime('%Y-%m-%d') }}
+                            {{ result.created_at | kst('%Y-%m-%d') }}
                         </span>
                     </div>
                     <div class="text-sm text-gray-600 mb-2">

@@ -19,7 +19,7 @@
                     {% endif %}
                 </div>
                 <div class="flex items-center gap-3 text-sm text-gray-600">
-                    <span>📅 {{ announcement.created_at.strftime('%Y년 %m월 %d일') }}</span>
+                    <span>📅 {{ announcement.created_at | kst('%Y년 %m월 %d일') }}</span>
                     <span>👤 {{ announcement.author.name }}</span>
                 </div>
             </div>
@@ -55,7 +55,7 @@
     <!-- 정보 -->
     <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div class="text-sm text-gray-600">
-            <p>이 공지사항은 {{ announcement.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}에 게시되었습니다.</p>
+            <p>이 공지사항은 {{ announcement.created_at | kst('%Y년 %m월 %d일 %H:%M') }}에 게시되었습니다.</p>
             {% if announcement.target_tier %}
             <p class="mt-1">{{ announcement.target_tier }}등급 학생만 볼 수 있습니다.</p>
             {% else %}

@@ -44,7 +44,7 @@
                 <div class="form-group">
                     <label class="text-label">평가 날짜</label>
                     <input type="date" name="eval_date" class="input-momo w-full"
-                           value="{{ today.strftime('%Y-%m-%d') }}" required>
+                           value="{{ today | kst('%Y-%m-%d') }}" required>
                 </div>
 
                 <!-- 주차 -->
@@ -189,7 +189,7 @@
                         <td class="font-semibold">
                             {{ eval.student.name if eval.student else '?' }}
                         </td>
-                        <td>{{ eval.eval_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ eval.eval_date | kst('%Y-%m-%d') }}</td>
                         <td>{{ eval.week_number }}주</td>
                         <td>{{ eval.book_title or '-' }}</td>
                         <td>{{ eval.class_type or '-' }}</td>

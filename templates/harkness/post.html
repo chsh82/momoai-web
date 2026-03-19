@@ -36,7 +36,7 @@
             <div class="flex items-center justify-between text-sm text-gray-600">
                 <div class="flex items-center gap-4">
                     <span>👤 {{ post.author.name }}</span>
-                    <span>📅 {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <span>📅 {{ post.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                     <span>👁️ {{ post.view_count }}</span>
                 </div>
                 {% if post.author_id == current_user.user_id or current_user.is_admin %}
@@ -169,7 +169,7 @@
                             <div class="flex items-center justify-between mb-1">
                                 <span class="text-sm font-semibold text-gray-800">{{ comment.author.name if comment.author else '(삭제됨)' }}</span>
                                 <div class="flex items-center gap-3">
-                                    <span class="text-xs text-gray-500">{{ comment.created_at.strftime('%m/%d %H:%M') }}</span>
+                                    <span class="text-xs text-gray-500">{{ comment.created_at | kst('%m/%d %H:%M') }}</span>
                                     {% if comment.author_id == current_user.user_id or current_user.is_admin %}
                                     <button onclick="deleteComment('{{ comment.comment_id }}')"
                                             class="text-xs text-red-500 hover:text-red-700">삭제</button>
@@ -218,7 +218,7 @@
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-3">
                                 <span class="font-semibold text-gray-800">{{ comment.author.name }}</span>
-                                <span class="text-xs text-gray-500">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                <span class="text-xs text-gray-500">{{ comment.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <button onclick="toggleReplyForm('{{ comment.comment_id }}')"
@@ -262,7 +262,7 @@
                                 <div class="flex items-center gap-3">
                                     <span class="text-sm text-gray-600">↳</span>
                                     <span class="font-semibold text-gray-800">{{ reply.author.name }}</span>
-                                    <span class="text-xs text-gray-500">{{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                    <span class="text-xs text-gray-500">{{ reply.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                                 </div>
                                 {% if reply.author_id == current_user.user_id or current_user.is_admin %}
                                 <button onclick="deleteComment('{{ reply.comment_id }}')"

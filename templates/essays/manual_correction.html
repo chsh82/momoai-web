@@ -16,7 +16,7 @@
                 <div class="flex items-center gap-3 text-sm text-gray-600">
                     <span>👤 {{ student.name }}</span>
                     <span>🎓 {{ student.grade }}</span>
-                    <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일 %H:%M') }}</span>
+                    <span>📅 {{ essay.created_at | kst('%Y년 %m월 %d일 %H:%M') }}</span>
                     {% if essay.title %}
                     <span class="font-medium text-gray-800">「{{ essay.title }}」</span>
                     {% endif %}

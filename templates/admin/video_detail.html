@@ -20,7 +20,7 @@
                         {% if video.is_public %}공개{% else %}비공개{% endif %}
                     </span>
                 </div>
-                <p class="text-gray-600">등록일: {{ video.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                <p class="text-gray-600">등록일: {{ video.created_at | kst('%Y-%m-%d %H:%M') }}</p>
             </div>
             <div class="flex gap-2">
                 <a href="{{ video.youtube_url }}" target="_blank"
@@ -168,7 +168,7 @@
                                 {{ view.user.name }}
                             </span>
                             <span class="text-xs text-gray-500">
-                                {{ view.viewed_at.strftime('%Y-%m-%d %H:%M') }}
+                                {{ view.viewed_at | kst('%Y-%m-%d %H:%M') }}
                             </span>
                         </div>
                         <div class="flex items-center justify-between">

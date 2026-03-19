@@ -183,10 +183,10 @@
                     <!-- 제출/채점 시각 -->
                     <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400 mb-3">
                         {% if submission.submitted_at %}
-                        <span>제출: {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span>제출: {{ submission.submitted_at | kst('%Y-%m-%d %H:%M') }}</span>
                         {% endif %}
                         {% if submission.is_graded %}
-                        <span>채점: {{ submission.graded_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span>채점: {{ submission.graded_at | kst('%Y-%m-%d %H:%M') }}</span>
                         {% endif %}
                         {% if submission.file_name %}
                         <span class="flex items-center gap-1">

@@ -51,7 +51,7 @@
                 </div>
                 <div>
                     <dt class="text-xs text-gray-500">등록일</dt>
-                    <dd>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                    <dd>{{ item.created_at | kst('%Y-%m-%d %H:%M') }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs text-gray-500">마감일</dt>
@@ -62,7 +62,7 @@
                 {% if item.completed_at %}
                 <div class="col-span-2">
                     <dt class="text-xs text-gray-500">완료일시</dt>
-                    <dd class="text-green-600 font-medium">{{ item.completed_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                    <dd class="text-green-600 font-medium">{{ item.completed_at | kst('%Y-%m-%d %H:%M') }}</dd>
                 </div>
                 {% endif %}
             </dl>

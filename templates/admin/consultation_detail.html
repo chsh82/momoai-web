@@ -29,7 +29,7 @@
                                 <div>
                                     <span class="text-gray-600">상담일:</span>
                                     <span class="font-medium text-gray-800 ml-2">
-                                        {{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}
+                                        {{ consultation.consultation_date | kst('%Y년 %m월 %d일') }}
                                     </span>
                                 </div>
                                 <div>
@@ -47,7 +47,7 @@
                                 <div>
                                     <span class="text-gray-600">작성일:</span>
                                     <span class="font-medium text-gray-800 ml-2">
-                                        {{ consultation.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {{ consultation.created_at | kst('%Y-%m-%d %H:%M') }}
                                     </span>
                                 </div>
                             </div>
@@ -94,7 +94,7 @@
                             <div>
                                 <div class="font-semibold text-green-800">학부모에게 공유됨</div>
                                 {% if consultation.parent_shared_at %}
-                                <div class="text-xs text-gray-600">{{ consultation.parent_shared_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                                <div class="text-xs text-gray-600">{{ consultation.parent_shared_at | kst('%Y-%m-%d %H:%M') }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -107,7 +107,7 @@
                     <div class="flex items-center justify-between">
                         <div class="text-sm text-gray-600">
                             {% if consultation.updated_at and consultation.updated_at != consultation.created_at %}
-                            <p class="text-xs text-gray-500">마지막 수정: {{ consultation.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p class="text-xs text-gray-500">마지막 수정: {{ consultation.updated_at | kst('%Y-%m-%d %H:%M') }}</p>
                             {% endif %}
                         </div>
                         <div class="flex gap-2">

@@ -45,11 +45,11 @@
                     </div>
                     <div>
                         <span class="text-gray-500">상담일:</span>
-                        <span class="font-semibold text-gray-800">{{ consultation.consultation_date.strftime('%Y년 %m월 %d일') }}</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.consultation_date | kst('%Y년 %m월 %d일') }}</span>
                     </div>
                     <div>
                         <span class="text-gray-500">작성일:</span>
-                        <span class="font-semibold text-gray-800">{{ consultation.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="font-semibold text-gray-800">{{ consultation.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                     </div>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                     <div>
                         <div class="font-semibold text-green-800">학부모 공유됨</div>
                         {% if consultation.parent_shared_at %}
-                        <div class="text-xs text-gray-600">{{ consultation.parent_shared_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        <div class="text-xs text-gray-600">{{ consultation.parent_shared_at | kst('%Y-%m-%d %H:%M') }}</div>
                         {% endif %}
                     </div>
                 </div>

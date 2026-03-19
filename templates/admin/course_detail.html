@@ -138,8 +138,8 @@
                     <p class="text-gray-800">
                         {% if course.schedule_type == 'weekly' and course.weekday is not none %}
                             매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일
-                            {% if course.start_time %} {{ course.start_time.strftime('%H:%M') }}{% endif %}
-                            {% if course.end_time %} - {{ course.end_time.strftime('%H:%M') }}{% endif %}
+                            {% if course.start_time %} {{ course.start_time | kst('%H:%M') }}{% endif %}
+                            {% if course.end_time %} - {{ course.end_time | kst('%H:%M') }}{% endif %}
                         {% else %}
                             커스텀 스케줄
                         {% endif %}
@@ -209,7 +209,7 @@
                         </div>
                         <p class="text-sm text-gray-600">
                             {{ session.session_date.strftime('%Y-%m-%d') }}
-                            {% if session.start_time %} {{ session.start_time.strftime('%H:%M') }}{% endif %}
+                            {% if session.start_time %} {{ session.start_time | kst('%H:%M') }}{% endif %}
                         </p>
                         {% if session.topic %}
                         <p class="text-sm text-gray-700 mt-1">{{ session.topic }}</p>
@@ -279,7 +279,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
-                                    {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}
+                                    {{ enrollment.enrolled_at | kst('%Y-%m-%d') }}
                                 </td>
                             </tr>
                             {% endfor %}

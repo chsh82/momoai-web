@@ -41,7 +41,7 @@
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
                 <span>👤 {{ post.author.name }}</span>
                 <span class="text-gray-300">·</span>
-                <span>📅 {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                <span>📅 {{ post.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                 <span class="text-gray-300">·</span>
                 <span>👁️ {{ post.view_count }}</span>
                 <span class="text-gray-300">·</span>
@@ -94,7 +94,7 @@
                     <div class="flex items-center gap-3">
                         <span class="font-medium text-gray-800">{{ comment.author.name }}</span>
                         <span class="text-sm text-gray-500">
-                            {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            {{ comment.created_at | kst('%Y-%m-%d %H:%M') }}
                         </span>
                     </div>
                     {% if comment.can_delete(current_user) %}

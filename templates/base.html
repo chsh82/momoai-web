@@ -1310,8 +1310,8 @@
                         </a>
                         {% endblock %}
                         <div class="text-xs sm:text-sm text-white text-opacity-70 whitespace-nowrap">
-                            <span class="hidden sm:inline">{{ now().strftime('%Y년 %m월 %d일') }}</span>
-                            <span class="sm:hidden">{{ now().strftime('%m/%d') }}</span>
+                            <span class="hidden sm:inline">{{ now() | kst('%Y년 %m월 %d일') }}</span>
+                            <span class="sm:hidden">{{ now() | kst('%m/%d') }}</span>
                         </div>
                     </div>
                 </div>

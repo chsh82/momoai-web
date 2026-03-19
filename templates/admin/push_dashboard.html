@@ -79,7 +79,7 @@
         <!-- 오늘 앞으로 2시간 내 수업 -->
         <div class="bg-white rounded-xl shadow p-5">
             <h3 class="text-lg font-bold text-gray-800 mb-1">오늘 예정 수업 <span class="text-sm font-normal text-gray-400">(지금~2시간 후)</span></h3>
-            <p class="text-xs text-gray-400 mb-4">기준: {{ now.strftime('%H:%M') }}</p>
+            <p class="text-xs text-gray-400 mb-4">기준: {{ now | kst('%H:%M') }}</p>
 
             {% if upcoming %}
             <div class="space-y-2">
@@ -87,7 +87,7 @@
                 <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                     <div>
                         <p class="text-sm font-medium text-gray-800">{{ session.course.course_name }}</p>
-                        <p class="text-xs text-gray-500">{{ session.start_time.strftime('%H:%M') }} 시작</p>
+                        <p class="text-xs text-gray-500">{{ session.start_time | kst('%H:%M') }} 시작</p>
                     </div>
                     <span class="text-xs px-2 py-1 rounded-full
                         {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (now.hour * 60 + now.minute) %}
@@ -125,7 +125,7 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for log, session in recent_logs %}
                     <tr class="hover:bg-gray-50">
-                        <td class="py-2 pr-4 text-gray-600">{{ log.sent_at.strftime('%m/%d %H:%M') }}</td>
+                        <td class="py-2 pr-4 text-gray-600">{{ log.sent_at | kst('%m/%d %H:%M') }}</td>
                         <td class="py-2 pr-4 text-gray-600">{{ session.session_date.strftime('%m/%d') }}</td>
                         <td class="py-2 pr-4 font-medium text-gray-800">{{ session.course.course_name if session.course else '-' }}</td>
                         <td class="py-2 text-gray-600">{{ session.start_time.strftime('%H:%M') if session.start_time else '-' }}</td>

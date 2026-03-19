@@ -359,8 +359,8 @@
                                             title="설정 편집">✏️</button>
                                     {% if row.billed and p %}
                                         {% if p.sms_sent_at %}
-                                        <span class="text-xs text-green-600 whitespace-nowrap" title="발송완료: {{ p.sms_sent_at.strftime('%Y-%m-%d %H:%M') }}">
-                                            ✅ {{ p.sms_sent_at.strftime('%m/%d') }}
+                                        <span class="text-xs text-green-600 whitespace-nowrap" title="발송완료: {{ p.sms_sent_at | kst('%Y-%m-%d %H:%M') }}">
+                                            ✅ {{ p.sms_sent_at | kst('%m/%d') }}
                                         </span>
                                         {% else %}
                                         <button type="button"

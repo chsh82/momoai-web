@@ -39,7 +39,7 @@
                                 <span class="font-medium text-blue-600">관리자</span>
                             {% endif %}
                         </span>
-                        <span>{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span>{{ post.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                     </div>
                 </div>
                 {% if current_user.user_id == post.author_id or current_user.role == 'admin' %}
@@ -74,7 +74,7 @@
                         {{ '관리자' if r.author.role == 'admin' else '강사' }}
                     </span>
                 </div>
-                <span class="text-xs text-gray-400">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                <span class="text-xs text-gray-400">{{ r.created_at | kst('%Y-%m-%d %H:%M') }}</span>
             </div>
             <div class="px-5 py-4">
                 <div class="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">{{ r.content }}</div>

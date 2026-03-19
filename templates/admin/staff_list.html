@@ -78,7 +78,7 @@
                 <div class="flex items-start justify-between mb-2">
                     <div>
                         <h3 class="font-bold text-gray-800 text-base">{{ staff.name }}</h3>
-                        <p class="text-xs text-gray-400 mt-0.5">{{ staff.created_at.strftime('%Y.%m.%d') }} 생성</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ staff.created_at | kst('%Y.%m.%d') }} 생성</p>
                     </div>
                     <div class="flex items-center gap-1 flex-wrap justify-end">
                         {% if staff.role == 'teacher' %}
@@ -115,7 +115,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-gray-400 shrink-0">🕐</span>
                         <span class="text-xs">
-                            {% if staff.last_login %}{{ staff.last_login.strftime('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}
+                            {% if staff.last_login %}{{ staff.last_login | kst('%y.%m.%d %H:%M') }}{% else %}미로그인{% endif %}
                         </span>
                     </div>
                     {% if staff.role == 'teacher' %}

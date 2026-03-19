@@ -197,7 +197,7 @@
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="text-sm text-gray-600">
-                                    {{ feedback.created_at.strftime('%Y년 %m월 %d일') }}
+                                    {{ feedback.created_at | kst('%Y년 %m월 %d일') }}
                                 </div>
                                 <span class="px-2 py-1 {% if feedback.feedback_type == 'positive' %}bg-green-100 text-green-800{% elif feedback.feedback_type == 'improvement' %}bg-orange-100 text-orange-800{% else %}bg-blue-100 text-blue-800{% endif %} text-xs rounded-full">
                                     {% if feedback.feedback_type == 'positive' %}칭찬{% elif feedback.feedback_type == 'improvement' %}개선{% else %}일반{% endif %}
@@ -339,7 +339,7 @@
                 <div class="text-center mb-6">
                     <h3 class="text-2xl font-bold text-purple-900 mb-2">{{ mbti_type.type_name }}</h3>
                     <p class="text-purple-700">{{ mbti_result.type_combination }}</p>
-                    <p class="text-sm text-gray-600 mt-2">테스트 일시: {{ mbti_result.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p class="text-sm text-gray-600 mt-2">테스트 일시: {{ mbti_result.created_at | kst('%Y-%m-%d %H:%M') }}</p>
                 </div>
 
                 <div class="bg-white bg-opacity-60 rounded-lg p-4 mb-4">
@@ -394,7 +394,7 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <span class="text-xs text-gray-500">{{ consultation.consultation_date.strftime('%Y-%m-%d') }}</span>
+                                <span class="text-xs text-gray-500">{{ consultation.consultation_date | kst('%Y-%m-%d') }}</span>
                             </div>
                             <p class="text-sm font-medium text-gray-800 mb-1">{{ consultation.title }}</p>
                             <p class="text-xs text-gray-600 line-clamp-1">{{ consultation.content }}</p>
@@ -586,7 +586,7 @@
                         <p class="text-sm text-gray-700 whitespace-pre-line">{{ c.content }}</p>
                         <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
                             <span>{{ c.author.name if c.author else '(알수없음)' }}</span>
-                            <span>{{ c.created_at.strftime('%Y-%m-%d') }}</span>
+                            <span>{{ c.created_at | kst('%Y-%m-%d') }}</span>
                             {% if c.consultation %}
                             <a href="{{ url_for('teacher.consultation_detail', consultation_id=c.consultation_id) }}" class="text-blue-600 hover:underline">관련 상담 보기 →</a>
                             {% endif %}

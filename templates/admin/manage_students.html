@@ -80,7 +80,7 @@
                                     </select>
                                 </div>
                                 <p class="text-sm text-gray-600">
-                                    등록일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }} |
+                                    등록일: {{ enrollment.enrolled_at | kst('%Y-%m-%d') }} |
                                     출석률: {{ "%.1f"|format(enrollment.attendance_rate) }}%
                                 </p>
                                 <p class="text-sm text-gray-600">

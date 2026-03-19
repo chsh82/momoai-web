@@ -23,7 +23,7 @@
             {% else %}
             <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">과제</span>
             {% endif %}
-            <span>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') }} 발송</span>
+            <span>{{ notif.created_at | kst('%Y-%m-%d %H:%M') }} 발송</span>
         </div>
     </div>
 

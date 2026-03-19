@@ -104,7 +104,7 @@
                             <p class="text-xs text-gray-500">
                                 작성: {{ announcement.author.name if announcement.author else '관리자' }} |
                                 조회: {{ announcement.view_count }}회 |
-                                작성일: {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                작성일: {{ announcement.created_at | kst('%Y-%m-%d %H:%M') }}
                             </p>
                         </div>
 

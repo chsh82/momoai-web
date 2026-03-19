@@ -47,7 +47,7 @@
                     <!-- 하단: 날짜 + 사유 + 액션 -->
                     <div class="flex items-center justify-between text-xs text-gray-400">
                         <div class="flex items-center gap-3 flex-wrap">
-                            <span>📅 {{ req.request_date.strftime('%Y.%m.%d %H:%M') }}</span>
+                            <span>📅 {{ req.request_date | kst('%Y.%m.%d %H:%M') }}</span>
                             {% if req.reason %}
                             <span class="text-gray-500">{{ req.reason }}</span>
                             {% endif %}
@@ -93,7 +93,7 @@
                         <p>📅 매주 {{ ['월', '화', '수', '목', '금', '토', '일'][course.weekday] }}요일</p>
                         {% endif %}
                         {% if course.start_time and course.end_time %}
-                        <p>🕐 {{ course.start_time.strftime('%H:%M') }} - {{ course.end_time.strftime('%H:%M') }}</p>
+                        <p>🕐 {{ course.start_time | kst('%H:%M') }} - {{ course.end_time | kst('%H:%M') }}</p>
                         {% endif %}
                         <p>👥 {{ course.enrolled_count }}/{{ course.max_students }}명</p>
                     </div>

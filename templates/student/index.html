@@ -236,7 +236,7 @@
                             </span>
                         </div>
                         <p class="text-xs text-gray-600">
-                            {{ essay.created_at.strftime('%Y-%m-%d') }}
+                            {{ essay.created_at | kst('%Y-%m-%d') }}
                         </p>
                     </div>
                     {% endfor %}

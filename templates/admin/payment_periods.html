@@ -144,7 +144,7 @@
                     <div class="flex flex-wrap gap-1">
                         {% for h in hols %}
                         <span class="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded">
-                            {{ h.week_start.strftime('%m/%d') }} ({{ h.reason }})
+                            {{ h.week_start | kst('%m/%d') }} ({{ h.reason }})
                         </span>
                         {% endfor %}
                     </div>
@@ -215,7 +215,7 @@
                     <div class="flex items-center gap-4">
                         <div class="text-center min-w-24">
                             <p class="text-sm font-bold text-red-700">
-                                {{ hw.week_start.strftime('%m/%d') }} ~ {{ hw.week_end.strftime('%m/%d') }}
+                                {{ hw.week_start | kst('%m/%d') }} ~ {{ hw.week_end | kst('%m/%d') }}
                             </p>
                             {% set days = (hw.week_end - hw.week_start).days + 1 %}
                             <p class="text-xs text-red-400">{{ days }}일간</p>

@@ -42,9 +42,9 @@
         <div class="flex items-center gap-4 text-sm text-gray-600">
             <span>👤 {{ student.name }} ({{ student.grade }})</span>
             <span>👨‍🏫 {{ essay.user.name }} 강사</span>
-            <span>📅 {{ essay.created_at.strftime('%Y년 %m월 %d일') }}</span>
+            <span>📅 {{ essay.created_at | kst('%Y년 %m월 %d일') }}</span>
             {% if essay.completed_at %}
-            <span>✅ 완료: {{ essay.completed_at.strftime('%Y년 %m월 %d일') }}</span>
+            <span>✅ 완료: {{ essay.completed_at | kst('%Y년 %m월 %d일') }}</span>
             {% endif %}
         </div>
     </div>

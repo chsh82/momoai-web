@@ -60,10 +60,10 @@
                         <td class="px-4 py-3">
                             {% if payment.period_start and payment.period_end %}
                             <div class="font-medium text-gray-700">
-                                {{ payment.period_start.strftime('%Y년 %m월 %d일') }}
+                                {{ payment.period_start | kst('%Y년 %m월 %d일') }}
                             </div>
                             <div class="text-xs text-gray-400">
-                                ~ {{ payment.period_end.strftime('%m월 %d일') }}
+                                ~ {{ payment.period_end | kst('%m월 %d일') }}
                                 {% if payment.weeks_count %}({{ payment.weeks_count }}주){% endif %}
                             </div>
                             {% else %}
@@ -143,7 +143,7 @@
                         <!-- 납부일 -->
                         <td class="px-4 py-3 text-center text-xs text-gray-500">
                             {% if payment.paid_at %}
-                            {{ payment.paid_at.strftime('%m/%d') }}
+                            {{ payment.paid_at | kst('%m/%d') }}
                             {% else %}-{% endif %}
                         </td>
                     </tr>
@@ -182,7 +182,7 @@
                     {% for adj in adjustments %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-gray-500">
-                            {{ adj.created_at.strftime('%Y.%m.%d') }}
+                            {{ adj.created_at | kst('%Y.%m.%d') }}
                         </td>
                         <td class="px-4 py-3 text-gray-700">
                             {{ adj.enrollment.course.course_name if adj.enrollment and adj.enrollment.course else '-' }}

@@ -145,7 +145,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">예약 발송 시간</label>
                         <p class="text-orange-600 font-medium">
-                            {{ message.scheduled_at.strftime('%Y-%m-%d %H:%M') }}
+                            {{ message.scheduled_at | kst('%Y-%m-%d %H:%M') }}
                         </p>
                     </div>
                     {% endif %}
@@ -154,7 +154,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">발송 완료 시간</label>
                         <p class="text-gray-800">
-                            {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}
+                            {{ message.sent_at | kst('%Y-%m-%d %H:%M') }}
                         </p>
                     </div>
                     {% endif %}
@@ -162,7 +162,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">생성 시간</label>
                         <p class="text-gray-600 text-sm">
-                            {{ message.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            {{ message.created_at | kst('%Y-%m-%d %H:%M') }}
                         </p>
                     </div>
                 </div>

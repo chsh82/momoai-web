@@ -18,7 +18,7 @@
             <p class="text-xs sm:text-sm text-gray-600 mt-1">전체 운영 현황을 한눈에 확인하세요</p>
         </div>
         <div class="hidden sm:block text-sm text-gray-500">
-            마지막 업데이트: {{ now().strftime('%Y-%m-%d %H:%M') }}
+            마지막 업데이트: {{ now() | kst('%Y-%m-%d %H:%M') }}
         </div>
     </div>
 
@@ -273,7 +273,7 @@
                             <span class="text-sm font-medium text-gray-800">학부모 연결 요청</span>
                         </div>
                         <p class="text-xs text-gray-600">{{ request.parent_name }} → {{ request.child_name }}</p>
-                        <p class="text-xs text-gray-500 mt-1">{{ request.created_at.strftime('%m/%d %H:%M') }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ request.created_at | kst('%m/%d %H:%M') }}</p>
                     </a>
                     {% endfor %}
                 {% endif %}
@@ -287,7 +287,7 @@
                             <span class="text-sm font-medium text-gray-800">보강수업 신청</span>
                         </div>
                         <p class="text-xs text-gray-600">{{ request.student.name }} ({{ request.student.grade }})</p>
-                        <p class="text-xs text-gray-500 mt-1">{{ request.created_at.strftime('%m/%d %H:%M') }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ request.created_at | kst('%m/%d %H:%M') }}</p>
                     </a>
                     {% endfor %}
                 {% endif %}

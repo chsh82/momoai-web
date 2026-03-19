@@ -50,7 +50,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">신청일시</p>
-                        <p class="font-medium text-gray-800">{{ link_request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p class="font-medium text-gray-800">{{ link_request.created_at | kst('%Y-%m-%d %H:%M:%S') }}</p>
                     </div>
                     {% if link_request.reviewed_by_user %}
                     <div>
@@ -59,7 +59,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">검토일시</p>
-                        <p class="font-medium text-gray-800">{{ link_request.reviewed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p class="font-medium text-gray-800">{{ link_request.reviewed_at | kst('%Y-%m-%d %H:%M:%S') }}</p>
                     </div>
                     {% endif %}
                 </div>
@@ -103,7 +103,7 @@
                     {% if link_request.student_birth_date %}
                     <div>
                         <p class="text-sm text-gray-600">생년월일</p>
-                        <p class="font-medium text-gray-800">{{ link_request.student_birth_date.strftime('%Y-%m-%d') }}</p>
+                        <p class="font-medium text-gray-800">{{ link_request.student_birth_date | kst('%Y-%m-%d') }}</p>
                     </div>
                     {% endif %}
                     {% if link_request.student_grade %}

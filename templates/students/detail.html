@@ -131,7 +131,7 @@
             {% endif %}
             <div>
                 <div class="text-sm text-gray-600 mb-1">등록일</div>
-                <div class="text-lg font-medium text-gray-800">{{ student.created_at.strftime('%Y-%m-%d') }}</div>
+                <div class="text-lg font-medium text-gray-800">{{ student.created_at | kst('%Y-%m-%d') }}</div>
             </div>
         </div>
 
@@ -180,7 +180,7 @@
                     <span class="ml-2 text-xs text-gray-400">강사: {{ enrollment.course.teacher.name }}</span>
                     {% endif %}
                     <div class="text-xs text-gray-500 mt-0.5">
-                        등록일: {{ enrollment.enrolled_at.strftime('%Y-%m-%d') }}
+                        등록일: {{ enrollment.enrolled_at | kst('%Y-%m-%d') }}
                         {% set acs = attendance_by_course | selectattr('enrollment.enrollment_id', 'equalto', enrollment.enrollment_id) | first %}
                         {% if acs and acs.total > 0 %} | 출석률: {{ acs.rate }}%{% endif %}
                     </div>
@@ -443,7 +443,7 @@
                         <!-- Meta Info -->
                         <div class="flex items-center gap-4 text-sm text-gray-600 mb-2">
                             <div>
-                                📅 {{ essay.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                📅 {{ essay.created_at | kst('%Y-%m-%d %H:%M') }}
                             </div>
                             {% if essay.current_version > 1 %}
                             <div>

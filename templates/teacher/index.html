@@ -44,7 +44,7 @@
                     <p class="text-sm text-gray-600 mb-3">
                         📅 {{ session.session_date.strftime('%Y년 %m월 %d일') }} |
                         세션 {{ session.session_number }}
-                        {% if session.start_time %} | {{ session.start_time.strftime('%H:%M') }}{% endif %}
+                        {% if session.start_time %} | {{ session.start_time | kst('%H:%M') }}{% endif %}
                     </p>
                     <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
                        class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
@@ -271,8 +271,8 @@
                         </div>
                         <p class="text-sm text-gray-600 mb-3">
                             세션 {{ session.session_number }} |
-                            {% if session.start_time %}{{ session.start_time.strftime('%H:%M') }}{% endif %}
-                            {% if session.end_time %} - {{ session.end_time.strftime('%H:%M') }}{% endif %}
+                            {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
+                            {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
                         </p>
                         <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
                            class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">

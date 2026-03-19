@@ -86,7 +86,7 @@
                         <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
                             <span>👤 {{ consultation.student.name }} ({{ consultation.student.grade }})</span>
                             <span>👨‍🏫 {{ consultation.counselor.name }}</span>
-                            <span>📅 {{ consultation.consultation_date.strftime('%Y-%m-%d') }}</span>
+                            <span>📅 {{ consultation.consultation_date | kst('%Y-%m-%d') }}</span>
                         </div>
 
                         {% if consultation.student_mbti_type %}

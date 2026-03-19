@@ -106,7 +106,7 @@
                         <td class="px-4 py-3 text-sm text-gray-500">{{ post.view_count }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ post.attachment_count }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">
-                            {{ post.created_at.strftime('%Y-%m-%d') }}
+                            {{ post.created_at | kst('%Y-%m-%d') }}
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">

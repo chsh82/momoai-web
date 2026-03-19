@@ -21,7 +21,7 @@
             <div class="ml-3">
                 <h3 class="text-sm font-medium text-yellow-800">중복 확인</h3>
                 <div class="mt-2 text-sm text-yellow-700">
-                    <p>입력하신 <strong>{{ submitted_name }}</strong> ({{ submitted_birthdate.strftime('%Y년 %m월 %d일') }}) 학생과 동일한 정보를 가진 학생이 이미 시스템에 등록되어 있습니다.</p>
+                    <p>입력하신 <strong>{{ submitted_name }}</strong> ({{ submitted_birthdate | kst('%Y년 %m월 %d일') }}) 학생과 동일한 정보를 가진 학생이 이미 시스템에 등록되어 있습니다.</p>
                     <p class="mt-2">아래 학생이 자녀분이 맞는지 확인해주세요.</p>
                 </div>
             </div>

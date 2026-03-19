@@ -47,7 +47,7 @@
                         {% for consultation in my_consultations %}
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm text-gray-800">
-                                {{ consultation.consultation_date.strftime('%Y-%m-%d') }}
+                                {{ consultation.consultation_date | kst('%Y-%m-%d') }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-800">
                                 {{ consultation.student.name }}
@@ -69,7 +69,7 @@
                                 {{ consultation.title }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ consultation.created_at.strftime('%Y-%m-%d') }}
+                                {{ consultation.created_at | kst('%Y-%m-%d') }}
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <a href="{{ url_for('teacher.consultation_detail', consultation_id=consultation.consultation_id) }}"
@@ -114,7 +114,7 @@
                         {% for consultation in shared_consultations %}
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-sm text-gray-800">
-                                {{ consultation.consultation_date.strftime('%Y-%m-%d') }}
+                                {{ consultation.consultation_date | kst('%Y-%m-%d') }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-800">
                                 {{ consultation.counselor.name }}

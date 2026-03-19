@@ -153,7 +153,7 @@
                             </div>
                             <div class="text-sm text-gray-600">
                                 {{ essay.student.name }} ({{ essay.student.grade }}) ·
-                                {{ essay.created_at.strftime('%m/%d %H:%M') }}
+                                {{ essay.created_at | kst('%m/%d %H:%M') }}
                             </div>
                         </div>
                         <div class="ml-4">
@@ -209,7 +209,7 @@
                             <div class="text-sm text-gray-600">
                                 {{ essay.student.name }} ({{ essay.student.grade }}) ·
                                 v{{ essay.current_version }} ·
-                                {{ essay.completed_at.strftime('%m/%d %H:%M') if essay.completed_at else essay.created_at.strftime('%m/%d %H:%M') }}
+                                {{ essay.completed_at.strftime('%m/%d %H:%M') if essay.completed_at else essay.created_at | kst('%m/%d %H:%M') }}
                             </div>
                         </div>
                         <div class="ml-4">
@@ -409,7 +409,7 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="font-medium text-gray-800">새 게시글 작성</span>
-                        <span class="text-xs text-gray-500">{{ post.created_at.strftime('%m/%d %H:%M') }}</span>
+                        <span class="text-xs text-gray-500">{{ post.created_at | kst('%m/%d %H:%M') }}</span>
                     </div>
                     <a href="{{ url_for('community.detail', post_id=post.post_id) }}" class="text-blue-700 hover:text-blue-900">
                         {{ post.title }}
@@ -429,7 +429,7 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="font-medium text-gray-800">새 도서 등록</span>
-                        <span class="text-xs text-gray-500">{{ book.created_at.strftime('%m/%d %H:%M') }}</span>
+                        <span class="text-xs text-gray-500">{{ book.created_at | kst('%m/%d %H:%M') }}</span>
                     </div>
                     <a href="{{ url_for('books.detail', book_id=book.book_id) }}" class="text-purple-700 hover:text-purple-900">
                         {{ book.title }}{% if book.author %} - {{ book.author }}{% endif %}

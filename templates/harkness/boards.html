@@ -80,7 +80,7 @@
                     </div>
                     {% if board.latest_post %}
                     <span class="text-xs text-gray-500">
-                        최근: {{ board.latest_post.created_at.strftime('%m/%d %H:%M') }}
+                        최근: {{ board.latest_post.created_at | kst('%m/%d %H:%M') }}
                     </span>
                     {% endif %}
                 </div>

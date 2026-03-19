@@ -25,8 +25,8 @@
             <div class="flex justify-between">
                 <span class="text-gray-500">결제 기간</span>
                 <span class="font-medium text-gray-800">
-                    {{ payment.period_start.strftime('%Y년 %m월') }}
-                    ({{ payment.period_start.strftime('%m/%d') }} ~ {{ payment.period_end.strftime('%m/%d') }})
+                    {{ payment.period_start | kst('%Y년 %m월') }}
+                    ({{ payment.period_start | kst('%m/%d') }} ~ {{ payment.period_end | kst('%m/%d') }})
                 </span>
             </div>
             {% endif %}

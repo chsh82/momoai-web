@@ -143,7 +143,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-gray-400 w-4">📅</span>
                         <span>{{ weekday_names[course.weekday] }}요일
-                            {% if course.start_time %} · {{ course.start_time.strftime('%H:%M') }}~{{ course.end_time.strftime('%H:%M') if course.end_time }}{% endif %}
+                            {% if course.start_time %} · {{ course.start_time | kst('%H:%M') }}~{{ course.end_time.strftime('%H:%M') if course.end_time }}{% endif %}
                         </span>
                     </div>
                     {% endif %}

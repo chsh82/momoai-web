@@ -91,10 +91,15 @@ def create_app(config_name='default'):
 
     @app.template_filter('kst')
     def to_kst_filter(dt, fmt='%m/%d %H:%M'):
-        """UTC datetime → KST(+9) 변환 후 포맷"""
+        """UTC datetime → KST(+9) 변환 후 포맷. time 객체는 그대로 포맷."""
+        import datetime as dt_module
         from datetime import timedelta
         if dt is None:
             return ''
+        # time objects (e.g. course start_time) are stored as KST already
+        if isinstance(dt, dt_module.time) and not isinstance(dt, dt_module.datetime):
+            return dt.strftime(fmt)
+        # date objects: adding hours has no effect (safe but no-op)
         return (dt + timedelta(hours=9)).strftime(fmt)
 
     # Jinja2 global functions

@@ -83,7 +83,7 @@
                             </div>
 
                             <p class="text-xs text-gray-500">
-                                업로드: {{ video.created_at.strftime('%Y-%m-%d') }} | 조회: {{ video.view_count }}회
+                                업로드: {{ video.created_at | kst('%Y-%m-%d') }} | 조회: {{ video.view_count }}회
                             </p>
                         </div>
                     </a>

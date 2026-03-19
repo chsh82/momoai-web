@@ -45,7 +45,7 @@
                         <div class="text-xs text-purple-600 mb-1">최근 상담</div>
                         <div class="text-sm font-semibold text-purple-800">
                             {% if child.latest_date %}
-                                {{ child.latest_date.strftime('%m/%d') }}
+                                {{ child.latest_date | kst('%m/%d') }}
                             {% else %}
                                 -
                             {% endif %}

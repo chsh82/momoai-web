@@ -71,7 +71,7 @@
                     {% else %}
                     <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800">✗ 거절됨</span>
                     {% endif %}
-                    <span class="text-xs text-gray-400">{{ req.request_date.strftime('%y.%m.%d %H:%M') }}</span>
+                    <span class="text-xs text-gray-400">{{ req.request_date | kst('%y.%m.%d %H:%M') }}</span>
                 </div>
                 <!-- 학생 / 수업 정보 -->
                 <div class="space-y-1 mb-3 text-xs text-gray-600">

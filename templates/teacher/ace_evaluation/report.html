@@ -129,7 +129,7 @@
             <div class="text-right text-xs opacity-90 space-y-0.5">
                 <div><span class="opacity-70">학년</span> <strong>{{ student.grade }}</strong> &nbsp;|&nbsp; <span class="opacity-70">학교</span> <strong>{{ student.school or '미등록' }}</strong></div>
                 <div><span class="opacity-70">담당 강사</span> <strong>{{ student.teacher.name if student.teacher else '미배정' }}</strong></div>
-                <div><span class="opacity-70">발행일</span> <strong>{{ report_date.strftime('%Y.%m.%d') }}</strong>
+                <div><span class="opacity-70">발행일</span> <strong>{{ report_date | kst('%Y.%m.%d') }}</strong>
                     {% if ace_evals %}&nbsp;|&nbsp; <span class="opacity-70">평가 기간</span> <strong>{{ ace_evals[0].year }} {{ ace_evals[0].quarter[:3] }}~{{ ace_evals[-1].quarter[:3] }}</strong>{% endif %}
                 </div>
             </div>
@@ -554,7 +554,7 @@ if (quarterlyWritingCtx) {
 
     {% for weekly in weekly_evals %}
     {
-        const evalDate = new Date('{{ weekly.eval_date.strftime("%Y-%m-%d") }}');
+        const evalDate = new Date('{{ weekly.eval_date | kst("%Y-%m-%d") }}');
         const evalMonth = evalDate.getMonth() + 1;
         const evalYear = evalDate.getFullYear();
 
@@ -564,7 +564,7 @@ if (quarterlyWritingCtx) {
                 weeklyByQuarter[quarter{{ loop.parent.index0 }}].push({
                     week: {{ weekly.week_number }},
                     score: {{ weekly.score }},
-                    date: '{{ weekly.eval_date.strftime("%m/%d") }}'
+                    date: '{{ weekly.eval_date | kst("%m/%d") }}'
                 });
             }
         }

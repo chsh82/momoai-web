@@ -248,7 +248,7 @@
                                 {{ consultation.title }}
                             </a>
                             <div class="flex items-center gap-3 mt-1 text-xs text-gray-600">
-                                <span>📅 {{ consultation.consultation_date.strftime('%Y-%m-%d') }}</span>
+                                <span>📅 {{ consultation.consultation_date | kst('%Y-%m-%d') }}</span>
                                 <span>👤 {{ consultation.counselor.name }}</span>
                                 <span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">{{ consultation.major_category }}</span>
                                 {% if consultation.sub_category %}

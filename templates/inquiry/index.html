@@ -82,7 +82,7 @@
                                 관리자
                             {% endif %}
                         </span>
-                        <span>{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span>{{ post.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                         {% if post.replies %}
                         <span class="text-blue-500 font-medium">💬 답변 {{ post.replies|length }}개</span>
                         {% endif %}

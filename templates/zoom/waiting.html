@@ -54,7 +54,7 @@
                     <div class="flex justify-between">
                         <span class="text-gray-600">입장 가능</span>
                         <span class="font-medium text-green-600">
-                            {{ (session.session_date.replace(minute=session.session_date.minute - 10)).strftime('%H:%M') }}부터
+                            {{ (session.session_date.replace(minute=session.session_date.minute - 10)) | kst('%H:%M') }}부터
                         </span>
                     </div>
                 </div>

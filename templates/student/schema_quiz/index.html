@@ -89,7 +89,7 @@
                     {% for session in recent_sessions %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ session.completed_at.strftime('%Y-%m-%d %H:%M') }}
+                            {{ session.completed_at | kst('%Y-%m-%d %H:%M') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if session.subject == 'social' %}

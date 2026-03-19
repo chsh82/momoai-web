@@ -36,7 +36,7 @@
             <div class="flex items-center justify-between text-sm text-gray-600">
                 <div class="flex items-center gap-4">
                     <span>👤 {{ board.author.name }}</span>
-                    <span>📅 {{ board.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <span>📅 {{ board.created_at | kst('%Y-%m-%d %H:%M') }}</span>
                     <span>👁️ {{ board.view_count }}</span>
                 </div>
                 {% if board.author_id == current_user.user_id or current_user.is_admin %}
@@ -106,7 +106,7 @@
                                 <p class="font-medium text-gray-800">{{ attachment.original_filename }}</p>
                                 <p class="text-xs text-gray-500">
                                     {{ (attachment.file_size / 1024) | round(1) }} KB
-                                    · {{ attachment.uploaded_at.strftime('%Y-%m-%d') }}
+                                    · {{ attachment.uploaded_at | kst('%Y-%m-%d') }}
                                 </p>
                             </div>
                         </div>
