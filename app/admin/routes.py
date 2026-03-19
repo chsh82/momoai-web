@@ -6192,6 +6192,7 @@ def create_consultation():
         student_id = request.form.get('student_id')
         consultation_date_str = request.form.get('consultation_date')
         major_category = request.form.get('major_category')
+        sub_category = request.form.get('sub_category') or None
         title = request.form.get('title')
         content = request.form.get('content')
         share_with_parents = request.form.get('share_with_parents') == 'on'
@@ -6211,6 +6212,7 @@ def create_consultation():
             counselor_id=current_user.user_id,
             student_id=student_id,
             major_category=major_category,
+            sub_category=sub_category,
             title=title,
             content=content,
             student_mbti_type=mbti_type,

@@ -1331,6 +1331,12 @@ def create_consultation():
         if request.method == 'GET':
             form.counselor_id.data = current_user.user_id
 
+        # POST 시 sub_category 값이 choices에 없으면 WTForms 검증 실패 방지
+        if request.method == 'POST':
+            sub_val = request.form.get('sub_category', '')
+            if sub_val and not any(v == sub_val for v, _ in form.sub_category.choices):
+                form.sub_category.choices.append((sub_val, sub_val))
+
         if form.validate_on_submit():
             counselor_id = form.counselor_id.data if current_user.role in ['admin', 'master_admin'] else current_user.user_id
             student = Student.query.get(form.student_id.data)
@@ -1449,6 +1455,12 @@ def edit_consultation(consultation_id):
         students = Student.query.filter(Student.student_id.in_(student_ids)).order_by(Student.name).all()
 
     form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, f"{s.name} ({s.student_id[:8]})") for s in students]
+
+    # POST 시 sub_category 값이 choices에 없으면 WTForms 검증 실패 방지
+    if request.method == 'POST':
+        sub_val = request.form.get('sub_category', '')
+        if sub_val and not any(v == sub_val for v, _ in form.sub_category.choices):
+            form.sub_category.choices.append((sub_val, sub_val))
 
     if form.validate_on_submit():
         # 강사는 자신만 상담자로 설정 가능
