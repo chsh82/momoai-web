@@ -1655,7 +1655,8 @@ def _save_class_board_attachments(files, post_id, existing_count=0):
             continue
         if existing_count + added >= 10:
             break
-        ext = os.path.splitext(secure_filename(f.filename))[1].lstrip('.').lower()
+        # 확장자는 원본 파일명에서 추출 (secure_filename은 한글 제거로 확장자를 날릴 수 있음)
+        ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else ''
         if ext not in allowed_ext:
             continue
         stored_name = f"{_uuid.uuid4().hex}.{ext}"
