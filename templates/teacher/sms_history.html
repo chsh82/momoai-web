@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}SMS 발송 이력 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">📋 SMS 발송 이력</h2>
+            <p class="text-gray-500 mt-1 text-sm">발송된 SMS/LMS 내역과 수신자별 결과를 확인합니다.</p>
+        </div>
+        <a href="{{ url_for('teacher.teacher_sms') }}"
+           class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition text-sm">
+            📱 SMS 발송
+        </a>
+    </div>
+
+    <!-- 이력 테이블 -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if messages %}
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr class="text-left text-xs text-gray-500 uppercase tracking-wide">
+                    <th class="px-5 py-3">발송일시</th>
+                    <th class="px-5 py-3">유형</th>
+                    <th class="px-5 py-3">내용</th>
+                    <th class="px-5 py-3 text-center">대상</th>
+                    <th class="px-5 py-3 text-center">결과</th>
+                    <th class="px-5 py-3 text-center">상세</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for msg in messages %}
+                <tr class="hover:bg-gray-50 transition">
+                    <!-- 발송일시 -->
+                    <td class="px-5 py-3 text-gray-500 whitespace-nowrap">
+                        {{ msg.created_at | kst('%Y-%m-%d') }}<br>
+                        <span class="text-xs">{{ msg.created_at | kst('%H:%M') }}</span>
+                    </td>
+
+                    <!-- 유형 -->
+                    <td class="px-5 py-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium
+                            {% if msg.message_type == 'SMS' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">
+                            {{ msg.message_type }}
+                        </span>
+                    </td>
+
+                    <!-- 내용 -->
+                    <td class="px-5 py-3 text-gray-700 max-w-xs">
+                        {% if msg.subject %}
+                        <p class="font-medium text-gray-800 truncate">[{{ msg.subject }}]</p>
+                        {% endif %}
+                        <p class="truncate text-gray-600">{{ msg.content[:60] }}{% if msg.content|length > 60 %}…{% endif %}</p>
+                        {% if msg.notes %}
+                        <p class="text-xs text-gray-400 mt-0.5 truncate">📝 {{ msg.notes }}</p>
+                        {% endif %}
+                    </td>
+
+                    <!-- 대상 수 -->
+                    <td class="px-5 py-3 text-center text-gray-600 font-medium">
+                        {{ msg.total_recipients }}명
+                    </td>
+
+                    <!-- 결과 -->
+                    <td class="px-5 py-3 text-center">
+                        {% if msg.failed_count == 0 %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            ✅ 전체 정상발송
+                        </span>
+                        {% elif msg.success_count == 0 %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            ❌ 전체 발송오류
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            ⚠️ 일부 오류
+                        </span>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            성공 {{ msg.success_count }} / 실패 <span class="text-red-500 font-medium">{{ msg.failed_count }}</span>
+                        </p>
+                        {% endif %}
+                    </td>
+
+                    <!-- 상세 보기 -->
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="toggleDetail('{{ msg.message_id }}')"
+                                id="btn-{{ msg.message_id }}"
+                                class="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded px-2 py-1 transition">
+                            수신자 보기
+                        </button>
+                    </td>
+                </tr>
+
+                <!-- 수신자 상세 (접힘) -->
+                <tr id="detail-{{ msg.message_id }}" class="hidden">
+                    <td colspan="6" class="px-5 pb-4 bg-gray-50">
+                        <div id="detail-content-{{ msg.message_id }}" class="text-sm text-gray-500 py-2">
+                            로딩 중…
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- 페이지네이션 -->
+        {% if pagination.pages > 1 %}
+        <div class="px-5 py-4 border-t border-gray-200 flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                총 {{ pagination.total }}건 중 {{ (pagination.page - 1) * pagination.per_page + 1 }}–{{ [pagination.page * pagination.per_page, pagination.total] | min }}건
+            </p>
+            <div class="flex gap-1">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('teacher.sms_history', page=pagination.prev_num) }}"
+                   class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-100 transition">이전</a>
+                {% endif %}
+                {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if p %}
+                    <a href="{{ url_for('teacher.sms_history', page=p) }}"
+                       class="px-3 py-1.5 text-sm border rounded transition
+                           {% if p == pagination.page %}bg-blue-600 text-white border-blue-600{% else %}border-gray-300 hover:bg-gray-100{% endif %}">
+                        {{ p }}
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1.5 text-gray-400">…</span>
+                    {% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}
+                <a href="{{ url_for('teacher.sms_history', page=pagination.next_num) }}"
+                   class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-100 transition">다음</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-16 text-gray-400">
+            <div class="text-5xl mb-3">📭</div>
+            <p class="font-medium">발송 이력이 없습니다.</p>
+            <a href="{{ url_for('teacher.teacher_sms') }}"
+               class="mt-4 inline-block text-sm text-blue-600 hover:underline">SMS 발송하러 가기 →</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const loadedDetails = {};
+
+async function toggleDetail(msgId) {
+    const row = document.getElementById('detail-' + msgId);
+    const btn = document.getElementById('btn-' + msgId);
+    const isHidden = row.classList.contains('hidden');
+
+    row.classList.toggle('hidden', !isHidden);
+    if (!isHidden) {
+        btn.textContent = '수신자 보기';
+        return;
+    }
+
+    btn.textContent = '닫기';
+
+    if (loadedDetails[msgId]) return;  // 이미 로드됨
+
+    try {
+        const res = await fetch(`{{ url_for('teacher.sms_history_detail', message_id='__ID__') }}`.replace('__ID__', msgId));
+        const data = await res.json();
+        const container = document.getElementById('detail-content-' + msgId);
+
+        if (!data.recipients || data.recipients.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 text-xs py-1">수신자 정보가 없습니다.</p>';
+        } else {
+            let html = '<div class="flex flex-wrap gap-2 pt-1">';
+            data.recipients.forEach(r => {
+                const isOk = r.status === 'sent';
+                html += `<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border
+                    ${isOk ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}">
+                    <span>${isOk ? '✅' : '❌'}</span>
+                    <span class="font-medium">${r.name}</span>
+                    <span class="text-gray-400">${r.phone}</span>
+                    ${isOk
+                        ? `<span class="text-gray-400">${r.sent_at}</span>`
+                        : `<span class="font-medium">${r.error_message || '오류'}</span>`
+                    }
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        loadedDetails[msgId] = true;
+    } catch(e) {
+        document.getElementById('detail-content-' + msgId).innerHTML =
+            '<p class="text-red-500 text-xs">로딩 실패</p>';
+    }
+}
+</script>
+{% endblock %}

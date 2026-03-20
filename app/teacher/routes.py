@@ -4324,6 +4324,52 @@ def teacher_sms():
 
 
 # ─────────────────────────────────────────────
+#  SMS 발송 이력
+# ─────────────────────────────────────────────
+
+@teacher_bp.route('/sms-history')
+@login_required
+@requires_role('teacher', 'admin')
+def sms_history():
+    """SMS/LMS 발송 이력 전체 조회"""
+    from app.models.message import Message
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    pagination = Message.query\
+        .filter_by(sender_id=current_user.user_id)\
+        .order_by(Message.created_at.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template('teacher/sms_history.html',
+                           pagination=pagination,
+                           messages=pagination.items)
+
+
+@teacher_bp.route('/sms-history/<message_id>')
+@login_required
+@requires_role('teacher', 'admin')
+def sms_history_detail(message_id):
+    """개별 발송 건의 수신자별 결과 조회 (AJAX)"""
+    from app.models.message import Message
+    msg = Message.query.get_or_404(message_id)
+    if msg.sender_id != current_user.user_id and not current_user.is_admin:
+        return jsonify({'error': '권한이 없습니다.'}), 403
+
+    recipients = [
+        {
+            'name': r.recipient_name,
+            'phone': r.recipient_phone[:3] + '****' + r.recipient_phone[-4:] if len(r.recipient_phone) >= 8 else r.recipient_phone,
+            'status': r.status,
+            'error_message': r.error_message or '',
+            'sent_at': r.sent_at.strftime('%H:%M:%S') if r.sent_at else '',
+        }
+        for r in msg.recipients
+    ]
+    return jsonify({'recipients': recipients})
+
+
+# ─────────────────────────────────────────────
 #  처리 대기 업무 (Action Items) - 강사용
 # ─────────────────────────────────────────────
 
