@@ -1690,13 +1690,12 @@ def reset_essay(essay_id):
     # 5. OCR 히스토리 삭제
     OCRHistory.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)
 
-    # 6. Essay 상태 초기화
+    # 6. Essay 상태 초기화 (학생 원문 original_text 는 보존)
     essay.status = 'draft'
     essay.is_finalized = False
     essay.finalized_at = None
     essay.completed_at = None
     essay.current_version = 1
-    essay.original_text = ''
     essay.teacher_guide = None
 
     db.session.commit()
