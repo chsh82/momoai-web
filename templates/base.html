@@ -453,6 +453,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'admin.message' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
                                 SMS 발송
                             </a>
+                            <a href="{{ url_for('teacher.sms_history') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint in ('teacher.sms_history', 'teacher.sms_history_detail') %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📋 SMS 발송 이력
+                            </a>
                             <a href="{{ url_for('notifications.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'notifications' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
                                 알림 현황
