@@ -3009,3 +3009,11 @@ def help_pdf():
     """학생 도움말 PDF 다운로드"""
     from app.utils.pdf_utils import generate_student_manual_pdf
     return generate_student_manual_pdf()
+
+
+@student_bp.route('/pilsa-note')
+@login_required
+@requires_role('student', 'admin')
+def pilsa_note():
+    """필사 노트 - 원고지 인쇄 도구"""
+    return render_template('teacher/pilsa_note.html')

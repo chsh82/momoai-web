@@ -907,6 +907,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.video' in request.endpoint or request.endpoint and 'parent.child_video' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 학습 동영상
                             </a>
+                            <a href="{{ url_for('parent.pilsa_note') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'parent.pilsa_note' %}text-green-600 bg-green-50{% endif %}">
+                                ✍️ 필사 노트
+                            </a>
                             <a href="{{ url_for('parent.consultations_index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 상담 기록
@@ -1089,6 +1093,10 @@
                             <a href="{{ url_for('student.teaching_videos') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.teaching_video' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 학습 동영상
+                            </a>
+                            <a href="{{ url_for('student.pilsa_note') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'student.pilsa_note' %}text-purple-600 bg-purple-50{% endif %}">
+                                ✍️ 필사 노트
                             </a>
                             <a href="{{ url_for('student.progress') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.progress' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">

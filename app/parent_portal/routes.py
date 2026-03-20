@@ -2702,3 +2702,11 @@ def help_pdf():
     """학부모 도움말 PDF 다운로드"""
     from app.utils.pdf_utils import generate_parent_manual_pdf
     return generate_parent_manual_pdf()
+
+
+@parent_bp.route('/pilsa-note')
+@login_required
+@requires_role('parent', 'admin')
+def pilsa_note():
+    """필사 노트 - 원고지 인쇄 도구"""
+    return render_template('teacher/pilsa_note.html')
