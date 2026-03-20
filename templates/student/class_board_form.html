@@ -54,6 +54,36 @@
                 ) }}
             </div>
 
+            <!-- 첨부파일 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    📎 첨부파일 <span class="text-gray-400 font-normal text-xs ml-1">최대 10개 · PDF, DOC, HWP, PPT, XLS, ZIP, 이미지, 동영상 등</span>
+                </label>
+
+                {% if is_edit and attachments %}
+                <div class="mb-3 space-y-2" id="existing-attachments">
+                    {% for att in attachments %}
+                    <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm" id="att-row-{{ att.attachment_id }}">
+                        <span class="text-gray-700 truncate">📄 {{ att.original_filename }}
+                            <span class="text-gray-400 ml-1">({{ (att.file_size / 1024) | round(1) }}KB)</span>
+                        </span>
+                        <label class="flex items-center gap-1.5 cursor-pointer text-red-500 hover:text-red-700 shrink-0 ml-3">
+                            <input type="checkbox" name="delete_attachments" value="{{ att.attachment_id }}"
+                                   class="rounded" onchange="toggleAttRow(this, '{{ att.attachment_id }}')">
+                            <span class="text-xs">삭제</span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <input type="file" name="attachments" id="attachmentsInput" multiple
+                       accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.hwp,.hwpx,.ppt,.pptx,.xls,.xlsx,.zip,.txt,.mp4,.mp3"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                       onchange="updateAttachmentCount(this)">
+                <p class="text-xs text-gray-400 mt-1" id="att-count-msg"></p>
+            </div>
+
             <!-- 버튼 -->
             <div class="flex gap-3">
                 <button type="submit"
@@ -68,4 +98,28 @@
         </form>
     </div>
 </div>
+
+<script>
+function updateAttachmentCount(input) {
+    const msg = document.getElementById('att-count-msg');
+    const count = input.files.length;
+    if (count > 10) {
+        msg.textContent = '⚠️ 최대 10개까지만 첨부할 수 있습니다.';
+        msg.className = 'text-xs text-red-500 mt-1';
+    } else if (count > 0) {
+        msg.textContent = `${count}개 파일 선택됨`;
+        msg.className = 'text-xs text-blue-500 mt-1';
+    } else {
+        msg.textContent = '';
+    }
+}
+function toggleAttRow(checkbox, attId) {
+    const row = document.getElementById('att-row-' + attId);
+    if (checkbox.checked) {
+        row.classList.add('opacity-40', 'line-through');
+    } else {
+        row.classList.remove('opacity-40', 'line-through');
+    }
+}
+</script>
 {% endblock %}

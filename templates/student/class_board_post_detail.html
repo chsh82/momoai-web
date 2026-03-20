@@ -63,6 +63,23 @@
             <div class="text-gray-800 leading-relaxed prose max-w-none">{{ post.content | safe }}</div>
         </div>
         {{ image_display_section(images|default([])) }}
+
+        <!-- 첨부파일 -->
+        {% if attachments %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-sm font-medium text-gray-600 mb-2">📎 첨부파일 ({{ attachments|length }})</p>
+            <div class="space-y-1.5">
+                {% for att in attachments %}
+                <a href="{{ url_for('student.download_class_board_attachment', attachment_id=att.attachment_id) }}"
+                   class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded px-2 py-1.5 transition">
+                    <span>📄</span>
+                    <span class="truncate">{{ att.original_filename }}</span>
+                    <span class="text-gray-400 shrink-0">({{ (att.file_size / 1024) | round(1) }}KB)</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- 댓글 -->

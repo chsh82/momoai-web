@@ -39,6 +39,8 @@ class ClassBoardPost(db.Model):
     author = db.relationship('User', backref='class_board_posts')
     comments = db.relationship('ClassBoardComment', back_populates='post',
                               cascade='all, delete-orphan', order_by='ClassBoardComment.created_at')
+    attachments = db.relationship('ClassBoardAttachment', back_populates='post',
+                                 cascade='all, delete-orphan', lazy='dynamic')
 
     def __repr__(self):
         return f'<ClassBoardPost {self.post_id}: {self.title}>'
@@ -61,6 +63,31 @@ class ClassBoardPost(db.Model):
         if self.course.teacher_id == user.user_id:
             return True
         return False
+
+
+class ClassBoardAttachment(db.Model):
+    """클래스 게시판 첨부파일"""
+    __tablename__ = 'class_board_attachments'
+
+    attachment_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    post_id = db.Column(db.String(36), db.ForeignKey('class_board_posts.post_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    file_type = db.Column(db.String(50), nullable=False)
+    is_image = db.Column(db.Boolean, default=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    uploaded_by = db.Column(db.String(36), db.ForeignKey('users.user_id'))
+
+    post = db.relationship('ClassBoardPost', back_populates='attachments')
+    uploader = db.relationship('User', foreign_keys=[uploaded_by])
+
+    def __init__(self, **kwargs):
+        super(ClassBoardAttachment, self).__init__(**kwargs)
+        if not self.attachment_id:
+            self.attachment_id = str(uuid.uuid4())
 
 
 class ClassBoardComment(db.Model):

@@ -1636,6 +1636,59 @@ def my_assignments():
 
 # ==================== 클래스 게시판 ====================
 
+def _save_class_board_attachments(files, post_id, existing_count=0):
+    """클래스 게시판 첨부파일 저장 (최대 10개)"""
+    import os, uuid as _uuid
+    from werkzeug.utils import secure_filename
+    from app.models.class_board import ClassBoardAttachment
+
+    allowed_ext = {'jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'hwp', 'hwpx',
+                   'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'txt', 'mp4', 'mp3'}
+    image_ext = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+
+    upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_board_attachments')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    added = 0
+    for f in files:
+        if not f or not f.filename:
+            continue
+        if existing_count + added >= 10:
+            break
+        ext = os.path.splitext(secure_filename(f.filename))[1].lstrip('.').lower()
+        if ext not in allowed_ext:
+            continue
+        stored_name = f"{_uuid.uuid4().hex}.{ext}"
+        file_path = os.path.join(upload_dir, stored_name)
+        f.save(file_path)
+        att = ClassBoardAttachment(
+            post_id=post_id,
+            original_filename=f.filename,
+            stored_filename=stored_name,
+            file_path=file_path,
+            file_size=os.path.getsize(file_path),
+            file_type=ext,
+            is_image=(ext in image_ext),
+            uploaded_by=current_user.user_id
+        )
+        db.session.add(att)
+        added += 1
+
+
+@student_bp.route('/class-board/attachment/<attachment_id>/download')
+@login_required
+@requires_role('student', 'admin')
+def download_class_board_attachment(attachment_id):
+    """클래스 게시판 첨부파일 다운로드"""
+    import os
+    from flask import send_file
+    from app.models.class_board import ClassBoardAttachment
+    att = ClassBoardAttachment.query.get_or_404(attachment_id)
+    if not os.path.exists(att.file_path):
+        flash('파일을 찾을 수 없습니다.', 'error')
+        return redirect(request.referrer or url_for('student.class_board'))
+    return send_file(att.file_path, as_attachment=True, download_name=att.original_filename)
+
 @student_bp.route('/class-board')
 @login_required
 @requires_role('student', 'admin')
@@ -1773,6 +1826,9 @@ def create_class_board_post(course_id):
         for img in save_post_images(img_files, 'class_board', post.post_id, current_user.user_id):
             db.session.add(img)
 
+        # 첨부파일 처리 (최대 10개)
+        _save_class_board_attachments(request.files.getlist('attachments'), post.post_id)
+
         db.session.commit()
 
         # 담당 강사에게 알림 발송
@@ -1801,7 +1857,8 @@ def create_class_board_post(course_id):
                          student=student,
                          course=course,
                          is_edit=False,
-                         images=[])
+                         images=[],
+                         attachments=[])
 
 
 @student_bp.route('/class-board/<course_id>/<post_id>')
@@ -1838,11 +1895,14 @@ def class_board_post_detail(course_id, post_id):
         db.session.commit()
 
     from app.utils.image_utils import get_post_images
+    from app.models.class_board import ClassBoardAttachment
     images = get_post_images('class_board', post.post_id)
+    attachments = post.attachments.all()
     return render_template('student/class_board_post_detail.html',
                          student=student,
                          course=course,
                          post=post,
+                         attachments=attachments,
                          images=images)
 
 
@@ -1903,6 +1963,24 @@ def edit_class_board_post(course_id, post_id):
         for img in save_post_images(img_files, 'class_board', post.post_id, current_user.user_id, existing_count):
             db.session.add(img)
 
+        # 첨부파일 삭제
+        from app.models.class_board import ClassBoardAttachment
+        delete_att_ids = request.form.getlist('delete_attachments')
+        for att_id in delete_att_ids:
+            att = ClassBoardAttachment.query.get(att_id)
+            if att and att.post_id == post.post_id:
+                import os as _os
+                try:
+                    if _os.path.exists(att.file_path):
+                        _os.remove(att.file_path)
+                except Exception:
+                    pass
+                db.session.delete(att)
+
+        # 새 첨부파일 추가
+        existing_att_count = post.attachments.count()
+        _save_class_board_attachments(request.files.getlist('attachments'), post.post_id, existing_att_count)
+
         db.session.commit()
 
         flash('게시글이 수정되었습니다.', 'success')
@@ -1911,13 +1989,16 @@ def edit_class_board_post(course_id, post_id):
                               post_id=post_id))
 
     from app.utils.image_utils import get_post_images
+    from app.models.class_board import ClassBoardAttachment
     images = get_post_images('class_board', post.post_id)
+    attachments = post.attachments.all()
     return render_template('student/class_board_form.html',
                          student=student,
                          course=course,
                          post=post,
                          is_edit=True,
-                         images=images)
+                         images=images,
+                         attachments=attachments)
 
 
 @student_bp.route('/class-board/<course_id>/<post_id>/delete', methods=['POST'])
