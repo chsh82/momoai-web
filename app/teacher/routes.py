@@ -1011,6 +1011,22 @@ def student_detail(student_id):
     parent_relations = ParentStudent.query.filter_by(student_id=student_id, is_active=True).all()
     parents = [pr.parent for pr in parent_relations]
 
+    # 형제 정보 (같은 학부모와 연결된 다른 학생)
+    parent_ids = [pr.parent_id for pr in parent_relations]
+    siblings = []
+    if parent_ids:
+        from sqlalchemy import and_
+        sibling_relations = ParentStudent.query.filter(
+            ParentStudent.parent_id.in_(parent_ids),
+            ParentStudent.student_id != student_id,
+            ParentStudent.is_active == True
+        ).all()
+        seen = set()
+        for sr in sibling_relations:
+            if sr.student_id not in seen and sr.student:
+                seen.add(sr.student_id)
+                siblings.append(sr.student)
+
     # 내가 작성한 피드백
     feedbacks = TeacherFeedback.query.filter_by(
         student_id=student_id,
@@ -1053,6 +1069,7 @@ def student_detail(student_id):
                          student=student,
                          enrollments=enrollments,
                          parents=parents,
+                         siblings=siblings,
                          feedbacks=feedbacks,
                          profile=profile,
                          mbti_result=mbti_result,

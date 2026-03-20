@@ -115,6 +115,32 @@
             </div>
             {% endif %}
 
+            <!-- 형제 정보 -->
+            {% if siblings %}
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">👨‍👧‍👦 형제 정보</h3>
+                    <p class="text-sm text-gray-500 mt-1">같은 학부모와 연결된 학생</p>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        {% for sibling in siblings %}
+                        <a href="{{ url_for('teacher.student_detail', student_id=sibling.student_id) }}"
+                           class="flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                            <div>
+                                <div class="font-medium text-gray-800">{{ sibling.name }}</div>
+                                <div class="text-sm text-gray-600">{{ sibling.grade or '-' }}
+                                    {% if sibling.school %} · {{ sibling.school }}{% endif %}
+                                </div>
+                            </div>
+                            <span class="text-blue-500 text-sm">보기 →</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- 수강 내역 -->
             <div class="bg-white rounded-lg shadow mb-6">
                 <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
