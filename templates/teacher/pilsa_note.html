@@ -24,7 +24,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(10px, 1.8vw, 22px);
+    /* font-size는 JS로 inline 적용 — 셀 크기는 grid+aspect-ratio가 결정 */
+    overflow: hidden;
     color: #b0c4de;
     line-height: 1;
     user-select: none;
@@ -32,8 +33,6 @@
   /* 5번째 셀마다 보조선 */
   .wongo-cell:nth-child(5n) { border-right: 1px solid #999; }
   .wongo-cell:nth-child(20n) { border-right: 2px solid #888; }
-  /* 행 구분 (20칸마다 = 1행) */
-  .wongo-row-end { border-bottom: 1px solid #aaa; }
   /* 중심 가이드 점 */
   .wongo-cell::before {
     content: '';
@@ -68,7 +67,7 @@
       margin-bottom: 8mm;
     }
     .wongo-cell {
-      font-size: 14pt;
+      /* font-size: inline style 유지 */
       border-right: 0.5pt solid #bbb;
       border-bottom: 0.5pt solid #bbb;
     }
@@ -94,7 +93,7 @@
 
   <!-- 설정 패널 -->
   <div class="bg-white rounded-lg shadow p-5 mb-6 no-print">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <!-- 제목 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">제목 (선택)</label>
@@ -105,13 +104,26 @@
       <!-- 글자 색상 진하기 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">글자 색상 진하기</label>
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-gray-400">연하게</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-400 shrink-0">연하게</span>
           <input type="range" id="colorSlider" min="30" max="160" value="80"
                  class="flex-1 accent-blue-500" oninput="updateColor()">
-          <span class="text-xs text-gray-400">진하게</span>
+          <span class="text-xs text-gray-400 shrink-0">진하게</span>
         </div>
         <div class="mt-1 text-xs text-gray-500">미리보기: <span id="colorPreview" style="font-family:serif">가나다</span></div>
+      </div>
+      <!-- 글자 크기 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">글자 크기</label>
+        <select id="fontSizeSelect"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onchange="renderWongo()">
+          <option value="18">보통</option>
+          <option value="23">크게</option>
+          <option value="28">더 크게</option>
+          <option value="34">매우 크게</option>
+        </select>
+        <div class="mt-1 text-xs text-gray-500">박스 크기는 그대로 유지됩니다</div>
       </div>
       <!-- 페이지당 행 수 -->
       <div>
@@ -154,7 +166,6 @@ let charColor = '#b0b0c8';
 
 function updateColor() {
   const v = parseInt(document.getElementById('colorSlider').value);
-  // v: 30(연) ~ 160(진) → rgb 값으로 변환
   const base = Math.max(80, 220 - v);
   charColor = `rgb(${base + 10}, ${base}, ${base + 20})`;
   document.getElementById('colorPreview').style.color = charColor;
@@ -165,17 +176,16 @@ function renderWongo() {
   const raw = document.getElementById('textInput').value;
   const title = document.getElementById('titleInput').value.trim();
   const rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+  const fontSize = document.getElementById('fontSizeSelect').value + 'px';
   const charsPerPage = COLS * rowsPerPage;
 
   // 줄바꿈을 보존하면서 원고지 셀 배열로 변환
   let cells = [];
   const lines = raw.split('\n');
   for (let li = 0; li < lines.length; li++) {
-    const chars = [...lines[li]];  // 유니코드 안전 분할
-    // 현재 행 위치 계산 (COLS 단위로 채움)
+    const chars = [...lines[li]];
     const currentCol = cells.length % COLS;
     if (currentCol !== 0 && li > 0) {
-      // 이전 줄에서 남은 공간 빈칸으로 채움
       for (let pad = currentCol; pad < COLS; pad++) cells.push('');
     }
     for (const ch of chars) {
@@ -196,19 +206,23 @@ function renderWongo() {
     if (pi > 0) html += '<div class="page-break"></div>';
     if (title) html += `<div class="print-title">${escHtml(title)}${pages.length > 1 ? ` (${pi+1}/${pages.length})` : ''}</div>`;
 
-    // 빈 셀로 채워 charsPerPage 맞춤
     while (pageCells.length < charsPerPage) pageCells.push('');
 
     html += '<div class="wongo-page">';
     for (let i = 0; i < pageCells.length; i++) {
       const ch = pageCells[i];
       const filled = ch && ch.trim();
-      html += `<div class="wongo-cell${filled ? ' filled' : ''}" style="${filled ? `color:${charColor}` : ''}">${filled ? escHtml(ch) : ''}</div>`;
+      // 채워진 셀: color + font-size 인라인 적용 (박스 크기는 grid+aspect-ratio가 결정)
+      // 빈 셀: font-size만 적용 (가이드 점 크기 유지)
+      const style = filled
+        ? `color:${charColor};font-size:${fontSize}`
+        : `font-size:${fontSize}`;
+      html += `<div class="wongo-cell${filled ? ' filled' : ''}" style="${style}">${filled ? escHtml(ch) : ''}</div>`;
     }
     html += '</div>';
   });
 
-  document.getElementById('wongo-output').innerHTML = html || '<div class="wongo-page">' + '<div class="wongo-cell"></div>'.repeat(charsPerPage) + '</div>';
+  document.getElementById('wongo-output').innerHTML = html || '<div class="wongo-page">' + `<div class="wongo-cell" style="font-size:${fontSize}"></div>`.repeat(charsPerPage) + '</div>';
 }
 
 function escHtml(s) {
