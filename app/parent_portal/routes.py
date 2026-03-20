@@ -1402,7 +1402,8 @@ def link_child():
                 notification_type='parent_link_request',
                 title='학부모 자녀 연결 요청',
                 message=f'{current_user.name}님이 자녀 연결을 요청했습니다. (자녀명: {link_request.student_name})',
-                link_url=url_for('admin.parent_link_requests')
+                link_url=url_for('admin.parent_link_requests'),
+                related_entity_id=link_request.request_id
             )
             db.session.add(notification)
 

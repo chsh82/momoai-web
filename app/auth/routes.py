@@ -196,7 +196,8 @@ def signup():
                     notification_type='new_user_pending',
                     title='새 회원가입 승인 대기',
                     message=f'{user.name} ({user.role}) 님이 회원가입했습니다. 승인이 필요합니다.',
-                    link_url=url_for('admin.pending_users')
+                    link_url=url_for('admin.pending_users'),
+                    related_user_id=user.user_id
                 )
         except Exception:
             pass

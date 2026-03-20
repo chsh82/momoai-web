@@ -3811,6 +3811,13 @@ def approve_parent_link_request(request_id):
         flash('학생을 선택해주세요.', 'warning')
         return redirect(url_for('admin.parent_link_request_detail', request_id=request_id))
 
+    # 이 요청 관련 parent_link_request 알림 읽음 처리
+    Notification.query.filter_by(
+        notification_type='parent_link_request',
+        related_entity_id=request_id
+    ).update({'is_read': True})
+    db.session.flush()
+
     student = Student.query.get_or_404(student_id)
 
     # 이미 연결되어 있는지 확인
@@ -3887,6 +3894,13 @@ def reject_parent_link_request(request_id):
     if not reject_reason:
         flash('거절 사유를 입력해주세요.', 'warning')
         return redirect(url_for('admin.parent_link_request_detail', request_id=request_id))
+
+    # 이 요청 관련 parent_link_request 알림 읽음 처리
+    Notification.query.filter_by(
+        notification_type='parent_link_request',
+        related_entity_id=request_id
+    ).update({'is_read': True})
+    db.session.flush()
 
     # 요청 상태 업데이트
     link_request.status = 'rejected'
@@ -4188,8 +4202,15 @@ def approve_user(user_id):
     user.is_active = True
     db.session.flush()
 
-    # 승인 알림 (사용자가 다음 로그인 시 확인 가능)
+    # 이 사용자 관련 new_user_pending 알림 읽음 처리 (모든 관리자)
     from app.models.notification import Notification
+    Notification.query.filter_by(
+        notification_type='new_user_pending',
+        related_user_id=user.user_id
+    ).update({'is_read': True})
+    db.session.flush()
+
+    # 승인 알림 (사용자가 다음 로그인 시 확인 가능)
     Notification.create_notification(
         user_id=user.user_id,
         notification_type='account_approved',
@@ -4224,6 +4245,13 @@ def reject_user(user_id):
         user_id=user.user_id,
         notification_type='account_rejected'
     ).first()
+
+    # 이 사용자 관련 new_user_pending 알림 읽음 처리
+    Notification.query.filter_by(
+        notification_type='new_user_pending',
+        related_user_id=user.user_id
+    ).update({'is_read': True})
+    db.session.flush()
 
     if not already_rejected:
         # 사용자에게 거절 알림 전송 (승인 대기 페이지에서 상태 확인용)
