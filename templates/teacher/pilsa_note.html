@@ -27,8 +27,7 @@
     line-height: 1;
     user-select: none;
   }
-  .wongo-cell:nth-child(5n)  { border-right: 1px solid #999; }
-  .wongo-cell:nth-child(20n) { border-right: 2px solid #888; }
+  /* 5칸/끝칸 경계선은 JS 인라인 스타일로 처리 */
   .wongo-cell::before {
     content: '';
     position: absolute;
@@ -65,8 +64,7 @@
       border-bottom: 0.5pt solid #ddd;
       color: rgb(235, 235, 235) !important;
     }
-    .wongo-cell:nth-child(5n)  { border-right: 0.5pt solid #ccc; }
-    .wongo-cell:nth-child(20n) { border-right: 1.5pt solid #999; }
+    /* 5칸/끝칸 경계선은 JS 인라인 스타일로 처리 */
   }
 </style>
 
@@ -83,7 +81,7 @@
   </div>
 
   <div class="bg-white rounded-lg shadow p-5 mb-6 no-print">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">제목 (선택)</label>
         <input type="text" id="titleInput" placeholder="예: 5월 4주차 필사 노트"
@@ -94,23 +92,34 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">글자 크기</label>
         <select id="fontSizeSelect"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                onchange="renderWongo()">
-          <option value="18">보통</option>
-          <option value="23">크게</option>
-          <option value="28">더 크게</option>
-          <option value="34">매우 크게</option>
+                onchange="onFontSizeChange()">
+          <option value="18" data-cols="20">보통</option>
+          <option value="23" data-cols="17">크게</option>
+          <option value="28" data-cols="14">더 크게</option>
+          <option value="34" data-cols="11">매우 크게</option>
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">행 수</label>
-        <select id="rowsInput"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                onchange="renderWongo()">
-          <option value="10">10행 (200자)</option>
-          <option value="15" selected>15행 (300자)</option>
-          <option value="20">20행 (400자)</option>
-          <option value="30">30행 (600자)</option>
-        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          칸 수 <span class="text-gray-400 font-normal text-xs ml-1">(열 개수)</span>
+        </label>
+        <input type="number" id="colsInput" value="20" min="8" max="30"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+               oninput="renderWongo()">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          행 추가 <span id="autoRowsInfo" class="text-gray-400 font-normal text-xs ml-1"></span>
+        </label>
+        <div class="flex items-center gap-1">
+          <button type="button" onclick="adjustRows(-1)"
+                  class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition font-bold">−</button>
+          <input type="number" id="extraRowsInput" value="0" min="-20" max="50"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-center"
+                 oninput="renderWongo()">
+          <button type="button" onclick="adjustRows(1)"
+                  class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition font-bold">＋</button>
+        </div>
       </div>
     </div>
     <div class="mt-4">
@@ -135,15 +144,50 @@
 </div>
 
 <script>
-const COLS = 20;
-const CHAR_COLOR = 'rgb(185, 185, 188)';  /* 인쇄 기준 겨우 보이는 연회색 */
+const CHAR_COLOR = 'rgb(185, 185, 188)';
+
+// 글자 크기별 기본 칸 수 (A4 186mm 기준)
+const FONT_PRESETS = {
+  '18': 20,
+  '23': 17,
+  '28': 14,
+  '34': 11,
+};
+
+// A4 인쇄 영역 기준 자동 행수 계산
+// 셀이 정사각형이고 칸 수 = cols 이면, 셀 크기 = 186mm/cols
+// 세로 가용 높이 277mm → 행수 = floor(277 / (186/cols)) = floor(277*cols/186)
+function calcAutoRows(cols) {
+  return Math.floor(277 * cols / 186);
+}
+
+function onFontSizeChange() {
+  const fontPx = document.getElementById('fontSizeSelect').value;
+  const defaultCols = FONT_PRESETS[fontPx] || 20;
+  document.getElementById('colsInput').value = defaultCols;
+  document.getElementById('extraRowsInput').value = 0;
+  renderWongo();
+}
+
+function adjustRows(delta) {
+  const input = document.getElementById('extraRowsInput');
+  input.value = parseInt(input.value || 0) + delta;
+  renderWongo();
+}
 
 function renderWongo() {
   const raw       = document.getElementById('textInput').value;
   const title     = document.getElementById('titleInput').value.trim();
   const fontSize  = document.getElementById('fontSizeSelect').value + 'px';
-  const totalRows = parseInt(document.getElementById('rowsInput').value);
-  const totalCells = COLS * totalRows;
+  const COLS      = Math.max(1, parseInt(document.getElementById('colsInput').value) || 20);
+  const extraRows = parseInt(document.getElementById('extraRowsInput').value) || 0;
+
+  const autoRows  = calcAutoRows(COLS);
+  const totalRows = Math.max(1, autoRows + extraRows);
+
+  // 자동 행수 표시
+  document.getElementById('autoRowsInfo').textContent =
+    `(자동 ${autoRows}행)`;
 
   // 줄바꿈 보존하여 셀 배열로 변환
   let cells = [];
@@ -165,24 +209,31 @@ function renderWongo() {
   document.getElementById('print-title-area').innerHTML =
     title ? `<div class="print-title">${escHtml(title)}</div>` : '';
 
-  // 총 셀 수: 입력 글자 수 vs 설정 행수 중 큰 쪽 (20의 배수로 올림)
+  // 입력 글자 수 vs 설정 행수 중 큰 쪽
   const neededRows = Math.max(totalRows, Math.ceil(cells.length / COLS));
   const neededCells = neededRows * COLS;
   while (cells.length < neededCells) cells.push('');
 
-  // 단일 연속 그리드 (페이지 구분 없음)
-  let html = '<div class="wongo-page">';
+  // CSS 변수로 칸 수 전달
+  const grid = document.getElementById('wongo-output');
+
+  let html = `<div class="wongo-page" style="grid-template-columns: repeat(${COLS}, 1fr);">`;
   for (let i = 0; i < cells.length; i++) {
     const ch = cells[i];
     const filled = ch && ch.trim();
-    const style = filled
-      ? `color:${CHAR_COLOR};font-size:${fontSize}`
-      : `font-size:${fontSize}`;
+    // 5칸마다 경계선 강조 (칸 수에 맞게)
+    const is5th = (i + 1) % 5 === 0 && (i + 1) % COLS !== 0;
+    const isLast = (i + 1) % COLS === 0;
+    let borderStyle = '';
+    if (isLast) borderStyle = 'border-right: 2px solid #888;';
+    else if (is5th) borderStyle = 'border-right: 1px solid #999;';
+    const style = `font-size:${fontSize};${borderStyle}` +
+      (filled ? `;color:${CHAR_COLOR}` : '');
     html += `<div class="wongo-cell${filled ? ' filled' : ''}" style="${style}">${filled ? escHtml(ch) : ''}</div>`;
   }
   html += '</div>';
 
-  document.getElementById('wongo-output').innerHTML = html;
+  grid.innerHTML = html;
 }
 
 function escHtml(s) {
