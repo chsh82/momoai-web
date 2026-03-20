@@ -3863,6 +3863,14 @@ def approve_parent_link_request(request_id):
                 child_user.country = parent_user.country
                 child_user.city = parent_user.city
 
+    # 동일 학부모+학생 조합의 중복 pending 요청 자동 취소
+    ParentLinkRequest.query.filter(
+        ParentLinkRequest.parent_id == link_request.parent_id,
+        ParentLinkRequest.student_name == link_request.student_name,
+        ParentLinkRequest.status == 'pending',
+        ParentLinkRequest.request_id != link_request.request_id
+    ).update({'status': 'cancelled', 'admin_notes': '[자동정리] 동일 학생 연결 요청이 다른 요청으로 승인됨'})
+
     db.session.commit()
 
     # 학부모에게 알림
