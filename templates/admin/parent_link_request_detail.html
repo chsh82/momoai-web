@@ -154,7 +154,7 @@
                         <p class="text-sm text-gray-600">현재 연결된 학부모 수</p>
                         <p class="font-medium text-gray-800">{{ link_request.matched_student.linked_parents|length }}명</p>
                     </div>
-                    <a href="{{ url_for('students.student_detail', student_id=request.matched_student_id) }}"
+                    <a href="{{ url_for('teacher.student_detail', student_id=link_request.matched_student_id) }}"
                        class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200">
                         학생 정보 보기
                     </a>
