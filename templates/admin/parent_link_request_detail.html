@@ -162,6 +162,25 @@
             </div>
             {% endif %}
 
+            <!-- 연결 해제 (승인된 경우) -->
+            {% if link_request.status == 'approved' %}
+            <div class="bg-white rounded-lg shadow border border-orange-200">
+                <div class="px-6 py-4 border-b border-orange-200 bg-orange-50">
+                    <h3 class="text-lg font-bold text-orange-900">⚠️ 연결 해제</h3>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 mb-4">잘못된 매칭인 경우 연결을 해제하고 재검토할 수 있습니다.</p>
+                    <form method="POST" action="{{ url_for('admin.unlink_parent_student', request_id=link_request.request_id) }}"
+                          onsubmit="return confirm('연결을 해제하시겠습니까? 요청이 대기 상태로 돌아갑니다.');">
+                        <button type="submit"
+                                class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 rounded-lg transition duration-200">
+                            연결 해제 및 재검토
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- 관리자 메모 -->
             {% if link_request.admin_notes %}
             <div class="bg-white rounded-lg shadow">

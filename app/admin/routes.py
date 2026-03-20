@@ -3922,6 +3922,52 @@ def reject_parent_link_request(request_id):
     return redirect(url_for('admin.parent_link_requests'))
 
 
+@admin_bp.route('/parent-link-requests/<request_id>/unlink', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def unlink_parent_student(request_id):
+    """승인된 연결 해제 (잘못된 매칭 수정)"""
+    from app.models.parent_student import ParentStudent
+    link_request = ParentLinkRequest.query.get_or_404(request_id)
+
+    if link_request.status != 'approved':
+        flash('승인된 요청만 해제할 수 있습니다.', 'warning')
+        return redirect(url_for('admin.parent_link_request_detail', request_id=request_id))
+
+    student_id = link_request.matched_student_id
+    if student_id:
+        relation = ParentStudent.query.filter_by(
+            parent_id=link_request.parent_id,
+            student_id=student_id,
+            is_active=True
+        ).first()
+        if relation:
+            relation.is_active = False
+
+    # 요청을 pending 상태로 되돌려 재검토 가능하게
+    link_request.status = 'pending'
+    link_request.matched_student_id = None
+    link_request.reviewed_by = None
+    link_request.reviewed_at = None
+    link_request.admin_notes = f'[연결 해제됨 - {current_user.name}] ' + (link_request.admin_notes or '')
+
+    db.session.commit()
+
+    # 학부모에게 알림
+    notification = Notification(
+        user_id=link_request.parent_id,
+        notification_type='link_unlinked',
+        title='자녀 연결 해제',
+        message='자녀 연결이 해제되었습니다. 관리자가 재검토 후 다시 연결할 예정입니다.',
+        link_url=url_for('parent.link_requests')
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+    flash('연결이 해제되었습니다. 요청이 대기 상태로 변경되었습니다.', 'success')
+    return redirect(url_for('admin.parent_link_request_detail', request_id=request_id))
+
+
 @admin_bp.route('/api/students/search-v2')
 @login_required
 @requires_permission_level(2)
