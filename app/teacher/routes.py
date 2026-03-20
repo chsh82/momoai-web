@@ -2128,6 +2128,7 @@ def send_course_message():
 @requires_role('teacher', 'admin')
 def send_student_message():
     """개별 학생에게 과제/메시지 발송"""
+    import os
     from werkzeug.utils import secure_filename
     import uuid as _uuid
 
