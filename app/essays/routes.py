@@ -238,11 +238,11 @@ def new():
         for s in students
     ]
 
-    # 하크니스 수업 수강 학생 ID 목록 (모델 선택 UI용)
+    # 하크니스/시그니처 수업 수강 학생 ID 목록 (모델 선택 UI용)
     from app.models import CourseEnrollment, Course as _Course
     harkness_ids_rows = db.session.query(CourseEnrollment.student_id).join(_Course).filter(
         CourseEnrollment.status == 'active',
-        _Course.course_type == '하크니스',
+        _Course.course_type.in_(['하크니스', '시그니처']),
         CourseEnrollment.student_id.in_([s.student_id for s in students])
     ).distinct().all()
     harkness_student_ids = {row[0] for row in harkness_ids_rows}
@@ -299,7 +299,7 @@ def new():
             is_harkness = db.session.query(CourseEnrollment).join(_Course).filter(
                 CourseEnrollment.student_id == student.student_id,
                 CourseEnrollment.status == 'active',
-                _Course.course_type == '하크니스'
+                _Course.course_type.in_(['하크니스', '시그니처'])
             ).count() > 0
             correction_model = 'harkness' if is_harkness else 'standard'
         elif requested_model == 'elementary':
@@ -1313,7 +1313,7 @@ def view_submission(essay_id):
         .order_by(OCRHistory.created_at.desc())\
         .all()
 
-    # 하크니스 수업 수강 여부 (모델 선택 UI용) — 관리자는 항상 허용
+    # 하크니스/시그니처 수업 수강 여부 (모델 선택 UI용) — 관리자는 항상 허용
     if current_user.role == 'admin':
         is_harkness_student = True
     else:
@@ -1321,7 +1321,7 @@ def view_submission(essay_id):
         is_harkness_student = db.session.query(CourseEnrollment).join(_Course).filter(
             CourseEnrollment.student_id == essay.student_id,
             CourseEnrollment.status == 'active',
-            _Course.course_type == '하크니스'
+            _Course.course_type.in_(['하크니스', '시그니처'])
         ).count() > 0
 
     return render_template('essays/view_submission.html',
