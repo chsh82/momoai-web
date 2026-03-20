@@ -41,11 +41,10 @@
   .wongo-cell.filled::before { display: none; }
 
   @media print {
-    body * { visibility: hidden; }
-    #print-area, #print-area * { visibility: visible; }
+    .no-print { display: none !important; }
+    .max-w-7xl { max-width: none !important; margin: 0 !important; }
     #print-area {
-      position: fixed; top: 0; left: 0;
-      width: 100%; padding: 10mm 12mm;
+      padding: 10mm 12mm;
       box-sizing: border-box;
     }
     .print-title {
