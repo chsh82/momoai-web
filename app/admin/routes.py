@@ -3725,26 +3725,51 @@ def api_search_courses():
 def parent_link_requests():
     """학부모 자녀 연결 요청 목록"""
     status_filter = request.args.get('status', 'pending')
+    grade_filter = request.args.get('grade', '').strip()
+    search_query = request.args.get('search', '').strip()
 
     query = ParentLinkRequest.query
 
     if status_filter and status_filter != 'all':
         query = query.filter_by(status=status_filter)
 
-    requests = query.order_by(ParentLinkRequest.created_at.desc()).all()
+    if grade_filter:
+        query = query.filter(ParentLinkRequest.student_grade == grade_filter)
+
+    if search_query:
+        from sqlalchemy import or_
+        from app.models.user import User as UserModel
+        # 학생 이름 또는 학부모 이름으로 검색
+        parent_ids = db.session.query(UserModel.user_id).filter(
+            UserModel.name.ilike(f'%{search_query}%')
+        ).all()
+        parent_id_list = [p[0] for p in parent_ids]
+        query = query.filter(
+            or_(
+                ParentLinkRequest.student_name.ilike(f'%{search_query}%'),
+                ParentLinkRequest.parent_id.in_(parent_id_list)
+            )
+        )
+
+    link_requests = query.order_by(ParentLinkRequest.created_at.desc()).all()
 
     # 통계
-    stats = {
-        'pending': ParentLinkRequest.query.filter_by(status='pending').count(),
-        'approved': ParentLinkRequest.query.filter_by(status='approved').count(),
-        'rejected': ParentLinkRequest.query.filter_by(status='rejected').count(),
-        'cancelled': ParentLinkRequest.query.filter_by(status='cancelled').count()
-    }
+    total_count = ParentLinkRequest.query.count()
+    pending_count = ParentLinkRequest.query.filter_by(status='pending').count()
+    approved_count = ParentLinkRequest.query.filter_by(status='approved').count()
+    rejected_count = ParentLinkRequest.query.filter_by(status='rejected').count()
+    cancelled_count = ParentLinkRequest.query.filter_by(status='cancelled').count()
 
     return render_template('admin/parent_link_requests.html',
-                         requests=requests,
-                         stats=stats,
-                         status_filter=status_filter)
+                         requests=link_requests,
+                         total_count=total_count,
+                         pending_count=pending_count,
+                         approved_count=approved_count,
+                         rejected_count=rejected_count,
+                         cancelled_count=cancelled_count,
+                         status_filter=status_filter,
+                         grade_filter=grade_filter,
+                         search_query=search_query)
 
 
 @admin_bp.route('/parent-link-requests/<request_id>')
