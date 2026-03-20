@@ -26,7 +26,7 @@
     justify-content: center;
     /* font-size는 JS로 inline 적용 — 셀 크기는 grid+aspect-ratio가 결정 */
     overflow: hidden;
-    color: #b0c4de;
+    color: rgb(210, 215, 235);
     line-height: 1;
     user-select: none;
   }
@@ -93,24 +93,13 @@
 
   <!-- 설정 패널 -->
   <div class="bg-white rounded-lg shadow p-5 mb-6 no-print">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <!-- 제목 -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">제목 (선택)</label>
         <input type="text" id="titleInput" placeholder="예: 5월 4주차 필사 노트"
                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                oninput="renderWongo()">
-      </div>
-      <!-- 글자 색상 진하기 -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">글자 색상 진하기</label>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-gray-400 shrink-0">연하게</span>
-          <input type="range" id="colorSlider" min="30" max="160" value="80"
-                 class="flex-1 accent-blue-500" oninput="updateColor()">
-          <span class="text-xs text-gray-400 shrink-0">진하게</span>
-        </div>
-        <div class="mt-1 text-xs text-gray-500">미리보기: <span id="colorPreview" style="font-family:serif">가나다</span></div>
       </div>
       <!-- 글자 크기 -->
       <div>
@@ -123,7 +112,6 @@
           <option value="28">더 크게</option>
           <option value="34">매우 크게</option>
         </select>
-        <div class="mt-1 text-xs text-gray-500">박스 크기는 그대로 유지됩니다</div>
       </div>
       <!-- 페이지당 행 수 -->
       <div>
@@ -162,15 +150,7 @@
 
 <script>
 const COLS = 20;
-let charColor = '#b0b0c8';
-
-function updateColor() {
-  const v = parseInt(document.getElementById('colorSlider').value);
-  const base = Math.max(80, 220 - v);
-  charColor = `rgb(${base + 10}, ${base}, ${base + 20})`;
-  document.getElementById('colorPreview').style.color = charColor;
-  renderWongo();
-}
+const CHAR_COLOR = 'rgb(210, 215, 235)';  /* 매우 연한 청회색 */
 
 function renderWongo() {
   const raw = document.getElementById('textInput').value;
@@ -215,7 +195,7 @@ function renderWongo() {
       // 채워진 셀: color + font-size 인라인 적용 (박스 크기는 grid+aspect-ratio가 결정)
       // 빈 셀: font-size만 적용 (가이드 점 크기 유지)
       const style = filled
-        ? `color:${charColor};font-size:${fontSize}`
+        ? `color:${CHAR_COLOR};font-size:${fontSize}`
         : `font-size:${fontSize}`;
       html += `<div class="wongo-cell${filled ? ' filled' : ''}" style="${style}">${filled ? escHtml(ch) : ''}</div>`;
     }
@@ -230,7 +210,6 @@ function escHtml(s) {
 }
 
 // 초기화
-updateColor();
 renderWongo();
 </script>
 {% endblock %}
