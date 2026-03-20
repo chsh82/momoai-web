@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}필사 노트 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400&display=swap');
+
+  /* ── 화면 ── */
+  .wongo-wrap {
+    font-family: 'Noto Serif KR', 'Batang', '바탕', serif;
+  }
+  .wongo-page {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    border-top: 2px solid #888;
+    border-left: 2px solid #888;
+    margin-bottom: 2rem;
+  }
+  .wongo-cell {
+    position: relative;
+    aspect-ratio: 1;
+    border-right: 1px solid #bbb;
+    border-bottom: 1px solid #bbb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(10px, 1.8vw, 22px);
+    color: #b0c4de;
+    line-height: 1;
+    user-select: none;
+  }
+  /* 5번째 셀마다 보조선 */
+  .wongo-cell:nth-child(5n) { border-right: 1px solid #999; }
+  .wongo-cell:nth-child(20n) { border-right: 2px solid #888; }
+  /* 행 구분 (20칸마다 = 1행) */
+  .wongo-row-end { border-bottom: 1px solid #aaa; }
+  /* 중심 가이드 점 */
+  .wongo-cell::before {
+    content: '';
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #ddd;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .wongo-cell.filled::before { display: none; }
+
+  /* ── 인쇄 ── */
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      position: fixed; top: 0; left: 0;
+      width: 100%; padding: 10mm 12mm;
+      box-sizing: border-box;
+    }
+    .print-title {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 14pt;
+      text-align: center;
+      margin-bottom: 6mm;
+      color: #333;
+    }
+    .wongo-page {
+      border-top: 2pt solid #555;
+      border-left: 2pt solid #555;
+      margin-bottom: 8mm;
+    }
+    .wongo-cell {
+      font-size: 14pt;
+      border-right: 0.5pt solid #bbb;
+      border-bottom: 0.5pt solid #bbb;
+    }
+    .wongo-cell:nth-child(5n)  { border-right: 0.5pt solid #999; }
+    .wongo-cell:nth-child(20n) { border-right: 2pt solid #555; }
+    .page-break { page-break-before: always; }
+    .no-print { display: none !important; }
+  }
+</style>
+
+<div class="max-w-7xl mx-auto">
+  <!-- 헤더 -->
+  <div class="mb-6 flex items-center justify-between no-print">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-800">📝 필사 노트</h2>
+      <p class="text-gray-500 mt-1 text-sm">글을 입력하면 원고지 위에 연한 명조 글씨로 표시됩니다. 학생이 위에 따라 쓰는 필사 연습지를 만들어 보세요.</p>
+    </div>
+    <button onclick="window.print()"
+            class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition">
+      🖨️ 인쇄 / PDF 저장
+    </button>
+  </div>
+
+  <!-- 설정 패널 -->
+  <div class="bg-white rounded-lg shadow p-5 mb-6 no-print">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- 제목 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">제목 (선택)</label>
+        <input type="text" id="titleInput" placeholder="예: 5월 4주차 필사 노트"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+               oninput="renderWongo()">
+      </div>
+      <!-- 글자 색상 진하기 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">글자 색상 진하기</label>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-gray-400">연하게</span>
+          <input type="range" id="colorSlider" min="30" max="160" value="80"
+                 class="flex-1 accent-blue-500" oninput="updateColor()">
+          <span class="text-xs text-gray-400">진하게</span>
+        </div>
+        <div class="mt-1 text-xs text-gray-500">미리보기: <span id="colorPreview" style="font-family:serif">가나다</span></div>
+      </div>
+      <!-- 페이지당 행 수 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">페이지당 행 수</label>
+        <select id="rowsPerPage"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onchange="renderWongo()">
+          <option value="10">10행 (200자)</option>
+          <option value="15" selected>15행 (300자)</option>
+          <option value="20">20행 (400자)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 텍스트 입력 -->
+    <div class="mt-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        내용 입력 <span id="charCount" class="text-gray-400 font-normal ml-2">0자</span>
+      </label>
+      <textarea id="textInput" rows="6"
+                placeholder="원고지에 표시할 글을 입력하세요. 줄바꿈(엔터)은 새 행으로 처리됩니다."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
+                oninput="renderWongo()"></textarea>
+    </div>
+  </div>
+
+  <!-- 인쇄 영역 -->
+  <div id="print-area" class="wongo-wrap">
+    <div id="wongo-output"></div>
+  </div>
+
+  <p class="text-xs text-gray-400 text-center mt-4 no-print">
+    인쇄 시 브라우저 인쇄 설정에서 "여백: 최소" / "배경 그래픽: 켜기"로 설정하면 더 깔끔하게 출력됩니다.
+  </p>
+</div>
+
+<script>
+const COLS = 20;
+let charColor = '#b0b0c8';
+
+function updateColor() {
+  const v = parseInt(document.getElementById('colorSlider').value);
+  // v: 30(연) ~ 160(진) → rgb 값으로 변환
+  const base = Math.max(80, 220 - v);
+  charColor = `rgb(${base + 10}, ${base}, ${base + 20})`;
+  document.getElementById('colorPreview').style.color = charColor;
+  renderWongo();
+}
+
+function renderWongo() {
+  const raw = document.getElementById('textInput').value;
+  const title = document.getElementById('titleInput').value.trim();
+  const rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+  const charsPerPage = COLS * rowsPerPage;
+
+  // 줄바꿈을 보존하면서 원고지 셀 배열로 변환
+  let cells = [];
+  const lines = raw.split('\n');
+  for (let li = 0; li < lines.length; li++) {
+    const chars = [...lines[li]];  // 유니코드 안전 분할
+    // 현재 행 위치 계산 (COLS 단위로 채움)
+    const currentCol = cells.length % COLS;
+    if (currentCol !== 0 && li > 0) {
+      // 이전 줄에서 남은 공간 빈칸으로 채움
+      for (let pad = currentCol; pad < COLS; pad++) cells.push('');
+    }
+    for (const ch of chars) {
+      cells.push(ch === ' ' ? '\u00A0' : ch);
+    }
+  }
+
+  document.getElementById('charCount').textContent = [...raw.replace(/\n/g, '')].length + '자';
+
+  // 페이지별로 나누기
+  const pages = [];
+  for (let i = 0; i < cells.length || pages.length === 0; i += charsPerPage) {
+    pages.push(cells.slice(i, i + charsPerPage));
+  }
+
+  let html = '';
+  pages.forEach((pageCells, pi) => {
+    if (pi > 0) html += '<div class="page-break"></div>';
+    if (title) html += `<div class="print-title">${escHtml(title)}${pages.length > 1 ? ` (${pi+1}/${pages.length})` : ''}</div>`;
+
+    // 빈 셀로 채워 charsPerPage 맞춤
+    while (pageCells.length < charsPerPage) pageCells.push('');
+
+    html += '<div class="wongo-page">';
+    for (let i = 0; i < pageCells.length; i++) {
+      const ch = pageCells[i];
+      const filled = ch && ch.trim();
+      html += `<div class="wongo-cell${filled ? ' filled' : ''}" style="${filled ? `color:${charColor}` : ''}">${filled ? escHtml(ch) : ''}</div>`;
+    }
+    html += '</div>';
+  });
+
+  document.getElementById('wongo-output').innerHTML = html || '<div class="wongo-page">' + '<div class="wongo-cell"></div>'.repeat(charsPerPage) + '</div>';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 초기화
+updateColor();
+renderWongo();
+</script>
+{% endblock %}

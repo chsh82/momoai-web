@@ -4432,3 +4432,11 @@ def action_item_delete(item_id):
     db.session.commit()
     flash('업무가 삭제되었습니다.', 'success')
     return redirect(url_for('teacher.action_items'))
+
+
+@teacher_bp.route('/pilsa-note')
+@login_required
+@requires_role('teacher', 'admin')
+def pilsa_note():
+    """필사 노트 - 원고지 인쇄 도구"""
+    return render_template('teacher/pilsa_note.html')
