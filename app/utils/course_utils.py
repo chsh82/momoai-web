@@ -113,7 +113,7 @@ def create_attendance_records_for_enrollment(enrollment):
                 session_id=session.session_id,
                 student_id=enrollment.student_id,
                 enrollment_id=enrollment.enrollment_id,
-                status='absent',  # 기본값은 결석
+                status='present',  # 기본값은 출석
                 checkin_method='manual'
             )
             attendance_records.append(attendance)
