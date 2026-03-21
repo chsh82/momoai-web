@@ -419,9 +419,10 @@
     </div>
 
     <!-- 수업 상세 팝업 -->
-    <div id="schedDetailPopup" class="hidden fixed inset-0 z-[9999] flex items-center justify-center"
+    <div id="schedDetailPopup" class="hidden fixed inset-0 flex items-center justify-center"
+         style="z-index: 99999;"
          onclick="if(event.target===this)closeSchedPopup()">
-        <div class="bg-white rounded-2xl shadow-2xl p-5 w-80 max-w-[90vw]">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-80 max-w-[90vw]" style="position:relative; z-index:100000;">
             <div class="flex items-start justify-between mb-3">
                 <div id="sdp-name" class="font-bold text-gray-800 text-base leading-snug pr-4"></div>
                 <button onclick="closeSchedPopup()" class="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0">✕</button>
