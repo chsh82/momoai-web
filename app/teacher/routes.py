@@ -4570,3 +4570,80 @@ def action_item_delete(item_id):
 def pilsa_note():
     """필사 노트 - 원고지 인쇄 도구"""
     return render_template('teacher/pilsa_note.html')
+
+
+# ==================== 학습 교재 (Teaching Materials) ====================
+
+@teacher_bp.route('/teaching-materials')
+@login_required
+@requires_role('teacher', 'admin')
+def teacher_teaching_materials():
+    """강사용 학습 교재 목록 - 담당 학년 기준"""
+    import json
+    from datetime import date
+    from app.models.teaching_material import TeachingMaterial
+
+    # 담당 학년 로드
+    try:
+        teacher_grades = json.loads(current_user.teacher_grades or '[]')
+    except (json.JSONDecodeError, TypeError):
+        teacher_grades = []
+
+    today = date.today()
+    all_materials = TeachingMaterial.query.filter(
+        TeachingMaterial.is_public == True,
+        TeachingMaterial.publish_date <= today,
+        db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
+    ).order_by(TeachingMaterial.created_at.desc()).all()
+
+    # 담당 학년에 해당하는 교재 필터링
+    accessible = []
+    for mat in all_materials:
+        try:
+            target = json.loads(mat.target_audience)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if target.get('type') == 'grade':
+            target_grades = target.get('grades', [])
+            if not target_grades:  # 제한 없음 = 전체 공개
+                accessible.append(mat)
+            elif teacher_grades and any(g in target_grades for g in teacher_grades):
+                accessible.append(mat)
+        elif target.get('type') == 'course':
+            # 수업 지정 교재도 담당 학년 설정된 강사에게 공개
+            if teacher_grades:
+                accessible.append(mat)
+
+    search = request.args.get('search', '').strip()
+    grade_filter = request.args.get('grade', '').strip()
+
+    if search:
+        accessible = [m for m in accessible if search.lower() in m.title.lower()]
+    if grade_filter:
+        accessible = [m for m in accessible if m.grade == grade_filter]
+
+    return render_template('teacher/teaching_materials.html',
+                           materials=accessible,
+                           teacher_grades=teacher_grades,
+                           search=search,
+                           grade_filter=grade_filter)
+
+
+@teacher_bp.route('/teaching-materials/<material_id>/download')
+@login_required
+@requires_role('teacher', 'admin')
+def teacher_download_material(material_id):
+    """강사용 교재 다운로드"""
+    import os
+    from flask import send_file
+    from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload
+    material = TeachingMaterial.query.get_or_404(material_id)
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], material.storage_path)
+    if not os.path.exists(file_path):
+        flash('파일을 찾을 수 없습니다.', 'error')
+        return redirect(url_for('teacher.teacher_teaching_materials'))
+    download = TeachingMaterialDownload(material_id=material_id, user_id=current_user.user_id)
+    db.session.add(download)
+    material.download_count += 1
+    db.session.commit()
+    return send_file(file_path, as_attachment=True, download_name=material.original_filename)

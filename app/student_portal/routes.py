@@ -1344,7 +1344,7 @@ def teaching_materials():
         if not is_enrolled:
             return render_template('student/teaching_materials.html',
                                    student=student,
-                                   accessible_materials=[],
+                                   materials=[],
                                    search='', grade_filter='',
                                    is_blocked=True)
 

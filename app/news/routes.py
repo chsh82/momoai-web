@@ -120,10 +120,13 @@ def my_profile():
         abort(403)
 
     if request.method == 'POST':
+        import json
         current_user.teacher_intro = request.form.get('teacher_intro', '').strip()
         current_user.teacher_intro_public = 'teacher_intro_public' in request.form
+        selected_grades = request.form.getlist('teacher_grades')
+        current_user.teacher_grades = json.dumps(selected_grades, ensure_ascii=False)
         db.session.commit()
-        flash('강사 소개가 저장되었습니다.', 'success')
+        flash('강사 정보가 저장되었습니다.', 'success')
         return redirect(url_for('news.teacher_detail', teacher_id=current_user.user_id))
 
     return render_template('news/my_profile.html')

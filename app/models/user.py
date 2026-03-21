@@ -41,6 +41,7 @@ class User(UserMixin, db.Model):
     # 강사 소개 (teacher 역할용)
     teacher_intro = db.Column(db.Text, nullable=True)
     teacher_intro_public = db.Column(db.Boolean, default=False)
+    teacher_grades = db.Column(db.Text, nullable=True)  # JSON: ["초1", "초2", ...] 담당 학년
 
     # 보안 필드
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
