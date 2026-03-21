@@ -454,12 +454,25 @@
             var items = blocks.map(function (b) {
                 var top = parseFloat(b.dataset.top) || 0;
                 var minH = parseFloat(b.dataset.minhpx) || 0;
-                return { el: b, top: top, bottom: top + minH, lane: 0 };
+                return { el: b, top: top, bottom: top + minH, lane: 0, hasOverlap: false };
             }).sort(function (a, b) { return a.top - b.top; });
 
-            // 그리디 레인 배정
+            // 실제로 다른 블록과 겹치는 항목만 표시
+            for (var i = 0; i < items.length; i++) {
+                for (var j = i + 1; j < items.length; j++) {
+                    if (items[i].top < items[j].bottom && items[j].top < items[i].bottom) {
+                        items[i].hasOverlap = true;
+                        items[j].hasOverlap = true;
+                    }
+                }
+            }
+
+            // 겹치는 항목들만 추려서 그리디 레인 배정
+            var overlapItems = items.filter(function (item) { return item.hasOverlap; });
+            if (overlapItems.length < 2) return;
+
             var laneEnds = [];
-            items.forEach(function (item) {
+            overlapItems.forEach(function (item) {
                 var lane = laneEnds.findIndex(function (end) { return item.top >= end; });
                 if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
                 laneEnds[lane] = item.bottom;
@@ -469,8 +482,8 @@
             var totalLanes = laneEnds.length;
             if (totalLanes < 2) return;
 
-            // 레인 수에 따라 폭 조정
-            items.forEach(function (item) {
+            // 겹치는 항목들에만 폭 조정 + narrow 클래스 적용
+            overlapItems.forEach(function (item) {
                 var pct = 100 / totalLanes;
                 var gap = 2;
                 item.el.style.left   = 'calc(' + (item.lane * pct) + '% + ' + gap + 'px)';
