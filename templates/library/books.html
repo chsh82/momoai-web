@@ -27,7 +27,7 @@
             <div class="flex flex-wrap gap-2">
                 <a href="{{ url_for('library.books', grade=current_grade, domain=current_domain, subject=current_subject) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
-                          {% if not current_badge %}bg-gray-700 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                          {% if not current_badge %}bg-gray-700 text-white{% else %}bg-white text-gray-600 border border-gray-400 hover:bg-gray-100{% endif %}">
                     전체
                 </a>
                 <a href="{{ url_for('library.books', badge='curriculum', grade=current_grade, domain=current_domain, subject=current_subject) }}"
