@@ -351,15 +351,17 @@
                               {% elif session.status == 'completed' %}bg-green-100 border border-green-400 text-green-900
                               {% elif session.status == 'cancelled' %}bg-red-100 border border-red-400 text-red-900
                               {% else %}bg-gray-100 border border-gray-400 text-gray-900{% endif %}"
-                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px;">
-                        <div class="px-1.5 pt-1 leading-tight h-full flex flex-col overflow-hidden">
+                       style="top: {{ top_px }}px; min-height: {{ h_px }}px; left: 2px; right: 2px;">
+                        <div class="px-1.5 pt-1 pb-1 leading-tight flex flex-col">
                             {% if wd_mismatch %}<div class="text-orange-600 font-bold text-[10px] leading-none mb-0.5">⚠️ 요일불일치</div>{% endif %}
                             <div class="font-semibold truncate text-[11px] leading-snug">{{ session.course.course_name }}</div>
                             {% if h_px >= 30 %}
                             <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
                             {% endif %}
-                            {% if h_px >= 44 and student_names %}
-                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ student_names }}</div>
+                            {% if student_names %}
+                            <div class="opacity-75 mt-0.5 text-[10px] break-keep leading-snug">
+                                {% for enr in active_enr %}{{ enr.student.name }}{% if not loop.last %} · {% endif %}{% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </a>
@@ -387,14 +389,16 @@
                        class="absolute rounded text-xs z-10
                               bg-gray-100 border border-dashed border-gray-400 text-gray-600
                               hover:shadow-md hover:z-20 transition"
-                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;">
-                        <div class="px-1.5 pt-1 leading-tight h-full flex flex-col overflow-hidden">
+                       style="top: {{ top_px }}px; min-height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;">
+                        <div class="px-1.5 pt-1 pb-1 leading-tight flex flex-col">
                             <div class="font-semibold truncate text-[11px] leading-snug">{{ course.course_name }}</div>
                             {% if h_px >= 30 %}
                             <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
                             {% endif %}
-                            {% if h_px >= 44 and student_names %}
-                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ student_names }}</div>
+                            {% if student_names %}
+                            <div class="opacity-75 mt-0.5 text-[10px] break-keep leading-snug">
+                                {% for enr in active_enr %}{{ enr.student.name }}{% if not loop.last %} · {% endif %}{% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </a>
