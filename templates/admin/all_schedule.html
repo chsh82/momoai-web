@@ -269,7 +269,7 @@
     {# PX_PER_MIN: 1분당 픽셀 수. 높이를 바꾸려면 이 값만 수정 #}
     {% elif view_mode == 'weekly' %}
     {% set START_HOUR = 8 %}
-    {% set END_HOUR = 22 %}
+    {% set END_HOUR = 24 %}
     {% set TOTAL_MIN = (END_HOUR - START_HOUR) * 60 %}
     {% set PX_PER_MIN = 1.25 %}
     {% set HOUR_PX = (60 * PX_PER_MIN) | int %}
@@ -302,7 +302,7 @@
                     {% for h in range(START_HOUR, END_HOUR + 1) %}
                     <div class="absolute w-full flex items-start justify-center"
                          style="top: {{ ((h - START_HOUR) * 60 * PX_PER_MIN) | int }}px; height: {{ HOUR_PX }}px;">
-                        <span class="text-xs text-gray-500 mt-0.5 leading-none">{% if h < 10 %}0{% endif %}{{ h }}:00</span>
+                        <span class="text-xs text-gray-500 mt-0.5 leading-none">{% if h < 24 %}{% if h < 10 %}0{% endif %}{{ h }}:00{% else %}24:00{% endif %}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -310,7 +310,7 @@
                 <!-- 요일 컬럼 7개 -->
                 {% for day_idx in range(7) %}
                 {% set current_date = week_start + timedelta(days=day_idx) %}
-                <div class="relative border-r border-gray-200
+                <div class="week-day-col relative border-r border-gray-200
                             {% if day_idx == 6 %}border-r-0{% endif %}
                             {% if current_date == today %}bg-blue-50{% endif %}">
 
@@ -341,28 +341,31 @@
                         {% set active_enr = session.course.enrollments | selectattr('status', 'equalto', 'active') | list %}
                         {% set student_names = active_enr | map(attribute='student') | map(attribute='name') | join(', ') %}
                         {% set time_str = session.start_time.strftime('%H:%M') %}
-                        {% if session.end_time %}{% set time_str = time_str + ' – ' + session.end_time.strftime('%H:%M') %}{% endif %}
-                        {% set teacher_name = session.course.teacher.name if session.course.teacher else '' %}
+                        {% if session.end_time %}{% set time_str = time_str + '–' + session.end_time.strftime('%H:%M') %}{% endif %}
                         {% set status_label = '예정' if session.status == 'scheduled' else ('완료' if session.status == 'completed' else ('취소' if session.status == 'cancelled' else session.status)) %}
                     <a href="{{ url_for('admin.course_detail', course_id=session.course.course_id) }}"
-                       class="absolute rounded text-xs shadow-sm hover:shadow-md hover:z-20 transition z-10
+                       class="sched-block absolute rounded text-xs shadow-sm hover:shadow-md transition z-10
                               {% if wd_mismatch %}bg-orange-100 border-2 border-orange-500 text-orange-900
                               {% elif session.status == 'scheduled' %}bg-blue-100 border border-blue-400 text-blue-900
                               {% elif session.status == 'completed' %}bg-green-100 border border-green-400 text-green-900
                               {% elif session.status == 'cancelled' %}bg-red-100 border border-red-400 text-red-900
                               {% else %}bg-gray-100 border border-gray-400 text-gray-900{% endif %}"
-                       style="top: {{ top_px }}px; min-height: {{ h_px }}px; left: 2px; right: 2px;">
+                       style="top:{{ top_px }}px; min-height:{{ h_px }}px; left:2px; right:2px;"
+                       data-minhpx="{{ h_px }}"
+                       data-top="{{ top_px }}"
+                       data-name="{{ session.course.course_name }}{% if wd_mismatch %} ⚠️{% endif %}"
+                       data-time="{{ time_str }}"
+                       data-status="{{ status_label }}"
+                       data-count="{{ active_enr | length }}"
+                       data-students="{{ student_names }}"
+                       data-url="{{ url_for('admin.course_detail', course_id=session.course.course_id) }}">
                         <div class="px-1.5 pt-1 pb-1 leading-tight flex flex-col">
                             {% if wd_mismatch %}<div class="text-orange-600 font-bold text-[10px] leading-none mb-0.5">⚠️ 요일불일치</div>{% endif %}
-                            <div class="font-semibold truncate text-[11px] leading-snug">{{ session.course.course_name }}</div>
-                            {% if h_px >= 30 %}
-                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
-                            {% endif %}
-                            {% if student_names %}
-                            <div class="opacity-75 mt-0.5 text-[10px] break-keep leading-snug">
+                            <div class="sched-title font-semibold truncate text-[11px] leading-snug">{{ session.course.course_name }}</div>
+                            <div class="sched-time opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
+                            <div class="sched-names opacity-75 mt-0.5 text-[10px] break-keep leading-snug">
                                 {% for enr in active_enr %}{{ enr.student.name }}{% if not loop.last %} · {% endif %}{% endfor %}
                             </div>
-                            {% endif %}
                         </div>
                     </a>
                     {% endif %}
@@ -383,23 +386,26 @@
                         {% set active_enr = course.enrollments | selectattr('status', 'equalto', 'active') | list %}
                         {% set student_names = active_enr | map(attribute='student') | map(attribute='name') | join(', ') %}
                         {% set time_str = course.start_time.strftime('%H:%M') %}
-                        {% if course.end_time %}{% set time_str = time_str + ' – ' + course.end_time.strftime('%H:%M') %}{% endif %}
-                        {% set teacher_name = course.teacher.name if course.teacher else '' %}
+                        {% if course.end_time %}{% set time_str = time_str + '–' + course.end_time.strftime('%H:%M') %}{% endif %}
                     <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
-                       class="absolute rounded text-xs z-10
+                       class="sched-block absolute rounded text-xs z-10
                               bg-gray-100 border border-dashed border-gray-400 text-gray-600
-                              hover:shadow-md hover:z-20 transition"
-                       style="top: {{ top_px }}px; min-height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;">
+                              hover:shadow-md transition"
+                       style="top:{{ top_px }}px; min-height:{{ h_px }}px; left:2px; right:2px; opacity:0.8;"
+                       data-minhpx="{{ h_px }}"
+                       data-top="{{ top_px }}"
+                       data-name="{{ course.course_name }}"
+                       data-time="{{ time_str }}"
+                       data-status="세션없음"
+                       data-count="{{ active_enr | length }}"
+                       data-students="{{ student_names }}"
+                       data-url="{{ url_for('admin.course_detail', course_id=course.course_id) }}">
                         <div class="px-1.5 pt-1 pb-1 leading-tight flex flex-col">
-                            <div class="font-semibold truncate text-[11px] leading-snug">{{ course.course_name }}</div>
-                            {% if h_px >= 30 %}
-                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
-                            {% endif %}
-                            {% if student_names %}
-                            <div class="opacity-75 mt-0.5 text-[10px] break-keep leading-snug">
+                            <div class="sched-title font-semibold truncate text-[11px] leading-snug">{{ course.course_name }}</div>
+                            <div class="sched-time opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
+                            <div class="sched-names opacity-75 mt-0.5 text-[10px] break-keep leading-snug">
                                 {% for enr in active_enr %}{{ enr.student.name }}{% if not loop.last %} · {% endif %}{% endfor %}
                             </div>
-                            {% endif %}
                         </div>
                     </a>
                     {% endif %}
@@ -411,6 +417,97 @@
             </div><!-- end grid -->
         </div>
     </div>
+
+    <!-- 수업 상세 팝업 (겹치는 블록 클릭 시) -->
+    <div id="schedDetailPopup" class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40"
+         onclick="if(event.target===this)closeSchedPopup()">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-80 max-w-[90vw]">
+            <div class="flex items-start justify-between mb-3">
+                <div id="sdp-name" class="font-bold text-gray-800 text-base leading-snug pr-4"></div>
+                <button onclick="closeSchedPopup()" class="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0">✕</button>
+            </div>
+            <div class="space-y-1.5 text-sm text-gray-600 mb-4">
+                <div><span class="text-gray-400 text-xs">시간</span> <span id="sdp-time" class="font-medium text-blue-700"></span></div>
+                <div><span class="text-gray-400 text-xs">상태</span> <span id="sdp-status" class="font-medium"></span></div>
+                <div><span class="text-gray-400 text-xs">인원</span> <span id="sdp-count" class="font-medium"></span>명</div>
+            </div>
+            <div id="sdp-students" class="text-sm text-gray-700 border-t border-gray-100 pt-3 mb-4 leading-relaxed"></div>
+            <a id="sdp-link" href="#"
+               class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition text-sm">
+                수업 상세 보기 →
+            </a>
+        </div>
+    </div>
+
+    <style>
+    .sched-narrow .sched-names { display: none !important; }
+    .sched-narrow .sched-time  { display: none !important; }
+    </style>
+    <script>
+    (function () {
+        // ── 겹침 감지 및 레이아웃 조정 ──
+        document.querySelectorAll('.week-day-col').forEach(function (col) {
+            var blocks = Array.from(col.querySelectorAll('.sched-block'));
+            if (blocks.length < 2) return;
+
+            var items = blocks.map(function (b) {
+                var top = parseFloat(b.dataset.top) || 0;
+                var minH = parseFloat(b.dataset.minhpx) || 0;
+                return { el: b, top: top, bottom: top + minH, lane: 0 };
+            }).sort(function (a, b) { return a.top - b.top; });
+
+            // 그리디 레인 배정
+            var laneEnds = [];
+            items.forEach(function (item) {
+                var lane = laneEnds.findIndex(function (end) { return item.top >= end; });
+                if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+                laneEnds[lane] = item.bottom;
+                item.lane = lane;
+            });
+
+            var totalLanes = laneEnds.length;
+            if (totalLanes < 2) return;
+
+            // 레인 수에 따라 폭 조정
+            items.forEach(function (item) {
+                var pct = 100 / totalLanes;
+                var gap = 2;
+                item.el.style.left   = 'calc(' + (item.lane * pct) + '% + ' + gap + 'px)';
+                item.el.style.right  = 'auto';
+                item.el.style.width  = 'calc(' + pct + '% - ' + (gap * 2) + 'px)';
+                item.el.classList.add('sched-narrow');
+            });
+        });
+
+        // ── 클릭 핸들러 ──
+        document.querySelectorAll('.sched-block').forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                if (!this.classList.contains('sched-narrow')) return;
+                e.preventDefault();
+                var d = this.dataset;
+                document.getElementById('sdp-name').textContent    = d.name    || '';
+                document.getElementById('sdp-time').textContent    = d.time    || '';
+                document.getElementById('sdp-status').textContent  = d.status  || '';
+                document.getElementById('sdp-count').textContent   = d.count   || '0';
+                var studentsEl = document.getElementById('sdp-students');
+                if (d.students) {
+                    studentsEl.innerHTML = d.students.split(',').map(function (s) {
+                        return '<span class="inline-block mr-2">· ' + s.trim() + '</span>';
+                    }).join('');
+                    studentsEl.style.display = '';
+                } else {
+                    studentsEl.style.display = 'none';
+                }
+                document.getElementById('sdp-link').href = d.url || '#';
+                document.getElementById('schedDetailPopup').classList.remove('hidden');
+            });
+        });
+    })();
+
+    function closeSchedPopup() {
+        document.getElementById('schedDetailPopup').classList.add('hidden');
+    }
+    </script>
 
 
     {# ======================== 월간 뷰 ======================== #}
