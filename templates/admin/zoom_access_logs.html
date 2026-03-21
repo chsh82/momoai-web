@@ -182,7 +182,7 @@
                         전체 <span class="font-medium">{{ logs.total }}</span>개 중
                         <span class="font-medium">{{ ((logs.page - 1) * logs.per_page) + 1 }}</span>
                         -
-                        <span class="font-medium">{{ min(logs.page * logs.per_page, logs.total) }}</span>
+                        <span class="font-medium">{{ [logs.page * logs.per_page, logs.total] | min }}</span>
                         번째 항목
                     </p>
                 </div>
