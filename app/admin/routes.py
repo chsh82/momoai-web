@@ -2679,8 +2679,10 @@ def all_schedule():
     weekly_courses_only = {i: [] for i in range(7)}   # 세션 없이 Course.weekday로만 표시
     weekly_mismatch = []  # 요일 불일치 세션 목록
     if view_mode == 'weekly' and teacher_course_ids:
+        active_course_ids = [c.course_id for c in teacher_courses
+                              if c.status not in ('ended', 'cancelled') and not c.is_terminated]
         sessions = CourseSession.query.filter(
-            CourseSession.course_id.in_(teacher_course_ids),
+            CourseSession.course_id.in_(active_course_ids),
             CourseSession.session_date >= week_start,
             CourseSession.session_date <= week_end
         ).order_by(CourseSession.session_date, CourseSession.start_time).all()

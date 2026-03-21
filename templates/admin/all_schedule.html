@@ -418,8 +418,8 @@
         </div>
     </div>
 
-    <!-- 수업 상세 팝업 (겹치는 블록 클릭 시) -->
-    <div id="schedDetailPopup" class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40"
+    <!-- 수업 상세 팝업 -->
+    <div id="schedDetailPopup" class="hidden fixed inset-0 z-[9999] flex items-start justify-center pt-20"
          onclick="if(event.target===this)closeSchedPopup()">
         <div class="bg-white rounded-2xl shadow-2xl p-5 w-80 max-w-[90vw]">
             <div class="flex items-start justify-between mb-3">
@@ -479,10 +479,9 @@
             });
         });
 
-        // ── 클릭 핸들러 ──
+        // ── 클릭 핸들러 (모든 블록에 팝업 적용) ──
         document.querySelectorAll('.sched-block').forEach(function (el) {
             el.addEventListener('click', function (e) {
-                if (!this.classList.contains('sched-narrow')) return;
                 e.preventDefault();
                 var d = this.dataset;
                 document.getElementById('sdp-name').textContent    = d.name    || '';
