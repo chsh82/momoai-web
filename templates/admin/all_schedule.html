@@ -345,26 +345,21 @@
                         {% set teacher_name = session.course.teacher.name if session.course.teacher else '' %}
                         {% set status_label = '예정' if session.status == 'scheduled' else ('완료' if session.status == 'completed' else ('취소' if session.status == 'cancelled' else session.status)) %}
                     <a href="{{ url_for('admin.course_detail', course_id=session.course.course_id) }}"
-                       class="sched-block absolute rounded text-xs shadow-sm hover:shadow-md hover:z-20 transition z-10
+                       class="absolute rounded text-xs shadow-sm hover:shadow-md hover:z-20 transition z-10
                               {% if wd_mismatch %}bg-orange-100 border-2 border-orange-500 text-orange-900
                               {% elif session.status == 'scheduled' %}bg-blue-100 border border-blue-400 text-blue-900
                               {% elif session.status == 'completed' %}bg-green-100 border border-green-400 text-green-900
                               {% elif session.status == 'cancelled' %}bg-red-100 border border-red-400 text-red-900
                               {% else %}bg-gray-100 border border-gray-400 text-gray-900{% endif %}"
-                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px;"
-                       data-name="{{ session.course.course_name }}{% if wd_mismatch %} ⚠️ 요일불일치{% endif %}"
-                       data-time="{{ time_str }}"
-                       data-teacher="{{ teacher_name }}"
-                       data-info="👥 {{ active_enr | length }}명{% if session.course.grade %} · {{ session.course.grade }}{% endif %} · {{ status_label }}"
-                       data-students="{{ student_names }}">
+                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px;">
                         <div class="px-1.5 pt-1 leading-tight h-full flex flex-col overflow-hidden">
                             {% if wd_mismatch %}<div class="text-orange-600 font-bold text-[10px] leading-none mb-0.5">⚠️ 요일불일치</div>{% endif %}
                             <div class="font-semibold truncate text-[11px] leading-snug">{{ session.course.course_name }}</div>
-                            {% if h_px >= 38 %}
-                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }}</div>
+                            {% if h_px >= 30 %}
+                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
                             {% endif %}
-                            {% if h_px >= 56 %}
-                            <div class="opacity-75 mt-0.5 text-[10px]">👥 {{ active_enr | length }}명{% if session.course.grade %} · {{ session.course.grade }}{% endif %}</div>
+                            {% if h_px >= 44 and student_names %}
+                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ student_names }}</div>
                             {% endif %}
                         </div>
                     </a>
@@ -389,22 +384,17 @@
                         {% if course.end_time %}{% set time_str = time_str + ' – ' + course.end_time.strftime('%H:%M') %}{% endif %}
                         {% set teacher_name = course.teacher.name if course.teacher else '' %}
                     <a href="{{ url_for('admin.course_detail', course_id=course.course_id) }}"
-                       class="sched-block absolute rounded text-xs z-10
+                       class="absolute rounded text-xs z-10
                               bg-gray-100 border border-dashed border-gray-400 text-gray-600
                               hover:shadow-md hover:z-20 transition"
-                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;"
-                       data-name="{{ course.course_name }}"
-                       data-time="{{ time_str }}"
-                       data-teacher="{{ teacher_name }}"
-                       data-info="👥 {{ active_enr | length }}명{% if course.grade %} · {{ course.grade }}{% endif %} · 세션없음"
-                       data-students="{{ student_names }}">
+                       style="top: {{ top_px }}px; height: {{ h_px }}px; left: 2px; right: 2px; opacity: 0.75;">
                         <div class="px-1.5 pt-1 leading-tight h-full flex flex-col overflow-hidden">
                             <div class="font-semibold truncate text-[11px] leading-snug">{{ course.course_name }}</div>
-                            {% if h_px >= 38 %}
-                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }}</div>
+                            {% if h_px >= 30 %}
+                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ time_str }} · {{ active_enr | length }}명</div>
                             {% endif %}
-                            {% if h_px >= 56 %}
-                            <div class="opacity-75 mt-0.5 text-[10px]">👥 {{ active_enr | length }}명 <span class="opacity-60">(세션없음)</span></div>
+                            {% if h_px >= 44 and student_names %}
+                            <div class="opacity-75 mt-0.5 truncate text-[10px]">{{ student_names }}</div>
                             {% endif %}
                         </div>
                     </a>
@@ -418,58 +408,6 @@
         </div>
     </div>
 
-    <!-- 호버 팝업 카드 -->
-    <div id="sched-popup"
-         class="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-2xl p-3.5 text-sm pointer-events-none"
-         style="display:none; min-width:210px; max-width:270px;">
-        <div id="sp-name" class="font-bold text-gray-800 text-sm leading-snug mb-1.5"></div>
-        <div id="sp-time" class="text-blue-600 text-xs font-medium mb-1"></div>
-        <div id="sp-teacher" class="text-gray-500 text-xs mb-1"></div>
-        <div id="sp-info" class="text-gray-600 text-xs mb-1.5"></div>
-        <div id="sp-students" class="text-gray-700 text-xs border-t border-gray-100 pt-1.5 space-y-0.5"></div>
-    </div>
-    <script>
-    (function () {
-        var popup = document.getElementById('sched-popup');
-        document.querySelectorAll('.sched-block').forEach(function (el) {
-            el.addEventListener('mouseenter', function () {
-                document.getElementById('sp-name').textContent    = el.dataset.name    || '';
-                document.getElementById('sp-time').textContent    = el.dataset.time    || '';
-                var teacherEl = document.getElementById('sp-teacher');
-                teacherEl.textContent = el.dataset.teacher ? '👨\u200d🏫 ' + el.dataset.teacher : '';
-                teacherEl.style.display = el.dataset.teacher ? '' : 'none';
-                document.getElementById('sp-info').textContent    = el.dataset.info    || '';
-                var studEl = document.getElementById('sp-students');
-                studEl.innerHTML = '';
-                if (el.dataset.students) {
-                    el.dataset.students.split(',').forEach(function (s) {
-                        s = s.trim();
-                        if (s) {
-                            var d = document.createElement('div');
-                            d.textContent = '· ' + s;
-                            studEl.appendChild(d);
-                        }
-                    });
-                }
-                studEl.style.display = studEl.children.length ? '' : 'none';
-                popup.style.display = 'block';
-                var rect = el.getBoundingClientRect();
-                var left = rect.right + 10;
-                var top  = rect.top;
-                if (left + 270 > window.innerWidth)  left = rect.left - 278;
-                if (left < 4) left = 4;
-                if (top + popup.offsetHeight > window.innerHeight - 4)
-                    top = window.innerHeight - popup.offsetHeight - 4;
-                if (top < 4) top = 4;
-                popup.style.left = left + 'px';
-                popup.style.top  = top  + 'px';
-            });
-            el.addEventListener('mouseleave', function () {
-                popup.style.display = 'none';
-            });
-        });
-    })();
-    </script>
 
     {# ======================== 월간 뷰 ======================== #}
     {% else %}
