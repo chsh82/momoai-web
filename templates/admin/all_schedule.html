@@ -506,6 +506,9 @@
     function closeSchedPopup() {
         document.getElementById('schedDetailPopup').classList.add('hidden');
     }
+
+    // 팝업을 body 직하위로 이동 → stacking context 탈출
+    document.body.appendChild(document.getElementById('schedDetailPopup'));
     </script>
 
 
