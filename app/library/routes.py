@@ -11,6 +11,15 @@ import os
 from app.library import library_bp
 from app.models import db, Book, Video, Student
 from app.models.library import HallOfFame, AdmissionInfo
+from app.models.parent_student import ParentStudent
+
+# 학년 → LV 태그 매핑
+GRADE_TO_LV = {
+    '초1': 'LV1', '초2': 'LV2', '초3': 'LV3',
+    '초4': 'LV4', '초5': 'LV5', '초6': 'LV6',
+    '중1': 'LV7', '중2': 'LV8', '중3': 'LV9',
+    '고1': 'LV9', '고2': 'LV10', '고3': 'LV10',
+}
 from app.utils.decorators import requires_permission_level
 
 
@@ -114,11 +123,37 @@ def books():
     """추천도서 목록"""
     import json
     page = request.args.get('page', 1, type=int)
-    current_grade = request.args.get('grade', '')
     current_domain = request.args.get('domain', '')
     current_subject = request.args.get('subject', '')
     current_badge = request.args.get('badge', '')
     per_page = 12
+
+    # 학년 필터: grade 파라미터가 URL에 없으면 역할별 자동 감지
+    grade_param = request.args.get('grade', None)  # None = URL에 grade 없음
+    auto_grade = ''
+    if grade_param is None:
+        # 학생: 본인 학년으로 자동 설정
+        if current_user.role == 'student':
+            student = Student.query.filter_by(email=current_user.email).first()
+            if student and student.grade:
+                auto_grade = GRADE_TO_LV.get(student.grade, '')
+        # 학부모: 연계된 자녀 중 가장 높은 학년으로 설정
+        elif current_user.role == 'parent':
+            parent_relations = ParentStudent.query.filter_by(
+                parent_id=current_user.user_id, is_active=True
+            ).all()
+            child_lvs = []
+            for pr in parent_relations:
+                child = pr.student
+                if child and child.grade:
+                    lv = GRADE_TO_LV.get(child.grade, '')
+                    if lv:
+                        child_lvs.append(lv)
+            if child_lvs:
+                auto_grade = max(child_lvs, key=lambda x: int(x.replace('LV', '')))
+        current_grade = auto_grade
+    else:
+        current_grade = grade_param  # 빈 문자열 포함 명시적 값 사용
 
     query = Book.query
     if current_grade:
@@ -140,7 +175,7 @@ def books():
         page=page, per_page=per_page, error_out=False
     )
 
-    # 전체 주제 태그 목록 (필터 바용)
+    # 전체 주제 태그 목록 (자동완성용)
     all_subjects = set()
     for (tags_json,) in db.session.query(Book.subject_tags).filter(Book.subject_tags != None).all():
         try:
@@ -156,6 +191,7 @@ def books():
                          current_domain=current_domain,
                          current_subject=current_subject,
                          current_badge=current_badge,
+                         auto_grade=auto_grade,
                          all_subjects=sorted(all_subjects))
 
 

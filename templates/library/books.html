@@ -55,15 +55,19 @@
 
         <!-- 레벨 태그 -->
         <div class="mb-4">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">레벨</p>
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">레벨
+                {% if auto_grade %}
+                <span class="ml-1 text-blue-500 font-normal normal-case">(내 학년 기준 자동 설정)</span>
+                {% endif %}
+            </p>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ url_for('library.books', domain=current_domain, subject=current_subject) }}"
+                <a href="{{ url_for('library.books', grade='', domain=current_domain, subject=current_subject, badge=current_badge) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
                           {% if not current_grade %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                     전체
                 </a>
                 {% for lv in ['LV1','LV2','LV3','LV4','LV5','LV6','LV7','LV8','LV9','LV10'] %}
-                <a href="{{ url_for('library.books', grade=lv, domain=current_domain, subject=current_subject) }}"
+                <a href="{{ url_for('library.books', grade=lv, domain=current_domain, subject=current_subject, badge=current_badge) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
                           {% if current_grade == lv %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                     {{ lv }}
@@ -76,13 +80,13 @@
         <div class="mb-4">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">도서 영역</p>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ url_for('library.books', grade=current_grade, subject=current_subject) }}"
+                <a href="{{ url_for('library.books', grade=current_grade, subject=current_subject, badge=current_badge) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
                           {% if not current_domain %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                     전체
                 </a>
                 {% for d in ['문학','비문학','철학','역사','과학','사회','예술','언어','경제','기타'] %}
-                <a href="{{ url_for('library.books', grade=current_grade, domain=d, subject=current_subject) }}"
+                <a href="{{ url_for('library.books', grade=current_grade, domain=d, subject=current_subject, badge=current_badge) }}"
                    class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
                           {% if current_domain == d %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                     {{ d }}
@@ -91,26 +95,26 @@
             </div>
         </div>
 
-        <!-- 주제 태그 (등록된 경우에만 표시) -->
-        {% if all_subjects %}
+        <!-- 주제 태그 자동완성 검색 -->
         <div>
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">주제</p>
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ url_for('library.books', grade=current_grade, domain=current_domain) }}"
-                   class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
-                          {% if not current_subject %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    전체
-                </a>
-                {% for s in all_subjects %}
-                <a href="{{ url_for('library.books', grade=current_grade, domain=current_domain, subject=s) }}"
-                   class="px-3 py-1.5 rounded-full text-sm font-medium transition duration-150
-                          {% if current_subject == s %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    # {{ s }}
-                </a>
-                {% endfor %}
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">주제 태그 검색</p>
+            <div class="flex items-center gap-2">
+                <div class="relative" style="min-width: 220px;">
+                    <input type="text" id="subjectSearch"
+                           placeholder="# 주제 검색 (예: 환경, 성장...)"
+                           value="{{ current_subject }}"
+                           autocomplete="off"
+                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-purple-400 focus:outline-none {% if current_subject %}bg-purple-50 border-purple-300{% endif %}">
+                    <div id="subjectSuggestions"
+                         class="absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 hidden max-h-52 overflow-y-auto">
+                    </div>
+                </div>
+                {% if current_subject %}
+                <a href="{{ url_for('library.books', grade=current_grade, domain=current_domain, badge=current_badge) }}"
+                   class="text-xs text-red-500 hover:text-red-700 font-medium whitespace-nowrap">✕ 해제</a>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
 
         <!-- 필터 초기화 -->
         {% if current_grade or current_domain or current_subject or current_badge %}
@@ -126,7 +130,7 @@
             <span class="px-2.5 py-0.5 bg-red-100 text-red-800 rounded-full text-sm font-medium">서울대고전100선</span>
             {% endif %}
             {% if current_grade %}
-            <span class="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">{{ current_grade }}</span>
+            <span class="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">{{ current_grade }}{% if auto_grade %} 🎓{% endif %}</span>
             {% endif %}
             {% if current_domain %}
             <span class="px-2.5 py-0.5 bg-green-100 text-green-800 rounded-full text-sm font-medium">{{ current_domain }}</span>
@@ -134,7 +138,7 @@
             {% if current_subject %}
             <span class="px-2.5 py-0.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"># {{ current_subject }}</span>
             {% endif %}
-            <a href="{{ url_for('library.books') }}" class="ml-2 text-sm text-red-500 hover:text-red-700 font-medium">✕ 초기화</a>
+            <a href="{{ url_for('library.books') }}" class="ml-2 text-sm text-red-500 hover:text-red-700 font-medium">✕ 전체 초기화</a>
         </div>
         {% endif %}
     </div>
@@ -260,4 +264,60 @@
         </a>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const subjects = {{ all_subjects | tojson }};
+    const input = document.getElementById('subjectSearch');
+    const dropdown = document.getElementById('subjectSuggestions');
+    if (!input) return;
+
+    function buildUrl(subject) {
+        const params = new URLSearchParams();
+        if (subject) params.set('subject', subject);
+        {% if current_grade %}params.set('grade', '{{ current_grade }}');{% endif %}
+        {% if current_domain %}params.set('domain', '{{ current_domain }}');{% endif %}
+        {% if current_badge %}params.set('badge', '{{ current_badge }}');{% endif %}
+        return '{{ url_for("library.books") }}?' + params.toString();
+    }
+
+    function showSuggestions(val) {
+        const q = val.trim().toLowerCase();
+        const matches = q ? subjects.filter(s => s.toLowerCase().includes(q)) : subjects;
+        if (matches.length === 0) { dropdown.classList.add('hidden'); return; }
+        dropdown.innerHTML = matches.slice(0, 20).map(s =>
+            `<div class="px-3 py-2 hover:bg-purple-50 cursor-pointer text-sm text-gray-700 subject-opt" data-val="${s}">
+                <span class="text-purple-400 mr-1">#</span>${s}
+             </div>`
+        ).join('');
+        dropdown.classList.remove('hidden');
+    }
+
+    input.addEventListener('focus', function() { showSuggestions(this.value); });
+    input.addEventListener('input', function() { showSuggestions(this.value); });
+
+    dropdown.addEventListener('mousedown', function(e) {
+        const opt = e.target.closest('.subject-opt');
+        if (!opt) return;
+        e.preventDefault();
+        window.location.href = buildUrl(opt.dataset.val);
+    });
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const first = dropdown.querySelector('.subject-opt');
+            if (first) window.location.href = buildUrl(first.dataset.val);
+        }
+        if (e.key === 'Escape') { dropdown.classList.add('hidden'); }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+})();
+</script>
 {% endblock %}

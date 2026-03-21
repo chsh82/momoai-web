@@ -22,8 +22,8 @@
             <span class="px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full shadow-sm">서울대고전100선</span>
             {% endif %}
         </div>
-        <!-- 태그 -->
-        {% set all_tags = book.grade_tags_list + book.domain_tags_list + book.subject_tags_list %}
+        <!-- 태그 (레벨 + 도서영역만 표시, 주제 제외) -->
+        {% set all_tags = book.grade_tags_list + book.domain_tags_list %}
         {% if all_tags %}
         <div class="flex flex-wrap gap-1.5 mt-2">
             {% for tag in book.grade_tags_list %}
@@ -33,10 +33,6 @@
             {% for tag in book.domain_tags_list %}
             <a href="{{ url_for('library.books', domain=tag) }}"
                class="px-2.5 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full hover:bg-green-200 transition">{{ tag }}</a>
-            {% endfor %}
-            {% for tag in book.subject_tags_list %}
-            <a href="{{ url_for('library.books', subject=tag) }}"
-               class="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full hover:bg-purple-200 transition"># {{ tag }}</a>
             {% endfor %}
         </div>
         {% endif %}
@@ -211,17 +207,6 @@
                             {% for tag in book.domain_tags_list %}
                             <a href="{{ url_for('library.books', domain=tag) }}"
                                class="px-2.5 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full hover:bg-green-200 transition">{{ tag }}</a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if book.subject_tags_list %}
-                    <div class="flex items-start">
-                        <label class="font-semibold text-gray-700 w-24 pt-0.5">주제:</label>
-                        <div class="flex flex-wrap gap-1.5">
-                            {% for tag in book.subject_tags_list %}
-                            <a href="{{ url_for('library.books', subject=tag) }}"
-                               class="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full hover:bg-purple-200 transition"># {{ tag }}</a>
                             {% endfor %}
                         </div>
                     </div>
