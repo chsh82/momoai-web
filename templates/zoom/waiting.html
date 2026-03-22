@@ -48,13 +48,14 @@
                     <div class="flex justify-between">
                         <span class="text-gray-600">수업 시작</span>
                         <span class="font-medium text-gray-800">
-                            {{ session.session_date.strftime('%Y-%m-%d %H:%M') }}
+                            {{ session.session_date.strftime('%Y-%m-%d') }}
+                            {{ session.start_time.strftime('%H:%M') if session.start_time else '' }}
                         </span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">입장 가능</span>
                         <span class="font-medium text-green-600">
-                            {{ (session.session_date.replace(minute=session.session_date.minute - 10)) | kst('%H:%M') }}부터
+                            {{ access_time.strftime('%H:%M') if access_time else '' }}부터
                         </span>
                     </div>
                 </div>

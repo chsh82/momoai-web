@@ -68,10 +68,12 @@ def join(token):
 
         if not can_access:
             # 10분 전이 아니면 대기 페이지 표시
+            access_time = session_dt - timedelta(minutes=10)
             return render_template('zoom/waiting.html',
                                  teacher=teacher,
                                  session=session,
                                  message=message,
+                                 access_time=access_time,
                                  token=token)
 
     # 접속 로그 기록
@@ -124,7 +126,11 @@ def preview(token):
     message = "현재 예정된 수업이 없습니다."
 
     if session:
-        can_access, message = can_access_zoom(session.session_date)
+        session_start = dtime.min
+        if session.start_time:
+            session_start = session.start_time
+        session_dt = datetime.combine(session.session_date, session_start)
+        can_access, message = can_access_zoom(session_dt)
 
     return render_template('zoom/preview.html',
                          teacher=teacher,
