@@ -737,16 +737,40 @@ def finalize(essay_id):
     service = MOMOAIService(Config.ANTHROPIC_API_KEY)
     service.finalize_essay(essay)
 
-    # 알림 생성
-    Notification.create_notification(
-        user_id=current_user.user_id,
-        notification_type='essay_complete',
-        title=f"첨삭이 완료되었습니다",
-        message=f'{essay.student.name} 학생의 "{essay.title or "논술"}" 첨삭이 최종 완료되었습니다',
-        link_url=url_for('essays.result', essay_id=essay.essay_id),
-        related_entity_type='essay',
-        related_entity_id=essay.essay_id
-    )
+    # 알림 생성 — 학생 + 학부모에게 발송
+    from app.models.user import User as _User
+    from app.models import ParentStudent
+
+    _title = essay.title or f'{essay.student.name}의 논술'
+
+    # 1. 학생 알림
+    student_user = _User.query.filter_by(email=essay.student.email).first()
+    if student_user:
+        Notification.create_notification(
+            user_id=student_user.user_id,
+            notification_type='essay_complete',
+            title='첨삭이 완료되었습니다',
+            message=f'"{_title}" 첨삭이 완료되었습니다. 확인해보세요!',
+            link_url=url_for('student.view_essay', essay_id=essay.essay_id),
+            related_entity_type='essay',
+            related_entity_id=essay.essay_id
+        )
+
+    # 2. 학부모 알림
+    parent_relations = ParentStudent.query.filter_by(
+        student_id=essay.student.student_id,
+        is_active=True
+    ).all()
+    for rel in parent_relations:
+        Notification.create_notification(
+            user_id=rel.parent_id,
+            notification_type='essay_complete',
+            title='자녀의 첨삭이 완료되었습니다',
+            message=f'{essay.student.name} 학생의 "{_title}" 첨삭이 완료되었습니다.',
+            link_url=url_for('parent.view_essay', student_id=essay.student.student_id, essay_id=essay.essay_id),
+            related_entity_type='essay',
+            related_entity_id=essay.essay_id
+        )
 
     flash(f'{essay.student.name} 학생의 첨삭이 완료되었습니다.', 'success')
     return redirect(url_for('essays.result', essay_id=essay.essay_id))

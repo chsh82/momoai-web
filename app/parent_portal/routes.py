@@ -898,9 +898,21 @@ def view_essay(student_id, essay_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('parent.essays', student_id=student_id))
 
+    # 첨삭 HTML 내용 로드
+    html_content = None
+    if essay.is_finalized:
+        version = essay.latest_version
+        if version and version.html_path:
+            try:
+                with open(version.html_path, 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+            except Exception:
+                pass
+
     return render_template('parent/view_essay.html',
                          student=student,
-                         essay=essay)
+                         essay=essay,
+                         html_content=html_content)
 
 
 @parent_bp.route('/essays/submit', methods=['GET', 'POST'])
