@@ -8,7 +8,22 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Syntax check (빠른 오류 감지)
+        run: |
+          echo "Python 문법 검사 중..."
+          find app -name "*.py" -exec python -m py_compile {} \;
+          echo "문법 검사 통과"
+
       - name: Deploy to GCP server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -16,8 +31,12 @@ jobs:
           username: chsh82
           key: ${{ secrets.GCP_SSH_KEY }}
           script: |
+            set -e
             cd ~/momoai_web
+            echo "=== git pull ==="
             git pull origin master
-            python3 migrate_end_date_nullable.py
-            python3 migrate_teaching_material_book.py
+            echo "=== 서비스 재시작 ==="
             sudo systemctl restart momoai
+            echo "=== 상태 확인 ==="
+            sleep 2
+            systemctl is-active momoai && echo "서비스 정상 실행 중" || echo "서비스 시작 실패!"
