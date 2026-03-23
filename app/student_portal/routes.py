@@ -273,6 +273,20 @@ def course_detail(course_id):
         CourseSession.session_date <= date.today()
     ).order_by(desc(CourseSession.session_date)).all()
 
+    # 진행된 세션 기준 출석 통계 (미래 세션 제외)
+    attended_count = sum(1 for a in attendances if a.status == 'present')
+    absent_count   = sum(1 for a in attendances if a.status == 'absent')
+    late_count     = sum(1 for a in attendances if a.status == 'late')
+    total_checked  = attended_count + absent_count + late_count
+    attendance_rate = round((attended_count + late_count * 0.5) / total_checked * 100, 1) if total_checked > 0 else 0
+    attendance_stats = {
+        'attended': attended_count,
+        'absent': absent_count,
+        'late': late_count,
+        'total': total_checked,
+        'rate': attendance_rate,
+    }
+
     # 클래스 게시판 글 조회 (고정글 우선, 최신순)
     board_posts = ClassBoardPost.query.filter_by(
         course_id=course_id
@@ -286,6 +300,7 @@ def course_detail(course_id):
                          course=course,
                          enrollment=enrollment,
                          attendances=attendances,
+                         attendance_stats=attendance_stats,
                          board_posts=board_posts)
 
 

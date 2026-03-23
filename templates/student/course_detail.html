@@ -41,7 +41,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">출석률</p>
-                    <p class="text-3xl font-bold text-green-600">{{ "%.1f"|format(enrollment.attendance_rate) }}%</p>
+                    <p class="text-3xl font-bold text-green-600">{{ attendance_stats.rate }}%</p>
                 </div>
                 <div class="text-green-600 text-4xl">✅</div>
             </div>
@@ -51,7 +51,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">출석</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ enrollment.attended_sessions }}</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ attendance_stats.attended }}</p>
                 </div>
                 <div class="text-blue-600 text-4xl">✓</div>
             </div>
@@ -61,7 +61,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">지각</p>
-                    <p class="text-3xl font-bold text-yellow-600">{{ enrollment.late_sessions }}</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ attendance_stats.late }}</p>
                 </div>
                 <div class="text-yellow-600 text-4xl">⏰</div>
             </div>
@@ -71,7 +71,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">결석</p>
-                    <p class="text-3xl font-bold text-red-600">{{ enrollment.absent_sessions }}</p>
+                    <p class="text-3xl font-bold text-red-600">{{ attendance_stats.absent }}</p>
                 </div>
                 <div class="text-red-600 text-4xl">✗</div>
             </div>
