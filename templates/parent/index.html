@@ -64,6 +64,12 @@
             <span>내 자녀</span>
         </a>
 
+        <a href="{{ url_for('parent.essays_index') }}"
+           class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📝</span>
+            <span>첨삭 보기</span>
+        </a>
+
         <a href="{{ url_for('parent.all_feedback') }}"
            class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
             <span class="text-2xl">📬</span>
@@ -74,12 +80,6 @@
            class="bg-green-600 hover:bg-green-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
             <span class="text-2xl">💳</span>
             <span>결제 내역</span>
-        </a>
-
-        <a href="{{ url_for('community.index') }}"
-           class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-            <span class="text-2xl">💬</span>
-            <span>커뮤니티</span>
         </a>
     </div>
 
