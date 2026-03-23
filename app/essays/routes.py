@@ -76,20 +76,25 @@ def index():
         )
 
     # Phase 2: 필터링
+    is_teacher = current_user.role not in ('admin', 'manager') and not (
+        current_user.role_level and current_user.role_level <= 2)
+    essay_result_joined = False
+
     # 1. 학생별 필터
     student_filter = request.args.get('student_id', '').strip()
     if student_filter:
-        query = query.filter_by(student_id=student_filter)
+        query = query.filter(Essay.student_id == student_filter)
 
-    # 2. 상태별 필터
+    # 2. 상태별 필터 (명시적으로 Essay.status 사용해 Student.status 모호성 방지)
     status_filter = request.args.get('status', '').strip()
     if status_filter:
-        query = query.filter_by(status=status_filter)
+        query = query.filter(Essay.status == status_filter)
 
     # 3. 등급별 필터
     grade_filter = request.args.get('grade', '').strip()
     if grade_filter:
         query = query.join(EssayResult).filter(EssayResult.final_grade == grade_filter)
+        essay_result_joined = True
 
     # 4. 강사별 필터 (관리자/매니저 전용)
     teacher_filter = request.args.get('teacher_id', '').strip()
@@ -110,7 +115,7 @@ def index():
             Essay.user_id.in_(teacher_ids_sub),
         ))
 
-    # Phase 2: 정렬
+    # Phase 3: 정렬
     sort_by = request.args.get('sort', 'date_desc')
 
     if sort_by == 'date_asc':
@@ -118,11 +123,18 @@ def index():
     elif sort_by == 'date_desc':
         query = query.order_by(Essay.created_at.desc())
     elif sort_by == 'score_desc':
-        query = query.join(EssayResult).order_by(EssayResult.total_score.desc())
+        if not essay_result_joined:
+            query = query.join(EssayResult)
+        query = query.order_by(EssayResult.total_score.desc())
     elif sort_by == 'score_asc':
-        query = query.join(EssayResult).order_by(EssayResult.total_score.asc())
+        if not essay_result_joined:
+            query = query.join(EssayResult)
+        query = query.order_by(EssayResult.total_score.asc())
     elif sort_by == 'student':
-        query = query.join(Student).order_by(Student.name.asc())
+        # 강사 쿼리는 Student를 이미 outerjoin 했으므로 중복 join 방지
+        if not is_teacher:
+            query = query.join(Student)
+        query = query.order_by(Student.name.asc())
     else:
         query = query.order_by(Essay.created_at.desc())
 
