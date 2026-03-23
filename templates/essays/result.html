@@ -11,9 +11,12 @@
         </a>
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-3xl font-bold text-gray-800">
-                    {{ essay.title or student.name + '의 논술' }}
-                </h2>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        {{ essay.title or student.name + '의 논술' }}
+                    </h2>
+                    <span class="text-sm text-gray-300 font-mono">#{{ essay.essay_id[:8] | upper }}</span>
+                </div>
                 <p class="text-gray-600 mt-1">
                     {{ student.name }} ({{ student.grade }}) ·
                     {{ essay.created_at | kst('%Y-%m-%d %H:%M') }} ·

@@ -225,6 +225,7 @@
                            class="text-lg font-bold text-gray-800 hover:text-blue-600 transition duration-200">
                             {{ essay.title or essay.student.name + '의 논술' }}
                         </a>
+                        <span class="text-xs text-gray-300 font-mono">#{{ essay.essay_id[:8] | upper }}</span>
 
                         <!-- Status Badge -->
                         <span class="px-3 py-1 text-xs font-medium rounded-full
