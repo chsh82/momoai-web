@@ -771,7 +771,14 @@
                         <span>학습 자료</span>
                     </a>
 
-                    <!-- 5-1. 내 시수 확인 -->
+                    <!-- 5-1. 필사 노트 -->
+                    <a href="{{ url_for('teacher.pilsa_note') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.pilsa_note' %}active{% endif %} mt-2">
+                        <span class="text-xl">✍️</span>
+                        <span>필사 노트</span>
+                    </a>
+
+                    <!-- 5-2. 내 시수 확인 -->
                     <a href="{{ url_for('teacher.my_hours') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.my_hours' %}active{% endif %} mt-2">
                         <span class="text-xl">📊</span>
