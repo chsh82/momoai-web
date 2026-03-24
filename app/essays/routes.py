@@ -1118,7 +1118,7 @@ def serve_correction_attachment(attachment_id):
         from app.models.parent import ParentStudent
         student = Student.query.get(essay.student_id)
         link = ParentStudent.query.filter_by(
-            parent_id=current_user.id,
+            parent_id=current_user.user_id,
             student_id=essay.student_id,
             is_active=True
         ).first()
