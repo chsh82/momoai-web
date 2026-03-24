@@ -58,6 +58,33 @@
                 </div>
             </div>
 
+            <!-- 강사 첨삭 이미지/파일 첨부 -->
+            {% if essay.is_finalized and essay.correction_attachments %}
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">📎 첨삭 첨부파일</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    {% for att in essay.correction_attachments %}
+                    <div>
+                        {% if att.file_type == 'image' %}
+                        <img src="{{ url_for('essays.serve_correction_attachment', attachment_id=att.attachment_id) }}"
+                             alt="{{ att.original_filename }}"
+                             class="w-full rounded-lg border border-gray-200">
+                        {% else %}
+                        <a href="{{ url_for('essays.serve_correction_attachment', attachment_id=att.attachment_id) }}"
+                           target="_blank"
+                           class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
+                            <span class="text-2xl">📄</span>
+                            <span class="text-sm text-blue-600 hover:underline">{{ att.original_filename }}</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- 첨삭 결과 -->
             {% if html_content %}
             <div class="bg-white rounded-lg shadow">
@@ -68,7 +95,7 @@
                     {{ html_content|safe }}
                 </div>
             </div>
-            {% elif essay.is_finalized %}
+            {% elif essay.is_finalized and not essay.correction_attachments %}
             <div class="bg-white rounded-lg shadow p-8 text-center">
                 <div class="text-5xl mb-3">📄</div>
                 <p class="text-gray-600">첨삭 결과 파일을 불러올 수 없습니다.</p>

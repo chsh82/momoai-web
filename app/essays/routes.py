@@ -1113,6 +1113,18 @@ def serve_correction_attachment(attachment_id):
         if not student or essay.student_id != student.student_id or not essay.is_finalized:
             flash('접근 권한이 없습니다.', 'error')
             return redirect(url_for('student.my_essays'))
+    elif current_user.role == 'parent':
+        # 학부모: 자녀의 완료된 첨삭만 허용
+        from app.models.parent import ParentStudent
+        student = Student.query.get(essay.student_id)
+        link = ParentStudent.query.filter_by(
+            parent_id=current_user.id,
+            student_id=essay.student_id,
+            is_active=True
+        ).first()
+        if not link or not essay.is_finalized:
+            flash('접근 권한이 없습니다.', 'error')
+            return redirect(url_for('parent.dashboard'))
     elif not _can_access_essay(essay):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('essays.index'))
