@@ -686,8 +686,12 @@
                                 내 학생 목록
                             </a>
                             <a href="{{ url_for('teacher.create_feedback') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'teacher.feedback' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'teacher.create_feedback' %}text-green-600 bg-green-50{% endif %}">
                                 피드백 작성
+                            </a>
+                            <a href="{{ url_for('teacher.feedbacks') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['teacher.feedbacks', 'teacher.edit_feedback'] %}text-green-600 bg-green-50{% endif %}">
+                                피드백 목록
                             </a>
                             <a href="{{ url_for('teacher.consultations') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">

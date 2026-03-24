@@ -1207,12 +1207,29 @@ def get_student_parents(student_id):
 @login_required
 @requires_role('teacher', 'admin')
 def feedbacks():
-    """내가 작성한 피드백 목록"""
-    feedbacks = TeacherFeedback.query.filter_by(teacher_id=current_user.user_id)\
-        .order_by(TeacherFeedback.created_at.desc()).all()
+    """내가 작성한 피드백 목록 (검색/필터 지원)"""
+    q             = request.args.get('q', '').strip()
+    filter_type   = request.args.get('type', '')
+    filter_read   = request.args.get('read', '')
+
+    query = TeacherFeedback.query.filter_by(teacher_id=current_user.user_id)
+
+    if q:
+        query = query.join(TeacherFeedback.student).filter(
+            Student.name.ilike(f'%{q}%') | TeacherFeedback.title.ilike(f'%{q}%')
+        )
+    if filter_type:
+        query = query.filter_by(feedback_type=filter_type)
+    if filter_read == 'read':
+        query = query.filter_by(is_read=True)
+    elif filter_read == 'unread':
+        query = query.filter_by(is_read=False)
+
+    feedbacks = query.order_by(TeacherFeedback.created_at.desc()).all()
 
     return render_template('teacher/feedbacks.html',
-                         feedbacks=feedbacks)
+                           feedbacks=feedbacks,
+                           q=q, filter_type=filter_type, filter_read=filter_read)
 
 
 @teacher_bp.route('/feedback/<feedback_id>/edit', methods=['GET', 'POST'])

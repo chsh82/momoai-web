@@ -1,13 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}피드백 목록 - MOMOAI v4.0{% endblock %}
-
 {% block page_title %}📋 피드백 목록{% endblock %}
-
 {% block page_subtitle %}
 <span class="text-sm text-white text-opacity-70 ml-3">내가 작성한 학부모 피드백</span>
 {% endblock %}
-
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
@@ -15,27 +12,66 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">📋 피드백 발송 내역</h2>
-            <p class="text-gray-600 mt-1 text-sm sm:text-base">학부모에게 발송한 피드백 목록입니다.</p>
+            <p class="text-gray-600 mt-1 text-sm">학부모에게 발송한 피드백 목록입니다.</p>
         </div>
-        <a href="{{ url_for('teacher.students') }}"
-           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap self-start sm:self-auto">
+        <a href="{{ url_for('teacher.create_feedback') }}"
+           class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium whitespace-nowrap self-start sm:self-auto">
             + 새 피드백 작성
         </a>
     </div>
+
+    <!-- 검색/필터 -->
+    <form method="GET" class="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-48">
+            <label class="block text-xs text-gray-500 mb-1">학생명 / 제목 검색</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="이름 또는 제목 입력..."
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">유형</label>
+            <select name="type" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">전체</option>
+                <option value="general"    {% if filter_type == 'general'    %}selected{% endif %}>일반</option>
+                <option value="progress"   {% if filter_type == 'progress'   %}selected{% endif %}>학습 진도</option>
+                <option value="behavior"   {% if filter_type == 'behavior'   %}selected{% endif %}>행동 태도</option>
+                <option value="attendance" {% if filter_type == 'attendance' %}selected{% endif %}>출결</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">읽음 여부</label>
+            <select name="read" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">전체</option>
+                <option value="read"   {% if filter_read == 'read'   %}selected{% endif %}>읽음</option>
+                <option value="unread" {% if filter_read == 'unread' %}selected{% endif %}>미읽음</option>
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit"
+                    class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800 transition-colors">
+                검색
+            </button>
+            {% if q or filter_type or filter_read %}
+            <a href="{{ url_for('teacher.feedbacks') }}"
+               class="border border-gray-300 text-gray-500 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                초기화
+            </a>
+            {% endif %}
+        </div>
+    </form>
 
     {% if feedbacks %}
     <!-- 통계 카드 -->
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-blue-600">{{ feedbacks | length }}</div>
-            <div class="text-sm text-gray-600 mt-1">총 발송</div>
+            <div class="text-2xl font-bold text-purple-600">{{ feedbacks | length }}</div>
+            <div class="text-sm text-gray-600 mt-1">검색 결과</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
             <div class="text-2xl font-bold text-emerald-600">{{ feedbacks | selectattr('is_read') | list | length }}</div>
             <div class="text-sm text-gray-600 mt-1">읽음</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-gray-500">{{ feedbacks | rejectattr('is_read') | list | length }}</div>
+            <div class="text-2xl font-bold text-gray-400">{{ feedbacks | rejectattr('is_read') | list | length }}</div>
             <div class="text-sm text-gray-600 mt-1">미읽음</div>
         </div>
     </div>
@@ -45,77 +81,83 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학생</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학부모</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">유형</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">읽음</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학생</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">학부모</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">유형</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">읽음</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for fb in feedbacks %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <!-- 목록 행 -->
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="toggleContent('{{ fb.feedback_id }}')">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {{ fb.created_at | kst('%Y-%m-%d') }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800">
                         {{ fb.student.name if fb.student else '알 수 없음' }}
                         <span class="text-xs text-gray-400 ml-1">{{ fb.student.grade if fb.student else '' }}</span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                         {{ fb.parent.name if fb.parent else '알 수 없음' }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
+                    <td class="px-4 py-3 whitespace-nowrap">
                         {% if fb.feedback_type == 'progress' %}
-                        <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">학습 진도</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">학습 진도</span>
                         {% elif fb.feedback_type == 'behavior' %}
-                        <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">행동 태도</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800">행동 태도</span>
                         {% elif fb.feedback_type == 'attendance' %}
-                        <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">출결</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">출결</span>
                         {% else %}
-                        <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">일반</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">일반</span>
                         {% endif %}
                         {% if fb.priority == 'high' %}
-                        <span class="ml-1 px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-700">긴급</span>
+                        <span class="ml-1 px-2 py-0.5 text-xs rounded bg-red-100 text-red-700">긴급</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate">
-                        {{ fb.title }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        {% if fb.is_read %}
-                        <div>
-                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
-                                ✓ 읽음
-                            </span>
-                            {% if fb.read_at %}
-                            <div class="text-xs text-gray-400 mt-1">{{ fb.read_at | kst('%m/%d %H:%M') }}</div>
-                            {% endif %}
+                    <td class="px-4 py-3 text-sm font-medium text-purple-700 max-w-xs">
+                        <div class="flex items-center gap-1">
+                            <span id="arrow-{{ fb.feedback_id }}" class="text-gray-400 text-xs transition-transform duration-200">▶</span>
+                            <span class="truncate hover:text-purple-900">{{ fb.title }}</span>
                         </div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap" onclick="event.stopPropagation()">
+                        {% if fb.is_read %}
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700">✓ 읽음</span>
+                        {% if fb.read_at %}
+                        <div class="text-xs text-gray-400 mt-0.5">{{ fb.read_at | kst('%m/%d %H:%M') }}</div>
+                        {% endif %}
                         {% else %}
-                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">
-                            미읽음
-                        </span>
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">미읽음</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
+                    <td class="px-4 py-3 whitespace-nowrap" onclick="event.stopPropagation()">
                         <div class="flex items-center gap-2">
                             <a href="{{ url_for('teacher.edit_feedback', feedback_id=fb.feedback_id) }}"
-                               class="px-3 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
-                                수정
-                            </a>
+                               class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200">수정</a>
                             <form method="POST"
                                   action="{{ url_for('teacher.delete_feedback', feedback_id=fb.feedback_id) }}"
                                   onsubmit="return confirm('이 피드백을 삭제하시겠습니까?')">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit"
-                                        class="px-3 py-1 text-xs font-medium rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors">
-                                    삭제
-                                </button>
+                                        class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200">삭제</button>
                             </form>
                         </div>
+                    </td>
+                </tr>
+                <!-- 펼침 내용 행 -->
+                <tr id="content-{{ fb.feedback_id }}" class="hidden bg-purple-50">
+                    <td colspan="7" class="px-8 py-4 border-t border-purple-100">
+                        <div class="text-xs text-gray-500 mb-2">
+                            작성일: {{ fb.created_at | kst('%Y년 %m월 %d일 %H:%M') }}
+                            {% if fb.hidden_from_student %}
+                            &nbsp;·&nbsp; 🔒 학생 비공개 (학부모만 확인 가능)
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{{ fb.content }}</div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -126,12 +168,30 @@
     {% else %}
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <div class="text-6xl mb-4">📭</div>
-        <p class="text-gray-500 text-lg">아직 작성한 피드백이 없습니다.</p>
-        <a href="{{ url_for('teacher.students') }}"
-           class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            학생 선택하여 피드백 작성
+        {% if q or filter_type or filter_read %}
+        <p class="text-gray-500 text-lg">검색 결과가 없습니다.</p>
+        <a href="{{ url_for('teacher.feedbacks') }}"
+           class="mt-4 inline-block border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm">
+            전체 목록 보기
         </a>
+        {% else %}
+        <p class="text-gray-500 text-lg">아직 작성한 피드백이 없습니다.</p>
+        <a href="{{ url_for('teacher.create_feedback') }}"
+           class="mt-4 inline-block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+            첫 피드백 작성하기
+        </a>
+        {% endif %}
     </div>
     {% endif %}
 </div>
+
+<script>
+function toggleContent(id) {
+    const row   = document.getElementById('content-' + id);
+    const arrow = document.getElementById('arrow-' + id);
+    const isHidden = row.classList.contains('hidden');
+    row.classList.toggle('hidden', !isHidden);
+    arrow.style.transform = isHidden ? 'rotate(90deg)' : '';
+}
+</script>
 {% endblock %}
