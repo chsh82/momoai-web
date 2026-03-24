@@ -1134,7 +1134,8 @@ def serve_correction_attachment(attachment_id):
         flash('파일을 찾을 수 없습니다.', 'error')
         return redirect(url_for('essays.result', essay_id=essay.essay_id))
 
-    return send_file(str(file_path), download_name=attach.original_filename, as_attachment=False)
+    as_attachment = request.args.get('download') == '1'
+    return send_file(str(file_path), download_name=attach.original_filename, as_attachment=as_attachment)
 
 
 @essays_bp.route('/download/<essay_id>')

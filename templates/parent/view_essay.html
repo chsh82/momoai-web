@@ -71,12 +71,17 @@
                         <img src="{{ url_for('essays.serve_correction_attachment', attachment_id=att.attachment_id) }}"
                              alt="{{ att.original_filename }}"
                              class="w-full rounded-lg border border-gray-200">
+                        <div class="mt-2">
+                            <a href="{{ url_for('essays.serve_correction_attachment', attachment_id=att.attachment_id, download=1) }}"
+                               class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                                ⬇ {{ att.original_filename }} 다운로드
+                            </a>
+                        </div>
                         {% else %}
-                        <a href="{{ url_for('essays.serve_correction_attachment', attachment_id=att.attachment_id) }}"
-                           target="_blank"
+                        <a href="{{ url_for('essays.serve_correction_attachment', attachment_id=att.attachment_id, download=1) }}"
                            class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
                             <span class="text-2xl">📄</span>
-                            <span class="text-sm text-blue-600 hover:underline">{{ att.original_filename }}</span>
+                            <span class="text-sm text-blue-600 hover:underline">{{ att.original_filename }} 다운로드</span>
                         </a>
                         {% endif %}
                     </div>
