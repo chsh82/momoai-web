@@ -165,7 +165,8 @@ function updateStudentList(courseId) {
     students.forEach(function(s) {
         const opt = document.createElement('option');
         opt.value = s.student_id;
-        opt.textContent = s.name + ' (' + s.grade + ')';
+        const sub = s.school ? s.grade + ' · ' + s.school : s.grade;
+        opt.textContent = s.name + ' (' + sub + ')';
         select.appendChild(opt);
     });
 

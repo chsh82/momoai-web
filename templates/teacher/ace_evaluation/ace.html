@@ -28,9 +28,7 @@
                     <select name="student_id" class="select-momo w-full" required>
                         <option value="">학생 선택</option>
                         {% for student in students %}
-                        <option value="{{ student.student_id }}" {{ 'selected' if selected_student_id and student.student_id == selected_student_id else '' }}>
-                            {{ student.name }} ({{ student.grade }})
-                        </option>
+                        <option value="{{ student.student_id }}" {{ 'selected' if selected_student_id and student.student_id == selected_student_id else '' }}>{{ student.display_name }}</option>
                         {% endfor %}
                     </select>
                 </div>

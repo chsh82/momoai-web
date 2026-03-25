@@ -35,9 +35,7 @@
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">-- 학생을 선택하세요 --</option>
                             {% for student in students %}
-                            <option value="{{ student.student_id }}" data-grade="{{ student.grade }}">
-                                {{ student.name }} ({{ student.grade }})
-                            </option>
+                            <option value="{{ student.student_id }}" data-grade="{{ student.grade }}">{{ student.display_name }}</option>
                             {% endfor %}
                         </select>
                     </div>

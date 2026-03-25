@@ -172,8 +172,8 @@
                             <option value="{{ student.student_id }}"
                                     data-grade="{{ student.grade }}"
                                     data-name="{{ student.name }}"
-                                    data-display="{{ student.name }} ({{ student.grade }}){% if student.tier %} [{{ student.tier }}]{% endif %}">
-                                {{ student.name }} ({{ student.grade }})
+                                    data-display="{{ student.display_name }}{% if student.tier %} [{{ student.tier }}]{% endif %}">
+                                {{ student.display_name }}
                                 {% if student.tier %}[{{ student.tier }}]{% endif %}
                             </option>
                             {% endfor %}

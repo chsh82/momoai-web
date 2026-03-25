@@ -1685,7 +1685,7 @@ def create_assignment():
             course_id=course.course_id, status='active'
         ).all()
         course_students[course.course_id] = [
-            {'student_id': e.student.student_id, 'name': e.student.name, 'grade': e.student.grade}
+            {'student_id': e.student.student_id, 'name': e.student.name, 'grade': e.student.grade, 'school': e.student.school or ''}
             for e in enrollments if e.student
         ]
 

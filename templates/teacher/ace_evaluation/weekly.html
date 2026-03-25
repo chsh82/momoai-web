@@ -34,7 +34,7 @@
                         <option value="{{ student.student_id }}"
                                 data-grade="{{ student.grade }}"
                                 data-school="{{ student.school or '' }}">
-                            {{ student.name }} ({{ student.grade }})
+                            {{ student.display_name }}
                         </option>
                         {% endfor %}
                     </select>

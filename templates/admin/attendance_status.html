@@ -146,9 +146,7 @@
                     <select name="student_id" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">전체 학생</option>
                         {% for student in students %}
-                        <option value="{{ student.student_id }}" {% if student_filter == student.student_id %}selected{% endif %}>
-                            {{ student.name }} {% if student.grade %}({{ student.grade }}){% endif %}
-                        </option>
+                        <option value="{{ student.student_id }}" {% if student_filter == student.student_id %}selected{% endif %}>{{ student.display_name }}</option>
                         {% endfor %}
                     </select>
                 </div>

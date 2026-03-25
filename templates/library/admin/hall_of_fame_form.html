@@ -55,7 +55,7 @@
                 <option value="">선택 안함</option>
                 {% for student in students %}
                 <option value="{{ student.student_id }}" {% if post and post.student_id == student.student_id %}selected{% endif %}>
-                    {{ student.name }} ({{ student.student_code }}) - {{ student.grade }}
+                    {{ student.display_name }}
                 </option>
                 {% endfor %}
             </select>
