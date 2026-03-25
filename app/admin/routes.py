@@ -1728,8 +1728,8 @@ def create_payment():
 
     form = CreatePaymentForm()
 
-    # 수업 목록 로드
-    courses = Course.query.order_by(Course.course_name).all()
+    # 수업 목록 로드 (보강수업 제외 - 보강은 출결 추적/이월 용도로만 사용)
+    courses = Course.query.filter(Course.course_type != '보강수업').order_by(Course.course_name).all()
     form.course_id.choices = [('', '-- 수업 선택 --')] + [(c.course_id, c.course_name) for c in courses]
 
     # 기본 납부 기한: 현재 월 말일
@@ -1819,10 +1819,7 @@ def create_payment():
         flash(f'결제가 생성되었습니다. (금액: {final_amount:,}원)', 'success')
         return redirect(url_for('admin.payments'))
 
-    import json as _json
-    course_types = {c.course_id: c.course_type for c in courses}
-    return render_template('admin/create_payment.html', form=form,
-                           course_types_json=_json.dumps(course_types, ensure_ascii=False))
+    return render_template('admin/create_payment.html', form=form)
 
 
 # ==================== 결제 메시지 발송 API ====================
