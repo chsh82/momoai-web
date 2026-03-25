@@ -105,7 +105,11 @@
             {% for enrollment in setup_needed %}
             <div class="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-yellow-200">
                 <div class="flex items-center gap-3 text-sm">
-                    <span class="font-medium text-gray-800">{{ enrollment.student.name if enrollment.student else '알 수 없음' }}</span>
+                    <span class="font-medium text-gray-800">{{ enrollment.student.name if enrollment.student else '알 수 없음' }}
+                        {% if enrollment.student and sibling_map.get(enrollment.student.student_id) %}
+                        <span class="text-xs text-emerald-600 font-normal">(형제 {{ sibling_map[enrollment.student.student_id] | join(', ') }})</span>
+                        {% endif %}
+                    </span>
                     <span class="text-gray-500">{{ enrollment.course.course_name if enrollment.course else '-' }}</span>
                     {% if not enrollment.payment_cycle %}
                     <span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">결제주기 미설정</span>
@@ -247,7 +251,11 @@
                             </td>
                             <!-- 학생 -->
                             <td class="px-3 py-3">
-                                <div class="font-medium text-gray-800">{{ e.student.name if e.student else '-' }}</div>
+                                <div class="font-medium text-gray-800">{{ e.student.name if e.student else '-' }}
+                                    {% if e.student and sibling_map.get(e.student.student_id) %}
+                                    <span class="text-xs text-emerald-600 font-normal ml-1">(형제 {{ sibling_map[e.student.student_id] | join(', ') }})</span>
+                                    {% endif %}
+                                </div>
                                 <div class="text-xs text-gray-400">{{ e.student.grade if e.student else '' }}</div>
                             </td>
                             <!-- 수강 과목 -->

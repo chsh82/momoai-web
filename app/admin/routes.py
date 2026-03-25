@@ -1320,8 +1320,27 @@ def billing():
         # 선불 여부: 청구 기간 시작일이 오늘 이후면 선불
         is_prepaid = selected_period.start_date >= today
 
-        # 해당 주기 활성 enrollment 전체 조회
-        all_enrollments = CourseEnrollment.query.filter_by(status='active').all()
+        # 해당 주기 활성 enrollment 전체 조회 (보강수업 제외)
+        all_enrollments = CourseEnrollment.query.join(
+            Course, CourseEnrollment.course_id == Course.course_id
+        ).filter(
+            CourseEnrollment.status == 'active',
+            Course.course_type != '보강수업'
+        ).all()
+
+        # 형제 관계 사전 구축: student_id → [형제이름, ...]
+        from app.models.parent_student import ParentStudent as _PS
+        from collections import defaultdict
+        parent_to_students = defaultdict(list)
+        for ps in _PS.query.filter_by(is_active=True).all():
+            parent_to_students[ps.parent_id].append((ps.student_id, ps.student.name if ps.student else ''))
+        sibling_map = defaultdict(list)
+        for siblings in parent_to_students.values():
+            if len(siblings) > 1:
+                for sid, sname in siblings:
+                    for other_sid, other_name in siblings:
+                        if other_sid != sid and other_name not in sibling_map[sid]:
+                            sibling_map[sid].append(other_name)
 
         billed_count = 0
         ready_count = 0
@@ -1381,7 +1400,8 @@ def billing():
                            setup_needed=setup_needed,
                            stats=stats,
                            prev_period=prev_period,
-                           is_prepaid=is_prepaid)
+                           is_prepaid=is_prepaid,
+                           sibling_map=sibling_map)
 
 
 @admin_bp.route('/billing/create-invoices', methods=['POST'])
