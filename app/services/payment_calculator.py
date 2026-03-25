@@ -148,7 +148,7 @@ class PaymentCalculator:
         base_amount = weekly_fee * weeks_charged
         result.base_amount = base_amount
 
-        # 4. 분기 결제 할인
+        # 4. 분기 결제 할인 (quarterly_no_discount는 할인 미적용)
         quarterly_discount = 0
         if enrollment.payment_cycle == 'quarterly':
             quarterly_discount = cls.QUARTERLY_DISCOUNT_PER_WEEK * weeks_charged
@@ -270,4 +270,5 @@ class PaymentCalculator:
         return [
             ('monthly', '월별'),
             ('quarterly', '분기별 (-5,000원/주)'),
+            ('quarterly_no_discount', '분기별 (할인없음)'),
         ]

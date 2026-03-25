@@ -1260,7 +1260,7 @@ def update_enrollment_payment_info(enrollment_id):
     data = request.get_json() or {}
 
     if 'payment_cycle' in data:
-        if data['payment_cycle'] in ('monthly', 'quarterly', ''):
+        if data['payment_cycle'] in ('monthly', 'quarterly', 'quarterly_no_discount', ''):
             enrollment.payment_cycle = data['payment_cycle'] or None
 
     if 'weekly_fee' in data:
@@ -1746,7 +1746,7 @@ def create_payment():
             price_per_session = int(form.price_option.data)
 
         # 기본 회차 수
-        base_sessions = 4 if form.payment_period.data == 'monthly' else 12
+        base_sessions = 4 if form.payment_period.data == 'monthly' else 12  # quarterly / quarterly_no_discount 모두 12회
 
         # 이월결석 처리
         if form.carryover_option.data == 'custom':

@@ -386,7 +386,8 @@ class CreatePaymentForm(FlaskForm):
     payment_period = SelectField('결제 주기',
                                 choices=[
                                     ('monthly', '월별 결제 (4회)'),
-                                    ('quarterly', '분기별 결제 (12회)')
+                                    ('quarterly', '분기별 결제 (12회)'),
+                                    ('quarterly_no_discount', '분기별 결제 (12회, 할인없음)')
                                 ],
                                 default='monthly',
                                 validators=[DataRequired(message='결제 주기를 선택하세요.')])

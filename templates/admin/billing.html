@@ -258,6 +258,8 @@
                             <td class="px-3 py-3 text-center">
                                 {% if e.payment_cycle == 'quarterly' %}
                                 <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">분기</span>
+                                {% elif e.payment_cycle == 'quarterly_no_discount' %}
+                                <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">분기(할인없음)</span>
                                 {% elif e.payment_cycle == 'monthly' %}
                                 <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">월별</span>
                                 {% else %}
@@ -437,6 +439,7 @@
                             <option value="">선택하세요</option>
                             <option value="monthly">월별</option>
                             <option value="quarterly">분기별 (주당 -5,000원)</option>
+                            <option value="quarterly_no_discount">분기별 (할인없음)</option>
                         </select>
                     </div>
                     <div>
