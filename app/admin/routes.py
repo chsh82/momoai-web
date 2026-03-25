@@ -1303,6 +1303,7 @@ def billing():
     stats = {}
     prev_period = None
     is_prepaid = False
+    sibling_map = {}
 
     if period_id:
         selected_period = PaymentPeriod.query.get(period_id)
