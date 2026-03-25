@@ -1115,7 +1115,7 @@ def serve_correction_attachment(attachment_id):
             return redirect(url_for('student.my_essays'))
     elif current_user.role == 'parent':
         # 학부모: 자녀의 완료된 첨삭만 허용
-        from app.models.parent import ParentStudent
+        from app.models.parent_student import ParentStudent
         student = Student.query.get(essay.student_id)
         link = ParentStudent.query.filter_by(
             parent_id=current_user.user_id,
