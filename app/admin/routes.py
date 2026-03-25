@@ -1819,7 +1819,10 @@ def create_payment():
         flash(f'결제가 생성되었습니다. (금액: {final_amount:,}원)', 'success')
         return redirect(url_for('admin.payments'))
 
-    return render_template('admin/create_payment.html', form=form)
+    import json as _json
+    course_types = {c.course_id: c.course_type for c in courses}
+    return render_template('admin/create_payment.html', form=form,
+                           course_types_json=_json.dumps(course_types, ensure_ascii=False))
 
 
 # ==================== 결제 메시지 발송 API ====================
