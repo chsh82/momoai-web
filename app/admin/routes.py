@@ -673,7 +673,7 @@ def manage_students(course_id):
     available_students = Student.query.filter(
         ~Student.student_id.in_(enrolled_student_ids),
         Student.is_temp == False
-    ).all()
+    ).order_by(Student.name).all()
 
     return render_template('admin/manage_students.html',
                          course=course,
