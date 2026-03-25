@@ -47,6 +47,15 @@ class Student(db.Model):
             self.student_id = str(uuid.uuid4())
 
     @property
+    def display_name(self):
+        """학년·학교 포함 표시용 이름"""
+        if self.grade and self.school:
+            return f"{self.name} ({self.grade} · {self.school})"
+        elif self.grade:
+            return f"{self.name} ({self.grade})"
+        return self.name
+
+    @property
     def essay_count(self):
         """첨삭 수"""
         return len(self.essays)

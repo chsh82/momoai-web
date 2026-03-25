@@ -1112,7 +1112,7 @@ def create_feedback():
         students = list(set([e.student for e in enrollments if e.student is not None]))
 
     form.student_id.choices = [('', '-- 학생 선택 --')] + [
-        (s.student_id, s.name) for s in sorted(students, key=lambda x: x.name)
+        (s.student_id, s.display_name) for s in sorted(students, key=lambda x: x.name)
     ]
 
     # 선택된 학생의 학부모 로드
@@ -1257,7 +1257,7 @@ def edit_feedback(feedback_id):
     if feedback.student and feedback.student not in students:
         students.append(feedback.student)
     form.student_id.choices = [
-        (s.student_id, s.name) for s in sorted(students, key=lambda x: x.name)
+        (s.student_id, s.display_name) for s in sorted(students, key=lambda x: x.name)
     ]
 
     # 학부모 목록
@@ -1360,7 +1360,7 @@ def create_consultation():
             student_ids = list(set([e.student_id for e in enrollments]))
             students = Student.query.filter(Student.student_id.in_(student_ids)).order_by(Student.name).all()
 
-        form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, f"{s.name} ({s.student_id[:8]})") for s in students]
+        form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, s.display_name) for s in students]
 
         if request.method == 'GET':
             form.counselor_id.data = current_user.user_id
@@ -1488,7 +1488,7 @@ def edit_consultation(consultation_id):
         student_ids = list(set([e.student_id for e in enrollments]))
         students = Student.query.filter(Student.student_id.in_(student_ids)).order_by(Student.name).all()
 
-    form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, f"{s.name} ({s.student_id[:8]})") for s in students]
+    form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, s.display_name) for s in students]
 
     # POST 시 sub_category 값이 choices에 없으면 WTForms 검증 실패 방지
     if request.method == 'POST':

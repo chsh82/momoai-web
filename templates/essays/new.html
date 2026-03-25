@@ -354,20 +354,22 @@ function renderStudentList(students) {
     }
     container.innerHTML = students.map(s => {
         const isSelected = s.student_id === selectedStudentId;
+        const sub = s.school ? `${s.grade} · ${s.school}` : s.grade;
         return `<div class="student-item flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition ${isSelected ? 'bg-blue-100 border-l-4 border-l-blue-500' : ''}"
-                     onclick="selectStudent('${s.student_id}', '${s.name}', '${s.grade}')">
+                     onclick="selectStudent('${s.student_id}', '${s.name}', '${s.grade}', '${s.school}')">
                     <span class="font-medium text-gray-800">${s.name}</span>
-                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">${s.grade}</span>
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">${sub}</span>
                 </div>`;
     }).join('');
 }
 
-function selectStudent(id, name, grade) {
+function selectStudent(id, name, grade, school) {
     selectedStudentId = id;
     document.getElementById('student_id_input').value = id;
     const display = document.getElementById('selected-display');
     display.classList.remove('hidden');
-    document.getElementById('selected-name').textContent = `${name} (${grade})`;
+    const sub = school ? `${grade} · ${school}` : grade;
+    document.getElementById('selected-name').textContent = `${name} (${sub})`;
     updateModelSelector(id);
     renderStudentList(getCurrentFilteredStudents());
 }

@@ -235,7 +235,7 @@
                         onchange="loadEnrollments(this.value)">
                     <option value="">-- 학생 선택 --</option>
                     {% for student in students %}
-                    <option value="{{ student.student_id }}">{{ student.name }} ({{ student.grade }})</option>
+                    <option value="{{ student.student_id }}">{{ student.display_name }}</option>
                     {% endfor %}
                 </select>
             </div>

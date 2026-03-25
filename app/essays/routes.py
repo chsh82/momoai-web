@@ -246,7 +246,7 @@ def new():
     students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
         .order_by(Student.name).all()
     students_data = [
-        {'student_id': s.student_id, 'name': s.name, 'grade': s.grade}
+        {'student_id': s.student_id, 'name': s.name, 'grade': s.grade, 'school': s.school or ''}
         for s in students
     ]
 
