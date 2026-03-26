@@ -161,6 +161,8 @@ def children():
     children_data = []
     for pr in parent_relations:
         student = pr.student
+        if student is None:
+            continue
 
         # 수강 중인 수업
         enrollments = CourseEnrollment.query.filter_by(
@@ -831,6 +833,8 @@ def essays_index():
     # 각 자녀의 정보와 에세이 통계를 함께 저장
     children = []
     for pr in parent_relations:
+        if pr.student is None:
+            continue
         child_data = {
             'student': pr.student,
             'student_id': pr.student.student_id,
