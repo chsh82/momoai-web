@@ -57,11 +57,35 @@
     </div>
 
     <!-- 빠른 메뉴 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <a href="{{ url_for('parent.children') }}"
            class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
             <span class="text-2xl">👨‍👩‍👧‍👦</span>
             <span>내 자녀</span>
+        </a>
+
+        <a href="{{ url_for('parent.link_child') }}"
+           class="bg-teal-600 hover:bg-teal-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">🔗</span>
+            <span>자녀 연결</span>
+        </a>
+
+        <a href="{{ url_for('parent.attendance_index') }}"
+           class="bg-orange-600 hover:bg-orange-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📅</span>
+            <span>출결현황</span>
+        </a>
+
+        <a href="{{ url_for('parent.submit_essay') }}"
+           class="bg-purple-600 hover:bg-purple-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">✍️</span>
+            <span>글 제출하기</span>
+        </a>
+
+        <a href="{{ url_for('parent.materials_list') }}"
+           class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium p-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+            <span class="text-2xl">📚</span>
+            <span>학습교재</span>
         </a>
 
         <a href="{{ url_for('parent.essays_index') }}"
