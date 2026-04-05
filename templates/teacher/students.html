@@ -105,7 +105,7 @@
                             </span>
                             {% endif %}
                         </div>
-                        <p class="text-sm text-gray-600">{{ student_data.student.grade }}</p>
+                        <p class="text-sm text-gray-600">{{ student_data.student.grade }}{% if student_data.student.school %} · {{ student_data.student.school }}{% endif %}</p>
                     </div>
                 </div>
 

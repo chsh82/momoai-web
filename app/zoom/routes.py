@@ -2,7 +2,7 @@
 """줌 온라인 강의실 라우트"""
 from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
-from datetime import datetime, time as dtime
+from datetime import datetime, time as dtime, timedelta
 
 from app.zoom import zoom_bp
 from app.models import db, User, Student, Course, CourseSession, CourseEnrollment

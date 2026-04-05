@@ -74,7 +74,7 @@
       <h2 class="text-3xl font-bold text-gray-800">📝 필사 노트</h2>
       <p class="text-gray-500 mt-1 text-sm">글을 입력하면 원고지 위에 연한 명조 글씨로 표시됩니다. 학생이 위에 따라 쓰는 필사 연습지를 만들어 보세요.</p>
     </div>
-    <button onclick="window.print()"
+    <button onclick="printPilsa()"
             class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition">
       🖨️ 인쇄 / PDF 저장
     </button>
@@ -238,6 +238,82 @@ function renderWongo() {
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function printPilsa() {
+  const printArea = document.getElementById('print-area').innerHTML;
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>필사 노트</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Serif KR', 'Batang', serif; background: #fff; }
+    .wongo-wrap { font-family: 'Noto Serif KR', 'Batang', serif; }
+    .wongo-page {
+      display: grid;
+      border-top: 2px solid #888;
+      border-left: 2px solid #888;
+    }
+    .wongo-cell {
+      position: relative;
+      aspect-ratio: 1;
+      border-right: 1px solid #bbb;
+      border-bottom: 1px solid #bbb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      line-height: 1;
+    }
+    .wongo-cell::before {
+      content: '';
+      position: absolute;
+      width: 2px; height: 2px;
+      background: #e0e0e0;
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .wongo-cell.filled::before { display: none; }
+    .print-title {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 14pt;
+      text-align: center;
+      margin-bottom: 6mm;
+      color: #333;
+    }
+    @media print {
+      body { padding: 10mm 12mm; }
+      .wongo-page {
+        border-top: 1.5pt solid #999;
+        border-left: 1.5pt solid #999;
+      }
+      .wongo-cell {
+        border-right: 0.5pt solid #ddd;
+        border-bottom: 0.5pt solid #ddd;
+      }
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  </style>
+</head>
+<body class="wongo-wrap">
+  ${printArea}
+  <script>
+    // 폰트 로드 후 인쇄 (iOS 포함)
+    document.fonts.ready.then(function() {
+      setTimeout(function() { window.print(); }, 300);
+    });
+  <\/script>
+</body>
+</html>`);
+  win.document.close();
 }
 
 renderWongo();

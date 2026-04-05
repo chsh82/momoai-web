@@ -8,6 +8,7 @@ from app.utils.file_utils import safe_original_filename
 import os
 import uuid
 import threading
+from datetime import datetime, timedelta
 
 from app.essays import essays_bp
 from app.essays.forms import NewEssayForm, RevisionRequestForm
@@ -155,7 +156,6 @@ def index():
     dashboard_stats = None
     if current_user.role in ('admin', 'manager') or (
             current_user.role_level and current_user.role_level <= 2):
-        from datetime import datetime, timedelta
         now = datetime.utcnow()
 
         # 이번 주 월요일 00:00
@@ -781,7 +781,6 @@ def finalize(essay_id):
 def manual_correction(essay_id):
     """수동 첨삭 - 강사가 직접 첨삭 내용을 작성"""
     from app.models import EssayResult
-    from datetime import datetime as _dt
 
     essay = Essay.query.get_or_404(essay_id)
 
@@ -895,8 +894,8 @@ def manual_correction(essay_id):
         if action == 'finalize':
             essay.status = 'completed'
             essay.is_finalized = True
-            essay.finalized_at = _dt.utcnow()
-            essay.completed_at = _dt.utcnow()
+            essay.finalized_at = datetime.utcnow()
+            essay.completed_at = datetime.utcnow()
 
         # 첨부파일 저장
         if valid_files:

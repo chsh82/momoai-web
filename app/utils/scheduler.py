@@ -84,8 +84,18 @@ def send_class_reminders(app):
 
 
 def init_scheduler(app):
-    """스케줄러 초기화 및 시작"""
+    """스케줄러 초기화 및 시작 (단일 워커에서만 실행)"""
     if scheduler.running:
+        return
+
+    # 파일 락으로 첫 번째 워커에서만 스케줄러 실행
+    import fcntl
+    lock_path = '/tmp/momoai_scheduler.lock'
+    try:
+        lock_fp = open(lock_path, 'w')
+        fcntl.flock(lock_fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (IOError, OSError):
+        logger.info('[Scheduler] 다른 워커가 이미 실행 중 — 스킵')
         return
 
     scheduler.add_job(

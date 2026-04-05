@@ -2,7 +2,7 @@
 """강사 라우트"""
 from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 from app.teacher import teacher_bp
 from app.teacher.forms import TeacherFeedbackForm, SessionNoteForm
@@ -82,7 +82,6 @@ def _send_feedback_sms(parent, feedback):
 def index():
     """강사 대시보드"""
     from sqlalchemy import func, extract, case
-    from datetime import timedelta
     from app.models.essay import Essay
     import json
 
@@ -247,7 +246,6 @@ def courses():
 @requires_role('teacher', 'admin')
 def schedule():
     """주간 시간표"""
-    from datetime import timedelta
 
     # 현재 주의 월요일 찾기
     today = datetime.utcnow().date()
@@ -354,7 +352,6 @@ def course_sessions(course_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('teacher.courses'))
 
-    from datetime import date
     today = date.today()
     sessions = CourseSession.query.filter(
         CourseSession.course_id == course_id,
@@ -371,7 +368,6 @@ def course_sessions(course_id):
 @requires_role('teacher', 'admin')
 def attendance_list():
     """출석 체크할 세션 목록"""
-    from datetime import timedelta
 
     # 필터 파라미터
     search_mode = request.args.get('search', '').strip()
@@ -475,7 +471,6 @@ def attendance_list():
         past_query = past_query.filter(CourseSession.course_id == course_filter)
     if date_filter:
         try:
-            from datetime import date as date_type
             d = date_type.fromisoformat(date_filter)
             past_query = past_query.filter(CourseSession.session_date == d)
         except ValueError:
@@ -2234,7 +2229,6 @@ def send_student_message():
 @requires_role('teacher', 'admin')
 def edit_class_message(notification_id):
     """과제/공지 메시지 수정 — 같은 배치(발송자+유형+대상+5분 이내)를 일괄 수정"""
-    from datetime import timedelta
 
     notif = Notification.query.get_or_404(notification_id)
 
@@ -2283,7 +2277,6 @@ def edit_class_message(notification_id):
 @requires_role('teacher', 'admin')
 def delete_class_message(notification_id):
     """과제/공지 메시지 삭제 — 같은 배치 일괄 삭제"""
-    from datetime import timedelta
 
     notif = Notification.query.get_or_404(notification_id)
 
@@ -3646,7 +3639,6 @@ def ace_evaluation():
 def ace_weekly():
     """주차 평가 입력 및 관리"""
     from app.models.ace_evaluation import WeeklyEvaluation, WEEKLY_GRADES, CLASS_TYPES, TEACHER_COMMENTS
-    from datetime import date
 
     # 내가 담당하는 학생 목록
     my_students = Student.query.join(CourseEnrollment).join(Course).filter(
@@ -3740,7 +3732,6 @@ def ace_weekly():
 def ace_weekly_edit(eval_id):
     """주차 평가 수정"""
     from app.models.ace_evaluation import WeeklyEvaluation, WEEKLY_GRADES, CLASS_TYPES, TEACHER_COMMENTS
-    from datetime import date
 
     weekly_eval = WeeklyEvaluation.query.get_or_404(eval_id)
 
@@ -3808,7 +3799,6 @@ def ace_weekly_delete(eval_id):
 def ace_weekly_report(student_id):
     """학생별 주차평가 리포트"""
     from app.models.ace_evaluation import WeeklyEvaluation
-    from datetime import date, timedelta
     from sqlalchemy import func
 
     # 학생 정보 조회
@@ -3885,7 +3875,6 @@ def ace_weekly_dashboard():
     """전체 학생 주차평가 비교 대시보드"""
     from app.models.ace_evaluation import WeeklyEvaluation
     from sqlalchemy import func
-    from datetime import date, timedelta
 
     # 내가 담당하는 학생 목록
     my_students = Student.query.join(CourseEnrollment).join(Course).filter(
@@ -3944,7 +3933,6 @@ def ace_quarterly():
     """ACE 분기 평가 입력 및 관리"""
     from app.models.ace_evaluation import (AceEvaluation, ACE_AXES, ACE_ALL_ITEMS,
                                           GRADE_LABELS, QUARTERS)
-    from datetime import date
 
     # 내가 담당하는 학생 목록
     my_students = Student.query.join(CourseEnrollment).join(Course).filter(
@@ -4090,7 +4078,6 @@ def help_page():
 @requires_role('teacher', 'admin')
 def my_hours():
     """강사 본인 월별 시수 확인"""
-    from datetime import date
     from app.utils.hours_calculator import build_teacher_monthly_data
     from app.models.teacher_hours import TeacherHoursCorrection
 
@@ -4470,7 +4457,6 @@ def action_item_new():
         due_date = None
         if due_raw:
             try:
-                from datetime import date
                 due_date = date.fromisoformat(due_raw)
             except ValueError:
                 pass
@@ -4527,14 +4513,12 @@ def action_item_edit(item_id):
     due_raw = request.form.get('due_date', '').strip()
     if due_raw:
         try:
-            from datetime import date
             item.due_date = date.fromisoformat(due_raw)
         except ValueError:
             pass
     else:
         item.due_date = None
 
-    from datetime import datetime
     item.updated_at = datetime.utcnow()
     db.session.commit()
     flash('업무가 수정되었습니다.', 'success')
@@ -4562,7 +4546,6 @@ def action_item_status(item_id):
         else:
             item.status = new_status
             item.completed_at = None
-        from datetime import datetime
         item.updated_at = datetime.utcnow()
         db.session.commit()
     return redirect(request.referrer or url_for('teacher.action_items'))
@@ -4597,7 +4580,6 @@ def pilsa_note():
 def teacher_teaching_materials():
     """강사용 학습 교재 목록 - 담당 학년 기준"""
     import json
-    from datetime import date
     from app.models.teaching_material import TeachingMaterial
 
     # 담당 학년 로드

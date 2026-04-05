@@ -2,7 +2,7 @@
 """학부모 포털 라우트"""
 from flask import render_template, redirect, url_for, flash, request, send_from_directory, current_app
 from flask_login import login_required, current_user
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import os
 
 from app.parent_portal import parent_bp
@@ -82,7 +82,6 @@ def index():
 
     # ===== 차트 데이터 생성 =====
     from sqlalchemy import func, extract
-    from datetime import timedelta
     import json
 
     # 1. 자녀별 출석률 비교
@@ -1117,7 +1116,6 @@ def child_materials(student_id):
         return redirect(url_for('parent.child_detail', student_id=student_id))
 
     # 모든 공개된 교재 조회
-    from datetime import date
     today = date.today()
     all_materials = TeachingMaterial.query.filter(
         TeachingMaterial.is_public == True,
@@ -1300,7 +1298,6 @@ def child_videos(student_id):
         return redirect(url_for('parent.child_detail', student_id=student_id))
 
     # 모든 공개된 동영상 조회
-    from datetime import date
     today = date.today()
     all_videos = Video.query.filter(
         Video.is_public == True,
@@ -1391,7 +1388,6 @@ def link_child():
         birth_date = None
         if birth_date_str:
             try:
-                from datetime import datetime
                 birth_date = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
             except ValueError:
                 birth_date = None
@@ -1564,7 +1560,6 @@ def view_announcement(announcement_id):
 def export_child_attendance(student_id):
     """자녀 출석 내역 Excel 내보내기"""
     from app.utils.export_utils import export_attendance_to_excel
-    from datetime import datetime
 
     # 권한 확인
     relation = ParentStudent.query.filter_by(
@@ -1743,7 +1738,6 @@ def export_child_report_pdf(student_id):
 def export_child_attendance_certificate(student_id):
     """자녀 출석 확인서 PDF 내보내기"""
     from app.utils.pdf_utils import generate_attendance_certificate_pdf
-    from datetime import timedelta
 
     # 권한 확인
     relation = ParentStudent.query.filter_by(
@@ -2372,7 +2366,6 @@ def registration_create_new():
     """새 학생 강제 생성 (동명이인)"""
     import uuid
     import json
-    from datetime import datetime
 
     form_data_json = request.form.get('form_data')
     force_create = request.form.get('force_create')
@@ -2633,7 +2626,6 @@ def weekly_evaluation():
 def weekly_evaluation_report(student_id):
     """자녀 주간평가 리포트"""
     from app.models.ace_evaluation import WeeklyEvaluation
-    from datetime import date, timedelta
     from sqlalchemy import func
 
     # 자녀 확인

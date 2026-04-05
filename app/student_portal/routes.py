@@ -2,7 +2,7 @@
 """학생 포털 라우트"""
 from flask import render_template, request, redirect, url_for, flash, jsonify, current_app, send_from_directory
 from flask_login import login_required, current_user
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import desc, and_
 from werkzeug.utils import secure_filename
 from app.utils.file_utils import safe_original_filename
@@ -74,7 +74,6 @@ def index():
     unread_announcements = [a for a in all_announcements if a.announcement_id not in read_announcement_ids]
 
     # 이번 주 출석 현황
-    from datetime import timedelta
     today = datetime.utcnow().date()
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
@@ -1364,7 +1363,6 @@ def teaching_materials():
                                    is_blocked=True)
 
     # 모든 공개된 교재 조회
-    from datetime import date
     today = date.today()
     all_materials = TeachingMaterial.query.filter(
         TeachingMaterial.is_public == True,
@@ -1516,7 +1514,6 @@ def teaching_videos():
                                    is_blocked=True)
 
     # 모든 공개된 동영상 조회
-    from datetime import date
     today = date.today()
     all_videos = Video.query.filter(
         Video.is_public == True,
@@ -2625,7 +2622,6 @@ def vocabulary_quiz_take(session_id):
 def vocabulary_quiz_submit(session_id):
     """어휘퀴즈 답안 제출"""
     from app.models.vocabulary_quiz import VocabularyQuiz, VocabularyQuizSession, VocabularyQuizResult
-    from datetime import datetime
 
     if current_user.role == 'student':
         student = Student.query.filter_by(user_id=current_user.user_id).first()
@@ -2670,7 +2666,6 @@ def vocabulary_quiz_submit(session_id):
 def vocabulary_quiz_result(session_id):
     """어휘퀴즈 결과"""
     from app.models.vocabulary_quiz import VocabularyQuizSession
-    from datetime import datetime
 
     if current_user.role == 'student':
         student = Student.query.filter_by(user_id=current_user.user_id).first()
@@ -2794,7 +2789,6 @@ def schema_quiz_submit(session_id):
     """스키마퀴즈 답안 제출"""
     from app.models.schema_quiz import SchemaQuiz, SchemaQuizSession, SchemaQuizResult
     from app.utils.korean_utils import check_answer_similarity
-    from datetime import datetime
 
     if current_user.role == 'student':
         student = Student.query.filter_by(user_id=current_user.user_id).first()
@@ -2840,7 +2834,6 @@ def schema_quiz_submit(session_id):
 def schema_quiz_result(session_id):
     """스키마퀴즈 결과"""
     from app.models.schema_quiz import SchemaQuizSession, SchemaQuizResult
-    from datetime import datetime
 
     if current_user.role == 'student':
         student = Student.query.filter_by(user_id=current_user.user_id).first()
@@ -2881,7 +2874,6 @@ def schema_quiz_result(session_id):
 def weekly_evaluation():
     """학생 본인의 주간평가 리포트"""
     from app.models.ace_evaluation import WeeklyEvaluation
-    from datetime import date, timedelta
 
     # 학생 정보 조회
     if current_user.role == 'student':
@@ -3037,16 +3029,11 @@ def zoom_classes():
     ).join(Course).filter(Course.status == 'active').all()
 
     results = []
-    seen_teachers = set()
     for enrollment in enrollments:
         course = enrollment.course
         teacher = course.teacher
         if not teacher or not teacher.zoom_link:
             continue
-        # 같은 강사의 줌 링크는 중복 제거
-        if teacher.user_id in seen_teachers:
-            continue
-        seen_teachers.add(teacher.user_id)
         zoom_url = decrypt_zoom_link(teacher.zoom_link)
         if zoom_url:
             results.append({
