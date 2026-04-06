@@ -36,114 +36,108 @@
     <!-- 시간표 본체 -->
     <div class="bg-white rounded-xl shadow overflow-hidden">
         <div class="overflow-x-auto">
-            <div class="min-w-[700px]">
+            <!-- 단일 CSS 그리드: 헤더와 바디가 동일한 열 정의를 공유 -->
+            <div class="min-w-[700px]" style="display:grid; grid-template-columns:3.5rem repeat(7,1fr);">
 
-                <!-- 요일 헤더 -->
-                <div class="flex border-b border-gray-200">
-                    <!-- 시간 축 헤더 공간 -->
-                    <div class="w-14 flex-shrink-0"></div>
-                    {% for i in range(7) %}
-                    {% set cur = week_start + timedelta(days=i) %}
-                    <div class="flex-1 text-center py-2 border-l border-gray-200
-                        {% if cur == today %}bg-blue-50{% endif %}">
-                        <span class="text-xs font-semibold
-                            {% if cur == today %}text-blue-700{% elif i >= 5 %}text-red-500{% else %}text-gray-600{% endif %}">
-                            {{ days[i] }}
-                        </span>
-                        <span class="block text-xs
-                            {% if cur == today %}text-blue-600 font-bold{% elif i >= 5 %}text-red-400{% else %}text-gray-400{% endif %}">
-                            {{ cur | kst('%m/%d') }}
-                        </span>
+                <!-- 요일 헤더 (1행 × 8열) -->
+                <div class="border-b border-gray-200"></div>
+                {% for i in range(7) %}
+                {% set cur = week_start + timedelta(days=i) %}
+                <div class="text-center py-2 border-l border-b border-gray-200
+                    {% if cur == today %}bg-blue-50{% endif %}">
+                    <span class="text-xs font-semibold
+                        {% if cur == today %}text-blue-700{% elif i >= 5 %}text-red-500{% else %}text-gray-600{% endif %}">
+                        {{ days[i] }}
+                    </span>
+                    <span class="block text-xs
+                        {% if cur == today %}text-blue-600 font-bold{% elif i >= 5 %}text-red-400{% else %}text-gray-400{% endif %}">
+                        {{ cur | kst('%m/%d') }}
+                    </span>
+                </div>
+                {% endfor %}
+
+                <!-- 시간 축 (2행 1열) -->
+                <div class="relative border-r border-gray-200" style="height:{{ TOTAL_PX }}px;">
+                    {% for h in range(START_H, END_H) %}
+                    <div class="absolute w-full text-right pr-2"
+                         style="top:{{ (h - START_H) * HOUR_PX - 8 }}px;">
+                        <span class="text-xs text-gray-400 leading-none">{{ '%02d' % h }}</span>
                     </div>
                     {% endfor %}
                 </div>
 
-                <!-- 시간 그리드 -->
-                <div class="flex" style="height:{{ TOTAL_PX }}px;">
+                <!-- 요일 열 (2행 2~8열) -->
+                {% for i in range(7) %}
+                {% set cur = week_start + timedelta(days=i) %}
+                <div class="relative border-l border-gray-200
+                    {% if cur == today %}bg-blue-50/30{% endif %}"
+                     style="height:{{ TOTAL_PX }}px;">
 
-                    <!-- 시간 축 -->
-                    <div class="w-14 flex-shrink-0 relative border-r border-gray-200">
-                        {% for h in range(START_H, END_H) %}
-                        <div class="absolute w-full text-right pr-2"
-                             style="top:{{ (h - START_H) * HOUR_PX - 8 }}px;">
-                            <span class="text-xs text-gray-400 leading-none">{{ '%02d' % h }}</span>
-                        </div>
-                        {% endfor %}
-                    </div>
+                    <!-- 시간 가이드 라인 -->
+                    {% for h in range(START_H, END_H + 1) %}
+                    <div class="absolute w-full border-t {% if h == START_H %}border-transparent{% else %}border-gray-100{% endif %}"
+                         style="top:{{ (h - START_H) * HOUR_PX }}px;"></div>
+                    {% endfor %}
+                    <!-- 30분 라인 -->
+                    {% for h in range(START_H, END_H) %}
+                    <div class="absolute w-full border-t border-dashed border-gray-100"
+                         style="top:{{ (h - START_H) * HOUR_PX + 30 }}px;"></div>
+                    {% endfor %}
 
-                    <!-- 요일 열 -->
-                    {% for i in range(7) %}
-                    {% set cur = week_start + timedelta(days=i) %}
-                    <div class="flex-1 relative border-l border-gray-200
-                        {% if cur == today %}bg-blue-50/30{% endif %}"
-                         style="height:{{ TOTAL_PX }}px;">
+                    <!-- 수업 블록 -->
+                    {% for session in weekly_schedule[i] %}
+                    {% if session.start_time and session.end_time %}
+                    {% set sh = session.start_time.hour %}
+                    {% set sm = session.start_time.minute %}
+                    {% set eh = session.end_time.hour %}
+                    {% set em = session.end_time.minute %}
+                    {% set top_px = (sh - START_H) * HOUR_PX + sm %}
+                    {% set dur = (eh - sh) * 60 + (em - sm) %}
+                    {% set ht = [dur, 22] | max %}
 
-                        <!-- 시간 가이드 라인 -->
-                        {% for h in range(START_H, END_H + 1) %}
-                        <div class="absolute w-full border-t {% if h == START_H %}border-transparent{% else %}border-gray-100{% endif %}"
-                             style="top:{{ (h - START_H) * HOUR_PX }}px;"></div>
-                        {% endfor %}
-                        <!-- 30분 라인 -->
-                        {% for h in range(START_H, END_H) %}
-                        <div class="absolute w-full border-t border-dashed border-gray-100"
-                             style="top:{{ (h - START_H) * HOUR_PX + 30 }}px;"></div>
-                        {% endfor %}
-
-                        <!-- 수업 블록 -->
-                        {% for session in weekly_schedule[i] %}
-                        {% if session.start_time and session.end_time %}
-                        {% set sh = session.start_time.hour %}
-                        {% set sm = session.start_time.minute %}
-                        {% set eh = session.end_time.hour %}
-                        {% set em = session.end_time.minute %}
-                        {% set top_px = (sh - START_H) * HOUR_PX + sm %}
-                        {% set dur = (eh - sh) * 60 + (em - sm) %}
-                        {% set ht = [dur, 22] | max %}
-
-                        {# 수강생 이름 목록 #}
-                        {% set ns = namespace(names=[]) %}
-                        {% for enr in session.course.enrollments %}
-                            {% if enr.status == 'active' and enr.student %}
-                                {% set ns.names = ns.names + [enr.student.name] %}
-                            {% endif %}
-                        {% endfor %}
-
-                        <a href="{{ url_for('teacher.course_detail', course_id=session.course.course_id) }}"
-                           class="absolute left-0.5 right-0.5 rounded overflow-hidden px-1.5 py-1 flex flex-col gap-0.5
-                               {% if session.status == 'scheduled' %}bg-blue-500 text-white
-                               {% elif session.status == 'completed' %}bg-emerald-500 text-white
-                               {% elif session.status == 'cancelled' %}bg-gray-300 text-gray-500 line-through
-                               {% else %}bg-blue-400 text-white{% endif %}"
-                           style="top:{{ top_px }}px; height:{{ ht }}px;">
-
-                            {# 수업명 #}
-                            <div class="font-semibold leading-tight truncate"
-                                 style="font-size:{{ [[ht * 0.18, 10] | max, 12] | min | round | int }}px;">
-                                {{ session.course.course_name }}
-                            </div>
-
-                            {# 시간 + 인원 #}
-                            {% if ht >= 30 %}
-                            <div class="opacity-90 leading-tight truncate" style="font-size:10px;">
-                                {{ '%02d:%02d' % (sh, sm) }}–{{ '%02d:%02d' % (eh, em) }}
-                                · {{ session.course.enrolled_count }}명
-                            </div>
-                            {% endif %}
-
-                            {# 수강생 이름 #}
-                            {% if ht >= 44 and ns.names %}
-                            <div class="opacity-80 leading-tight truncate" style="font-size:10px;">
-                                {{ ns.names | join(', ') }}
-                            </div>
-                            {% endif %}
-                        </a>
+                    {# 수강생 이름 목록 #}
+                    {% set ns = namespace(names=[]) %}
+                    {% for enr in session.course.enrollments %}
+                        {% if enr.status == 'active' and enr.student %}
+                            {% set ns.names = ns.names + [enr.student.name] %}
                         {% endif %}
-                        {% endfor %}
+                    {% endfor %}
 
-                    </div>
+                    <a href="{{ url_for('teacher.course_detail', course_id=session.course.course_id) }}"
+                       class="absolute left-0.5 right-0.5 rounded overflow-hidden px-1.5 py-1 flex flex-col gap-0.5
+                           {% if session.status == 'scheduled' %}bg-blue-500 text-white
+                           {% elif session.status == 'completed' %}bg-emerald-500 text-white
+                           {% elif session.status == 'cancelled' %}bg-gray-300 text-gray-500 line-through
+                           {% else %}bg-blue-400 text-white{% endif %}"
+                       style="top:{{ top_px }}px; height:{{ ht }}px;">
+
+                        {# 수업명 #}
+                        <div class="font-semibold leading-tight truncate"
+                             style="font-size:{{ [[ht * 0.18, 10] | max, 12] | min | round | int }}px;">
+                            {{ session.course.course_name }}
+                        </div>
+
+                        {# 시간 + 인원 #}
+                        {% if ht >= 30 %}
+                        <div class="opacity-90 leading-tight truncate" style="font-size:10px;">
+                            {{ '%02d:%02d' % (sh, sm) }}–{{ '%02d:%02d' % (eh, em) }}
+                            · {{ session.course.enrolled_count }}명
+                        </div>
+                        {% endif %}
+
+                        {# 수강생 이름 #}
+                        {% if ht >= 44 and ns.names %}
+                        <div class="opacity-80 leading-tight truncate" style="font-size:10px;">
+                            {{ ns.names | join(', ') }}
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% endif %}
                     {% endfor %}
 
                 </div>
+                {% endfor %}
+
             </div>
         </div>
     </div>
