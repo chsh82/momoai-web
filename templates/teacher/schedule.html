@@ -118,13 +118,13 @@
 
                             {# 수업명 #}
                             <div class="font-semibold leading-tight truncate"
-                                 style="font-size:{{ [ht * 0.18, 9] | max | round | int }}px; max-font-size:12px;">
+                                 style="font-size:{{ [[ht * 0.18, 10] | max, 12] | min | round | int }}px;">
                                 {{ session.course.course_name }}
                             </div>
 
                             {# 시간 + 인원 #}
                             {% if ht >= 30 %}
-                            <div class="opacity-90 leading-tight truncate" style="font-size:9px;">
+                            <div class="opacity-90 leading-tight truncate" style="font-size:10px;">
                                 {{ '%02d:%02d' % (sh, sm) }}–{{ '%02d:%02d' % (eh, em) }}
                                 · {{ session.course.enrolled_count }}명
                             </div>
@@ -132,7 +132,7 @@
 
                             {# 수강생 이름 #}
                             {% if ht >= 44 and ns.names %}
-                            <div class="opacity-80 leading-tight truncate" style="font-size:9px;">
+                            <div class="opacity-80 leading-tight truncate" style="font-size:10px;">
                                 {{ ns.names | join(', ') }}
                             </div>
                             {% endif %}
