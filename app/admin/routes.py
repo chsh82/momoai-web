@@ -6899,11 +6899,11 @@ def push_notification_dashboard():
         .order_by(ReminderLog.sent_at.desc()).limit(20).all()
 
     # 앞으로 2시간 내 예정 세션
-    now = datetime.now()
+    current_time = datetime.now()
     upcoming = CourseSession.query.filter(
-        CourseSession.session_date == now.date(),
-        CourseSession.start_time >= now.time(),
-        CourseSession.start_time <= (now + timedelta(hours=2)).time(),
+        CourseSession.session_date == current_time.date(),
+        CourseSession.start_time >= current_time.time(),
+        CourseSession.start_time <= (current_time + timedelta(hours=2)).time(),
         CourseSession.status == 'scheduled'
     ).all()
 
@@ -6913,7 +6913,7 @@ def push_notification_dashboard():
                            role_stats=dict(role_stats),
                            recent_logs=recent_logs,
                            upcoming=upcoming,
-                           now=now)
+                           current_time=current_time)
 
 
 @admin_bp.route('/push-notifications/test', methods=['POST'])

@@ -79,7 +79,7 @@
         <!-- 오늘 앞으로 2시간 내 수업 -->
         <div class="bg-white rounded-xl shadow p-5">
             <h3 class="text-lg font-bold text-gray-800 mb-1">오늘 예정 수업 <span class="text-sm font-normal text-gray-400">(지금~2시간 후)</span></h3>
-            <p class="text-xs text-gray-400 mb-4">기준: {{ now | kst('%H:%M') }}</p>
+            <p class="text-xs text-gray-400 mb-4">기준: {{ current_time | kst('%H:%M') }}</p>
 
             {% if upcoming %}
             <div class="space-y-2">
@@ -90,9 +90,9 @@
                         <p class="text-xs text-gray-500">{{ session.start_time | kst('%H:%M') }} 시작</p>
                     </div>
                     <span class="text-xs px-2 py-1 rounded-full
-                        {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (now.hour * 60 + now.minute) %}
+                        {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (current_time.hour * 60 + current_time.minute) %}
                         {% if diff <= 65 and diff >= 55 %}bg-orange-100 text-orange-700{% else %}bg-blue-100 text-blue-700{% endif %}">
-                        {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (now.hour * 60 + now.minute) %}
+                        {% set diff = (session.start_time.hour * 60 + session.start_time.minute) - (current_time.hour * 60 + current_time.minute) %}
                         {{ diff }}분 후
                         {% if diff <= 65 and diff >= 55 %} ← 알림 대상{% endif %}
                     </span>
