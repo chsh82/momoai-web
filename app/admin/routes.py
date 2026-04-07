@@ -3041,11 +3041,11 @@ def reject_makeup_request(request_id):
 @login_required
 @requires_permission_level(2)
 def absence_notices():
-    """결석 예고 목록"""
+    """결석 예고 목록 + 등록"""
     from app.models.absence_notice import AbsenceNotice
     from datetime import date, timedelta
 
-    status_filter = request.args.get('status', 'pending')
+    status_filter = request.args.get('status', 'all')
     date_filter = request.args.get('date', '')
 
     query = AbsenceNotice.query
@@ -3060,16 +3060,95 @@ def absence_notices():
 
     notices = query.order_by(AbsenceNotice.absence_date.asc(), AbsenceNotice.created_at.desc()).all()
 
-    # 이번 주 결석 예고 (강조 표시용)
     today = date.today()
     week_end = today + timedelta(days=7)
+
+    # 등록 폼용
+    all_students = Student.query.filter_by(status='active').order_by(Student.name).all()
+    all_courses = Course.query.filter(Course.status == 'active').order_by(Course.course_name).all()
+
+    # 미확인 건수 (관리자가 확인해야 할 것: 강사가 등록한 것)
+    pending_admin = AbsenceNotice.query.filter_by(created_by_role='teacher', admin_confirmed=False, status='pending').count()
 
     return render_template('admin/absence_notices.html',
                            notices=notices,
                            status_filter=status_filter,
                            date_filter=date_filter,
                            today=today,
-                           week_end=week_end)
+                           week_end=week_end,
+                           all_students=all_students,
+                           all_courses=all_courses,
+                           pending_admin=pending_admin)
+
+
+@admin_bp.route('/absence-notices/create', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def create_absence_notice():
+    """결석 예고 등록 (관리자)"""
+    from app.models.absence_notice import AbsenceNotice
+
+    student_id = request.form.get('student_id', '').strip()
+    course_id = request.form.get('course_id', '').strip()
+    absence_date_str = request.form.get('absence_date', '').strip()
+    notice_type = request.form.get('notice_type', 'absent').strip()
+    reason = request.form.get('reason', '').strip()
+
+    if not all([student_id, course_id, absence_date_str, reason]):
+        flash('필수 항목을 모두 입력해주세요.', 'danger')
+        return redirect(url_for('admin.absence_notices'))
+
+    try:
+        absence_date = datetime.strptime(absence_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('날짜 형식이 올바르지 않습니다.', 'danger')
+        return redirect(url_for('admin.absence_notices'))
+
+    student = Student.query.get_or_404(student_id)
+    course = Course.query.get_or_404(course_id)
+    notice_label = '결석' if notice_type == 'absent' else '지각'
+
+    notice = AbsenceNotice(
+        student_id=student_id,
+        course_id=course_id,
+        absence_date=absence_date,
+        reason=reason,
+        notice_type=notice_type,
+        created_by=current_user.user_id,
+        created_by_role='admin'
+    )
+    db.session.add(notice)
+    db.session.flush()
+
+    # 담당 강사에게 알림 (강사가 확인해야 함)
+    if course.teacher_id:
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='absence_notice',
+            title=f'[{notice_label} 예고] {student.name} ({absence_date.strftime("%m/%d")})',
+            message=(f'{student.name} 학생이 {absence_date.strftime("%Y년 %m월 %d일")} '
+                     f'{course.course_name} {notice_label} 예정입니다. 사유: {reason}'),
+            link_url='/teacher/upcoming-changes'
+        )
+
+    db.session.commit()
+    flash(f'{student.name} 학생 결석 예고가 등록되었습니다. 담당 강사에게 알림을 보냈습니다.', 'success')
+    return redirect(url_for('admin.absence_notices'))
+
+
+@admin_bp.route('/absence-notices/<notice_id>/confirm', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def confirm_absence_notice_admin(notice_id):
+    """결석 예고 관리자 확인 (강사가 등록한 경우)"""
+    from app.models.absence_notice import AbsenceNotice
+    notice = AbsenceNotice.query.get_or_404(notice_id)
+    notice.admin_confirmed = True
+    notice.admin_confirmed_at = datetime.utcnow()
+    notice.admin_confirmed_by = current_user.user_id
+    notice.status = 'confirmed'
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 @admin_bp.route('/absence-notices/<notice_id>/cancel', methods=['POST'])
@@ -3241,6 +3320,36 @@ def apply_enrollment_schedule_now(schedule_id):
         )
 
     db.session.commit()
+    return redirect(url_for('admin.enrollment_schedules'))
+
+
+@admin_bp.route('/enrollment-schedules/<schedule_id>/resend-notify', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def resend_enrollment_notification(schedule_id):
+    """입반/전반 알림 재발송"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    sched = EnrollmentSchedule.query.get_or_404(schedule_id)
+    course = sched.course
+    student = sched.student
+    if course and course.teacher_id:
+        type_label = sched.type_label
+        reason_text = f' 사유: {sched.reason}' if sched.reason else ''
+        memo_text = f' 메모: {sched.memo}' if sched.memo else ''
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='enrollment_scheduled',
+            title=f'[{type_label} 예정 재알림] {student.name} ({sched.scheduled_date.strftime("%m/%d")})',
+            message=(f'{sched.scheduled_date.strftime("%Y년 %m월 %d일")}부터 {student.name} 학생의 '
+                     f'{course.course_name} {type_label}이 예정되어 있습니다.{reason_text}{memo_text}'),
+            link_url='/teacher/upcoming-changes'
+        )
+        sched.teacher_notified = True
+        sched.teacher_notified_at = datetime.utcnow()
+        db.session.commit()
+        flash('강사에게 알림을 재발송했습니다.', 'success')
+    else:
+        flash('담당 강사 정보가 없습니다.', 'warning')
     return redirect(url_for('admin.enrollment_schedules'))
 
 

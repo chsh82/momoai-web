@@ -6,7 +6,7 @@ from app.models import db
 
 
 class EnrollmentSchedule(db.Model):
-    """입반/전반 예약 모델 - 특정 날짜에 자동으로 수강 등록/해지 처리"""
+    """입반/전반 예약 모델 - 관리자가 입력, 강사가 확인"""
     __tablename__ = 'enrollment_schedules'
 
     schedule_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -17,16 +17,23 @@ class EnrollmentSchedule(db.Model):
     # enroll: 입반, withdraw: 전반
     schedule_type = db.Column(db.String(20), nullable=False)
     scheduled_date = db.Column(db.Date, nullable=False, index=True)
-    reason = db.Column(db.Text, nullable=True)   # 사유
-    memo = db.Column(db.Text, nullable=True)     # 내부 메모 (강사에게 전달)
+    reason = db.Column(db.Text, nullable=True)
+    memo = db.Column(db.Text, nullable=True)  # 강사에게 전달할 메모
 
-    # 상태: scheduled(예정) → applied(적용완료) / cancelled(취소)
+    # 상태
     status = db.Column(db.String(20), default='scheduled', index=True)
     applied_at = db.Column(db.DateTime, nullable=True)
 
     created_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'),
                            nullable=True)
+
+    # 알림 발송 여부
     teacher_notified = db.Column(db.Boolean, default=False)
+    teacher_notified_at = db.Column(db.DateTime, nullable=True)
+
+    # 강사 확인 여부
+    teacher_confirmed = db.Column(db.Boolean, default=False)
+    teacher_confirmed_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
