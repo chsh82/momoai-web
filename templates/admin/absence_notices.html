@@ -135,7 +135,7 @@
           <select id="gradeFilter" onchange="filterStudentsAbsence()"
                   class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
             <option value="">전체 학년</option>
-            {% set grades = all_students | map(attribute='grade') | unique | sort %}
+            {% set grades = all_students | map(attribute='grade') | select('string') | unique | sort %}
             {% for g in grades %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
           </select>
           <input type="text" id="studentSearchAbsence" placeholder="이름 검색..."
