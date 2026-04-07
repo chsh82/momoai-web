@@ -5999,18 +5999,24 @@ def consultations():
     major_category = request.args.get('major_category', '').strip()
     date_from = request.args.get('date_from', '').strip()
     date_to = request.args.get('date_to', '').strip()
+    keyword = request.args.get('keyword', '').strip()
 
-    query = ConsultationRecord.query
+    from app.models.student import Student as StudentModel
+    query = ConsultationRecord.query.join(
+        StudentModel, ConsultationRecord.student_id == StudentModel.student_id
+    ).join(
+        User, ConsultationRecord.counselor_id == User.user_id
+    )
 
     # 필터 적용
     if counselor_id:
-        query = query.filter_by(counselor_id=counselor_id)
+        query = query.filter(ConsultationRecord.counselor_id == counselor_id)
 
     if student_id:
-        query = query.filter_by(student_id=student_id)
+        query = query.filter(ConsultationRecord.student_id == student_id)
 
     if major_category:
-        query = query.filter_by(major_category=major_category)
+        query = query.filter(ConsultationRecord.major_category == major_category)
 
     if date_from:
         try:
@@ -6025,6 +6031,19 @@ def consultations():
             query = query.filter(ConsultationRecord.consultation_date <= to_date)
         except:
             pass
+
+    if keyword:
+        like = f'%{keyword}%'
+        query = query.filter(
+            db.or_(
+                StudentModel.name.ilike(like),
+                User.name.ilike(like),
+                ConsultationRecord.title.ilike(like),
+                ConsultationRecord.content.ilike(like),
+                ConsultationRecord.major_category.ilike(like),
+                ConsultationRecord.sub_category.ilike(like),
+            )
+        )
 
     consultations = query.order_by(ConsultationRecord.consultation_date.desc()).all()
 
@@ -6044,7 +6063,8 @@ def consultations():
                              'student_id': student_id,
                              'major_category': major_category,
                              'date_from': date_from,
-                             'date_to': date_to
+                             'date_to': date_to,
+                             'keyword': keyword,
                          })
 
 

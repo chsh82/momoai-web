@@ -10,132 +10,102 @@
 
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
+<div class="max-w-5xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">상담 기록 관리</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">상담 기록 관리</h2>
         <a href="{{ url_for('admin.create_consultation') }}"
            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-lg font-medium transition duration-200 flex items-center gap-2 whitespace-nowrap">
-            <span>➕ 새 상담 기록</span>
+            ➕ 새 상담 기록
         </a>
     </div>
 
     <!-- 검색 필터 -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="GET" action="{{ url_for('admin.consultations') }}" class="space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">상담자 (강사)</label>
-                    <select name="counselor_id" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- 전체 --</option>
-                        {% for teacher in teachers %}
-                        <option value="{{ teacher.user_id }}" {% if filters.counselor_id == teacher.user_id|string %}selected{% endif %}>
-                            {{ teacher.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">학생</label>
-                    <select name="student_id" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- 전체 --</option>
-                        {% for student in students %}
-                        <option value="{{ student.student_id }}" {% if filters.student_id == student.student_id %}selected{% endif %}>
-                            {{ student.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">대분류</label>
-                    <select name="major_category" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- 전체 --</option>
-                        <option value="신규상담" {% if filters.major_category == '신규상담' %}selected{% endif %}>신규상담</option>
-                        <option value="퇴원상담" {% if filters.major_category == '퇴원상담' %}selected{% endif %}>퇴원상담</option>
-                        <option value="분기별상담" {% if filters.major_category == '분기별상담' %}selected{% endif %}>분기별상담</option>
-                        <option value="진로진학상담" {% if filters.major_category == '진로진학상담' %}selected{% endif %}>진로진학상담</option>
-                        <option value="기타" {% if filters.major_category == '기타' %}selected{% endif %}>기타</option>
-                    </select>
+    <div class="bg-white rounded-lg shadow p-4 mb-5">
+        <form method="GET" action="{{ url_for('admin.consultations') }}">
+            <!-- 키워드 검색 -->
+            <div class="mb-3">
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" name="keyword" value="{{ filters.keyword }}"
+                           placeholder="이름, 작성자, 제목, 내용 검색..."
+                           class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">상담일 시작</label>
-                    <input type="date" name="date_from" value="{{ filters.date_from }}"
-                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">상담일 종료</label>
-                    <input type="date" name="date_to" value="{{ filters.date_to }}"
-                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex gap-2 col-span-2 sm:col-span-2">
-                    <button type="submit"
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
-                        검색
-                    </button>
-                    <a href="{{ url_for('admin.consultations') }}"
-                       class="flex-1 text-center bg-gray-400 hover:bg-gray-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition duration-200">
-                        초기화
-                    </a>
-                </div>
+            <!-- 상세 필터 -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-3">
+                <select name="counselor_id" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체 작성자</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.user_id }}" {% if filters.counselor_id == teacher.user_id|string %}selected{% endif %}>
+                        {{ teacher.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="student_id" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체 학생</option>
+                    {% for student in students %}
+                    <option value="{{ student.student_id }}" {% if filters.student_id == student.student_id %}selected{% endif %}>
+                        {{ student.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="major_category" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체 분류</option>
+                    {% for cat in ['신규상담','퇴원상담','분기별상담','진로진학상담','기타'] %}
+                    <option value="{{ cat }}" {% if filters.major_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <input type="date" name="date_from" value="{{ filters.date_from }}"
+                       class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="date" name="date_to" value="{{ filters.date_to }}"
+                       class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition">검색</button>
+                <a href="{{ url_for('admin.consultations') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium px-5 py-2 rounded-lg transition">초기화</a>
             </div>
         </form>
     </div>
 
+    <!-- 결과 수 -->
+    <p class="text-sm text-gray-500 mb-3">{{ consultations|length }}건</p>
+
     <!-- 상담 기록 목록 -->
     {% if consultations %}
-    <p class="text-sm text-gray-500 mb-3">상담 기록 ({{ consultations|length }}건)</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for consultation in consultations %}
-        <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
-            <div class="p-4">
-                <!-- 날짜 + 카테고리 배지 -->
-                <div class="flex items-start justify-between mb-2">
-                    <span class="px-2 py-0.5 text-xs font-medium rounded
-                        {% if consultation.major_category == '신규상담' %}bg-green-100 text-green-800
-                        {% elif consultation.major_category == '퇴원상담' %}bg-red-100 text-red-800
-                        {% elif consultation.major_category == '분기별상담' %}bg-blue-100 text-blue-800
-                        {% elif consultation.major_category == '진로진학상담' %}bg-purple-100 text-purple-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ consultation.major_category }}
-                    </span>
-                    <span class="text-xs text-gray-400">{{ consultation.consultation_date | kst('%y.%m.%d') }}</span>
-                </div>
-                <!-- 제목 -->
-                <h3 class="font-bold text-gray-800 text-sm mb-2 line-clamp-2">{{ consultation.title }}</h3>
-                <!-- 정보 -->
-                <div class="space-y-1 mb-3 text-xs text-gray-600">
-                    <div class="flex items-center gap-2">
-                        <span class="text-gray-400 shrink-0">👨‍🏫</span>
-                        <span>{{ consultation.counselor.name }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-gray-400 shrink-0">🎒</span>
-                        <span>{{ consultation.student.name }}</span>
-                    </div>
-                    {% if consultation.sub_category %}
-                    <div class="flex items-center gap-2">
-                        <span class="text-gray-400 shrink-0">📌</span>
-                        <span>{{ consultation.sub_category }}</span>
-                    </div>
-                    {% endif %}
-                    <div class="flex flex-wrap gap-1 pt-0.5">
-                        {% if consultation.share_with_parents %}
-                        <span class="px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">✓ 학부모 공유</span>
-                        {% endif %}
-                        {% if consultation.reference_teacher_ids %}
-                        <span class="px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">공유 {{ consultation.reference_teacher_ids|length }}명</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <!-- 버튼 -->
-                <div class="pt-2 border-t border-gray-100">
-                    <a href="{{ url_for('admin.consultation_detail', consultation_id=consultation.consultation_id) }}"
-                       class="block text-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
-                        상세보기
-                    </a>
-                </div>
+    <div class="space-y-3">
+        {% for c in consultations %}
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition">
+            <!-- 메타 행 -->
+            <div class="px-4 pt-3 pb-2 flex flex-wrap items-center gap-2 border-b border-gray-100">
+                <!-- 날짜 -->
+                <span class="text-sm font-bold text-gray-700">{{ c.consultation_date | kst('%Y.%m.%d') }}</span>
+                <!-- 분류 배지 -->
+                <span class="px-2 py-0.5 text-xs font-medium rounded
+                    {% if c.major_category == '신규상담' %}bg-green-100 text-green-800
+                    {% elif c.major_category == '퇴원상담' %}bg-red-100 text-red-800
+                    {% elif c.major_category == '분기별상담' %}bg-blue-100 text-blue-800
+                    {% elif c.major_category == '진로진학상담' %}bg-purple-100 text-purple-800
+                    {% else %}bg-gray-100 text-gray-700{% endif %}">
+                    {{ c.major_category }}{% if c.sub_category %} · {{ c.sub_category }}{% endif %}
+                </span>
+                <!-- 학생 / 작성자 -->
+                <span class="text-sm text-gray-600">🎒 <strong>{{ c.student.name }}</strong></span>
+                <span class="text-sm text-gray-400">|</span>
+                <span class="text-sm text-gray-500">👨‍🏫 {{ c.counselor.name }}</span>
+                {% if c.share_with_parents %}
+                <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">학부모 공유</span>
+                {% endif %}
+                <!-- 수정 링크 -->
+                <a href="{{ url_for('admin.consultation_detail', consultation_id=c.consultation_id) }}"
+                   class="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap">상세 →</a>
+            </div>
+            <!-- 제목 + 내용 -->
+            <div class="px-4 py-3">
+                <p class="text-sm font-semibold text-gray-800 mb-1">{{ c.title }}</p>
+                <p class="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{{ c.content }}</p>
             </div>
         </div>
         {% endfor %}
@@ -143,7 +113,7 @@
     {% else %}
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <div class="text-4xl mb-3">🗣️</div>
-        <p class="text-gray-500 text-lg">상담 기록이 없습니다.</p>
+        <p class="text-gray-500">상담 기록이 없습니다.</p>
     </div>
     {% endif %}
 </div>
