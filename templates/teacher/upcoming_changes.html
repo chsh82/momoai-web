@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}예정 변동 현황 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+  <!-- 헤더 -->
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">📋 예정 변동 현황</h2>
+      <p class="text-gray-500 text-sm mt-1">오늘~14일 이내 결석 예고 / 보강 / 입반·전반 예약</p>
+    </div>
+    {% if unconfirmed_count > 0 %}
+    <span class="bg-red-100 text-red-700 font-semibold text-sm px-4 py-2 rounded-full">
+      미확인 {{ unconfirmed_count }}건
+    </span>
+    {% endif %}
+  </div>
+
+  <!-- 결석 예고 -->
+  <div class="bg-white rounded-xl shadow mb-6">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-bold text-gray-800">🚫 결석 예고</h3>
+      <span class="text-xs text-gray-400">학생/학부모가 미리 알린 결석·지각</span>
+    </div>
+    {% if absence_notices %}
+    <div class="divide-y divide-gray-50">
+      {% for notice in absence_notices %}
+      <div class="px-5 py-4 flex items-start justify-between gap-4
+          {% if notice.status == 'pending' %}bg-amber-50{% endif %}">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-semibold text-gray-800">{{ notice.student.name }}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full
+                {% if notice.notice_type == 'absent' %}bg-red-100 text-red-700
+                {% else %}bg-orange-100 text-orange-700{% endif %}">
+              {{ notice.notice_type_label }}
+            </span>
+            {% if notice.status == 'pending' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">미확인</span>
+            {% elif notice.status == 'confirmed' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">확인완료</span>
+            {% endif %}
+          </div>
+          <p class="text-sm text-gray-600">
+            📅 {{ notice.absence_date.strftime('%Y년 %m월 %d일') }}
+            &nbsp;·&nbsp; {{ notice.course.course_name }}
+          </p>
+          <p class="text-sm text-gray-500 mt-1">사유: {{ notice.reason }}</p>
+          {% if notice.teacher_confirmed_at %}
+          <p class="text-xs text-gray-400 mt-1">
+            확인: {{ notice.teacher_confirmed_at.strftime('%m/%d %H:%M') }}
+          </p>
+          {% endif %}
+        </div>
+        {% if notice.status == 'pending' %}
+        <button onclick="confirmNotice('{{ notice.notice_id }}', this)"
+                class="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          ✓ 확인
+        </button>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-5 py-8 text-center text-gray-400 text-sm">
+      14일 이내 결석 예고가 없습니다.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 보강 예정 -->
+  <div class="bg-white rounded-xl shadow mb-6">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-bold text-gray-800">🔄 보강 예정</h3>
+      <span class="text-xs text-gray-400">내 수업에 들어오는 보강 학생</span>
+    </div>
+    {% if upcoming_makeup %}
+    <div class="divide-y divide-gray-50">
+      {% for session in upcoming_makeup %}
+      {% set enrollments = session.course.enrollments | selectattr('status', 'eq', 'active') | list %}
+      <div class="px-5 py-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-semibold text-gray-800">{{ session.course.course_name }}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">보강</span>
+        </div>
+        <p class="text-sm text-gray-600">
+          📅 {{ session.session_date.strftime('%Y년 %m월 %d일') }}
+          {% if session.start_time %} · {{ session.start_time.strftime('%H:%M') }}{% endif %}
+        </p>
+        {% for enr in enrollments %}
+        {% if enr.student %}
+        <p class="text-sm text-gray-500 mt-1">학생: {{ enr.student.name }}</p>
+        {% endif %}
+        {% endfor %}
+        {% if session.course.description %}
+        <p class="text-xs text-gray-400 mt-1">{{ session.course.description }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-5 py-8 text-center text-gray-400 text-sm">
+      14일 이내 보강 예정이 없습니다.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 입반/전반 예약 -->
+  <div class="bg-white rounded-xl shadow mb-6">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-bold text-gray-800">👥 입반·전반 예약</h3>
+      <span class="text-xs text-gray-400">예정일 자정에 자동 처리됩니다</span>
+    </div>
+    {% if enrollment_schedules %}
+    <div class="divide-y divide-gray-50">
+      {% for sched in enrollment_schedules %}
+      <div class="px-5 py-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-semibold text-gray-800">{{ sched.student.name }}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full
+              {% if sched.schedule_type == 'enroll' %}bg-emerald-100 text-emerald-700
+              {% else %}bg-orange-100 text-orange-700{% endif %}">
+            {{ sched.type_label }}
+          </span>
+        </div>
+        <p class="text-sm text-gray-600">
+          📅 {{ sched.scheduled_date.strftime('%Y년 %m월 %d일') }}부터
+          &nbsp;·&nbsp; {{ sched.course.course_name }}
+        </p>
+        {% if sched.reason %}
+        <p class="text-sm text-gray-500 mt-1">사유: {{ sched.reason }}</p>
+        {% endif %}
+        {% if sched.memo %}
+        <p class="text-sm text-blue-600 mt-1 bg-blue-50 rounded px-2 py-1">💬 {{ sched.memo }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-5 py-8 text-center text-gray-400 text-sm">
+      14일 이내 입반·전반 예약이 없습니다.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function confirmNotice(noticeId, btn) {
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  fetch(`/teacher/absence-notices/${noticeId}/confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token() }}'
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const row = btn.closest('div.flex');
+      row.classList.remove('bg-amber-50');
+      btn.closest('div.px-5').querySelector('.bg-amber-100')?.remove();
+      btn.outerHTML = '<span class="flex-shrink-0 text-xs px-3 py-2 rounded-lg bg-green-100 text-green-700 font-medium">확인완료</span>';
+      // 헤더 배지 업데이트
+      const badge = document.querySelector('.bg-red-100.text-red-700');
+      if (badge) {
+        const match = badge.textContent.match(/\d+/);
+        if (match) {
+          const n = parseInt(match[0]) - 1;
+          if (n <= 0) badge.remove();
+          else badge.textContent = `미확인 ${n}건`;
+        }
+      }
+    }
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = '✓ 확인'; });
+}
+</script>
+{% endblock %}

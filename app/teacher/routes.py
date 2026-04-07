@@ -241,6 +241,86 @@ def courses():
                          status_filter=status_filter)
 
 
+@teacher_bp.route('/upcoming-changes')
+@login_required
+@requires_role('teacher', 'admin')
+def upcoming_changes():
+    """이번 주 예정 변동 현황 (결석 예고 / 보강 / 입반 / 전반)"""
+    from app.models.absence_notice import AbsenceNotice
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    from app.models.makeup_request import MakeupClassRequest
+    from datetime import date, timedelta
+
+    today = date.today()
+    week_end = today + timedelta(days=14)  # 2주 이내
+
+    # 내 수업 ID 목록
+    my_course_ids = [c.course_id for c in Course.query.filter_by(
+        teacher_id=current_user.user_id, status='active'
+    ).all()]
+
+    # 결석 예고 (내 수업, 오늘 이후)
+    absence_notices = AbsenceNotice.query.filter(
+        AbsenceNotice.course_id.in_(my_course_ids),
+        AbsenceNotice.absence_date >= today,
+        AbsenceNotice.absence_date <= week_end,
+        AbsenceNotice.status.in_(['pending', 'confirmed'])
+    ).order_by(AbsenceNotice.absence_date.asc()).all()
+
+    # 보강 예정 (내 수업에 들어오는 학생)
+    upcoming_makeup = CourseSession.query.join(Course).filter(
+        Course.teacher_id == current_user.user_id,
+        Course.course_type == '보강수업',
+        CourseSession.session_date >= today,
+        CourseSession.session_date <= week_end,
+        CourseSession.status == 'scheduled'
+    ).order_by(CourseSession.session_date.asc()).all()
+
+    # 입반/전반 예약 (내 수업)
+    enrollment_schedules = EnrollmentSchedule.query.filter(
+        EnrollmentSchedule.course_id.in_(my_course_ids),
+        EnrollmentSchedule.scheduled_date >= today,
+        EnrollmentSchedule.scheduled_date <= week_end,
+        EnrollmentSchedule.status == 'scheduled'
+    ).order_by(EnrollmentSchedule.scheduled_date.asc()).all()
+
+    # 미확인 결석 예고 수 (배지용)
+    unconfirmed_count = AbsenceNotice.query.filter(
+        AbsenceNotice.course_id.in_(my_course_ids),
+        AbsenceNotice.absence_date >= today,
+        AbsenceNotice.status == 'pending'
+    ).count()
+
+    return render_template('teacher/upcoming_changes.html',
+                           absence_notices=absence_notices,
+                           upcoming_makeup=upcoming_makeup,
+                           enrollment_schedules=enrollment_schedules,
+                           unconfirmed_count=unconfirmed_count,
+                           today=today,
+                           week_end=week_end)
+
+
+@teacher_bp.route('/absence-notices/<notice_id>/confirm', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def confirm_absence_notice(notice_id):
+    """결석 예고 확인 처리"""
+    from app.models.absence_notice import AbsenceNotice
+    notice = AbsenceNotice.query.get_or_404(notice_id)
+
+    # 내 수업인지 확인
+    course = Course.query.get(notice.course_id)
+    if course and course.teacher_id != current_user.user_id and current_user.role != 'admin':
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+
+    notice.teacher_confirmed = True
+    notice.teacher_confirmed_at = datetime.utcnow()
+    notice.status = 'confirmed'
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+
 @teacher_bp.route('/schedule')
 @login_required
 @requires_role('teacher', 'admin')

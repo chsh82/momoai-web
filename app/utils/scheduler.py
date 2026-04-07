@@ -2,6 +2,7 @@
 """APScheduler 설정 및 예약 작업"""
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 import logging
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,76 @@ def send_class_reminders(app):
             logger.error(f'[Reminder] 오류: {e}')
 
 
+def apply_enrollment_schedules(app):
+    """자정마다 실행: 오늘 날짜로 예약된 입반/전반을 자동 처리"""
+    from datetime import date
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.models.enrollment_schedule import EnrollmentSchedule
+            from app.models.course import CourseEnrollment
+            from app.models.notification import Notification
+            from app.utils.course_utils import enroll_student_to_course
+
+            today = date.today()
+            schedules = EnrollmentSchedule.query.filter_by(
+                status='scheduled'
+            ).filter(EnrollmentSchedule.scheduled_date <= today).all()
+
+            for sched in schedules:
+                try:
+                    course = sched.course
+                    student = sched.student
+                    if not course or not student:
+                        sched.status = 'cancelled'
+                        continue
+
+                    if sched.schedule_type == 'enroll':
+                        # 입반: 이미 active 수강 중이면 건너뜀
+                        existing = CourseEnrollment.query.filter_by(
+                            course_id=sched.course_id,
+                            student_id=sched.student_id,
+                            status='active'
+                        ).first()
+                        if not existing:
+                            enroll_student_to_course(sched.course_id, sched.student_id)
+
+                    elif sched.schedule_type == 'withdraw':
+                        # 전반: active 수강을 inactive로 변경
+                        enrollment = CourseEnrollment.query.filter_by(
+                            course_id=sched.course_id,
+                            student_id=sched.student_id,
+                            status='active'
+                        ).first()
+                        if enrollment:
+                            enrollment.status = 'inactive'
+
+                    from datetime import datetime
+                    sched.status = 'applied'
+                    sched.applied_at = datetime.utcnow()
+
+                    # 강사에게 적용 완료 알림
+                    if course.teacher_id:
+                        type_label = '입반' if sched.schedule_type == 'enroll' else '전반'
+                        Notification.create_notification(
+                            user_id=course.teacher_id,
+                            notification_type='enrollment_applied',
+                            title=f'[{type_label} 완료] {student.name} 학생',
+                            message=f'{course.course_name} 수업에 {student.name} 학생의 {type_label}이 오늘부로 적용되었습니다.',
+                            link_url=f'/teacher/courses/{course.course_id}'
+                        )
+
+                    logger.info(f'[EnrollSchedule] {sched.schedule_type} 적용: {student.name} → {course.course_name}')
+
+                except Exception as e:
+                    logger.error(f'[EnrollSchedule] 개별 처리 오류 {sched.schedule_id}: {e}')
+
+            db.session.commit()
+
+        except Exception as e:
+            logger.error(f'[EnrollSchedule] 전체 오류: {e}')
+
+
 def init_scheduler(app):
     """스케줄러 초기화 및 시작 (단일 워커에서만 실행)"""
     if scheduler.running:
@@ -105,5 +176,12 @@ def init_scheduler(app):
         id='class_reminder',
         replace_existing=True
     )
+    scheduler.add_job(
+        func=apply_enrollment_schedules,
+        args=[app],
+        trigger=CronTrigger(hour=0, minute=5),  # 매일 자정 00:05
+        id='enrollment_schedule',
+        replace_existing=True
+    )
     scheduler.start()
-    logger.info('[Scheduler] APScheduler 시작됨 (30분 간격, 수업 1시간 전 알림)')
+    logger.info('[Scheduler] APScheduler 시작됨 (수업 알림 30분 간격 + 입반/전반 자정 자동처리)')

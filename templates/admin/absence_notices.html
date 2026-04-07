@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}결석 예고 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">🚫 결석 예고 관리</h2>
+      <p class="text-gray-500 text-sm mt-1">학생/학부모가 제출한 결석·지각 예고 현황</p>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <form method="GET" class="bg-white rounded-xl shadow p-4 mb-5 flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="block text-xs font-medium text-gray-600 mb-1">상태</label>
+      <select name="status"
+              class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>미확인</option>
+        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>확인완료</option>
+        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
+        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>전체</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-600 mb-1">날짜</label>
+      <input type="date" name="date" value="{{ date_filter }}"
+             class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition">
+      조회
+    </button>
+    <a href="{{ url_for('admin.absence_notices') }}"
+       class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg text-sm transition">
+      초기화
+    </a>
+  </form>
+
+  <!-- 목록 -->
+  <div class="bg-white rounded-xl shadow overflow-hidden">
+    {% if notices %}
+    <div class="divide-y divide-gray-100">
+      {% for notice in notices %}
+      <div class="px-5 py-4 flex items-start justify-between gap-4
+          {% if notice.absence_date >= today and notice.absence_date <= week_end and notice.status == 'pending' %}bg-amber-50{% endif %}">
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="font-semibold text-gray-800">{{ notice.student.name }}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full
+                {% if notice.notice_type == 'absent' %}bg-red-100 text-red-700
+                {% else %}bg-orange-100 text-orange-700{% endif %}">
+              {{ notice.notice_type_label }}
+            </span>
+            <span class="text-xs px-2 py-0.5 rounded-full
+                {% if notice.status == 'pending' %}bg-amber-100 text-amber-700
+                {% elif notice.status == 'confirmed' %}bg-green-100 text-green-700
+                {% else %}bg-gray-100 text-gray-400{% endif %}">
+              {{ notice.status_label }}
+            </span>
+            {% if notice.absence_date < today and notice.status == 'pending' %}
+            <span class="text-xs text-red-400">⚠ 지난 날짜</span>
+            {% endif %}
+          </div>
+          <p class="text-sm text-gray-600">
+            📅 {{ notice.absence_date.strftime('%Y년 %m월 %d일') }}
+            &nbsp;·&nbsp; {{ notice.course.course_name }}
+          </p>
+          <p class="text-sm text-gray-500 mt-1">사유: {{ notice.reason }}</p>
+          <p class="text-xs text-gray-400 mt-1">
+            등록: {{ notice.created_at.strftime('%Y/%m/%d %H:%M') }}
+            {% if notice.teacher_confirmed_at %}
+            &nbsp;·&nbsp; 강사 확인: {{ notice.teacher_confirmed_at.strftime('%m/%d %H:%M') }}
+            {% endif %}
+          </p>
+        </div>
+        {% if notice.status == 'pending' %}
+        <form method="POST"
+              action="{{ url_for('admin.cancel_absence_notice', notice_id=notice.notice_id) }}"
+              onsubmit="return confirm('이 결석 예고를 취소하시겠습니까?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="text-xs text-gray-400 hover:text-red-500 transition border border-gray-200 px-3 py-1.5 rounded-lg">
+            취소
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="py-16 text-center text-gray-400">
+      <p class="text-4xl mb-3">📭</p>
+      <p class="text-sm">조건에 맞는 결석 예고가 없습니다.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

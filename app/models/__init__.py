@@ -57,6 +57,8 @@ from app.models.student_caution import StudentCaution
 from app.models.payment_period import PaymentPeriod, HolidayWeek
 from app.models.session_adjustment import SessionAdjustment
 from app.models.action_item import ActionItem
+from app.models.absence_notice import AbsenceNotice
+from app.models.enrollment_schedule import EnrollmentSchedule
 
 __all__ = [
     'db',
@@ -128,4 +130,6 @@ __all__ = [
     'HolidayWeek',
     'SessionAdjustment',
     'ActionItem',
+    'AbsenceNotice',
+    'EnrollmentSchedule',
 ]

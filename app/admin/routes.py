@@ -2942,8 +2942,34 @@ def approve_makeup_request(request_id):
             )
             db.session.add(parent_notification)
     
+    # 강사 알림: 빠지는 수업 강사 (original_course_id가 있을 때)
+    if makeup_request.original_course_id:
+        orig = Course.query.get(makeup_request.original_course_id)
+        if orig and orig.teacher_id:
+            Notification.create_notification(
+                user_id=orig.teacher_id,
+                notification_type='makeup_student_absent',
+                title=f'[보강] {student.name} 학생 결석 예정',
+                message=(f'{student.name} 학생이 {orig.course_name} 수업을 결석하고 '
+                         f'{makeup_date.strftime("%Y년 %m월 %d일")} 보강수업으로 대체합니다.'
+                         + (f' 사유: {makeup_request.reason}' if makeup_request.reason else '')),
+                link_url=f'/teacher/courses/{orig.course_id}'
+            )
+
+    # 강사 알림: 보강 수업 담당 강사 (들어오는 수업)
+    if makeup_course.teacher_id:
+        Notification.create_notification(
+            user_id=makeup_course.teacher_id,
+            notification_type='makeup_student_joining',
+            title=f'[보강] {student.name} 학생 수업 참여 예정',
+            message=(f'{student.name} 학생이 {makeup_date.strftime("%Y년 %m월 %d일")} '
+                     f'{makeup_course.course_name} 보강수업에 참여합니다.'
+                     + (f' 사유: {makeup_request.reason}' if makeup_request.reason else '')),
+            link_url=f'/teacher/courses/{makeup_course.course_id}'
+        )
+
     db.session.commit()
-    
+
     flash(f'보강수업 신청이 승인되었습니다. 보강수업이 생성되었습니다: {makeup_course.course_name}', 'success')
     return redirect(url_for('admin.makeup_requests'))
 
@@ -3005,6 +3031,217 @@ def reject_makeup_request(request_id):
 
     flash('보강수업 신청이 거절되었습니다.', 'info')
     return redirect(url_for('admin.makeup_requests'))
+
+
+# ============================================================================
+# 결석 예고 관리
+# ============================================================================
+
+@admin_bp.route('/absence-notices')
+@login_required
+@requires_permission_level(2)
+def absence_notices():
+    """결석 예고 목록"""
+    from app.models.absence_notice import AbsenceNotice
+    from datetime import date, timedelta
+
+    status_filter = request.args.get('status', 'pending')
+    date_filter = request.args.get('date', '')
+
+    query = AbsenceNotice.query
+    if status_filter and status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    if date_filter:
+        try:
+            fd = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            query = query.filter(AbsenceNotice.absence_date == fd)
+        except ValueError:
+            pass
+
+    notices = query.order_by(AbsenceNotice.absence_date.asc(), AbsenceNotice.created_at.desc()).all()
+
+    # 이번 주 결석 예고 (강조 표시용)
+    today = date.today()
+    week_end = today + timedelta(days=7)
+
+    return render_template('admin/absence_notices.html',
+                           notices=notices,
+                           status_filter=status_filter,
+                           date_filter=date_filter,
+                           today=today,
+                           week_end=week_end)
+
+
+@admin_bp.route('/absence-notices/<notice_id>/cancel', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def cancel_absence_notice(notice_id):
+    """결석 예고 취소"""
+    from app.models.absence_notice import AbsenceNotice
+    notice = AbsenceNotice.query.get_or_404(notice_id)
+    notice.status = 'cancelled'
+    db.session.commit()
+    flash('결석 예고가 취소되었습니다.', 'info')
+    return redirect(url_for('admin.absence_notices'))
+
+
+# ============================================================================
+# 입반/전반 예약 관리
+# ============================================================================
+
+@admin_bp.route('/enrollment-schedules')
+@login_required
+@requires_permission_level(2)
+def enrollment_schedules():
+    """입반/전반 예약 목록"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    from datetime import date
+
+    status_filter = request.args.get('status', 'scheduled')
+    query = EnrollmentSchedule.query
+    if status_filter and status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+
+    schedules = query.order_by(EnrollmentSchedule.scheduled_date.asc()).all()
+
+    # 폼용: 전체 학생/수업 목록
+    all_students = Student.query.filter_by(is_active=True).order_by(Student.name).all()
+    all_courses = Course.query.filter(Course.status == 'active').order_by(Course.course_name).all()
+    today = date.today()
+
+    return render_template('admin/enrollment_schedules.html',
+                           schedules=schedules,
+                           status_filter=status_filter,
+                           all_students=all_students,
+                           all_courses=all_courses,
+                           today=today)
+
+
+@admin_bp.route('/enrollment-schedules/create', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def create_enrollment_schedule():
+    """입반/전반 예약 생성"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    from datetime import date
+
+    student_id = request.form.get('student_id', '').strip()
+    course_id = request.form.get('course_id', '').strip()
+    schedule_type = request.form.get('schedule_type', '').strip()
+    scheduled_date_str = request.form.get('scheduled_date', '').strip()
+    reason = request.form.get('reason', '').strip()
+    memo = request.form.get('memo', '').strip()
+
+    if not all([student_id, course_id, schedule_type, scheduled_date_str]):
+        flash('필수 항목을 모두 입력해주세요.', 'danger')
+        return redirect(url_for('admin.enrollment_schedules'))
+
+    try:
+        scheduled_date = datetime.strptime(scheduled_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('날짜 형식이 올바르지 않습니다.', 'danger')
+        return redirect(url_for('admin.enrollment_schedules'))
+
+    student = Student.query.get_or_404(student_id)
+    course = Course.query.get_or_404(course_id)
+
+    sched = EnrollmentSchedule(
+        student_id=student_id,
+        course_id=course_id,
+        schedule_type=schedule_type,
+        scheduled_date=scheduled_date,
+        reason=reason,
+        memo=memo,
+        created_by=current_user.user_id
+    )
+    db.session.add(sched)
+    db.session.flush()
+
+    # 강사에게 예고 알림
+    if course.teacher_id:
+        type_label = '입반' if schedule_type == 'enroll' else '전반'
+        memo_text = f' 메모: {memo}' if memo else ''
+        reason_text = f' 사유: {reason}' if reason else ''
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='enrollment_scheduled',
+            title=f'[{type_label} 예정] {student.name} 학생 ({scheduled_date.strftime("%m/%d")})',
+            message=(f'{scheduled_date.strftime("%Y년 %m월 %d일")}부터 {student.name} 학생의 '
+                     f'{course.course_name} {type_label}이 예정되어 있습니다.{reason_text}{memo_text}'),
+            link_url=f'/teacher/upcoming-changes'
+        )
+        sched.teacher_notified = True
+
+    db.session.commit()
+    type_label = '입반' if schedule_type == 'enroll' else '전반'
+    flash(f'{student.name} 학생의 {type_label} 예약이 등록되었습니다. ({scheduled_date.strftime("%Y년 %m월 %d일")})', 'success')
+    return redirect(url_for('admin.enrollment_schedules'))
+
+
+@admin_bp.route('/enrollment-schedules/<schedule_id>/cancel', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def cancel_enrollment_schedule(schedule_id):
+    """입반/전반 예약 취소"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    sched = EnrollmentSchedule.query.get_or_404(schedule_id)
+    if sched.status != 'scheduled':
+        flash('이미 처리된 예약입니다.', 'warning')
+        return redirect(url_for('admin.enrollment_schedules'))
+    sched.status = 'cancelled'
+    db.session.commit()
+    flash('예약이 취소되었습니다.', 'info')
+    return redirect(url_for('admin.enrollment_schedules'))
+
+
+@admin_bp.route('/enrollment-schedules/<schedule_id>/apply-now', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def apply_enrollment_schedule_now(schedule_id):
+    """입반/전반 예약 즉시 적용"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    from app.models.course import CourseEnrollment
+    from app.utils.course_utils import enroll_student_to_course
+
+    sched = EnrollmentSchedule.query.get_or_404(schedule_id)
+    if sched.status != 'scheduled':
+        flash('이미 처리된 예약입니다.', 'warning')
+        return redirect(url_for('admin.enrollment_schedules'))
+
+    student = sched.student
+    course = sched.course
+
+    if sched.schedule_type == 'enroll':
+        existing = CourseEnrollment.query.filter_by(
+            course_id=sched.course_id, student_id=sched.student_id, status='active'
+        ).first()
+        if not existing:
+            enroll_student_to_course(sched.course_id, sched.student_id)
+        flash(f'{student.name} 학생의 {course.course_name} 입반이 완료되었습니다.', 'success')
+    else:
+        enrollment = CourseEnrollment.query.filter_by(
+            course_id=sched.course_id, student_id=sched.student_id, status='active'
+        ).first()
+        if enrollment:
+            enrollment.status = 'inactive'
+        flash(f'{student.name} 학생의 {course.course_name} 전반이 완료되었습니다.', 'success')
+
+    sched.status = 'applied'
+    sched.applied_at = datetime.utcnow()
+
+    # 강사 알림
+    if course.teacher_id:
+        type_label = '입반' if sched.schedule_type == 'enroll' else '전반'
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='enrollment_applied',
+            title=f'[{type_label} 완료] {student.name} 학생',
+            message=f'{course.course_name} 수업에 {student.name} 학생의 {type_label}이 즉시 적용되었습니다.',
+            link_url=f'/teacher/courses/{course.course_id}'
+        )
+
+    db.session.commit()
+    return redirect(url_for('admin.enrollment_schedules'))
 
 
 # ============================================================================

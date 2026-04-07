@@ -463,6 +463,143 @@ def all_feedback():
                          unread_count=unread_count)
 
 
+# ==================== 결석 예고 (학부모) ====================
+
+@parent_bp.route('/absence-notice')
+@login_required
+@requires_role('parent', 'admin')
+def absence_notice_index():
+    """결석 예고 - 자녀 선택"""
+    parent_relations = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id, is_active=True
+    ).all()
+    children = [pr.student for pr in parent_relations if pr.student]
+    return render_template('parent/absence_notice_index.html', children=children)
+
+
+@parent_bp.route('/absence-notice/<student_id>')
+@login_required
+@requires_role('parent', 'admin')
+def absence_notice(student_id):
+    """자녀 결석 예고 제출 폼"""
+    from app.models.absence_notice import AbsenceNotice
+    from datetime import date
+
+    # 자녀 확인
+    pr = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id, student_id=student_id, is_active=True
+    ).first_or_404()
+    student = pr.student
+
+    # 수강 중인 수업 목록
+    enrollments = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).all()
+    courses = [e.course for e in enrollments if e.course]
+
+    # 최근 결석 예고 이력 (최근 10건)
+    recent_notices = AbsenceNotice.query.filter_by(
+        student_id=student_id
+    ).order_by(AbsenceNotice.created_at.desc()).limit(10).all()
+
+    return render_template('parent/absence_notice.html',
+                           student=student,
+                           courses=courses,
+                           recent_notices=recent_notices,
+                           today=date.today())
+
+
+@parent_bp.route('/absence-notice/<student_id>/submit', methods=['POST'])
+@login_required
+@requires_role('parent', 'admin')
+def submit_absence_notice(student_id):
+    """결석 예고 제출"""
+    from app.models.absence_notice import AbsenceNotice
+    from app.models.notification import Notification
+
+    pr = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id, student_id=student_id, is_active=True
+    ).first_or_404()
+    student = pr.student
+
+    course_id = request.form.get('course_id', '').strip()
+    absence_date_str = request.form.get('absence_date', '').strip()
+    notice_type = request.form.get('notice_type', 'absent').strip()
+    reason = request.form.get('reason', '').strip()
+
+    if not all([course_id, absence_date_str, reason]):
+        flash('필수 항목을 모두 입력해주세요.', 'danger')
+        return redirect(url_for('parent.absence_notice', student_id=student_id))
+
+    try:
+        absence_date = datetime.strptime(absence_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('날짜 형식이 올바르지 않습니다.', 'danger')
+        return redirect(url_for('parent.absence_notice', student_id=student_id))
+
+    # 수강 중인 수업인지 확인
+    enrollment = CourseEnrollment.query.filter_by(
+        student_id=student_id, course_id=course_id, status='active'
+    ).first()
+    if not enrollment:
+        flash('수강 중인 수업이 아닙니다.', 'danger')
+        return redirect(url_for('parent.absence_notice', student_id=student_id))
+
+    course = enrollment.course
+    notice_label = '결석' if notice_type == 'absent' else '지각'
+
+    notice = AbsenceNotice(
+        student_id=student_id,
+        course_id=course_id,
+        absence_date=absence_date,
+        reason=reason,
+        notice_type=notice_type,
+        submitted_by=current_user.user_id
+    )
+    db.session.add(notice)
+    db.session.flush()
+
+    # 담당 강사에게 알림
+    if course.teacher_id:
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='absence_notice',
+            title=f'[{notice_label} 예고] {student.name} ({absence_date.strftime("%m/%d")})',
+            message=(f'{student.name} 학생이 {absence_date.strftime("%Y년 %m월 %d일")} '
+                     f'{course.course_name} 수업 {notice_label}을 예고했습니다. 사유: {reason}'),
+            link_url='/teacher/upcoming-changes'
+        )
+
+    db.session.commit()
+    flash(f'{absence_date.strftime("%Y년 %m월 %d일")} {notice_label} 예고가 등록되었습니다. 담당 강사에게 알림을 보냈습니다.', 'success')
+    return redirect(url_for('parent.absence_notice', student_id=student_id))
+
+
+@parent_bp.route('/absence-notice/<student_id>/cancel/<notice_id>', methods=['POST'])
+@login_required
+@requires_role('parent', 'admin')
+def cancel_absence_notice_parent(student_id, notice_id):
+    """결석 예고 취소"""
+    from app.models.absence_notice import AbsenceNotice
+
+    pr = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id, student_id=student_id, is_active=True
+    ).first_or_404()
+
+    notice = AbsenceNotice.query.filter_by(
+        notice_id=notice_id, student_id=student_id
+    ).first_or_404()
+
+    if notice.status != 'pending':
+        flash('이미 처리된 예고는 취소할 수 없습니다.', 'warning')
+        return redirect(url_for('parent.absence_notice', student_id=student_id))
+
+    notice.status = 'cancelled'
+    db.session.commit()
+    flash('결석 예고가 취소되었습니다.', 'info')
+    return redirect(url_for('parent.absence_notice', student_id=student_id))
+
+
 # ==================== 보강수업 신청 (학부모) ====================
 
 @parent_bp.route('/makeup-classes/<student_id>')
