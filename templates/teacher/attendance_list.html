@@ -109,8 +109,10 @@
                 <!-- 학생 이름 검색 (JS DOM 필터) -->
                 <div>
                     <input type="text" id="studentNameFilter"
+                           name="student_name"
                            placeholder="학생 이름 검색..."
                            oninput="filterByStudentName(this.value)"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();filterByStudentName(this.value);}"
                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-36">
                 </div>
                 <!-- 미완료만 보기 -->
@@ -428,6 +430,17 @@ document.addEventListener('DOMContentLoaded', function() {
             showExcusedModalList(this.getAttribute('data-att-id-ex'), this.getAttribute('data-student-name-ex'));
         });
     });
+
+    // URL의 student_name 파라미터가 있으면 자동으로 학생 이름 필터 적용
+    var urlParams = new URLSearchParams(window.location.search);
+    var studentName = urlParams.get('student_name');
+    if (studentName) {
+        var input = document.getElementById('studentNameFilter');
+        if (input) {
+            input.value = studentName;
+            filterByStudentName(studentName);
+        }
+    }
 });
 
 // ── 인정결석 모달 (attendance_list) ──────────────────────────
