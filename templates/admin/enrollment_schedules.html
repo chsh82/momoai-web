@@ -207,22 +207,30 @@
 </div>
 
 <script>
+let _studentOpts = null;
+
 function filterStudents() {
   const grade = document.getElementById('gradeFilter').value;
   const search = document.getElementById('studentSearch').value.trim().toLowerCase();
   const select = document.getElementById('studentSelect');
 
-  Array.from(select.options).forEach(opt => {
-    if (!opt.value) return;
+  if (!_studentOpts) {
+    _studentOpts = Array.from(select.options).filter(o => o.value);
+  }
+
+  const currentVal = select.value;
+  Array.from(select.options).forEach(o => { if (o.value) o.remove(); });
+
+  _studentOpts.forEach(opt => {
     const g = opt.dataset.grade || '';
     const n = (opt.dataset.name || '').toLowerCase();
-    const gradeMatch = !grade || g === grade;
-    const nameMatch = !search || n.includes(search);
-    opt.hidden = !(gradeMatch && nameMatch);
+    if ((!grade || g === grade) && (!search || n.includes(search))) {
+      select.appendChild(opt);
+    }
   });
 
-  const selected = select.options[select.selectedIndex];
-  if (selected && selected.hidden) select.value = '';
+  select.value = currentVal;
+  if (!select.value) select.value = '';
 }
 </script>
 {% endblock %}
