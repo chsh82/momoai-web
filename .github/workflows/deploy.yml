@@ -33,8 +33,9 @@ jobs:
           script: |
             set -e
             cd ~/momoai_web
-            echo "=== git pull ==="
-            git pull origin master
+            echo "=== 최신 코드 동기화 ==="
+            git fetch origin master
+            git reset --hard origin/master
             echo "=== 서비스 재시작 ==="
             sudo systemctl restart momoai
             echo "=== 상태 확인 ==="
