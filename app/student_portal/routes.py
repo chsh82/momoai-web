@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """학생 포털 라우트"""
-from flask import render_template, request, redirect, url_for, flash, jsonify, current_app, send_from_directory
+from flask import render_template, request, redirect, url_for, flash, jsonify, current_app, send_from_directory, abort
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import desc, and_
@@ -1003,7 +1003,10 @@ def download_assignment_file(submission_id):
 @login_required
 @requires_role('student', 'admin')
 def my_payments():
-    """내 결제 현황 (청구서 + 이월/무료 조정 이력)"""
+    """내 결제 현황 (학생 계정에서는 접근 불가)"""
+    if current_user.role == 'student':
+        abort(403)
+
     from app.models.session_adjustment import SessionAdjustment
     from app.models import Payment
 
