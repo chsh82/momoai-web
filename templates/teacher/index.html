@@ -2,6 +2,11 @@
 
 {% block title %}{{ current_user.name }}의 마이 페이지 - MOMOAI v4.0{% endblock %}
 
+{% block chart_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+{% endblock %}
+
 {% block page_title %}🏠 {{ current_user.name }}의 마이 페이지{% endblock %}
 
 {% block page_subtitle %}{% endblock %}
@@ -238,11 +243,11 @@
             </div>
         </div>
 
-        <!-- 학생별 출석률 Top 10 -->
+        <!-- 학생별 결석률 Top 10 -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">학생별 출석률 Top 10</h3>
-                <p class="text-sm text-gray-600 mt-1">출석률이 높은 학생들</p>
+                <h3 class="text-xl font-bold text-gray-800">학생별 결석률 Top 10</h3>
+                <p class="text-sm text-gray-600 mt-1">결석률이 높은 학생들</p>
             </div>
             <div class="p-6">
                 <canvas id="studentAttendanceChart" height="200"></canvas>
@@ -365,7 +370,7 @@
     </div>
 </div>
 
-{% block extra_js %}
+{% block scripts %}
 <script>
 // 출석 체크 모달 닫기 함수
 function closeModal() {
@@ -428,40 +433,41 @@ new Chart(courseCtx, {
     }
 });
 
-// 월별 첨삭 추이 차트
+// 월별 첨삭 추이 차트 (막대 + 수치 표시)
 const essayCtx = document.getElementById('essayTrendChart').getContext('2d');
 new Chart(essayCtx, {
-    type: 'line',
+    type: 'bar',
     data: {
         labels: {{ essay_labels|safe }},
         datasets: [{
             label: '첨삭 수',
             data: {{ essay_data|safe }},
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            backgroundColor: 'rgba(16, 185, 129, 0.7)',
             borderColor: 'rgba(16, 185, 129, 1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true
+            borderWidth: 1
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: true,
-                position: 'top'
+            legend: { display: true, position: 'top' },
+            datalabels: {
+                anchor: 'end',
+                align: 'top',
+                color: '#065f46',
+                font: { weight: 'bold', size: 12 },
+                formatter: function(value) { return value > 0 ? value + '건' : ''; }
             }
         },
         scales: {
             y: {
                 beginAtZero: true,
-                ticks: {
-                    stepSize: 1
-                }
+                ticks: { stepSize: 1 }
             }
         }
-    }
+    },
+    plugins: [ChartDataLabels]
 });
 
 // 월별 평균 출석률 추이 차트
@@ -503,17 +509,17 @@ new Chart(attendanceTrendCtx, {
     }
 });
 
-// 학생별 출석률 Top 10 차트
+// 학생별 결석률 Top 10 차트
 const studentAttendanceCtx = document.getElementById('studentAttendanceChart').getContext('2d');
 new Chart(studentAttendanceCtx, {
     type: 'bar',
     data: {
         labels: {{ student_names|safe }},
         datasets: [{
-            label: '출석률 (%)',
+            label: '결석률 (%)',
             data: {{ student_attendance_rates|safe }},
-            backgroundColor: 'rgba(147, 51, 234, 0.7)',
-            borderColor: 'rgba(147, 51, 234, 1)',
+            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+            borderColor: 'rgba(239, 68, 68, 1)',
             borderWidth: 1
         }]
     },

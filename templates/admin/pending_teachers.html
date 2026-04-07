@@ -48,9 +48,9 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
                 <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         onchange="this.form.submit()">
-                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>승인 대기</option>
-                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>승인 완료</option>
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>전체</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>승인 완료</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>승인 대기</option>
                 </select>
             </div>
         </form>
@@ -90,8 +90,14 @@
                         <span class="text-xs text-gray-600">{{ teacher.phone if teacher.phone else '-' }}</span>
                     </div>
                 </div>
-                {% if not teacher.is_active %}
                 <div class="flex gap-2 pt-2 border-t border-gray-100">
+                    {% if teacher.is_active %}
+                    <a href="{{ url_for('admin.impersonate_user', user_id=teacher.user_id) }}"
+                       onclick="return confirm('{{ teacher.name }} 강사 계정으로 전환하시겠습니까?');"
+                       class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition">
+                        👤 접속
+                    </a>
+                    {% else %}
                     <form method="POST" action="{{ url_for('admin.approve_teacher', user_id=teacher.user_id) }}"
                           onsubmit="return confirm('{{ teacher.name }}님의 강사 계정을 승인하시겠습니까?');">
                         <button type="submit" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition">
@@ -102,8 +108,8 @@
                             class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition">
                         ✕ 거절
                     </button>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
         {% endfor %}

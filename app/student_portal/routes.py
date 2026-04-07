@@ -586,6 +586,8 @@ def attendance():
     ).order_by(CourseEnrollment.enrolled_at.desc()).all()
 
     # 수업별 통계 (카드용) - 실제 진행된 출결 기록만
+    from datetime import date
+    today = date.today()
     DONE_STATUSES = ['present', 'late', 'absent', 'excused']
     course_attendance_data = []
     all_records = []  # 전체 합산용 (페이지네이션)
@@ -593,11 +595,11 @@ def attendance():
     for enrollment in enrollments:
         course = enrollment.course
 
-        # 실제 진행된 수업만: 완료된 세션(status='completed')만
+        # 실제 진행된 수업만: 오늘 이전 세션(날짜 기준)
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession).filter(
-            CourseSession.status == 'completed',
+            CourseSession.session_date <= today,
             Attendance.status.in_(DONE_STATUSES)
         ).order_by(CourseSession.session_date.desc()).all()
 
@@ -1095,29 +1097,16 @@ def progress():
         return redirect(url_for('student.index'))
 
     # 진도 추적기 생성
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(f"[PROGRESS DEBUG] student_id={student.student_id}")
     tracker = ProgressTracker(student.student_id)
 
     # 전체 진도
     overall_progress = tracker.get_overall_progress()
 
     # 수업별 진도
-    try:
-        course_progress = tracker.get_course_progress()
-        logger.warning(f"[PROGRESS DEBUG] course_progress count={len(course_progress)}")
-    except Exception as e:
-        logger.error(f"[PROGRESS DEBUG] course_progress error: {e}")
-        course_progress = []
+    course_progress = tracker.get_course_progress()
 
     # 주간 활동
-    try:
-        weekly_activity = tracker.get_weekly_activity(weeks=4)
-        logger.warning(f"[PROGRESS DEBUG] weekly_activity keys={list(weekly_activity.keys())}")
-    except Exception as e:
-        logger.error(f"[PROGRESS DEBUG] weekly_activity error: {e}")
-        weekly_activity = {}
+    weekly_activity = tracker.get_weekly_activity(weeks=4)
 
     # 첨삭 현황
     essay_status = tracker.get_essay_status()
@@ -1128,17 +1117,22 @@ def progress():
     # 학습 성과
     performance = tracker.get_performance_summary()
 
-    # 차트 데이터: 수업별 진도율
-    course_labels = [cp['course'].course_name for cp in course_progress]
-    course_attendance = [cp['attendance_rate'] for cp in course_progress]
-    course_assignments = [cp['assignment_completion'] for cp in course_progress]
-
-    # 차트 데이터: 주간 활동
-    sorted_weeks = sorted(weekly_activity.keys())
-    weekly_labels = sorted_weeks
-    weekly_attendance = [weekly_activity[w]['attendance'] for w in sorted_weeks]
-    weekly_assignments = [weekly_activity[w]['assignments'] for w in sorted_weeks]
-    weekly_essays = [weekly_activity[w]['essays'] for w in sorted_weeks]
+    # 주간 활동 행 데이터 (최근 4주, 없는 주는 0으로 채움)
+    from datetime import date, timedelta
+    import re
+    today = date.today()
+    weekly_rows = []
+    relative_labels = ['4주 전', '3주 전', '2주 전', '지난주']
+    for i in range(4):
+        target_date = today - timedelta(weeks=3 - i)
+        week_key = target_date.strftime('%Y-%W')
+        data = weekly_activity.get(week_key, {'attendance': 0, 'assignments': 0, 'essays': 0})
+        weekly_rows.append({
+            'label': relative_labels[i],
+            'attendance': data['attendance'],
+            'assignments': data['assignments'],
+            'essays': data['essays'],
+        })
 
     return render_template('student/progress.html',
                          student=student,
@@ -1147,13 +1141,7 @@ def progress():
                          essay_status=essay_status,
                          assignment_status=assignment_status,
                          performance=performance,
-                         course_labels=json.dumps(course_labels),
-                         course_attendance=json.dumps(course_attendance),
-                         course_assignments=json.dumps(course_assignments),
-                         weekly_labels=json.dumps(weekly_labels),
-                         weekly_attendance=json.dumps(weekly_attendance),
-                         weekly_assignments=json.dumps(weekly_assignments),
-                         weekly_essays=json.dumps(weekly_essays))
+                         weekly_rows=weekly_rows)
 
 
 @student_bp.route('/essays/<essay_id>/download')

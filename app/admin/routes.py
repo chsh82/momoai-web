@@ -4501,11 +4501,11 @@ def api_search_students():
 def pending_teachers():
     """승인 대기 중인 강사 목록"""
     # 필터
-    status_filter = request.args.get('status', 'pending')
-    
+    status_filter = request.args.get('status', 'all')
+
     # 쿼리 빌드
     query = User.query.filter(User.role == 'teacher')
-    
+
     if status_filter == 'pending':
         query = query.filter(User.is_active == False)
     elif status_filter == 'approved':
@@ -5059,6 +5059,12 @@ def edit_staff(staff_id):
         elif not zoom_link_input and staff.zoom_link:
             # 입력이 비어 있고 기존 링크가 있으면 그대로 유지
             pass
+
+        # 담당 학년 (강사인 경우)
+        if new_role == 'teacher':
+            import json as _json
+            selected_grades = request.form.getlist('teacher_grades')
+            staff.teacher_grades = _json.dumps(selected_grades, ensure_ascii=False)
 
         db.session.commit()
         flash(f'{staff.name}님의 정보가 수정되었습니다.', 'success')

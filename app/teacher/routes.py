@@ -89,8 +89,9 @@ def index():
     my_courses = Course.query.filter_by(teacher_id=current_user.user_id, status='active')\
         .order_by(Course.start_date.desc()).all()
 
-    # 오늘 수업
-    today = datetime.utcnow().date()
+    # 오늘 수업 (서버 로컬 시간 기준)
+    from datetime import date as _date
+    today = _date.today()
     today_sessions = []
     for course in my_courses:
         sessions = CourseSession.query.filter_by(
@@ -99,10 +100,10 @@ def index():
         ).all()
         today_sessions.extend(sessions)
 
-    # 출석 체크 필요한 세션 (완료되었지만 출석 미체크)
+    # 출석 체크 필요한 세션 (오늘 이전이고 출석 미체크)
     pending_attendance = CourseSession.query.join(Course).filter(
         Course.teacher_id == current_user.user_id,
-        CourseSession.status == 'completed',
+        CourseSession.session_date < today,
         CourseSession.attendance_checked == False
     ).order_by(CourseSession.session_date.desc()).limit(5).all()
 
@@ -126,7 +127,7 @@ def index():
     course_data = [row.count for row in course_enrollments]
 
     # 차트 데이터: 월별 첨삭 수 (내가 담당한 학생들)
-    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    six_months_ago = datetime.utcnow() - timedelta(days=180)  # Essay.created_at은 datetime
     # 내 수업 학생들의 student_id 목록
     my_student_ids = []
     for course in my_courses:
@@ -147,7 +148,8 @@ def index():
     essay_labels = [f"{int(row.year)}-{int(row.month):02d}" for row in monthly_essays]
     essay_data = [row.count for row in monthly_essays]
 
-    # 추가 차트 데이터 1: 월별 평균 출석률 추이 (내 수업 기준)
+    # 추가 차트 데이터 1: 월별 평균 출석률 추이 (오늘 이전만)
+    six_months_ago_date = today - timedelta(days=180)
     monthly_attendance = db.session.query(
         extract('year', CourseSession.session_date).label('year'),
         extract('month', CourseSession.session_date).label('month'),
@@ -157,7 +159,8 @@ def index():
      .join(Course, CourseSession.course_id == Course.course_id)\
      .filter(
          Course.teacher_id == current_user.user_id,
-         CourseSession.session_date >= six_months_ago
+         CourseSession.session_date >= six_months_ago_date,
+         CourseSession.session_date <= today
      ).group_by('year', 'month')\
      .order_by('year', 'month').all()
 
@@ -167,25 +170,25 @@ def index():
         for row in monthly_attendance
     ]
 
-    # 추가 차트 데이터 2: 학생별 출석률 Top 10
-    student_attendance = db.session.query(
+    # 추가 차트 데이터 2: 학생별 결석률 Top 10
+    student_absence = db.session.query(
         Student.name,
         func.count(Attendance.attendance_id).label('total_sessions'),
-        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present_count')
+        func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent_count')
     ).join(CourseEnrollment, Student.student_id == CourseEnrollment.student_id)\
      .join(Attendance, CourseEnrollment.enrollment_id == Attendance.enrollment_id)\
      .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
      .join(Course, CourseSession.course_id == Course.course_id)\
      .filter(Course.teacher_id == current_user.user_id)\
      .group_by(Student.student_id, Student.name)\
-     .order_by(func.sum(case((Attendance.status == 'present', 1), else_=0)).desc())\
+     .order_by(func.sum(case((Attendance.status == 'absent', 1), else_=0)).desc())\
      .limit(10).all()
 
     student_names = []
     student_attendance_rates = []
-    for row in student_attendance:
+    for row in student_absence:
         if row.total_sessions > 0:
-            rate = round((row.present_count / row.total_sessions * 100), 1)
+            rate = round((row.absent_count / row.total_sessions * 100), 1)
             student_names.append(row.name)
             student_attendance_rates.append(rate)
 
@@ -2170,11 +2173,11 @@ def class_messages():
         CourseEnrollment.status == 'active'
     ).all()
 
-    # 학생 중복 제거
+    # 학생 중복 제거 (student 레코드 없는 enrollment 제외)
     students_dict = {}
     for enrollment in enrollments:
         student_id = enrollment.student_id
-        if student_id not in students_dict:
+        if student_id not in students_dict and enrollment.student is not None:
             students_dict[student_id] = enrollment.student
 
     students = list(students_dict.values())

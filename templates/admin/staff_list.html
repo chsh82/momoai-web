@@ -134,6 +134,13 @@
 
                 <!-- 관리 버튼 -->
                 <div class="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-100">
+                    {% if staff.is_active and staff.user_id != current_user.user_id and staff.role == 'teacher' %}
+                    <a href="{{ url_for('admin.impersonate_user', user_id=staff.user_id) }}"
+                       onclick="return confirm('{{ staff.name }} 강사 계정으로 전환하시겠습니까?');"
+                       class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition">
+                        👤 접속
+                    </a>
+                    {% endif %}
                     <a href="{{ url_for('admin.edit_staff', staff_id=staff.user_id) }}"
                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition">
                         수정

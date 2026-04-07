@@ -2,7 +2,7 @@
 {% block title %}주간 시간표 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
-{% set HOUR_PX = 60 %}   {# 1시간 = 60px #}
+{% set HOUR_PX = 60 %}
 {% set START_H = 8 %}
 {% set END_H = 22 %}
 {% set TOTAL_PX = (END_H - START_H) * HOUR_PX %}
@@ -36,10 +36,9 @@
     <!-- 시간표 본체 -->
     <div class="bg-white rounded-xl shadow overflow-hidden">
         <div class="overflow-x-auto">
-            <!-- 단일 CSS 그리드: 헤더와 바디가 동일한 열 정의를 공유 -->
             <div class="min-w-[700px]" style="display:grid; grid-template-columns:3.5rem repeat(7,1fr);">
 
-                <!-- 요일 헤더 (1행 × 8열) -->
+                <!-- 요일 헤더 -->
                 <div class="border-b border-gray-200"></div>
                 {% for i in range(7) %}
                 {% set cur = week_start + timedelta(days=i) %}
@@ -56,7 +55,7 @@
                 </div>
                 {% endfor %}
 
-                <!-- 시간 축 (2행 1열) -->
+                <!-- 시간 축 -->
                 <div class="relative border-r border-gray-200" style="height:{{ TOTAL_PX }}px;">
                     {% for h in range(START_H, END_H) %}
                     <div class="absolute w-full text-right pr-2"
@@ -66,10 +65,10 @@
                     {% endfor %}
                 </div>
 
-                <!-- 요일 열 (2행 2~8열) -->
+                <!-- 요일 열 -->
                 {% for i in range(7) %}
                 {% set cur = week_start + timedelta(days=i) %}
-                <div class="relative border-l border-gray-200
+                <div class="week-day-col relative border-l border-gray-200
                     {% if cur == today %}bg-blue-50/30{% endif %}"
                      style="height:{{ TOTAL_PX }}px;">
 
@@ -78,7 +77,6 @@
                     <div class="absolute w-full border-t {% if h == START_H %}border-transparent{% else %}border-gray-100{% endif %}"
                          style="top:{{ (h - START_H) * HOUR_PX }}px;"></div>
                     {% endfor %}
-                    <!-- 30분 라인 -->
                     {% for h in range(START_H, END_H) %}
                     <div class="absolute w-full border-t border-dashed border-gray-100"
                          style="top:{{ (h - START_H) * HOUR_PX + 30 }}px;"></div>
@@ -93,9 +91,8 @@
                     {% set em = session.end_time.minute %}
                     {% set top_px = (sh - START_H) * HOUR_PX + sm %}
                     {% set dur = (eh - sh) * 60 + (em - sm) %}
-                    {% set ht = [dur, 22] | max %}
+                    {% set ht = [dur, 24] | max %}
 
-                    {# 수강생 이름 목록 #}
                     {% set ns = namespace(names=[]) %}
                     {% for enr in session.course.enrollments %}
                         {% if enr.status == 'active' and enr.student %}
@@ -104,30 +101,26 @@
                     {% endfor %}
 
                     <a href="{{ url_for('teacher.course_detail', course_id=session.course.course_id) }}"
-                       class="absolute left-0.5 right-0.5 rounded overflow-hidden px-1.5 py-1 flex flex-col gap-0.5
+                       class="sched-block absolute rounded overflow-hidden px-1.5 py-1 flex flex-col gap-0.5
                            {% if session.status == 'scheduled' %}bg-blue-500 text-white
                            {% elif session.status == 'completed' %}bg-emerald-500 text-white
                            {% elif session.status == 'cancelled' %}bg-gray-300 text-gray-500 line-through
                            {% else %}bg-blue-400 text-white{% endif %}"
-                       style="top:{{ top_px }}px; height:{{ ht }}px;">
+                       style="top:{{ top_px + 2 }}px; height:{{ [ht - 4, 18] | max }}px; left:2px; right:2px;"
+                       data-top="{{ top_px }}"
+                       data-minhpx="{{ ht }}">
 
-                        {# 수업명 #}
-                        <div class="font-semibold leading-tight truncate"
-                             style="font-size:{{ [[ht * 0.18, 10] | max, 12] | min | round | int }}px;">
+                        <div class="font-semibold leading-tight truncate text-xs">
                             {{ session.course.course_name }}
                         </div>
-
-                        {# 시간 + 인원 #}
                         {% if ht >= 30 %}
-                        <div class="opacity-90 leading-tight truncate" style="font-size:10px;">
+                        <div class="sched-time opacity-90 leading-tight truncate" style="font-size:10px;">
                             {{ '%02d:%02d' % (sh, sm) }}–{{ '%02d:%02d' % (eh, em) }}
                             · {{ session.course.enrolled_count }}명
                         </div>
                         {% endif %}
-
-                        {# 수강생 이름 #}
                         {% if ht >= 44 and ns.names %}
-                        <div class="opacity-80 leading-tight truncate" style="font-size:10px;">
+                        <div class="sched-names opacity-80 leading-tight truncate" style="font-size:10px;">
                             {{ ns.names | join(', ') }}
                         </div>
                         {% endif %}
@@ -175,4 +168,56 @@
         </div>
     </div>
 </div>
+
+<style>
+.sched-narrow .sched-names { display: none !important; }
+.sched-narrow .sched-time  { display: none !important; }
+</style>
+<script>
+(function () {
+    document.querySelectorAll('.week-day-col').forEach(function (col) {
+        var blocks = Array.from(col.querySelectorAll('.sched-block'));
+        if (blocks.length < 2) return;
+
+        var items = blocks.map(function (b) {
+            var top   = parseFloat(b.dataset.top)    || 0;
+            var minH  = parseFloat(b.dataset.minhpx) || 0;
+            return { el: b, top: top, bottom: top + minH, lane: 0, hasOverlap: false };
+        }).sort(function (a, b) { return a.top - b.top; });
+
+        for (var i = 0; i < items.length; i++) {
+            for (var j = i + 1; j < items.length; j++) {
+                if (items[i].top < items[j].bottom && items[j].top < items[i].bottom) {
+                    items[i].hasOverlap = true;
+                    items[j].hasOverlap = true;
+                }
+            }
+        }
+
+        var overlapItems = items.filter(function (item) { return item.hasOverlap; });
+        if (overlapItems.length < 2) return;
+
+        var laneEnds = [];
+        overlapItems.forEach(function (item) {
+            var lane = laneEnds.findIndex(function (end) { return item.top >= end; });
+            if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+            laneEnds[lane] = item.bottom;
+            item.lane = lane;
+        });
+
+        var totalLanes = laneEnds.length;
+        if (totalLanes < 2) return;
+
+        overlapItems.forEach(function (item) {
+            var pct = 100 / totalLanes;
+            var gap = 2;
+            item.el.style.left  = 'calc(' + (item.lane * pct) + '% + ' + gap + 'px)';
+            item.el.style.right = 'auto';
+            item.el.style.width = 'calc(' + pct + '% - ' + (gap * 2) + 'px)';
+            item.el.style.removeProperty('right');
+            item.el.classList.add('sched-narrow');
+        });
+    });
+})();
+</script>
 {% endblock %}

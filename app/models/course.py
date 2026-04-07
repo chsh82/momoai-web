@@ -156,7 +156,7 @@ class CourseEnrollment(db.Model):
         total = self.attended_sessions + self.absent_sessions + self.late_sessions
         if total == 0:
             return 0
-        return (self.attended_sessions / total) * 100
+        return round((self.attended_sessions / total) * 100, 1)
 
     @property
     def remaining_payment(self):
