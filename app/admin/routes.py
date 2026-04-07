@@ -3105,7 +3105,7 @@ def enrollment_schedules():
     schedules = query.order_by(EnrollmentSchedule.scheduled_date.asc()).all()
 
     # 폼용: 전체 학생/수업 목록
-    all_students = Student.query.filter_by(is_active=True).order_by(Student.name).all()
+    all_students = Student.query.filter_by(status='active').order_by(Student.name).all()
     all_courses = Course.query.filter(Course.status == 'active').order_by(Course.course_name).all()
     today = date.today()
 
