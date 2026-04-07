@@ -129,50 +129,6 @@
         </form>
     </div>
 
-    <!-- 보강수업 세션 -->
-    {% if makeup_sessions %}
-    <div class="bg-white rounded-lg shadow mb-6 border-l-4 border-orange-400">
-        <div class="px-6 py-4 border-b border-gray-200 bg-orange-50">
-            <h3 class="text-lg font-bold text-orange-900">🔄 보강수업 세션 ({{ makeup_sessions|length }}개)</h3>
-            <p class="text-sm text-orange-700 mt-1">승인된 보강수업 (과거 30일 ~ 향후 90일)</p>
-        </div>
-        <div class="divide-y divide-gray-100">
-            {% for session in makeup_sessions %}
-            {% set enrolled_names = session.course.enrollments | map(attribute='student') | selectattr('name') | map(attribute='name') | join(' ') %}
-            <div class="session-row px-4 py-3 flex flex-wrap items-center justify-between gap-2 hover:bg-orange-50">
-                <!-- 학생명 필터용 숨김 행 -->
-                {% for enrollment in session.course.enrollments %}
-                {% if enrollment.student %}
-                <span class="student-row hidden" data-student-name="{{ enrollment.student.name }}"></span>
-                {% endif %}
-                {% endfor %}
-                <div class="flex items-center gap-3 text-sm">
-                    <span class="font-semibold text-gray-800">
-                        {{ session.session_date.strftime('%Y-%m-%d') }}
-                        ({{ session.session_date.strftime('%a')|replace('Mon','월')|replace('Tue','화')|replace('Wed','수')|replace('Thu','목')|replace('Fri','금')|replace('Sat','토')|replace('Sun','일') }})
-                    </span>
-                    {% if session.session_date == today %}
-                    <span class="px-1.5 py-0.5 bg-orange-200 text-orange-800 text-xs rounded font-medium">오늘</span>
-                    {% endif %}
-                    <span class="text-gray-700">{{ session.course.course_name }}</span>
-                    {% if enrolled_names %}
-                    <span class="text-orange-600 text-xs font-medium">{{ enrolled_names }}</span>
-                    {% endif %}
-                    <span class="text-gray-400 text-xs">
-                        {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
-                        {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
-                    </span>
-                </div>
-                <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
-                   class="text-orange-600 hover:text-orange-800 text-sm font-medium">
-                    {% if session.status == 'completed' %}출석 현황{% else %}출석 체크{% endif %} →
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
     <!-- 세션 목록 (최신순) -->
     {% if past_sessions %}
     <div class="space-y-2" id="sessions-list">
@@ -194,6 +150,9 @@
                     </span>
                     {% if session.session_date == today %}
                     <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">오늘</span>
+                    {% endif %}
+                    {% if session.course.course_type == '보강수업' %}
+                    <span class="px-1.5 py-0.5 bg-orange-100 text-orange-800 text-xs rounded font-medium">🔄 보강</span>
                     {% endif %}
                     <!-- 수업명 -->
                     <span class="text-sm font-medium text-gray-700">{{ session.course.course_name }}</span>

@@ -611,17 +611,17 @@ def attendance_list():
                              weekday_filter=weekday_filter,
                              course_type_filter=course_type_filter)
 
-    # 보강수업 세션 (오늘 이후 + cancelled 제외)
-    makeup_sessions = []
+    # 보강수업 세션 (과거 30일 ~ 향후 90일)
+    makeup_sessions_raw = []
     if makeup_course_ids:
-        makeup_sessions = CourseSession.query.filter(
+        makeup_sessions_raw = CourseSession.query.filter(
             CourseSession.course_id.in_(makeup_course_ids),
-            CourseSession.session_date >= today,
+            CourseSession.session_date >= today - timedelta(days=30),
             CourseSession.session_date <= today + timedelta(days=90),
             CourseSession.status != 'cancelled'
-        ).order_by(CourseSession.session_date, CourseSession.start_time).all()
+        ).all()
 
-    # 오늘 포함 과거 세션 전체, 최신순 (limit 100)
+    # 오늘 포함 과거 세션 전체, 최신순 (limit 200)
     past_query = CourseSession.query.filter(
         CourseSession.course_id.in_(regular_course_ids),
         CourseSession.session_date <= today
@@ -642,10 +642,16 @@ def attendance_list():
         filtered_ids = [s.session_id for s in all_sessions if s.session_date.weekday() == int(weekday_filter)]
         past_query = CourseSession.query.filter(CourseSession.session_id.in_(filtered_ids))
 
-    past_sessions = past_query.order_by(
+    past_sessions_raw = past_query.order_by(
         CourseSession.session_date.desc(),
         CourseSession.start_time.desc()
-    ).limit(100).all() if regular_course_ids else []
+    ).limit(200).all() if regular_course_ids else []
+
+    # 보강수업 세션을 날짜순으로 통합
+    from datetime import time as _time
+    combined = list(past_sessions_raw) + list(makeup_sessions_raw)
+    combined.sort(key=lambda s: (s.session_date, s.start_time or _time(0, 0)), reverse=True)
+    past_sessions = combined[:100]
 
     # 각 세션의 출결 레코드를 딕셔너리로 미리 로드 {session_id: [attendance, ...]}
     from collections import defaultdict
@@ -695,7 +701,7 @@ def attendance_list():
                          attendance_map=attendance_map,
                          essay_map=essay_map,
                          result_map=result_map,
-                         makeup_sessions=makeup_sessions,
+                         makeup_sessions=[],
                          course_filter=course_filter,
                          teacher_filter=teacher_filter,
                          date_filter=date_filter,
