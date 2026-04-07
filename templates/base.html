@@ -988,13 +988,6 @@
                         <span>보강수업</span>
                     </a>
 
-                    <!-- 5-1. 결석 예고 -->
-                    <a href="{{ url_for('parent.absence_notice_index') }}"
-                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'absence_notice' in request.endpoint %}active{% endif %} mt-1">
-                        <span class="text-xl">🚫</span>
-                        <span>결석 예고</span>
-                    </a>
-
                     <!-- 6. 결제 관리 -->
                     <a href="{{ url_for('parent.all_payments') }}"
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.all_payments' in request.endpoint %}active{% endif %} mt-2">
