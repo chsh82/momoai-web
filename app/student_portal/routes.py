@@ -236,10 +236,22 @@ def courses():
             'rate': rate,
         }
 
+    # 예정된 입반 예약 (status='scheduled', schedule_type='enroll')
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    pending_schedules = EnrollmentSchedule.query.filter_by(
+        student_id=student.student_id,
+        schedule_type='enroll',
+        status='scheduled'
+    ).all()
+    # 이미 수강 중인 수업은 제외
+    enrolled_course_ids = {e.course_id for e in enrollments}
+    pending_schedules = [s for s in pending_schedules if s.course_id not in enrolled_course_ids]
+
     return render_template('student/courses.html',
                          student=student,
                          enrollments=enrollments,
-                         enrollment_stats=enrollment_stats)
+                         enrollment_stats=enrollment_stats,
+                         pending_schedules=pending_schedules)
 
 
 @student_bp.route('/courses/<course_id>')

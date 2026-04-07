@@ -18,7 +18,7 @@
     </div>
 
     <!-- 수업 목록 -->
-    {% if enrollments %}
+    {% if enrollments or pending_schedules %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% for enrollment in enrollments %}
         <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
@@ -102,6 +102,47 @@
                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg transition duration-200 text-sm font-medium">
                         상세 보기
                     </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 예정 수업 (입반 예약됨, 클릭 불가) -->
+        {% for sched in pending_schedules %}
+        <div class="bg-white rounded-lg shadow opacity-50 cursor-not-allowed select-none">
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xl font-medium text-gray-500">
+                                {{ sched.course.course_name }}
+                            </span>
+                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">
+                                📅 입반 예정
+                            </span>
+                        </div>
+                        <p class="text-gray-400">👨‍🏫 {{ sched.course.teacher.name }} 강사</p>
+                    </div>
+                </div>
+                <div class="border-t border-gray-200 pt-4 space-y-2 text-sm">
+                    {% if sched.course.schedule_type == 'weekly' and sched.course.weekday is not none %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">수업 시간</span>
+                        <span class="text-gray-400">
+                            매주 {{ ['월', '화', '수', '목', '금', '토', '일'][sched.course.weekday] }}요일
+                            {% if sched.course.start_time %}{{ sched.course.start_time | kst('%H:%M') }}{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400">시작 예정일</span>
+                        <span class="text-gray-400 font-medium">{{ sched.scheduled_date.strftime('%Y년 %m월 %d일') }}</span>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-100 text-gray-400 text-center py-2 rounded-lg text-sm font-medium">
+                        🔒 {{ sched.scheduled_date.strftime('%m월 %d일') }} 이후 수강 가능
+                    </div>
                 </div>
             </div>
         </div>
