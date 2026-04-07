@@ -250,41 +250,23 @@ class ProgressTracker:
 
     def get_performance_summary(self):
         """학습 성과 요약"""
-        # 평균 과제 점수
-        submissions = AssignmentSubmission.query.filter_by(
-            student_id=self.student_id,
-            status='graded'
-        ).all()
-
-        avg_score = None  # None = 채점된 과제 없음
-        if submissions:
-            scored = []
-            for s in submissions:
-                if s.score is None or s.assignment is None:
-                    continue
-                max_score = s.assignment.max_score if s.assignment.max_score else 100
-                scored.append((s.score, max_score))
-            if scored:
-                total_score = sum(score for score, _ in scored)
-                total_max = sum(mx for _, mx in scored)
-                avg_score = round(total_score / total_max * 100, 1)
-
-        # 최근 첨삭 평균 점수
+        # 최근 첨삭 평균 점수 (완료된 첨삭의 total_score 기준)
         recent_essays = Essay.query.filter_by(
             student_id=self.student_id,
             is_finalized=True
         ).order_by(Essay.created_at.desc()).limit(10).all()
 
-        avg_essay_score = 0
+        avg_essay_score = None  # None = 완료된 첨삭 없음
         if recent_essays:
-            # Essay 모델에 score 필드가 있다고 가정
-            scores = [e.final_score for e in recent_essays if hasattr(e, 'final_score') and e.final_score]
+            scores = [
+                float(e.result.total_score)
+                for e in recent_essays
+                if e.result and e.result.total_score is not None
+            ]
             if scores:
                 avg_essay_score = round(sum(scores) / len(scores), 1)
 
         return {
-            'avg_assignment_score': avg_score,  # None이면 채점 데이터 없음
-            'graded_assignments_count': len(submissions),
-            'avg_essay_score': avg_essay_score,
+            'avg_essay_score': avg_essay_score,  # None이면 데이터 없음
             'completed_essays_count': len(recent_essays)
         }
