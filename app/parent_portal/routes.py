@@ -713,7 +713,19 @@ def request_makeup_class(student_id, course_id):
             link_url=url_for('admin.makeup_requests', _external=False)
         )
         db.session.add(notification)
-    
+
+    # 보강 신청 수업 담당 강사에게 알림 (신청 접수 단계)
+    if course.teacher_id:
+        reason_text = f' 사유: {reason}' if reason else ''
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='makeup_request',
+            title=f'[보강 신청] {student.name} 학생',
+            message=(f'{student.name} 학생의 학부모가 {course.course_name} 보강수업을 신청했습니다.'
+                     f'{reason_text} (관리자 승인 후 확정됩니다)'),
+            link_url='/teacher/upcoming-changes'
+        )
+
     db.session.commit()
     
     flash(f'{student.name} 학생의 보강수업 신청이 완료되었습니다. 관리자 승인을 기다려주세요.', 'success')
