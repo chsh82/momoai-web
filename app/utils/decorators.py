@@ -21,6 +21,10 @@ def requires_role(*roles):
                 flash('로그인이 필요합니다.', 'error')
                 return redirect(url_for('auth.login'))
 
+            # master_admin은 모든 역할 제한을 통과
+            if current_user.role == 'master_admin':
+                return f(*args, **kwargs)
+
             if current_user.role not in roles:
                 flash('접근 권한이 없습니다.', 'error')
                 abort(403)

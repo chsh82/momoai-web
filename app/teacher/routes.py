@@ -525,7 +525,7 @@ def course_sessions(course_id):
 
 @teacher_bp.route('/attendance')
 @login_required
-@requires_role('teacher', 'admin')
+@requires_role('teacher', 'admin', 'master_admin')
 def attendance_list():
     """출석 체크할 세션 목록"""
 
@@ -713,14 +713,14 @@ def attendance_list():
 
 @teacher_bp.route('/sessions/<session_id>/attendance')
 @login_required
-@requires_role('teacher', 'admin')
+@requires_role('teacher', 'admin', 'master_admin')
 def check_attendance(session_id):
     """출석 체크"""
     session = CourseSession.query.get_or_404(session_id)
     course = session.course
 
     # 권한 확인
-    if course.teacher_id != current_user.user_id and not current_user.is_admin:
+    if course.teacher_id != current_user.user_id and not current_user.is_admin and not current_user.is_master_admin:
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('teacher.courses'))
 
