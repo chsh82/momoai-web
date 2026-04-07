@@ -35,7 +35,8 @@ def index():
     # 학생 정보 조회
     if current_user.role == 'student':
         # student 계정인 경우 user_id로 student 정보 찾기
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
         if not student:
             flash('학생 정보를 찾을 수 없습니다.', 'error')
             return redirect(url_for('student.index'))
@@ -214,7 +215,8 @@ def index():
 def courses():
     """내 수업 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -275,7 +277,8 @@ def courses():
 def course_detail(course_id):
     """수업 상세 정보"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -340,7 +343,8 @@ def course_detail(course_id):
 def submit_essay():
     """새 과제 제출"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -488,7 +492,8 @@ def submit_essay():
 def my_essays():
     """내 첨삭 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -511,7 +516,8 @@ def my_essays():
 def view_essay(essay_id):
     """첨삭 보기"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -563,7 +569,8 @@ def attendance():
     """학생 출결 현황"""
     import math
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -643,7 +650,8 @@ def attendance():
 def announcements():
     """공지사항 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -687,7 +695,8 @@ def announcements():
 def view_announcement(announcement_id):
     """공지사항 상세"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -727,7 +736,8 @@ def view_announcement(announcement_id):
 def materials():
     """학습 자료 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -775,7 +785,8 @@ def download_material(material_id):
     import os
 
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -819,7 +830,8 @@ def download_material(material_id):
 def assignments():
     """과제 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -868,7 +880,8 @@ def assignments():
 def assignment_detail(assignment_id):
     """과제 상세"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -908,7 +921,8 @@ def submit_assignment(assignment_id):
     import uuid
 
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -982,7 +996,8 @@ def download_assignment_file(submission_id):
     import os
 
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1026,7 +1041,8 @@ def my_payments():
     from app.models import Payment
 
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1069,7 +1085,8 @@ def progress():
     import json
 
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1128,7 +1145,8 @@ def progress():
 def download_essay_attachment(essay_id):
     """첨삭 첨부 파일 다운로드"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1191,7 +1209,8 @@ def makeup_classes():
     """보강수업 신청 가능한 수업 목록"""
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1232,7 +1251,8 @@ def request_makeup_class(course_id):
     """보강수업 신청"""
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1306,7 +1326,8 @@ def cancel_makeup_request(request_id):
     """보강수업 신청 취소"""
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1341,7 +1362,8 @@ def makeup_classes_history():
     """보강수업 신청 전체 이력"""
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1376,7 +1398,8 @@ def makeup_classes_history():
 def teaching_materials():
     """학습 교재 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1434,7 +1457,8 @@ def teaching_materials():
 def teaching_material_detail(material_id):
     """교재 상세 정보"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1464,7 +1488,8 @@ def teaching_material_detail(material_id):
 def download_teaching_material(material_id):
     """교재 다운로드"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1527,7 +1552,8 @@ def download_teaching_material(material_id):
 def teaching_videos():
     """학습 동영상 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1585,7 +1611,8 @@ def teaching_videos():
 def teaching_video_player(video_id):
     """동영상 플레이어"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1742,7 +1769,8 @@ def download_class_board_attachment(attachment_id):
 def class_board():
     """내 수업 목록 (클래스 게시판용)"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1782,7 +1810,8 @@ def class_board():
 def class_board_posts(course_id):
     """수업 게시판 게시글 목록"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1823,7 +1852,8 @@ def class_board_posts(course_id):
 def create_class_board_post(course_id):
     """게시글 작성"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1914,7 +1944,8 @@ def create_class_board_post(course_id):
 def class_board_post_detail(course_id, post_id):
     """게시글 상세"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -1959,7 +1990,8 @@ def class_board_post_detail(course_id, post_id):
 def edit_class_board_post(course_id, post_id):
     """게시글 수정"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -2075,7 +2107,8 @@ def delete_class_board_post(course_id, post_id):
 def add_class_board_comment(course_id, post_id):
     """댓글 작성"""
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -2180,7 +2213,8 @@ def export_my_attendance():
 
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -2224,7 +2258,8 @@ def export_my_report():
 
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
@@ -2273,7 +2308,8 @@ def export_my_report_pdf():
 
     # 학생 정보 조회
     if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
     else:
         student = Student.query.first()
 
