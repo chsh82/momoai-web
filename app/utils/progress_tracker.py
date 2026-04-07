@@ -150,13 +150,14 @@ class ProgressTracker:
         today = datetime.utcnow().date()
         start_date = today - timedelta(days=weeks * 7)
 
-        # 주별 출석 수 (SQLite 호환)
+        # 주별 출석 수 — 실제 수업일(session_date) 기준
+        from app.models.course import CourseSession
         attendances = db.session.query(
-            func.strftime('%Y-%W', Attendance.created_at).label('week'),
+            func.strftime('%Y-%W', CourseSession.session_date).label('week'),
             func.count(Attendance.attendance_id).label('count')
-        ).filter(
+        ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
             Attendance.student_id == self.student_id,
-            Attendance.created_at >= start_date,
+            CourseSession.session_date >= start_date,
             Attendance.status.in_(['present', 'late'])
         ).group_by('week').order_by('week').all()
 
