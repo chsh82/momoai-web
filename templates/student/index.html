@@ -161,14 +161,32 @@
     </div>
     {% endif %}
 
-    <!-- 수업별 출석률 차트 -->
+    <!-- 수업별 출석률 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-xl font-bold text-gray-800">수업별 출석률</h3>
             <p class="text-sm text-gray-600 mt-1">내 수업 출석 현황</p>
         </div>
-        <div class="p-6">
-            <canvas id="attendanceChart" height="100"></canvas>
+        <div class="p-6 space-y-4">
+            {% for enrollment in enrollments %}
+            {% set rate = enrollment.attendance_rate %}
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-gray-700">{{ enrollment.course.course_name }}</span>
+                    <span class="text-sm font-bold
+                        {% if rate >= 80 %}text-green-600{% elif rate >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ "%.0f"|format(rate) }}%
+                    </span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-4">
+                    <div class="h-4 rounded-full transition-all duration-500
+                        {% if rate >= 80 %}bg-blue-500{% elif rate >= 60 %}bg-yellow-400{% else %}bg-red-400{% endif %}"
+                         style="width: {{ [rate, 100]|min }}%"></div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-4">수강 중인 수업이 없습니다.</p>
+            {% endfor %}
         </div>
     </div>
 
@@ -360,8 +378,33 @@ new Chart(scoreCtx, {
     },
     options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: true, position: 'top' } },
-        scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '점' } }, x: { grid: { display: false } } }
+        plugins: {
+            legend: { display: true, position: 'top' },
+            datalabels: false
+        },
+        scales: {
+            y: { min: 0, max: 100, ticks: { callback: v => v + '점' } },
+            x: { grid: { display: false } }
+        },
+        animation: {
+            onComplete: function() {
+                const chart = this;
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillStyle = '#374151';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                chart.data.datasets[0].data.forEach(function(value, index) {
+                    const meta = chart.getDatasetMeta(0);
+                    const bar = meta.data[index];
+                    if (bar && value !== null) {
+                        ctx.fillText(value + '점', bar.x, bar.y - 4);
+                    }
+                });
+                ctx.restore();
+            }
+        }
     }
 });
 
@@ -388,42 +431,6 @@ new Chart(document.getElementById('integratedRadar'), {
 });
 {% endif %}
 
-// 수업별 출석률 차트
-const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
-new Chart(attendanceCtx, {
-    type: 'bar',
-    data: {
-        labels: {{ course_names|safe }},
-        datasets: [{
-            label: '출석률 (%)',
-            data: {{ attendance_rates|safe }},
-            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-            borderColor: 'rgba(59, 130, 246, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                ticks: {
-                    callback: function(value) {
-                        return value + '%';
-                    }
-                }
-            }
-        }
-    }
-});
 </script>
 {% endblock %}
 {% endblock %}

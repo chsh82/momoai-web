@@ -116,7 +116,7 @@ def index():
     from app.models.essay_score import EssayScore
     import json
 
-    # 1. 월별 내 첨삭 수 추이 (최근 6개월)
+    # 1. 월별 내 첨삭 수 추이 (최근 6개월, 빈 달도 0으로 표시)
     six_months_ago = datetime.utcnow() - timedelta(days=180)
     monthly_essays = db.session.query(
         extract('year', Essay.created_at).label('year'),
@@ -128,8 +128,20 @@ def index():
     ).group_by('year', 'month')\
      .order_by('year', 'month').all()
 
-    essay_labels = [f"{int(row.year)}-{int(row.month):02d}" for row in monthly_essays]
-    essay_data = [row.count for row in monthly_essays]
+    # 최근 6개월 라벨 고정 생성 (빈 달 포함)
+    from datetime import date as _date
+    _today = _date.today()
+    month_list = []
+    for i in range(5, -1, -1):
+        m = _today.month - i
+        y = _today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        month_list.append((y, m))
+    month_data_map = {(int(r.year), int(r.month)): r.count for r in monthly_essays}
+    essay_labels = [f"{y}-{m:02d}" for y, m in month_list]
+    essay_data = [month_data_map.get((y, m), 0) for y, m in month_list]
 
     # 2. 내 평균 점수 추이 (최근 10개 완료된 첨삭)
     recent_scores = db.session.query(Essay, EssayResult)\
@@ -140,7 +152,10 @@ def index():
         ).order_by(Essay.completed_at.desc())\
         .limit(10).all()
 
-    score_labels = [f"v{essay.current_version}" for essay, _ in reversed(recent_scores)]
+    score_labels = [
+        essay.completed_at.strftime('%m/%d') if essay.completed_at else f"#{i+1}"
+        for i, (essay, _) in enumerate(reversed(recent_scores))
+    ]
     score_data = [float(result.total_score) for _, result in reversed(recent_scores)]
 
     # 3. 수업별 출석률 비교
