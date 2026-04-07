@@ -7651,3 +7651,71 @@ def action_item_delete(item_id):
     db.session.commit()
     flash('업무가 삭제되었습니다.', 'success')
     return redirect(url_for('admin.action_items'))
+
+
+# ==================== 계정 가장 (Impersonation) ====================
+
+@admin_bp.route('/impersonate')
+@login_required
+@requires_permission_level(3)
+def impersonate_index():
+    """계정 전환 검색 페이지"""
+    search = request.args.get('search', '').strip()
+    role_filter = request.args.get('role', '').strip()
+
+    query = User.query.filter(
+        User.is_active == True,
+        User.role.in_(['student', 'parent', 'teacher'])
+    )
+    if search:
+        query = query.filter(
+            db.or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%'))
+        )
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+
+    users = query.order_by(User.role, User.name).all()
+    return render_template('admin/impersonate.html', users=users, search=search, role_filter=role_filter)
+
+
+@admin_bp.route('/impersonate/<user_id>')
+@login_required
+@requires_permission_level(3)
+def impersonate_user(user_id):
+    """관리자가 다른 계정으로 전환"""
+    from flask_login import login_user
+    from flask import session as flask_session
+
+    target_user = User.query.get_or_404(user_id)
+
+    # 관리자 계정 저장
+    flask_session['_impersonator_id'] = current_user.user_id
+    flask_session['_impersonator_name'] = current_user.name
+
+    login_user(target_user)
+
+    role_redirects = {
+        'student': 'student.index',
+        'parent': 'parent.index',
+        'teacher': 'teacher.index',
+        'admin': 'admin.index',
+    }
+    dest = role_redirects.get(target_user.role, 'admin.index')
+    return redirect(url_for(dest))
+
+
+@admin_bp.route('/impersonate/exit')
+@login_required
+def impersonate_exit():
+    """원래 관리자 계정으로 복귀"""
+    from flask_login import login_user
+    from flask import session as flask_session
+
+    impersonator_id = flask_session.pop('_impersonator_id', None)
+    flask_session.pop('_impersonator_name', None)
+
+    if impersonator_id:
+        admin_user = User.query.get(impersonator_id)
+        if admin_user:
+            login_user(admin_user)
+    return redirect(url_for('admin.index'))

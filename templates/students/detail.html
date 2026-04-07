@@ -69,6 +69,13 @@
                class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
                 수정
             </a>
+            {% if student_user %}
+            <a href="{{ url_for('admin.impersonate_user', user_id=student_user.user_id) }}"
+               onclick="return confirm('{{ student.name }} 학생 계정으로 전환하시겠습니까?');"
+               class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200 whitespace-nowrap">
+                👤 계정으로 접속
+            </a>
+            {% endif %}
             {% if student.user_id %}
             <form method="POST"
                   action="{{ url_for('admin.reset_password', user_id=student.user_id) }}"

@@ -39,6 +39,16 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-gray-50" x-data="{ mobileMenuOpen: false, sidebarCollapsed: false }">
+    {% if session.get('_impersonator_id') %}
+    <div class="fixed top-0 left-0 right-0 z-[9999] bg-orange-500 text-white text-center py-2 text-sm font-semibold shadow-lg">
+        ⚠️ <strong>{{ current_user.name }}</strong> ({{ current_user.role }}) 계정으로 접속 중 —
+        <a href="{{ url_for('admin.impersonate_exit') }}"
+           class="ml-3 bg-white text-orange-600 px-3 py-0.5 rounded font-bold hover:bg-orange-50 transition">
+            관리자로 돌아가기
+        </a>
+    </div>
+    <div class="h-10"></div>
+    {% endif %}
     {% if current_user.is_authenticated %}
     <!-- Mobile Menu Button (desktop-only fallback, hidden on mobile — moved into header) -->
     <button @click="mobileMenuOpen = !mobileMenuOpen"

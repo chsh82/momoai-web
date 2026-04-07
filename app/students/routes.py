@@ -264,6 +264,9 @@ def detail(student_id):
             'rate': rate,
         })
 
+    from app.models import User
+    student_user = User.query.filter_by(email=student.email).first() if student.email else None
+
     return render_template('students/detail.html',
                          student=student,
                          essays=essays,
@@ -271,7 +274,8 @@ def detail(student_id):
                          radar_data=radar_data,
                          current_enrollments=current_enrollments,
                          available_courses=available_courses,
-                         attendance_by_course=attendance_by_course)
+                         attendance_by_course=attendance_by_course,
+                         student_user=student_user)
 
 
 @students_bp.route('/<student_id>/enroll', methods=['POST'])
