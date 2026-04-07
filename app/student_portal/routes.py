@@ -46,10 +46,12 @@ def index():
             flash('등록된 학생이 없습니다.', 'error')
             return redirect(url_for('student.index'))
 
-    # 수강 중인 수업 목록
+    # 수강 중인 수업 목록 (종료된 수업 제외)
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     # 최근 첨삭 기록
@@ -208,6 +210,8 @@ def courses():
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     # 진행된 세션(오늘 이전)만으로 출결 통계 계산
