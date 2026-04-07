@@ -497,9 +497,13 @@ def edit_course(course_id):
         course.start_date = form.start_date.data
         course.end_date = form.end_date.data
         course.price_per_session = form.price_per_session.data
-        course.status = form.status.data
         course.makeup_class_allowed = form.makeup_class_allowed.data
         course.is_terminated = (form.is_terminated.data == 'Y')
+        # is_terminated=Y이면 status를 completed로 강제 동기화
+        if course.is_terminated:
+            course.status = 'completed'
+        else:
+            course.status = form.status.data
 
         # 시작/종료 시간이 변경된 경우: 미래 예정 세션들 시간도 일괄 업데이트
         from datetime import date as _date, timedelta as _td
