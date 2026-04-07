@@ -258,9 +258,12 @@ class ProgressTracker:
 
         avg_score = None  # None = 채점된 과제 없음
         if submissions:
-            scored = [(s.score, s.assignment.max_score or 100)
-                      for s in submissions
-                      if s.score is not None and (s.assignment.max_score or 0) > 0]
+            scored = []
+            for s in submissions:
+                if s.score is None or s.assignment is None:
+                    continue
+                max_score = s.assignment.max_score if s.assignment.max_score else 100
+                scored.append((s.score, max_score))
             if scored:
                 total_score = sum(score for score, _ in scored)
                 total_max = sum(mx for _, mx in scored)
