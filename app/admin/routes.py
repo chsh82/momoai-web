@@ -3164,6 +3164,47 @@ def cancel_absence_notice(notice_id):
     return redirect(url_for('admin.absence_notices'))
 
 
+@admin_bp.route('/absence-notices/<notice_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def edit_absence_notice(notice_id):
+    """결석 예고 수정"""
+    from app.models.absence_notice import AbsenceNotice
+    notice = AbsenceNotice.query.get_or_404(notice_id)
+
+    absence_date_str = request.form.get('absence_date', '').strip()
+    notice_type = request.form.get('notice_type', 'absent').strip()
+    reason = request.form.get('reason', '').strip()
+
+    if absence_date_str:
+        try:
+            notice.absence_date = datetime.strptime(absence_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('날짜 형식이 올바르지 않습니다.', 'danger')
+            return redirect(url_for('admin.absence_notices'))
+    if notice_type:
+        notice.notice_type = notice_type
+    if reason:
+        notice.reason = reason
+
+    db.session.commit()
+    flash('결석 예고가 수정되었습니다.', 'success')
+    return redirect(url_for('admin.absence_notices'))
+
+
+@admin_bp.route('/absence-notices/<notice_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def delete_absence_notice(notice_id):
+    """결석 예고 삭제"""
+    from app.models.absence_notice import AbsenceNotice
+    notice = AbsenceNotice.query.get_or_404(notice_id)
+    db.session.delete(notice)
+    db.session.commit()
+    flash('결석 예고가 삭제되었습니다.', 'info')
+    return redirect(url_for('admin.absence_notices'))
+
+
 # ============================================================================
 # 입반/전반 예약 관리
 # ============================================================================
@@ -3270,6 +3311,48 @@ def cancel_enrollment_schedule(schedule_id):
     sched.status = 'cancelled'
     db.session.commit()
     flash('예약이 취소되었습니다.', 'info')
+    return redirect(url_for('admin.enrollment_schedules'))
+
+
+@admin_bp.route('/enrollment-schedules/<schedule_id>/edit', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def edit_enrollment_schedule(schedule_id):
+    """입반/전반 예약 수정"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    sched = EnrollmentSchedule.query.get_or_404(schedule_id)
+
+    scheduled_date_str = request.form.get('scheduled_date', '').strip()
+    schedule_type = request.form.get('schedule_type', '').strip()
+    reason = request.form.get('reason', '').strip()
+    memo = request.form.get('memo', '').strip()
+
+    if scheduled_date_str:
+        try:
+            sched.scheduled_date = datetime.strptime(scheduled_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('날짜 형식이 올바르지 않습니다.', 'danger')
+            return redirect(url_for('admin.enrollment_schedules'))
+    if schedule_type:
+        sched.schedule_type = schedule_type
+    sched.reason = reason
+    sched.memo = memo
+
+    db.session.commit()
+    flash('예약이 수정되었습니다.', 'success')
+    return redirect(url_for('admin.enrollment_schedules'))
+
+
+@admin_bp.route('/enrollment-schedules/<schedule_id>/delete', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def delete_enrollment_schedule(schedule_id):
+    """입반/전반 예약 삭제"""
+    from app.models.enrollment_schedule import EnrollmentSchedule
+    sched = EnrollmentSchedule.query.get_or_404(schedule_id)
+    db.session.delete(sched)
+    db.session.commit()
+    flash('예약이 삭제되었습니다.', 'info')
     return redirect(url_for('admin.enrollment_schedules'))
 
 
