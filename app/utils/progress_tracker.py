@@ -256,12 +256,15 @@ class ProgressTracker:
             status='graded'
         ).all()
 
-        avg_score = 0
+        avg_score = None  # None = 채점된 과제 없음
         if submissions:
-            total_score = sum(s.score for s in submissions if s.score)
-            total_max_score = sum(s.assignment.max_score for s in submissions)
-            if total_max_score > 0:
-                avg_score = round(total_score / total_max_score * 100, 1)
+            scored = [(s.score, s.assignment.max_score or 100)
+                      for s in submissions
+                      if s.score is not None and (s.assignment.max_score or 0) > 0]
+            if scored:
+                total_score = sum(score for score, _ in scored)
+                total_max = sum(mx for _, mx in scored)
+                avg_score = round(total_score / total_max * 100, 1)
 
         # 최근 첨삭 평균 점수
         recent_essays = Essay.query.filter_by(
@@ -277,7 +280,7 @@ class ProgressTracker:
                 avg_essay_score = round(sum(scores) / len(scores), 1)
 
         return {
-            'avg_assignment_score': avg_score,
+            'avg_assignment_score': avg_score,  # None이면 채점 데이터 없음
             'graded_assignments_count': len(submissions),
             'avg_essay_score': avg_essay_score,
             'completed_essays_count': len(recent_essays)
