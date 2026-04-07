@@ -608,13 +608,14 @@ def attendance_list():
                              weekday_filter=weekday_filter,
                              course_type_filter=course_type_filter)
 
-    # 보강수업 세션 (과거 30일 ~ 미래 90일, 날짜순)
+    # 보강수업 세션 (오늘 이후 + cancelled 제외)
     makeup_sessions = []
     if makeup_course_ids:
         makeup_sessions = CourseSession.query.filter(
             CourseSession.course_id.in_(makeup_course_ids),
-            CourseSession.session_date >= today - timedelta(days=30),
-            CourseSession.session_date <= today + timedelta(days=90)
+            CourseSession.session_date >= today,
+            CourseSession.session_date <= today + timedelta(days=90),
+            CourseSession.status != 'cancelled'
         ).order_by(CourseSession.session_date, CourseSession.start_time).all()
 
     # 오늘 포함 과거 세션 전체, 최신순 (limit 100)
