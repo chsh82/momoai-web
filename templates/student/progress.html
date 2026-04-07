@@ -44,8 +44,9 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="text-center">
                 <div class="text-orange-600 text-3xl mb-2">✍️</div>
-                <p class="text-sm text-gray-600 mb-1">총 첨삭 수</p>
-                <p class="text-3xl font-bold text-orange-600">{{ overall_progress.total_essays }}</p>
+                <p class="text-sm text-gray-600 mb-1">첨삭 활동률</p>
+                <p class="text-3xl font-bold text-orange-600">{{ overall_progress.essay_completion_rate }}%</p>
+                <p class="text-xs text-gray-400 mt-1">{{ overall_progress.essay_weeks }}주 / {{ overall_progress.total_weeks }}주</p>
             </div>
         </div>
     </div>
