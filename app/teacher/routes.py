@@ -716,8 +716,8 @@ def attendance_list():
 @requires_role('teacher', 'admin', 'master_admin')
 def check_attendance(session_id):
     """출석 체크"""
-    session = CourseSession.query.get_or_404(session_id)
-    course = session.course
+    course_session = CourseSession.query.get_or_404(session_id)
+    course = course_session.course
 
     # 권한 확인
     if course.teacher_id != current_user.user_id and not current_user.is_admin and not current_user.is_master_admin:
@@ -730,7 +730,7 @@ def check_attendance(session_id):
         .order_by(Student.name.asc()).all()
 
     # 세션 메모 폼
-    note_form = SessionNoteForm(obj=session)
+    note_form = SessionNoteForm(obj=course_session)
 
     # 학생별 학부모 전화번호 맵
     parent_phones = {}
@@ -742,7 +742,7 @@ def check_attendance(session_id):
             parent_phones[str(att.attendance_id)] = phones
 
     return render_template('teacher/check_attendance.html',
-                         session=session,
+                         course_session=course_session,
                          course=course,
                          attendance_records=attendance_records,
                          note_form=note_form,

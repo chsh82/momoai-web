@@ -27,12 +27,12 @@
                 <h3 class="text-xl font-bold text-gray-800 mb-4">{{ course.course_name }}</h3>
                 <div class="space-y-2 text-sm">
                     <p><span class="text-gray-600">수업 코드:</span> <span class="font-medium">{{ course.course_code }}</span></p>
-                    <p><span class="text-gray-600">세션 번호:</span> <span class="font-medium">세션 {{ session.session_number }}</span></p>
-                    <p><span class="text-gray-600">날짜:</span> <span class="font-medium">{{ session.session_date.strftime('%Y년 %m월 %d일 (%A)')|replace('Monday', '월요일')|replace('Tuesday', '화요일')|replace('Wednesday', '수요일')|replace('Thursday', '목요일')|replace('Friday', '금요일')|replace('Saturday', '토요일')|replace('Sunday', '일요일') }}</span></p>
+                    <p><span class="text-gray-600">세션 번호:</span> <span class="font-medium">세션 {{ course_session.session_number }}</span></p>
+                    <p><span class="text-gray-600">날짜:</span> <span class="font-medium">{{ course_session.session_date.strftime('%Y년 %m월 %d일 (%A)')|replace('Monday', '월요일')|replace('Tuesday', '화요일')|replace('Wednesday', '수요일')|replace('Thursday', '목요일')|replace('Friday', '금요일')|replace('Saturday', '토요일')|replace('Sunday', '일요일') }}</span></p>
                     <p><span class="text-gray-600">시간:</span>
                         <span class="font-medium">
-                            {% if session.start_time %}{{ session.start_time | kst('%H:%M') }}{% endif %}
-                            {% if session.end_time %} - {{ session.end_time | kst('%H:%M') }}{% endif %}
+                            {% if course_session.start_time %}{{ course_session.start_time | kst('%H:%M') }}{% endif %}
+                            {% if course_session.end_time %} - {{ course_session.end_time | kst('%H:%M') }}{% endif %}
                         </span>
                     </p>
                 </div>
@@ -228,7 +228,7 @@
             <h3 class="text-xl font-bold text-gray-800">수업 메모</h3>
         </div>
         <div class="p-6">
-            <form method="POST" action="{{ url_for('teacher.complete_session', session_id=session.session_id) }}" id="completeForm">
+            <form method="POST" action="{{ url_for('teacher.complete_session', session_id=course_session.session_id) }}" id="completeForm">
                 <div class="space-y-4">
                     <div>
                         {{ note_form.topic.label(class="block text-sm font-medium text-gray-700 mb-2") }}
