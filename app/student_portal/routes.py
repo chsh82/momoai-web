@@ -1095,16 +1095,29 @@ def progress():
         return redirect(url_for('student.index'))
 
     # 진도 추적기 생성
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"[PROGRESS DEBUG] student_id={student.student_id}")
     tracker = ProgressTracker(student.student_id)
 
     # 전체 진도
     overall_progress = tracker.get_overall_progress()
 
     # 수업별 진도
-    course_progress = tracker.get_course_progress()
+    try:
+        course_progress = tracker.get_course_progress()
+        logger.warning(f"[PROGRESS DEBUG] course_progress count={len(course_progress)}")
+    except Exception as e:
+        logger.error(f"[PROGRESS DEBUG] course_progress error: {e}")
+        course_progress = []
 
     # 주간 활동
-    weekly_activity = tracker.get_weekly_activity(weeks=4)
+    try:
+        weekly_activity = tracker.get_weekly_activity(weeks=4)
+        logger.warning(f"[PROGRESS DEBUG] weekly_activity keys={list(weekly_activity.keys())}")
+    except Exception as e:
+        logger.error(f"[PROGRESS DEBUG] weekly_activity error: {e}")
+        weekly_activity = {}
 
     # 첨삭 현황
     essay_status = tracker.get_essay_status()
