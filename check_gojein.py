@@ -1,16 +1,25 @@
 import sqlite3
 conn = sqlite3.connect('/home/chsh82/momoai_web/instance/momoai.db')
 cur = conn.cursor()
-cur.execute("SELECT student_id, name, email, user_id FROM students WHERE name LIKE '%\xc1\xa0%' OR name LIKE '%jane%' OR name LIKE '%Jane%'")
-rows = cur.fetchall()
-print('name search:', rows)
 
-# 이메일로 찾기
-cur.execute("SELECT user_id, name, email FROM users WHERE email='gojane0311@gmail.com'")
-print('user by email:', cur.fetchall())
+student_id = '26a5174c-7eb3-46f9-bc75-8d2637a1f319'
 
-# 모든 student user
-cur.execute("SELECT u.user_id, u.name, u.email, s.student_id, s.name FROM users u JOIN students s ON u.user_id=s.user_id WHERE u.role='student' LIMIT 20")
-for row in cur.fetchall():
-    print('student-user:', row)
+# enrollment 확인
+cur.execute("SELECT enrollment_id, course_id, status FROM course_enrollments WHERE student_id=?", (student_id,))
+enrollments = cur.fetchall()
+print('Enrollments:', enrollments)
+
+for enrollment_id, course_id, status in enrollments:
+    cur.execute("SELECT course_name, is_terminated FROM courses WHERE course_id=?", (course_id,))
+    course = cur.fetchone()
+    print('  Course:', course, 'status:', status)
+
+# 출석 확인
+from datetime import datetime, timedelta
+start_date = (datetime.utcnow() - timedelta(days=28)).strftime('%Y-%m-%d')
+cur.execute("SELECT count(*) FROM attendance WHERE student_id=?", (student_id,))
+print('Total attendance:', cur.fetchone())
+cur.execute("SELECT count(*) FROM attendance WHERE student_id=? AND created_at>=?", (student_id, start_date))
+print('Recent attendance (4w):', cur.fetchone())
+
 conn.close()
