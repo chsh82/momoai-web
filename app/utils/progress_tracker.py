@@ -97,6 +97,8 @@ class ProgressTracker:
         enrollments = CourseEnrollment.query.filter_by(
             student_id=self.student_id,
             status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False
         ).all()
 
         course_progress = []
@@ -152,8 +154,8 @@ class ProgressTracker:
         attendances = db.session.query(
             func.strftime('%Y-%W', Attendance.created_at).label('week'),
             func.count(Attendance.attendance_id).label('count')
-        ).join(CourseEnrollment).filter(
-            CourseEnrollment.student_id == self.student_id,
+        ).filter(
+            Attendance.student_id == self.student_id,
             Attendance.created_at >= start_date,
             Attendance.status.in_(['present', 'late'])
         ).group_by('week').order_by('week').all()
