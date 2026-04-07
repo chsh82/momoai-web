@@ -1106,6 +1106,9 @@ def progress():
     # 주간 활동
     weekly_activity = tracker.get_weekly_activity(weeks=4)
 
+    # 첨삭 현황
+    essay_status = tracker.get_essay_status()
+
     # 과제 현황
     assignment_status = tracker.get_assignment_status()
 
@@ -1128,6 +1131,7 @@ def progress():
                          student=student,
                          overall_progress=overall_progress,
                          course_progress=course_progress,
+                         essay_status=essay_status,
                          assignment_status=assignment_status,
                          performance=performance,
                          course_labels=json.dumps(course_labels),

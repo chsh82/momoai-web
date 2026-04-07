@@ -197,6 +197,45 @@ class ProgressTracker:
 
         return weekly_data
 
+    def get_essay_status(self):
+        """첨삭 현황"""
+        essays = Essay.query.filter_by(
+            student_id=self.student_id
+        ).order_by(Essay.created_at.desc()).all()
+
+        status_counts = {
+            'total': len(essays),
+            'finalized': sum(1 for e in essays if e.is_finalized),
+            'in_progress': sum(1 for e in essays if not e.is_finalized and e.status in ('processing', 'reviewing', 'completed')),
+            'draft': sum(1 for e in essays if not e.is_finalized and e.status == 'draft'),
+        }
+
+        essay_list = []
+        for essay in essays[:5]:
+            if essay.is_finalized:
+                status = 'finalized'
+            elif essay.status in ('processing', 'reviewing'):
+                status = 'in_progress'
+            elif essay.status == 'completed':
+                status = 'completed'
+            else:
+                status = 'draft'
+
+            score = None
+            if essay.result and essay.result.total_score is not None:
+                score = float(essay.result.total_score)
+
+            essay_list.append({
+                'essay': essay,
+                'status': status,
+                'score': score,
+            })
+
+        return {
+            'status_counts': status_counts,
+            'essays': essay_list,
+        }
+
     def get_assignment_status(self):
         """과제 현황"""
         # 수강 중인 수업들의 과제

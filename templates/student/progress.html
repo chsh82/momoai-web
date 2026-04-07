@@ -73,6 +73,75 @@
         </div>
     </div>
 
+    <!-- 첨삭 현황 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">첨삭 현황</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">전체</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ essay_status.status_counts.total }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">완료</p>
+                    <p class="text-2xl font-bold text-green-600">{{ essay_status.status_counts.finalized }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">진행중</p>
+                    <p class="text-2xl font-bold text-yellow-600">{{ essay_status.status_counts.in_progress }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">초안</p>
+                    <p class="text-2xl font-bold text-gray-400">{{ essay_status.status_counts.draft }}</p>
+                </div>
+            </div>
+
+            {% if essay_status.essays %}
+            <div class="space-y-3">
+                {% for item in essay_status.essays %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-medium text-gray-800">
+                                    {{ item.essay.title or '제목 없음' }}
+                                </h4>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded
+                                    {% if item.status == 'finalized' %}bg-green-100 text-green-800
+                                    {% elif item.status == 'in_progress' %}bg-yellow-100 text-yellow-800
+                                    {% elif item.status == 'completed' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if item.status == 'finalized' %}첨삭완료
+                                    {% elif item.status == 'in_progress' %}첨삭중
+                                    {% elif item.status == 'completed' %}검토중
+                                    {% else %}초안{% endif %}
+                                </span>
+                                {% if item.score is not none %}
+                                <span class="px-2 py-0.5 text-xs font-bold bg-purple-100 text-purple-800 rounded">
+                                    {{ item.score }}점
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                {{ item.essay.created_at.strftime('%Y/%m/%d') }}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('essays.result', essay_id=item.essay.essay_id) }}"
+                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            보기 →
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">첨삭 내역이 없습니다.</p>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- 과제 현황 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b border-gray-200">
