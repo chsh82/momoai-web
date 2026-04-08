@@ -56,7 +56,7 @@ class Config:
 
     # Database 설정
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        f'sqlite:///{BASE_DIR / "momoai.db"}'
+        f'sqlite:///{BASE_DIR / "instance" / "momoai.db"}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Flask-Login 설정
