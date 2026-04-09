@@ -57,6 +57,10 @@
                         <p class="text-xs text-gray-600 mb-1">인정결석</p>
                         <p class="text-2xl font-bold text-blue-600" id="excusedCount">{{ attendance_records|selectattr('status', 'equalto', 'excused')|list|length }}</p>
                     </div>
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 col-span-2">
+                        <p class="text-xs text-gray-600 mb-1">보강결석 (차감없음)</p>
+                        <p class="text-2xl font-bold text-orange-500" id="absentMakeupCount">{{ attendance_records|selectattr('status', 'equalto', 'absent_makeup')|list|length }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,9 +168,9 @@
                             </button>
                             <button type="button" onclick="updateAttendance('{{ attendance.attendance_id }}', 'absent')"
                                     class="attendance-btn px-4 py-2 rounded font-medium transition duration-200
-                                    {% if attendance.status == 'absent' %}bg-red-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
+                                    {% if attendance.status == 'absent' %}bg-red-600 text-white{% elif attendance.status == 'absent_makeup' %}bg-orange-500 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
                                     data-status="absent">
-                                ✗ 결석
+                                {% if attendance.status == 'absent_makeup' %}🔄 보강결석{% else %}✗ 결석{% endif %}
                             </button>
                             <button type="button"
                                     class="attendance-btn excused-trigger px-4 py-2 rounded font-medium transition duration-200
@@ -285,28 +289,38 @@ function updateAttendance(attendanceId, status) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // 버튼 스타일 업데이트
+            // 서버가 반환한 실제 상태 (absent → absent_makeup으로 자동 전환될 수 있음)
+            const actualStatus = data.status;
             const container = document.getElementById(`attendance-${attendanceId}`);
             const buttons = container.querySelectorAll('.attendance-btn');
 
             buttons.forEach(btn => {
                 const btnStatus = btn.getAttribute('data-status');
-                if (btnStatus === status) {
-                    // 선택된 버튼
-                    btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-                    if (status === 'present') {
+                // absent_makeup은 absent 버튼에 표시
+                const isActive = (actualStatus === 'absent_makeup')
+                    ? btnStatus === 'absent'
+                    : btnStatus === actualStatus;
+
+                btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200',
+                                     'bg-green-600', 'bg-yellow-600', 'bg-red-600', 'bg-orange-500', 'bg-blue-600', 'text-white');
+                if (isActive) {
+                    if (actualStatus === 'present') {
                         btn.classList.add('bg-green-600', 'text-white');
-                    } else if (status === 'late') {
+                    } else if (actualStatus === 'late') {
                         btn.classList.add('bg-yellow-600', 'text-white');
-                    } else if (status === 'absent') {
+                    } else if (actualStatus === 'absent_makeup') {
+                        btn.classList.add('bg-orange-500', 'text-white');
+                        btn.textContent = '🔄 보강결석';
+                    } else if (actualStatus === 'absent') {
                         btn.classList.add('bg-red-600', 'text-white');
-                    } else if (status === 'excused') {
+                        btn.textContent = '✗ 결석';
+                    } else if (actualStatus === 'excused') {
                         btn.classList.add('bg-blue-600', 'text-white');
                     }
                 } else {
-                    // 선택되지 않은 버튼
-                    btn.classList.remove('bg-green-600', 'bg-yellow-600', 'bg-red-600', 'bg-blue-600', 'text-white');
                     btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                    // absent 버튼 텍스트 원복 (이전에 보강결석이었다가 바뀔 수 있음)
+                    if (btnStatus === 'absent') btn.textContent = '✗ 결석';
                 }
             });
 
@@ -376,6 +390,7 @@ function updateStatistics() {
     let lateCount = 0;
     let absentCount = 0;
     let excusedCount = 0;
+    let absentMakeupCount = 0;
 
     attendanceItems.forEach(item => {
         const buttons = item.querySelectorAll('.attendance-btn');
@@ -383,6 +398,7 @@ function updateStatistics() {
             if (btn.classList.contains('bg-green-600')) presentCount++;
             else if (btn.classList.contains('bg-yellow-600')) lateCount++;
             else if (btn.classList.contains('bg-red-600')) absentCount++;
+            else if (btn.classList.contains('bg-orange-500')) absentMakeupCount++;
             else if (btn.classList.contains('bg-blue-600')) excusedCount++;
         });
     });
@@ -391,6 +407,7 @@ function updateStatistics() {
     document.getElementById('lateCount').textContent = lateCount;
     document.getElementById('absentCount').textContent = absentCount;
     document.getElementById('excusedCount').textContent = excusedCount;
+    document.getElementById('absentMakeupCount').textContent = absentMakeupCount;
 }
 
 // 출석 체크 완료
