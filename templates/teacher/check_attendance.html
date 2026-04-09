@@ -251,16 +251,31 @@
     </div>
 
     <!-- 완료 버튼 -->
+    {% if course_session.status == 'pending_review' %}
+    <div class="mb-3 px-4 py-3 bg-yellow-50 border border-yellow-300 rounded-lg flex items-center gap-2 text-yellow-800 text-sm font-medium">
+        ⏸ 현재 <strong>확인보류</strong> 상태입니다. 출결을 수정한 후 완료를 누르면 학부모 알림이 발송됩니다.
+    </div>
+    {% endif %}
     <div class="flex gap-3">
         <button onclick="completeAttendance()"
                 class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 rounded-lg transition duration-200 text-lg">
-            출석 체크 완료
+            ✅ 출석 체크 완료{% if course_session.status == 'pending_review' %} (알림 발송){% endif %}
+        </button>
+        <button onclick="holdAttendance()"
+                class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-4 rounded-lg transition duration-200 text-lg">
+            ⏸ 확인보류
         </button>
         <a href="{{ url_for('teacher.course_detail', course_id=course.course_id) }}"
-           class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-4 rounded-lg transition duration-200 text-center text-lg">
+           class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-4 rounded-lg transition duration-200 text-center text-lg flex items-center justify-center">
             나중에 하기
         </a>
     </div>
+
+    <!-- 확인보류 폼 -->
+    <form method="POST" action="{{ url_for('teacher.hold_session', session_id=course_session.session_id) }}" id="holdForm">
+        <input type="hidden" name="topic" id="holdTopic">
+        <input type="hidden" name="description" id="holdDescription">
+    </form>
 </div>
 
 <script>
@@ -414,11 +429,24 @@ function updateStatistics() {
 
 // 출석 체크 완료
 function completeAttendance() {
-    if (!confirm('출석 체크를 완료하시겠습니까?')) {
+    if (!confirm('출석 체크를 완료하시겠습니까?\n결석/지각 학생 학부모에게 알림이 발송됩니다.')) {
         return;
     }
 
     document.getElementById('completeForm').submit();
+}
+
+// 확인보류
+function holdAttendance() {
+    if (!confirm('출석 정보를 확인보류 상태로 저장합니다.\n학부모 알림은 발송되지 않으며, 나중에 완료 처리 시 알림이 발송됩니다.')) {
+        return;
+    }
+    // 메모 필드 값 복사
+    var topicEl = document.querySelector('[name="topic"]');
+    var descEl = document.querySelector('[name="description"]');
+    document.getElementById('holdTopic').value = topicEl ? topicEl.value : '';
+    document.getElementById('holdDescription').value = descEl ? descEl.value : '';
+    document.getElementById('holdForm').submit();
 }
 
 // 학부모 전화번호 맵

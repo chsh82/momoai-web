@@ -812,8 +812,8 @@ def update_attendance(attendance_id):
     update_enrollment_attendance_stats(attendance.enrollment_id)
     db.session.commit()
 
-    # 결석/지각 즉시 알림 → 학부모 Push
-    if new_status in ('absent', 'late'):
+    # 결석/지각 즉시 알림 → 학부모 Push (확인보류 상태에서는 미발송)
+    if new_status in ('absent', 'late') and session.status != 'pending_review':
         try:
             from app.models.notification import Notification
             from app.utils.push_utils import send_push_to_user
@@ -1075,6 +1075,8 @@ def complete_session(session_id):
     if description:
         session.description = description
 
+    was_pending_review = (session.status == 'pending_review')
+
     # 출석 체크 완료 표시
     session.attendance_checked = True
     session.attendance_checked_at = datetime.utcnow()
@@ -1083,7 +1085,72 @@ def complete_session(session_id):
 
     db.session.commit()
 
+    # 확인보류 → 완료 전환 시: 결석/지각 학생에게 일괄 알림 발송
+    if was_pending_review:
+        try:
+            from app.models.notification import Notification
+            from app.utils.push_utils import send_push_to_user
+            att_records = Attendance.query.filter_by(session_id=session.session_id).all()
+            for att in att_records:
+                if att.status in ('absent', 'late'):
+                    student = att.student
+                    status_label = '결석' if att.status == 'absent' else '지각'
+                    date_str = session.session_date.strftime('%m/%d')
+                    msg = f'{date_str} {course.course_name} 수업에 {status_label} 처리되었습니다.'
+                    parents = ParentStudent.query.filter_by(
+                        student_id=student.student_id, is_active=True
+                    ).all()
+                    for ps in parents:
+                        db.session.add(Notification(
+                            user_id=ps.parent_id,
+                            notification_type='attendance_absent',
+                            title=f'{student.name} 학생 {status_label} 알림',
+                            message=msg,
+                            link_url='/parent/attendance'
+                        ))
+                        send_push_to_user(
+                            user_id=ps.parent_id,
+                            title=f'{student.name} 학생 {status_label} 알림',
+                            body=msg,
+                            url='/parent/attendance'
+                        )
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f'[Push] 확인보류→완료 알림 오류: {e}')
+
     flash('출석 체크가 완료되었습니다.', 'success')
+    return redirect(url_for('teacher.course_detail', course_id=course.course_id))
+
+
+@teacher_bp.route('/sessions/<session_id>/hold', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def hold_session(session_id):
+    """세션 출석 확인보류 - 알림 미발송, 나중에 완료 가능"""
+    session = CourseSession.query.get_or_404(session_id)
+    course = session.course
+
+    if course.teacher_id != current_user.user_id and not current_user.is_admin:
+        flash('권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.courses'))
+
+    # 메모 업데이트
+    topic = request.form.get('topic', '').strip()
+    description = request.form.get('description', '').strip()
+    if topic:
+        session.topic = topic
+    if description:
+        session.description = description
+
+    # 확인보류 상태로 저장 (알림 미발송)
+    session.attendance_checked = True
+    session.attendance_checked_at = datetime.utcnow()
+    session.attendance_checked_by = current_user.user_id
+    session.status = 'pending_review'
+
+    db.session.commit()
+
+    flash('출석 정보가 확인보류 상태로 저장되었습니다. 나중에 완료 처리하면 학부모 알림이 발송됩니다.', 'warning')
     return redirect(url_for('teacher.course_detail', course_id=course.course_id))
 
 

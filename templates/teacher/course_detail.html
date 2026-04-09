@@ -129,18 +129,21 @@
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-gray-800">세션 {{ session.session_number }}</span>
                             <span class="px-2 py-1 text-xs font-medium rounded
-                                {% if session.attendance_checked %}bg-green-100 text-green-800
-                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                {% if session.attendance_checked %}출석 완료{% else %}미체크{% endif %}
+                                {% if session.status == 'pending_review' %}bg-yellow-100 text-yellow-800
+                                {% elif session.attendance_checked %}bg-green-100 text-green-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if session.status == 'pending_review' %}⏸ 확인보류
+                                {% elif session.attendance_checked %}출석 완료
+                                {% else %}미체크{% endif %}
                             </span>
                         </div>
                         <p class="text-sm text-gray-600 mb-2">
                             {{ session.session_date.strftime('%Y-%m-%d') }}
                         </p>
-                        {% if not session.attendance_checked %}
+                        {% if not session.attendance_checked or session.status == 'pending_review' %}
                         <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            출석 체크하기 →
+                            {% if session.status == 'pending_review' %}출석 완료하기 →{% else %}출석 체크하기 →{% endif %}
                         </a>
                         {% endif %}
                     </div>
