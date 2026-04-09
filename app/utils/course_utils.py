@@ -355,7 +355,47 @@ def enroll_student_to_course(course_id, student_id):
         # - 1:1 보강: 새 강사가 진행하므로 원 강사 시수 귀속 방지
         _mark_recent_absent_as_makeup(student_id, course.course_id)
 
+    # 학부모에게 입반 알림 발송
+    _notify_parents_on_enrollment(course, student_id)
+
     return enrollment
+
+
+def _notify_parents_on_enrollment(course, student_id):
+    """수업 입반 시 연결된 학부모에게 알림 발송"""
+    try:
+        from app.models.notification import Notification
+        from app.models.parent_student import ParentStudent
+        from app.models.student import Student
+
+        student = Student.query.get(student_id)
+        if not student:
+            return
+
+        is_makeup = (course.course_type == '보강수업')
+        if is_makeup:
+            title = f'[보강 등록] {student.name} 학생'
+            start_str = course.start_date.strftime('%Y년 %m월 %d일') if course.start_date else ''
+            message = (f'{student.name} 학생이 {start_str} '
+                       f'{course.course_name} 보강 수업에 등록되었습니다.')
+        else:
+            title = f'[수업 입반] {student.name} 학생'
+            message = (f'{student.name} 학생이 {course.course_name} 수업에 '
+                       f'등록되었습니다.')
+
+        parents = ParentStudent.query.filter_by(
+            student_id=student_id, is_active=True
+        ).all()
+        for ps in parents:
+            Notification.create_notification(
+                user_id=ps.parent_id,
+                notification_type='enrollment_applied',
+                title=title,
+                message=message,
+                link_url='/parent/courses'
+            )
+    except Exception:
+        pass
 
 
 def _notify_makeup_teachers(makeup_course, student_id, original_course_id=None):
