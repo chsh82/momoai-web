@@ -246,6 +246,7 @@ def courses():
                               .filter(Student.name.ilike(f'%{search_filter}%')).all()]
         conditions = [
             Course.course_name.ilike(f'%{search_filter}%'),
+            Course.course_code.ilike(f'%{search_filter}%'),
             Course.grade.ilike(f'%{search_filter}%'),
             Course.course_type.ilike(f'%{search_filter}%'),
         ]
@@ -2884,7 +2885,8 @@ def all_schedule():
         # is_terminated=True이면서 status!='completed'인 수업은 제외
         # (보강수업은 completed+is_terminated=True이므로 포함)
         active_course_ids = [c.course_id for c in teacher_courses
-                              if not (c.is_terminated and c.status != 'completed')]
+                              if not (c.is_terminated and c.status != 'completed')
+                              and (c.end_date is None or c.end_date >= week_start)]
         sessions = CourseSession.query.filter(
             CourseSession.course_id.in_(active_course_ids),
             CourseSession.session_date >= week_start,
@@ -2904,7 +2906,8 @@ def all_schedule():
             if (course.course_id not in session_course_ids_this_week and
                     course.weekday is not None and
                     not course.is_terminated and
-                    course.status == 'active'):
+                    course.status == 'active' and
+                    (course.end_date is None or course.end_date >= week_start)):
                 weekly_courses_only[course.weekday].append(course)
 
     # ── 월간 뷰 ──
