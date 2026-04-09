@@ -146,9 +146,38 @@ def build_teacher_monthly_data(teacher_id, year, month):
     by_type = {}
     weekly_totals = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0}
 
+    # 같은 날짜+시간에 겹치는 보강수업은 원 수업 출석에 합산
+    # (별도 1.0시수가 아닌, 원 수업 인원으로 합산 계산)
+    from collections import defaultdict
+    time_groups = defaultdict(list)
     for s in sessions:
+        time_groups[(s.session_date, s.start_time)].append(s)
+
+    merged_skip = set()  # 병합된 보강 세션 ID (개별 집계 제외)
+    merged_attended = {}  # session_id → 합산 출석수 (primary session용)
+
+    for key, group in time_groups.items():
+        if len(group) < 2:
+            continue
+        primary = next(
+            (s for s in group if course_map[s.session_id].course_type != '보강수업'),
+            None
+        )
+        if primary is None:
+            continue
+        # 보강 세션 출석을 primary에 합산
+        total = sum(count_map.get(s.session_id, 0) for s in group)
+        merged_attended[primary.session_id] = total
+        for s in group:
+            if s.session_id != primary.session_id:
+                merged_skip.add(s.session_id)
+
+    for s in sessions:
+        if s.session_id in merged_skip:
+            continue
+
         course = course_map[s.session_id]
-        attended = count_map.get(s.session_id, 0)
+        attended = merged_attended.get(s.session_id, count_map.get(s.session_id, 0))
         grade_level = get_grade_level(course.grade)
         course_type = course.course_type or '기타'
         hours = calculate_session_hours(course_type, grade_level, attended)

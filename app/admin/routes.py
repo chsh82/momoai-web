@@ -2907,7 +2907,7 @@ def approve_makeup_request(request_id):
     db.session.add(makeup_session)
     db.session.flush()
     
-    # 학생 자동 등록
+    # 학생 자동 등록 (보강수업 감지 시 강사 알림 자동 발송)
     from app.utils.course_utils import enroll_student_to_course
     enrollment = enroll_student_to_course(makeup_course.course_id, student.student_id)
     
@@ -2946,31 +2946,8 @@ def approve_makeup_request(request_id):
             )
             db.session.add(parent_notification)
     
-    # 강사 알림: 빠지는 수업 강사 (original_course_id가 있을 때)
-    if makeup_request.original_course_id:
-        orig = Course.query.get(makeup_request.original_course_id)
-        if orig and orig.teacher_id:
-            Notification.create_notification(
-                user_id=orig.teacher_id,
-                notification_type='makeup_student_absent',
-                title=f'[보강] {student.name} 학생 결석 예정',
-                message=(f'{student.name} 학생이 {orig.course_name} 수업을 결석하고 '
-                         f'{makeup_date.strftime("%Y년 %m월 %d일")} 보강수업으로 대체합니다.'
-                         + (f' 사유: {makeup_request.reason}' if makeup_request.reason else '')),
-                link_url=f'/teacher/courses/{orig.course_id}'
-            )
-
-    # 강사 알림: 보강 수업 담당 강사 (들어오는 수업)
-    if makeup_course.teacher_id:
-        Notification.create_notification(
-            user_id=makeup_course.teacher_id,
-            notification_type='makeup_student_joining',
-            title=f'[보강] {student.name} 학생 수업 참여 예정',
-            message=(f'{student.name} 학생이 {makeup_date.strftime("%Y년 %m월 %d일")} '
-                     f'{makeup_course.course_name} 보강수업에 참여합니다.'
-                     + (f' 사유: {makeup_request.reason}' if makeup_request.reason else '')),
-            link_url=f'/teacher/courses/{makeup_course.course_id}'
-        )
+    # 강사 알림은 enroll_student_to_course() 내부에서 자동 발송됨
+    # (보강 담당 강사 + 원 수업 강사 자동 탐색)
 
     db.session.commit()
 

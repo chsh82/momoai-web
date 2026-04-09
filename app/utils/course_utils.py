@@ -347,4 +347,72 @@ def enroll_student_to_course(course_id, student_id):
     # 출석 레코드 자동 생성
     create_attendance_records_for_enrollment(enrollment)
 
+    # 보강수업 입반 시 강사 알림 발송
+    if course.course_type == '보강수업':
+        _notify_makeup_teachers(course, student_id)
+
     return enrollment
+
+
+def _notify_makeup_teachers(makeup_course, student_id, original_course_id=None):
+    """
+    보강수업 입반 시 강사 알림 발송:
+    1. 보강 수업 담당 강사 — 항상 발송
+    2. 학생이 현재 수강 중인 진행 중 정규 수업 담당 강사 전체 — 자동 탐색하여 발송
+       (보강 담당과 동일 강사인 경우 중복 발송 생략)
+    """
+    try:
+        from app.models.notification import Notification
+        from app.models.student import Student
+
+        student = Student.query.get(student_id)
+        if not student:
+            return
+
+        makeup_date = makeup_course.start_date
+        date_str = makeup_date.strftime('%Y년 %m월 %d일') if makeup_date else '미정'
+
+        # 1. 보강 담당 강사에게 알림
+        if makeup_course.teacher_id:
+            Notification.create_notification(
+                user_id=makeup_course.teacher_id,
+                notification_type='makeup_student_joining',
+                title=f'[보강] {student.name} 학생 수업 참여 예정',
+                message=(f'{student.name} 학생이 {date_str} '
+                         f'{makeup_course.course_name} 보강수업에 참여합니다.'),
+                link_url=f'/teacher/courses/{makeup_course.course_id}'
+            )
+
+        # 2. 학생이 현재 수강 중인 진행 중 정규 수업 담당 강사들에게 알림
+        # 보강 입반 시점에 active 상태인 정규 수업(보강수업·완료 제외)을 모두 조회
+        active_enrollments = (
+            CourseEnrollment.query
+            .join(Course, CourseEnrollment.course_id == Course.course_id)
+            .filter(
+                CourseEnrollment.student_id == student_id,
+                CourseEnrollment.status == 'active',
+                Course.course_type != '보강수업',
+                Course.status == 'active',
+                Course.course_id != makeup_course.course_id
+            )
+            .all()
+        )
+
+        notified_teachers = {makeup_course.teacher_id}  # 중복 발송 방지
+        for enr in active_enrollments:
+            c = enr.course
+            if not c.teacher_id or c.teacher_id in notified_teachers:
+                continue
+            Notification.create_notification(
+                user_id=c.teacher_id,
+                notification_type='makeup_student_absent',
+                title=f'[보강] {student.name} 학생 결석 예정',
+                message=(f'{student.name} 학생이 {date_str} '
+                         f'{c.course_name} 수업에 결석하고 타반 보강수업에 참여합니다.'),
+                link_url=f'/teacher/courses/{c.course_id}'
+            )
+            notified_teachers.add(c.teacher_id)
+
+    except Exception:
+        # 알림 실패가 입반을 막아서는 안 됨
+        pass
