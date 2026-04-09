@@ -2759,6 +2759,12 @@ def student_attendance_report():
     # 연도 목록 (최근 3년)
     years = list(range(today.year - 2, today.year + 1))
 
+    # 학년 목록 (정렬: 초→중→고 순)
+    grade_order = {g: i for i, g in enumerate(
+        ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'])}
+    raw_grades = sorted(set(s.grade for s in students if s.grade),
+                        key=lambda g: grade_order.get(g, 99))
+
     return render_template('admin/student_attendance_report.html',
                            students=students,
                            student=student,
@@ -2771,7 +2777,8 @@ def student_attendance_report():
                            date_to=date_to,
                            overall_stats=overall_stats,
                            course_data=course_data,
-                           years=years)
+                           years=years,
+                           grades=raw_grades)
 
 
 @admin_bp.route('/all-schedule')
