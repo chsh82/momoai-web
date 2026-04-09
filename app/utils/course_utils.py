@@ -347,9 +347,13 @@ def enroll_student_to_course(course_id, student_id):
     # 출석 레코드 자동 생성
     create_attendance_records_for_enrollment(enrollment)
 
-    # 보강수업 입반 시 강사 알림 발송
+    # 보강수업 입반 시 강사 알림 + 출결 소급 처리
     if course.course_type == '보강수업':
         _notify_makeup_teachers(course, student_id)
+        # 그룹 보강(max_students > 1)만 원 수업 최근 결석을 absent_makeup으로 변경
+        # 1:1 보강은 별도 시수/비용이 발생하므로 원 수업 결석 유지
+        if (course.max_students or 1) > 1:
+            _mark_recent_absent_as_makeup(student_id, course.course_id)
 
     return enrollment
 
@@ -415,4 +419,37 @@ def _notify_makeup_teachers(makeup_course, student_id, original_course_id=None):
 
     except Exception:
         # 알림 실패가 입반을 막아서는 안 됨
+        pass
+
+
+def _mark_recent_absent_as_makeup(student_id, exclude_course_id):
+    """
+    그룹 보강 입반 시: 학생의 원 수업들 중 가장 최근 absent 레코드를
+    absent_makeup으로 소급 변경.
+    (1:1 보강은 별도 시수/비용 발생이므로 호출하지 않음)
+    """
+    try:
+        # 학생이 현재 수강 중인 정규 수업의 출결 레코드 조회
+        # 가장 최근 absent 1건만 변경
+        recent_absent = (
+            Attendance.query
+            .join(CourseSession, Attendance.session_id == CourseSession.session_id)
+            .join(Course, CourseSession.course_id == Course.course_id)
+            .join(CourseEnrollment,
+                  (CourseEnrollment.course_id == Course.course_id) &
+                  (CourseEnrollment.student_id == student_id) &
+                  (CourseEnrollment.status == 'active'))
+            .filter(
+                Attendance.student_id == student_id,
+                Attendance.status == 'absent',
+                Course.course_type != '보강수업',
+                Course.status == 'active',
+                Course.course_id != exclude_course_id
+            )
+            .order_by(CourseSession.session_date.desc())
+            .first()
+        )
+        if recent_absent:
+            recent_absent.status = 'absent_makeup'
+    except Exception:
         pass
