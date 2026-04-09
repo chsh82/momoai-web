@@ -108,6 +108,9 @@ def apply_enrollment_schedules(app):
                         sched.status = 'cancelled'
                         continue
 
+                    type_label_map = {'enroll': '입반', 'withdraw': '전반', 'makeup': '보강참여'}
+                    type_label = type_label_map.get(sched.schedule_type, sched.schedule_type)
+
                     if sched.schedule_type == 'enroll':
                         # 입반: 이미 active 수강 중이면 건너뜀
                         existing = CourseEnrollment.query.filter_by(
@@ -128,18 +131,32 @@ def apply_enrollment_schedules(app):
                         if enrollment:
                             enrollment.status = 'inactive'
 
+                    else:  # makeup: 기존 학적 유지, 추가 수강만 등록
+                        existing = CourseEnrollment.query.filter_by(
+                            course_id=sched.course_id,
+                            student_id=sched.student_id,
+                            status='active'
+                        ).first()
+                        if not existing:
+                            enroll_student_to_course(sched.course_id, sched.student_id)
+
                     from datetime import datetime
                     sched.status = 'applied'
                     sched.applied_at = datetime.utcnow()
 
                     # 강사에게 적용 완료 알림
                     if course.teacher_id:
-                        type_label = '입반' if sched.schedule_type == 'enroll' else '전반'
+                        if sched.schedule_type == 'makeup':
+                            notif_msg = (f'{student.name} 학생이 {course.course_name} 수업에 '
+                                         f'보강으로 참여합니다. (기존 학적 유지)')
+                        else:
+                            notif_msg = (f'{course.course_name} 수업에 {student.name} 학생의 '
+                                         f'{type_label}이 오늘부로 적용되었습니다.')
                         Notification.create_notification(
                             user_id=course.teacher_id,
                             notification_type='enrollment_applied',
                             title=f'[{type_label} 완료] {student.name} 학생',
-                            message=f'{course.course_name} 수업에 {student.name} 학생의 {type_label}이 오늘부로 적용되었습니다.',
+                            message=notif_msg,
                             link_url=f'/teacher/courses/{course.course_id}'
                         )
 

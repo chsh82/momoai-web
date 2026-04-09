@@ -3259,22 +3259,28 @@ def create_enrollment_schedule():
     db.session.flush()
 
     # 강사에게 예고 알림
+    type_label_map = {'enroll': '입반', 'withdraw': '전반', 'makeup': '보강참여'}
+    type_label = type_label_map.get(schedule_type, schedule_type)
     if course.teacher_id:
-        type_label = '입반' if schedule_type == 'enroll' else '전반'
         memo_text = f' 메모: {memo}' if memo else ''
         reason_text = f' 사유: {reason}' if reason else ''
+        if schedule_type == 'makeup':
+            notif_msg = (f'{scheduled_date.strftime("%Y년 %m월 %d일")}에 {student.name} 학생이 '
+                         f'{course.course_name} 수업에 보강 참여 예정입니다. '
+                         f'(기존 학적 유지){reason_text}{memo_text}')
+        else:
+            notif_msg = (f'{scheduled_date.strftime("%Y년 %m월 %d일")}부터 {student.name} 학생의 '
+                         f'{course.course_name} {type_label}이 예정되어 있습니다.{reason_text}{memo_text}')
         Notification.create_notification(
             user_id=course.teacher_id,
             notification_type='enrollment_scheduled',
             title=f'[{type_label} 예정] {student.name} 학생 ({scheduled_date.strftime("%m/%d")})',
-            message=(f'{scheduled_date.strftime("%Y년 %m월 %d일")}부터 {student.name} 학생의 '
-                     f'{course.course_name} {type_label}이 예정되어 있습니다.{reason_text}{memo_text}'),
+            message=notif_msg,
             link_url=f'/teacher/upcoming-changes'
         )
         sched.teacher_notified = True
 
     db.session.commit()
-    type_label = '입반' if schedule_type == 'enroll' else '전반'
     flash(f'{student.name} 학생의 {type_label} 예약이 등록되었습니다. ({scheduled_date.strftime("%Y년 %m월 %d일")})', 'success')
     return redirect(url_for('admin.enrollment_schedules'))
 
@@ -3354,6 +3360,9 @@ def apply_enrollment_schedule_now(schedule_id):
     student = sched.student
     course = sched.course
 
+    type_label_map = {'enroll': '입반', 'withdraw': '전반', 'makeup': '보강참여'}
+    type_label = type_label_map.get(sched.schedule_type, sched.schedule_type)
+
     if sched.schedule_type == 'enroll':
         existing = CourseEnrollment.query.filter_by(
             course_id=sched.course_id, student_id=sched.student_id, status='active'
@@ -3361,25 +3370,37 @@ def apply_enrollment_schedule_now(schedule_id):
         if not existing:
             enroll_student_to_course(sched.course_id, sched.student_id)
         flash(f'{student.name} 학생의 {course.course_name} 입반이 완료되었습니다.', 'success')
-    else:
+    elif sched.schedule_type == 'withdraw':
         enrollment = CourseEnrollment.query.filter_by(
             course_id=sched.course_id, student_id=sched.student_id, status='active'
         ).first()
         if enrollment:
             enrollment.status = 'inactive'
         flash(f'{student.name} 학생의 {course.course_name} 전반이 완료되었습니다.', 'success')
+    else:  # makeup
+        # 기존 학적 유지, 추가 수강만 등록
+        existing = CourseEnrollment.query.filter_by(
+            course_id=sched.course_id, student_id=sched.student_id, status='active'
+        ).first()
+        if not existing:
+            enroll_student_to_course(sched.course_id, sched.student_id)
+        flash(f'{student.name} 학생의 {course.course_name} 보강 참여가 등록되었습니다. (기존 학적 유지)', 'success')
 
     sched.status = 'applied'
     sched.applied_at = datetime.utcnow()
 
     # 강사 알림
     if course.teacher_id:
-        type_label = '입반' if sched.schedule_type == 'enroll' else '전반'
+        if sched.schedule_type == 'makeup':
+            notif_msg = (f'{student.name} 학생이 {course.course_name} 수업에 보강으로 참여합니다. '
+                         f'(기존 학적 유지)')
+        else:
+            notif_msg = f'{course.course_name} 수업에 {student.name} 학생의 {type_label}이 즉시 적용되었습니다.'
         Notification.create_notification(
             user_id=course.teacher_id,
             notification_type='enrollment_applied',
             title=f'[{type_label} 완료] {student.name} 학생',
-            message=f'{course.course_name} 수업에 {student.name} 학생의 {type_label}이 즉시 적용되었습니다.',
+            message=notif_msg,
             link_url=f'/teacher/courses/{course.course_id}'
         )
 

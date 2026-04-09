@@ -47,7 +47,8 @@ class EnrollmentSchedule(db.Model):
 
     @property
     def type_label(self):
-        return '입반' if self.schedule_type == 'enroll' else '전반'
+        labels = {'enroll': '입반', 'withdraw': '전반', 'makeup': '보강참여'}
+        return labels.get(self.schedule_type, self.schedule_type)
 
     @property
     def status_label(self):
