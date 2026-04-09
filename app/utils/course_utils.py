@@ -350,10 +350,10 @@ def enroll_student_to_course(course_id, student_id):
     # 보강수업 입반 시 강사 알림 + 출결 소급 처리
     if course.course_type == '보강수업':
         _notify_makeup_teachers(course, student_id)
-        # 그룹 보강(max_students > 1)만 원 수업 최근 결석을 absent_makeup으로 변경
-        # 1:1 보강은 별도 시수/비용이 발생하므로 원 수업 결석 유지
-        if (course.max_students or 1) > 1:
-            _mark_recent_absent_as_makeup(student_id, course.course_id)
+        # 1:1/그룹 구분 없이 원 수업 최근 결석을 absent_makeup으로 변경
+        # - 그룹 보강: 학생이 다른 반에서 보충
+        # - 1:1 보강: 새 강사가 진행하므로 원 강사 시수 귀속 방지
+        _mark_recent_absent_as_makeup(student_id, course.course_id)
 
     return enrollment
 

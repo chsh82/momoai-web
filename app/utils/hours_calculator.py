@@ -28,9 +28,9 @@ def calculate_session_hours(course_type, grade_level, attended_count):
     n = max(0, attended_count or 0)
 
     if course_type == '베이직':
-        return 0.5
+        return 0.0 if n == 0 else 0.5
     if course_type == '프리미엄':
-        return 1.0
+        return 0.0 if n == 0 else 1.0
     if course_type in ('시그니처', '특강', '모의고사'):
         return 0.0
     if course_type == '보강수업':
