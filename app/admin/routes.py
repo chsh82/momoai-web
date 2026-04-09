@@ -2651,6 +2651,129 @@ def attendance_status():
                          month_end=month_end)
 
 
+@admin_bp.route('/student-attendance')
+@login_required
+@requires_permission_level(2)
+def student_attendance_report():
+    """학생별 출결 현황 (월간/분기/연간)"""
+    import calendar as cal_module
+
+    today = date.today()
+
+    # 필터 파라미터
+    student_id = request.args.get('student_id', '').strip()
+    period_type = request.args.get('period_type', 'month')  # month | quarter | year
+    sel_year = int(request.args.get('year', today.year))
+    sel_month = int(request.args.get('month', today.month))
+    sel_quarter = int(request.args.get('quarter', (today.month - 1) // 3 + 1))
+
+    # 기간 계산
+    if period_type == 'month':
+        date_from = date(sel_year, sel_month, 1)
+        last_day = cal_module.monthrange(sel_year, sel_month)[1]
+        date_to = date(sel_year, sel_month, last_day)
+        period_label = f'{sel_year}년 {sel_month}월'
+    elif period_type == 'quarter':
+        q_start_month = (sel_quarter - 1) * 3 + 1
+        q_end_month = q_start_month + 2
+        date_from = date(sel_year, q_start_month, 1)
+        last_day = cal_module.monthrange(sel_year, q_end_month)[1]
+        date_to = date(sel_year, q_end_month, last_day)
+        period_label = f'{sel_year}년 {sel_quarter}분기'
+    else:  # year
+        date_from = date(sel_year, 1, 1)
+        date_to = date(sel_year, 12, 31)
+        period_label = f'{sel_year}년'
+
+    # 전체 학생 목록
+    students = Student.query.order_by(Student.grade, Student.name).all()
+
+    student = None
+    overall_stats = None
+    course_data = []
+
+    if student_id:
+        student = Student.query.get(student_id)
+
+    if student:
+        DONE_STATUSES = ['present', 'late', 'absent', 'excused', 'absent_makeup']
+
+        # 해당 기간 내 해당 학생의 출석 기록 전체
+        records = (Attendance.query
+                   .join(CourseSession, Attendance.session_id == CourseSession.session_id)
+                   .join(Course, CourseSession.course_id == Course.course_id)
+                   .filter(
+                       Attendance.student_id == student_id,
+                       CourseSession.session_date >= date_from,
+                       CourseSession.session_date <= date_to,
+                       CourseSession.status == 'completed',
+                       Attendance.status.in_(DONE_STATUSES)
+                   )
+                   .order_by(CourseSession.session_date.desc(), CourseSession.start_time)
+                   .all())
+
+        # 전체 통계
+        total = len(records)
+        present = sum(1 for r in records if r.status == 'present')
+        late = sum(1 for r in records if r.status == 'late')
+        absent = sum(1 for r in records if r.status == 'absent')
+        excused = sum(1 for r in records if r.status == 'excused')
+        absent_makeup = sum(1 for r in records if r.status == 'absent_makeup')
+        rate = round((present + late) / total * 100, 1) if total > 0 else 0
+
+        overall_stats = {
+            'total': total, 'present': present, 'late': late,
+            'absent': absent, 'excused': excused, 'absent_makeup': absent_makeup,
+            'rate': rate
+        }
+
+        # 수업별 그룹화
+        course_map = {}
+        for r in records:
+            cid = r.session.course_id
+            if cid not in course_map:
+                course_map[cid] = {'course': r.session.course, 'records': []}
+            course_map[cid]['records'].append(r)
+
+        for cid, data in course_map.items():
+            rs = data['records']
+            c_total = len(rs)
+            c_present = sum(1 for r in rs if r.status == 'present')
+            c_late = sum(1 for r in rs if r.status == 'late')
+            c_absent = sum(1 for r in rs if r.status == 'absent')
+            c_excused = sum(1 for r in rs if r.status == 'excused')
+            c_absent_makeup = sum(1 for r in rs if r.status == 'absent_makeup')
+            c_rate = round((c_present + c_late) / c_total * 100, 1) if c_total > 0 else 0
+            course_data.append({
+                'course': data['course'],
+                'records': rs,
+                'stats': {
+                    'total': c_total, 'present': c_present, 'late': c_late,
+                    'absent': c_absent, 'excused': c_excused,
+                    'absent_makeup': c_absent_makeup, 'rate': c_rate
+                }
+            })
+        # 수업명 정렬
+        course_data.sort(key=lambda x: x['course'].course_name)
+
+    # 연도 목록 (최근 3년)
+    years = list(range(today.year - 2, today.year + 1))
+
+    return render_template('admin/student_attendance_report.html',
+                           students=students,
+                           student=student,
+                           period_type=period_type,
+                           sel_year=sel_year,
+                           sel_month=sel_month,
+                           sel_quarter=sel_quarter,
+                           period_label=period_label,
+                           date_from=date_from,
+                           date_to=date_to,
+                           overall_stats=overall_stats,
+                           course_data=course_data,
+                           years=years)
+
+
 @admin_bp.route('/all-schedule')
 @login_required
 @requires_permission_level(2)  # 매니저 이상
