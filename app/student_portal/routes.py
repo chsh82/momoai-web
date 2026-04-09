@@ -554,6 +554,18 @@ def view_essay(essay_id):
             .order_by(Book.title)\
             .all()
 
+    # essay_complete 알림 읽음 처리
+    unread = Notification.query.filter(
+        Notification.user_id == current_user.user_id,
+        Notification.is_read == False,
+        Notification.notification_type == 'essay_complete',
+        Notification.link_url.like(f'%{essay_id}%')
+    ).all()
+    if unread:
+        for n in unread:
+            n.is_read = True
+        db.session.commit()
+
     return render_template('student/view_essay.html',
                          student=student,
                          essay=essay,

@@ -458,6 +458,19 @@ def all_feedback():
     # 읽지 않은 피드백 수
     unread_count = sum(1 for f in feedbacks if not f.is_read)
 
+    # teacher_feedback 알림 읽음 처리
+    from app.models.notification import Notification
+    unread_notifs = Notification.query.filter(
+        Notification.user_id == current_user.user_id,
+        Notification.is_read == False,
+        Notification.notification_type == 'teacher_feedback'
+    ).all()
+    if unread_notifs:
+        for n in unread_notifs:
+            n.is_read = True
+        from app.models import db
+        db.session.commit()
+
     return render_template('parent/all_feedback.html',
                          feedbacks=feedbacks,
                          unread_count=unread_count)

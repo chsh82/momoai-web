@@ -57,6 +57,18 @@ def index():
     """첨삭 목록 (필터링, 검색, 정렬 지원)"""
     from app.models import EssayResult
 
+    # 강사: essay_submitted 알림 읽음 처리
+    if current_user.role == 'teacher':
+        unread = Notification.query.filter(
+            Notification.user_id == current_user.user_id,
+            Notification.is_read == False,
+            Notification.notification_type == 'essay_submitted'
+        ).all()
+        if unread:
+            for n in unread:
+                n.is_read = True
+            db.session.commit()
+
     # 기본 쿼리 - 관리자/매니저는 모든 첨삭 조회, 강사는 본인이 생성하거나 담당 학생의 첨삭 조회
     if current_user.role in ('admin', 'manager') or (
             current_user.role_level and current_user.role_level <= 2):
