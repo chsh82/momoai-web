@@ -191,19 +191,40 @@
                 <li>오늘 또는 해당 날짜의 <strong>세션</strong>을 선택합니다.</li>
                 <li>학생 이름 옆 버튼으로 <strong>출석 / 지각 / 결석 / 인정결석</strong>을 선택합니다.</li>
                 <li>기본값은 <strong>출석</strong>으로 설정되어 있습니다. 결석·지각 학생만 변경하면 됩니다.</li>
-                <li><strong>출석 체크 완료</strong> 버튼을 클릭하면 세션이 완료 처리됩니다.</li>
+                <li>하단의 완료 버튼 중 하나를 선택합니다.</li>
             </ol>
             <div class="flex flex-wrap gap-2 text-xs mt-2">
                 <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">✓ 출석</span>
                 <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">⏰ 지각</span>
                 <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full font-medium">✗ 결석</span>
                 <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">📋 인정결석</span>
-                <span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">🔄 보강결석 <span class="bg-orange-200 text-orange-700 px-1 rounded text-xs">NEW</span></span>
+                <span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">🔄 보강결석</span>
             </div>
             <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2 text-xs text-orange-800">
                 <strong>🔄 보강결석이란?</strong> 결석 처리 시점에 해당 학생이 이미 <strong>보강 수업에 입반</strong>되어 있으면 자동으로 보강결석으로 전환됩니다. 보강결석은 <strong>수업료 차감 없이</strong> 결석으로 처리되며, 시수 계산에도 영향을 주지 않습니다.
             </div>
-            <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+
+            <!-- 완료 버튼 안내 -->
+            <div class="mt-4">
+                <p class="font-semibold text-gray-800 mb-2">하단 버튼 설명</p>
+                <div class="space-y-2">
+                    <div class="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <span class="shrink-0 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded">✅ 출석 체크 완료</span>
+                        <div class="text-xs text-blue-900">
+                            출석 내용을 최종 확정합니다. <strong>결석·지각 처리된 학생의 학부모에게 즉시 알림이 발송</strong>됩니다.
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <span class="shrink-0 px-2 py-0.5 bg-yellow-500 text-white text-xs font-bold rounded">⏸ 확인보류</span>
+                        <div class="text-xs text-yellow-900">
+                            출석 내용을 임시 저장합니다. <strong>학부모 알림이 발송되지 않습니다.</strong> 나중에 다시 접속해 출석을 수정한 뒤 <em>출석 체크 완료</em>를 누르면 그때 알림이 발송됩니다.<br>
+                            수업 상세 페이지에서 해당 세션이 <strong>⏸ 확인보류</strong> 상태로 표시됩니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded mt-2">
                 <p class="text-blue-800 text-xs">💡 완료 처리된 세션도 이후 수정이 가능합니다. 수업 목록 → 해당 세션 → 출석 현황에서 수정하세요.</p>
             </div>
         </div>
