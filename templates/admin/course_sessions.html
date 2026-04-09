@@ -10,8 +10,21 @@
            class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
             ← 수업 상세로
         </a>
-        <h2 class="text-3xl font-bold text-gray-800">세션 관리</h2>
-        <p class="text-gray-600 mt-2">{{ course.course_name }} ({{ course.course_code }})</p>
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">세션 관리</h2>
+                <p class="text-gray-600 mt-2">{{ course.course_name }} ({{ course.course_code }})</p>
+            </div>
+            {% if course.schedule_type == 'weekly' %}
+            <form method="POST" action="{{ url_for('admin.fix_missing_sessions', course_id=course.course_id) }}"
+                  onsubmit="return confirm('start_date~end_date 사이 누락된 세션을 자동 보완합니다. 계속할까요?');">
+                <button type="submit"
+                        class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition">
+                    🔧 누락 세션 보완
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
 
     <!-- 세션 통계 -->

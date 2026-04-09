@@ -524,9 +524,10 @@ def edit_course(course_id):
                     s.start_time = course.start_time
                     s.end_time = course.end_time
                 if weekday_changed:
-                    # 같은 주 내에서 새 요일로 날짜 이동
-                    day_shift = course.weekday - old_weekday
-                    s.session_date = s.session_date + _td(days=day_shift)
+                    # 해당 세션의 주 월요일 기준으로 새 요일 날짜 계산
+                    # (단순 day_shift는 주 경계를 넘어 세션이 사라질 수 있음)
+                    session_monday = s.session_date - _td(days=s.session_date.weekday())
+                    s.session_date = session_monday + _td(days=course.weekday)
 
         # 종료일이 연장된 weekly 수업: 새 세션 자동 생성
         if (course.schedule_type == 'weekly' and course.weekday is not None
@@ -772,6 +773,52 @@ def update_student_grade(student_id):
 
 
 # ==================== 세션 관리 ====================
+
+@admin_bp.route('/courses/<course_id>/fix-sessions', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def fix_missing_sessions(course_id):
+    """누락된 세션 자동 보완 (start_date~end_date 사이 weekly 세션 중 빠진 날짜 생성)"""
+    from app.utils.course_utils import create_attendance_records_for_session
+    course = Course.query.get_or_404(course_id)
+
+    if course.schedule_type != 'weekly' or course.weekday is None:
+        flash('주간 수업만 세션 보완이 가능합니다.', 'error')
+        return redirect(url_for('admin.course_sessions', course_id=course_id))
+
+    existing_dates = {
+        s.session_date for s in
+        CourseSession.query.filter_by(course_id=course_id).all()
+    }
+
+    current = course.start_date
+    # 첫 지정 요일 찾기
+    while current.weekday() != course.weekday:
+        current += timedelta(days=1)
+
+    added = 0
+    session_number = CourseSession.query.filter_by(course_id=course_id).count()
+    while current <= course.end_date:
+        if current not in existing_dates:
+            session_number += 1
+            new_session = CourseSession(
+                course_id=course_id,
+                session_number=session_number,
+                session_date=current,
+                start_time=course.start_time,
+                end_time=course.end_time,
+                status='scheduled'
+            )
+            db.session.add(new_session)
+            db.session.flush()
+            create_attendance_records_for_session(new_session)
+            added += 1
+        current += timedelta(days=7)
+
+    db.session.commit()
+    flash(f'누락 세션 {added}개를 보완했습니다.', 'success')
+    return redirect(url_for('admin.course_sessions', course_id=course_id))
+
 
 @admin_bp.route('/courses/<course_id>/sessions')
 @login_required
