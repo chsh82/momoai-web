@@ -119,6 +119,18 @@
                         <span class="text-purple-600 text-lg mt-0.5">📢</span>
                         <div><p class="font-medium text-purple-800 text-xs">문의 게시판 알림</p><p class="text-purple-700 text-xs">학부모/학생의 문의 글에 답변이 등록됐을 때</p></div>
                     </div>
+                    <div class="flex items-start gap-2 bg-orange-50 rounded-lg p-3">
+                        <span class="text-orange-600 text-lg mt-0.5">🔄</span>
+                        <div><p class="font-medium text-orange-800 text-xs">보강 수업 참여 알림 <span class="bg-orange-200 text-orange-700 px-1 rounded text-xs">NEW</span></p><p class="text-orange-700 text-xs">담당 학생이 타반 보강 수업에 참여할 예정일 때 (결석 예고)</p></div>
+                    </div>
+                    <div class="flex items-start gap-2 bg-teal-50 rounded-lg p-3">
+                        <span class="text-teal-600 text-lg mt-0.5">🎯</span>
+                        <div><p class="font-medium text-teal-800 text-xs">보강 담당 알림 <span class="bg-teal-200 text-teal-700 px-1 rounded text-xs">NEW</span></p><p class="text-teal-700 text-xs">내 수업에 다른 반 학생이 보강으로 참여할 예정일 때</p></div>
+                    </div>
+                    <div class="flex items-start gap-2 bg-indigo-50 rounded-lg p-3">
+                        <span class="text-indigo-600 text-lg mt-0.5">👥</span>
+                        <div><p class="font-medium text-indigo-800 text-xs">입반·전반·보강 예약 알림 <span class="bg-indigo-200 text-indigo-700 px-1 rounded text-xs">NEW</span></p><p class="text-indigo-700 text-xs">관리자가 입반/전반/보강 참여 예약을 등록했을 때</p></div>
+                    </div>
                 </div>
             </div>
 
@@ -181,11 +193,15 @@
                 <li>기본값은 <strong>출석</strong>으로 설정되어 있습니다. 결석·지각 학생만 변경하면 됩니다.</li>
                 <li><strong>출석 체크 완료</strong> 버튼을 클릭하면 세션이 완료 처리됩니다.</li>
             </ol>
-            <div class="flex gap-3 text-xs mt-2">
+            <div class="flex flex-wrap gap-2 text-xs mt-2">
                 <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">✓ 출석</span>
                 <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">⏰ 지각</span>
                 <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full font-medium">✗ 결석</span>
                 <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">📋 인정결석</span>
+                <span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">🔄 보강결석 <span class="bg-orange-200 text-orange-700 px-1 rounded text-xs">NEW</span></span>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2 text-xs text-orange-800">
+                <strong>🔄 보강결석이란?</strong> 결석 처리 시점에 해당 학생이 이미 <strong>보강 수업에 입반</strong>되어 있으면 자동으로 보강결석으로 전환됩니다. 보강결석은 <strong>수업료 차감 없이</strong> 결석으로 처리되며, 시수 계산에도 영향을 주지 않습니다.
             </div>
             <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                 <p class="text-blue-800 text-xs">💡 완료 처리된 세션도 이후 수정이 가능합니다. 수업 목록 → 해당 세션 → 출석 현황에서 수정하세요.</p>

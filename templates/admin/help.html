@@ -27,7 +27,7 @@
         <div class="grid grid-cols-2 gap-2 text-sm">
             <a href="#section-login"    class="flex items-center gap-2 text-blue-600 hover:underline"><span>1.</span> 로그인 및 계정 관리</a>
             <a href="#section-students" class="flex items-center gap-2 text-blue-600 hover:underline"><span>2.</span> 학생 관리</a>
-            <a href="#section-courses"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>3.</span> 수업 관리</a>
+            <a href="#section-courses"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>3.</span> 수업 관리 · 입반/전반/보강 예약</a>
             <a href="#section-payment"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>4.</span> 결제 관리</a>
             <a href="#section-teachers" class="flex items-center gap-2 text-blue-600 hover:underline"><span>5.</span> 강사 관리</a>
             <a href="#section-parents"  class="flex items-center gap-2 text-blue-600 hover:underline"><span>6.</span> 학부모 관리</a>
@@ -114,6 +114,15 @@
             </div>
             <div class="flex gap-3">
                 <span class="text-blue-500 font-bold flex-shrink-0">④</span>
+                <div><strong>입반·전반·보강 예약 <span class="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-semibold">NEW</span>:</strong> 사이드바 → 입반·전반·보강 예약에서 예약을 등록합니다. 등록 모달에서 탭으로 구분됩니다.
+                    <ul class="mt-1 ml-4 list-disc text-xs text-gray-600 space-y-0.5">
+                        <li><strong>입반/전반 탭:</strong> 학적이 실제로 변경됩니다. 입반은 수업 정식 수강 시작, 전반은 학적 제외.</li>
+                        <li><strong>보강 참여 탭:</strong> 기존 학적은 그대로 유지된 채, 다른 반에 일시적으로 추가 수강 등록됩니다.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <span class="text-blue-500 font-bold flex-shrink-0">⑤</span>
                 <div><strong>전체 수업 현황:</strong> 강사별 주간 시간표를 한눈에 확인할 수 있습니다.</div>
             </div>
         </div>
@@ -309,6 +318,7 @@
                             <tr><td class="px-3 py-2 font-medium">🚨 결석/지각 즉시 알림</td><td class="px-3 py-2">강사가 출석 체크에서 결석/지각 처리 시</td><td class="px-3 py-2">학부모</td></tr>
                             <tr class="bg-blue-50"><td class="px-3 py-2 font-medium">⏰ 수업 1시간 전 리마인더</td><td class="px-3 py-2">매 30분마다 자동 확인 후 1시간 전 수업 감지</td><td class="px-3 py-2">학생 + 학부모</td></tr>
                             <tr><td class="px-3 py-2 font-medium">📊 주간 평가 등록 알림</td><td class="px-3 py-2">강사가 주간 평가를 저장했을 때</td><td class="px-3 py-2">학부모</td></tr>
+                            <tr class="bg-blue-50"><td class="px-3 py-2 font-medium">🔄 보강 입반 알림 <span class="bg-blue-200 text-blue-700 px-1 rounded text-xs">NEW</span></td><td class="px-3 py-2">학생이 보강 수업에 등록됐을 때</td><td class="px-3 py-2">보강 담당 강사 + 기존 수업 강사</td></tr>
                         </tbody>
                     </table>
                 </div>
