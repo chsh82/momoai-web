@@ -362,7 +362,9 @@ def enroll_student_to_course(course_id, student_id):
 
 
 def _notify_parents_on_enrollment(course, student_id):
-    """수업 입반 시 연결된 학부모에게 알림 발송"""
+    """수업 입반 시 학생 본인 및 연결된 학부모에게 알림 발송"""
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         from app.models.notification import Notification
         from app.models.parent_student import ParentStudent
@@ -383,6 +385,17 @@ def _notify_parents_on_enrollment(course, student_id):
             message = (f'{student.name} 학생이 {course.course_name} 수업에 '
                        f'등록되었습니다.')
 
+        # 학생 본인 알림
+        if student.user_id:
+            Notification.create_notification(
+                user_id=student.user_id,
+                notification_type='enrollment_applied',
+                title=title,
+                message=message,
+                link_url='/student/courses'
+            )
+
+        # 학부모 알림
         parents = ParentStudent.query.filter_by(
             student_id=student_id, is_active=True
         ).all()
@@ -394,8 +407,8 @@ def _notify_parents_on_enrollment(course, student_id):
                 message=message,
                 link_url='/parent/courses'
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f'[입반알림] student_id={student_id} course_id={course.course_id}: {e}', exc_info=True)
 
 
 def _notify_makeup_teachers(makeup_course, student_id, original_course_id=None):

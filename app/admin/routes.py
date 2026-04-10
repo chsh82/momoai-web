@@ -375,6 +375,7 @@ def create_course():
             '하크니스': 70000,
             '시그니처': 75000,
             '모의고사': 10000,
+            '보강수업': 65000,
         }
         price_per_session = price_map.get(form.course_type.data, 0)
 
