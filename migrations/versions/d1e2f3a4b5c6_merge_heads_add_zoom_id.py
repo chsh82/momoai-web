@@ -1,7 +1,7 @@
-"""merge heads and add zoom_id to users
+"""add zoom_id to users
 
 Revision ID: d1e2f3a4b5c6
-Revises: b3c4d5e6f7a8, c1d2e3f4a5b6
+Revises: b3c4d5e6f7a8
 Create Date: 2026-04-10
 
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'd1e2f3a4b5c6'
-down_revision = ('b3c4d5e6f7a8', 'c1d2e3f4a5b6')
+down_revision = 'b3c4d5e6f7a8'
 branch_labels = None
 depends_on = None
 
