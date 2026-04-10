@@ -158,6 +158,12 @@
                             비밀번호 초기화
                         </button>
                     </form>
+                    {% if staff.role == 'teacher' and (staff.zoom_id or zoom_links_decrypted.get(staff.user_id)) %}
+                    <button onclick="copyCardZoomInfo('{{ staff.name }}', '{{ staff.zoom_id or '' }}', '{{ zoom_links_decrypted.get(staff.user_id, '') }}')"
+                            class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition">
+                        📋 줌 링크 복사
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -268,6 +274,17 @@ function copyZoomInfo() {
     const name = currentStaffName;
     const zoomId = document.getElementById('zoomIdInput').value.trim();
     const zoomLink = document.getElementById('zoomLinkInput').value.trim();
+    const parts = [];
+    if (name) parts.push('강사: ' + name);
+    if (zoomId) parts.push('줌 아이디: ' + zoomId);
+    if (zoomLink) parts.push('줌 링크: ' + zoomLink);
+    if (!parts.length) { alert('복사할 정보가 없습니다.'); return; }
+    navigator.clipboard.writeText(parts.join('\n'))
+        .then(() => alert('복사되었습니다.\n\n' + parts.join('\n')))
+        .catch(() => alert('복사에 실패했습니다.'));
+}
+
+function copyCardZoomInfo(name, zoomId, zoomLink) {
     const parts = [];
     if (name) parts.push('강사: ' + name);
     if (zoomId) parts.push('줌 아이디: ' + zoomId);
