@@ -215,6 +215,7 @@ def courses():
     teacher_filter = request.args.get('teacher', '').strip()
     grade_filter = request.args.get('grade', '').strip()
     weekday_filter = request.args.get('weekday', '').strip()
+    course_type_filter = request.args.get('course_type', '').strip()
     search_filter = request.args.get('search', '').strip()
     sort_order = request.args.get('sort', 'newest')  # newest | weekday
 
@@ -231,6 +232,8 @@ def courses():
             query = query.filter_by(weekday=int(weekday_filter))
         except ValueError:
             pass
+    if course_type_filter:
+        query = query.filter_by(course_type=course_type_filter)
 
     # 통합 검색: 반이름, 강사명, 학년, 요일, 반형태
     pre_computed_courses = None
@@ -301,6 +304,7 @@ def courses():
                          teacher_filter=teacher_filter,
                          grade_filter=grade_filter,
                          weekday_filter=weekday_filter,
+                         course_type_filter=course_type_filter,
                          search_filter=search_filter,
                          sort_order=sort_order)
 
