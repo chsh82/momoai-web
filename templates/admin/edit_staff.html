@@ -64,6 +64,15 @@
                     {% endif %}
                 </div>
 
+                <!-- 줌 아이디 -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">줌 아이디</label>
+                    {{ form.zoom_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="예: momoai_teacher01") }}
+                    {% if form.zoom_id.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.zoom_id.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
                 <!-- 줌 링크 -->
                 <div class="mb-5">
                     <label class="block text-sm font-medium text-gray-700 mb-2">줌 링크</label>

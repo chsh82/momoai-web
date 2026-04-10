@@ -496,6 +496,10 @@ class EditStaffForm(FlaskForm):
         validators=[DataRequired(message='역할을 선택해주세요.')]
     )
     is_active = BooleanField('활성 상태')
+    zoom_id = StringField('줌 아이디', validators=[
+        Optional(),
+        Length(max=100, message='줌 아이디는 최대 100자까지 입력 가능합니다.')
+    ])
     zoom_link = StringField('줌 링크 (선택)', validators=[
         Optional(),
         Length(max=500, message='URL은 최대 500자까지 입력 가능합니다.')

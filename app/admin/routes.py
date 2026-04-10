@@ -5236,6 +5236,9 @@ def edit_staff(staff_id):
             staff.role = new_role
             staff.role_level = 2 if new_role == 'admin' else 3
 
+        # 줌 아이디 처리
+        staff.zoom_id = form.zoom_id.data.strip() if form.zoom_id.data else None
+
         # 줌 링크 처리
         zoom_link_input = form.zoom_link.data.strip() if form.zoom_link.data else ''
         if zoom_link_input:
@@ -5264,6 +5267,7 @@ def edit_staff(staff_id):
         form.phone.data = staff.phone
         form.role.data = staff.role
         form.is_active.data = staff.is_active
+        form.zoom_id.data = staff.zoom_id
         if staff.zoom_link:
             form.zoom_link.data = decrypt_zoom_link(staff.zoom_link)
 
