@@ -3460,6 +3460,7 @@ def create_enrollment_schedule():
             link_url=f'/teacher/upcoming-changes'
         )
         sched.teacher_notified = True
+        sched.teacher_notified_at = datetime.utcnow()
 
     db.session.commit()
     flash(f'{student.name} 학생의 {type_label} 예약이 등록되었습니다. ({scheduled_date.strftime("%Y년 %m월 %d일")})', 'success')
@@ -3584,6 +3585,8 @@ def apply_enrollment_schedule_now(schedule_id):
             message=notif_msg,
             link_url=f'/teacher/courses/{course.course_id}'
         )
+        sched.teacher_notified = True
+        sched.teacher_notified_at = datetime.utcnow()
 
     db.session.commit()
     return redirect(url_for('admin.enrollment_schedules'))

@@ -159,6 +159,8 @@ def apply_enrollment_schedules(app):
                             message=notif_msg,
                             link_url=f'/teacher/courses/{course.course_id}'
                         )
+                        sched.teacher_notified = True
+                        sched.teacher_notified_at = datetime.utcnow()
 
                     logger.info(f'[EnrollSchedule] {sched.schedule_type} 적용: {student.name} → {course.course_name}')
 
