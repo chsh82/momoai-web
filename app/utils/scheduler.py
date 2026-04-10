@@ -130,6 +130,16 @@ def apply_enrollment_schedules(app):
                         ).first()
                         if enrollment:
                             enrollment.status = 'inactive'
+                            # 미래 출결 레코드 삭제
+                            from app.models.attendance import Attendance
+                            future_atts = Attendance.query.join(
+                                CourseSession, Attendance.session_id == CourseSession.session_id
+                            ).filter(
+                                Attendance.enrollment_id == enrollment.enrollment_id,
+                                CourseSession.session_date >= today
+                            ).all()
+                            for att in future_atts:
+                                db.session.delete(att)
 
                     else:  # makeup: 기존 학적 유지, 추가 수강만 등록
                         existing = CourseEnrollment.query.filter_by(

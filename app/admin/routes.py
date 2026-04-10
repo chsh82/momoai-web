@@ -747,6 +747,18 @@ def remove_student(enrollment_id):
     course_id = enrollment.course_id
 
     enrollment.status = 'dropped'
+
+    # 미래 출결 레코드 삭제 (아직 수업이 시작되지 않은 세션)
+    from app.models.attendance import Attendance
+    future_attendances = Attendance.query.join(
+        CourseSession, Attendance.session_id == CourseSession.session_id
+    ).filter(
+        Attendance.enrollment_id == enrollment.enrollment_id,
+        CourseSession.session_date >= datetime.utcnow().date()
+    ).all()
+    for att in future_attendances:
+        db.session.delete(att)
+
     db.session.commit()
 
     flash('학생이 수업에서 제외되었습니다.', 'info')
@@ -2566,7 +2578,9 @@ def attendance_status():
     query = Attendance.query\
         .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
         .join(Course, CourseSession.course_id == Course.course_id)\
-        .join(Student, Attendance.student_id == Student.student_id)
+        .join(Student, Attendance.student_id == Student.student_id)\
+        .join(CourseEnrollment, Attendance.enrollment_id == CourseEnrollment.enrollment_id)\
+        .filter(CourseEnrollment.status.notin_(['dropped', 'inactive']))
 
     # 날짜 필터
     if date_from:

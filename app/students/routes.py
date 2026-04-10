@@ -320,9 +320,22 @@ def unenroll(student_id, enrollment_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('students.index'))
 
-    from app.models.course import CourseEnrollment
+    from app.models.course import CourseEnrollment, CourseSession
+    from app.models.attendance import Attendance
+    from datetime import datetime
     enrollment = CourseEnrollment.query.get_or_404(enrollment_id)
     enrollment.status = 'dropped'
+
+    # 미래 출결 레코드 삭제
+    future_attendances = Attendance.query.join(
+        CourseSession, Attendance.session_id == CourseSession.session_id
+    ).filter(
+        Attendance.enrollment_id == enrollment.enrollment_id,
+        CourseSession.session_date >= datetime.utcnow().date()
+    ).all()
+    for att in future_attendances:
+        db.session.delete(att)
+
     db.session.commit()
     flash('수강반에서 퇴반 처리되었습니다.', 'info')
     return redirect(url_for('students.detail', student_id=student_id))
