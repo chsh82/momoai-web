@@ -418,27 +418,17 @@ def schedule():
     week_start = week_start + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
 
-    # 내가 담당하는 수업의 세션 조회 (보강수업은 completed 상태도 포함)
-    # end_date가 해당 주 시작일 이상인 수업만 포함 (이미 종료된 수업 제외)
+    # 내가 담당하는 모든 수업 조회 (관리자 시간표와 동일 로직)
+    # is_terminated=True이면서 status!='completed'인 수업만 제외
     # end_date가 NULL인 수업(종료일 미정)도 포함
-    from sqlalchemy import or_
-    active_courses = Course.query.filter(
-        Course.teacher_id == current_user.user_id,
-        Course.status == 'active',
-        or_(Course.end_date == None, Course.end_date >= week_start)
+    all_my_courses = Course.query.filter_by(
+        teacher_id=current_user.user_id
     ).all()
-    makeup_courses = Course.query.filter(
-        Course.teacher_id == current_user.user_id,
-        Course.course_type == '보강수업',
-        Course.status != 'cancelled',
-        or_(Course.end_date == None, Course.end_date >= week_start)
-    ).all()
-    seen_ids = {c.course_id for c in active_courses}
-    my_courses = list(active_courses)
-    for c in makeup_courses:
-        if c.course_id not in seen_ids:
-            my_courses.append(c)
-    my_course_ids = [c.course_id for c in my_courses]
+    my_course_ids = [
+        c.course_id for c in all_my_courses
+        if not (c.is_terminated and c.status != 'completed')
+        and (c.end_date is None or c.end_date >= week_start)
+    ]
 
     # 해당 주의 모든 세션
     sessions = CourseSession.query.filter(
