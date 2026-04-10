@@ -2591,10 +2591,12 @@ def attendance_status():
         query = query.filter(Attendance.status == status_filter)
 
     # 출석 레코드 조회
-    attendances = query.order_by(
+    page = request.args.get('page', 1, type=int)
+    pagination = query.order_by(
         CourseSession.session_date.desc(),
         CourseSession.start_time.desc()
-    ).limit(100).all()
+    ).paginate(page=page, per_page=100, error_out=False)
+    attendances = pagination.items
 
     # 전체 통계
     total_query = Attendance.query\
@@ -2679,6 +2681,7 @@ def attendance_status():
 
     return render_template('admin/attendance_status.html',
                          attendances=attendances,
+                         pagination=pagination,
                          courses=courses,
                          students=students,
                          teachers=teachers,

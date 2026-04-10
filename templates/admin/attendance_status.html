@@ -294,6 +294,44 @@
             </div>
             {% endfor %}
         </div>
+        <!-- 페이지 네비게이션 -->
+        {% if pagination.pages > 1 %}
+        <div class="mt-4 flex items-center justify-center gap-1">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin.attendance_status', page=pagination.prev_num, course_id=course_filter, student_id=student_filter, teacher_id=teacher_filter, date_from=date_from, date_to=date_to, status=status_filter) }}"
+               class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-700">
+                ← 이전
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 text-sm bg-gray-100 border border-gray-200 rounded text-gray-400 cursor-not-allowed">← 이전</span>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                {% if p %}
+                    {% if p == pagination.page %}
+                    <span class="px-3 py-1.5 text-sm bg-blue-600 text-white border border-blue-600 rounded font-medium">{{ p }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin.attendance_status', page=p, course_id=course_filter, student_id=student_filter, teacher_id=teacher_filter, date_from=date_from, date_to=date_to, status=status_filter) }}"
+                       class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-700">{{ p }}</a>
+                    {% endif %}
+                {% else %}
+                <span class="px-2 py-1.5 text-sm text-gray-400">…</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin.attendance_status', page=pagination.next_num, course_id=course_filter, student_id=student_filter, teacher_id=teacher_filter, date_from=date_from, date_to=date_to, status=status_filter) }}"
+               class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-700">
+                다음 →
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 text-sm bg-gray-100 border border-gray-200 rounded text-gray-400 cursor-not-allowed">다음 →</span>
+            {% endif %}
+
+            <span class="ml-2 text-sm text-gray-500">{{ pagination.page }} / {{ pagination.pages }} 페이지 (총 {{ pagination.total }}건)</span>
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="text-center py-12 bg-white rounded-lg shadow">
             <div class="text-4xl mb-3">📋</div>
