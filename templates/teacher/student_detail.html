@@ -80,6 +80,10 @@
                             <div class="font-medium">{{ student.grade }}</div>
                         </div>
                         <div>
+                            <div class="text-sm text-gray-600 mb-1">학교</div>
+                            <div class="font-medium">{{ student.school or '-' }}</div>
+                        </div>
+                        <div>
                             <div class="text-sm text-gray-600 mb-1">이메일</div>
                             <div class="font-medium">{{ student.email or '-' }}</div>
                         </div>
