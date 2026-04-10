@@ -1,6 +1,6 @@
 """add student status
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: c1d2e3f4a5b6
 Revises: f137914464cc
 Create Date: 2026-03-12
 
@@ -8,7 +8,7 @@ Create Date: 2026-03-12
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
+revision = 'c1d2e3f4a5b6'
 down_revision = 'f137914464cc'
 branch_labels = None
 depends_on = None

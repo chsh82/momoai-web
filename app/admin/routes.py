@@ -5288,6 +5288,7 @@ def update_staff_zoom_link(staff_id):
 
     data = request.get_json()
     zoom_link = data.get('zoom_link', '').strip()
+    zoom_id = data.get('zoom_id', '').strip()
 
     if not zoom_link:
         return jsonify({
@@ -5299,6 +5300,7 @@ def update_staff_zoom_link(staff_id):
         # 줌 링크 암호화
         encrypted_link = encrypt_zoom_link(zoom_link)
         staff.zoom_link = encrypted_link
+        staff.zoom_id = zoom_id or None
 
         # 줌 토큰이 없으면 생성
         if not staff.zoom_token:

@@ -27,7 +27,8 @@ class User(UserMixin, db.Model):
     profile_image_path = db.Column(db.String(500), nullable=True)
 
     # 온라인 강의실 (강사용)
-    zoom_link = db.Column(db.Text, nullable=True)  # 암호화된 줌 링크
+    zoom_id = db.Column(db.String(100), nullable=True)    # 줌 아이디 (평문)
+    zoom_link = db.Column(db.Text, nullable=True)         # 암호화된 줌 링크
     zoom_token = db.Column(db.String(100), unique=True, nullable=True, index=True)  # 강사별 고정 토큰
 
     # 거주 정보 (학부모/학생 계정용)
