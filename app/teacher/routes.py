@@ -1354,11 +1354,32 @@ def create_feedback():
         # 내가 담당하는 모든 학생
         my_courses = Course.query.filter_by(teacher_id=current_user.user_id).all()
         course_ids = [c.course_id for c in my_courses]
+
+        # 활성 수강생
         enrollments = CourseEnrollment.query.filter(
             CourseEnrollment.course_id.in_(course_ids),
             CourseEnrollment.status == 'active'
         ).all()
-        students = list(set([e.student for e in enrollments if e.student is not None]))
+        student_set = set(e.student for e in enrollments if e.student is not None)
+
+        # 보강 수업 1회 이상 참석한 학생 추가
+        makeup_course_ids = [c.course_id for c in my_courses if c.course_type == '보강수업']
+        if makeup_course_ids:
+            attended_ids = [row[0] for row in
+                db.session.query(Attendance.student_id)
+                .join(CourseSession, Attendance.session_id == CourseSession.session_id)
+                .filter(
+                    CourseSession.course_id.in_(makeup_course_ids),
+                    Attendance.status.in_(['present', 'late', 'excused', 'absent_makeup'])
+                ).distinct().all()
+            ]
+            if attended_ids:
+                makeup_students = Student.query.filter(
+                    Student.student_id.in_(attended_ids)
+                ).all()
+                student_set.update(makeup_students)
+
+        students = list(student_set)
 
     form.student_id.choices = [('', '-- 학생 선택 --')] + [
         (s.student_id, s.display_name) for s in sorted(students, key=lambda x: x.name)
