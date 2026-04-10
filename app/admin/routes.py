@@ -3045,93 +3045,94 @@ def approve_makeup_request(request_id):
             days_ahead += 7
         makeup_date = today + timedelta(days=days_ahead)
     
-    # 1회 보강수업 생성
-    # 고유한 course_code 생성 (날짜 + 요청ID 일부)
-    unique_code = f"MAKEUP{makeup_date.strftime('%y%m%d')}{makeup_request.request_id[:8]}"
+    try:
+        # 1회 보강수업 생성
+        # 고유한 course_code 생성 (날짜 + 요청ID 일부)
+        unique_code = f"MAKEUP{makeup_date.strftime('%y%m%d')}{makeup_request.request_id[:8]}"
 
-    makeup_course = Course(
-        course_name=f"[보강] {original_course.course_name} - {student.name}",
-        course_code=unique_code,
-        grade=original_course.grade,
-        course_type='보강수업',
-        teacher_id=original_course.teacher_id,
-        weekday=makeup_date.weekday(),  # Python weekday: 0=월, 6=일
-        start_time=original_course.start_time,
-        end_time=original_course.end_time,
-        start_date=makeup_date,
-        end_date=makeup_date,
-        availability_status='available',
-        makeup_class_allowed=False,  # 보강수업은 재보강 불가
-        schedule_type='custom',
-        max_students=1,  # 1:1 보강
-        price_per_session=65000,  # 보강수업 기본 수강료
-        status='active',
-        created_by=current_user.user_id,
-        description=f"{student.name} 학생의 보강수업 (원수업: {original_course.course_name})"
-    )
-    
-    db.session.add(makeup_course)
-    db.session.flush()
-    
-    # 1회 세션 생성
-    makeup_session = CourseSession(
-        course_id=makeup_course.course_id,
-        session_number=1,
-        session_date=makeup_date,
-        start_time=original_course.start_time,
-        end_time=original_course.end_time,
-        topic=f"{student.name} 보강수업",
-        status='scheduled'
-    )
-    
-    db.session.add(makeup_session)
-    db.session.flush()
-    
-    # 학생 자동 등록 (보강수업 감지 시 강사 알림 자동 발송)
-    from app.utils.course_utils import enroll_student_to_course
-    enrollment = enroll_student_to_course(makeup_course.course_id, student.student_id)
-    
-    # 신청 상태 업데이트
-    makeup_request.status = 'approved'
-    makeup_request.admin_response_date = datetime.utcnow()
-    makeup_request.admin_response_by = current_user.user_id
-    makeup_request.created_makeup_course_id = makeup_course.course_id
-    makeup_request.admin_notes = request.form.get('admin_notes', '').strip()
-    
-    # 학생/학부모에게 알림
-    requester = makeup_request.requester
-    if requester:
-        notification = Notification(
-            user_id=requester.user_id,
-            notification_type='makeup_approved',
-            title='보강수업 신청이 승인되었습니다',
-            message=f'"{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {makeup_date.strftime("%Y년 %m월 %d일")}',
-            related_entity_type='course',
-            related_entity_id=makeup_course.course_id
+        makeup_course = Course(
+            course_name=f"[보강] {original_course.course_name} - {student.name}",
+            course_code=unique_code,
+            grade=original_course.grade,
+            course_type='보강수업',
+            teacher_id=original_course.teacher_id,
+            weekday=makeup_date.weekday(),
+            start_time=original_course.start_time,
+            end_time=original_course.end_time,
+            start_date=makeup_date,
+            end_date=makeup_date,
+            availability_status='available',
+            makeup_class_allowed=False,
+            schedule_type='custom',
+            max_students=1,
+            price_per_session=65000,
+            status='active',
+            created_by=current_user.user_id,
+            description=f"{student.name} 학생의 보강수업 (원수업: {original_course.course_name})"
         )
-        db.session.add(notification)
 
-    # 학부모에게도 알림 (학생이 신청한 경우)
-    if requester and requester.role == 'student':
-        from app.models.parent_student import ParentStudent
-        parent_links = ParentStudent.query.filter_by(student_id=student.student_id).all()
-        for link in parent_links:
-            parent_notification = Notification(
-                user_id=link.parent_id,
+        db.session.add(makeup_course)
+        db.session.flush()
+
+        # 1회 세션 생성
+        makeup_session = CourseSession(
+            course_id=makeup_course.course_id,
+            session_number=1,
+            session_date=makeup_date,
+            start_time=original_course.start_time,
+            end_time=original_course.end_time,
+            topic=f"{student.name} 보강수업",
+            status='scheduled'
+        )
+
+        db.session.add(makeup_session)
+        db.session.flush()
+
+        # 학생 자동 등록 (보강수업 감지 시 강사 알림 자동 발송)
+        from app.utils.course_utils import enroll_student_to_course
+        enroll_student_to_course(makeup_course.course_id, student.student_id)
+
+        # 신청 상태 업데이트
+        makeup_request.status = 'approved'
+        makeup_request.admin_response_date = datetime.utcnow()
+        makeup_request.admin_response_by = current_user.user_id
+        makeup_request.created_makeup_course_id = makeup_course.course_id
+        makeup_request.admin_notes = request.form.get('admin_notes', '').strip()
+
+        # 학생/학부모에게 알림
+        requester = makeup_request.requester
+        if requester:
+            db.session.add(Notification(
+                user_id=requester.user_id,
                 notification_type='makeup_approved',
-                title=f'{student.name} 학생의 보강수업 신청 승인',
-                message=f'{student.name} 학생의 "{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {makeup_date.strftime("%Y년 %m월 %d일")}',
+                title='보강수업 신청이 승인되었습니다',
+                message=f'"{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {makeup_date.strftime("%Y년 %m월 %d일")}',
                 related_entity_type='course',
                 related_entity_id=makeup_course.course_id
-            )
-            db.session.add(parent_notification)
-    
-    # 강사 알림은 enroll_student_to_course() 내부에서 자동 발송됨
-    # (보강 담당 강사 + 원 수업 강사 자동 탐색)
+            ))
 
-    db.session.commit()
+        if requester and requester.role == 'student':
+            from app.models.parent_student import ParentStudent
+            parent_links = ParentStudent.query.filter_by(student_id=student.student_id).all()
+            for link in parent_links:
+                db.session.add(Notification(
+                    user_id=link.parent_id,
+                    notification_type='makeup_approved',
+                    title=f'{student.name} 학생의 보강수업 신청 승인',
+                    message=f'{student.name} 학생의 "{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {makeup_date.strftime("%Y년 %m월 %d일")}',
+                    related_entity_type='course',
+                    related_entity_id=makeup_course.course_id
+                ))
 
-    flash(f'보강수업 신청이 승인되었습니다. 보강수업이 생성되었습니다: {makeup_course.course_name}', 'success')
+        db.session.commit()
+
+        flash(f'보강수업 신청이 승인되었습니다. 보강수업이 생성되었습니다: {makeup_course.course_name}', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'[보강승인] 오류 request_id={request_id}: {e}', exc_info=True)
+        flash(f'보강수업 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (오류: {type(e).__name__})', 'error')
+
     return redirect(url_for('admin.makeup_requests'))
 
 

@@ -58,6 +58,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         f'sqlite:///{BASE_DIR / "instance" / "momoai.db"}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # GCP Cloud SQL 유휴 연결 끊김 방지
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,   # 쿼리 전 연결 유효성 검사
+        'pool_recycle': 280,     # 5분(300초) 이전에 연결 재활용 (Cloud SQL 기본 timeout 전)
+        'pool_timeout': 20,      # 풀에서 연결 대기 최대 20초
+        'pool_size': 5,
+        'max_overflow': 10,
+    }
 
     # Flask-Login 설정
     REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 30  # 30일
