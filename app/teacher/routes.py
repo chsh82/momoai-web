@@ -443,9 +443,9 @@ def schedule():
         day_index = session.session_date.weekday()
         weekly_schedule[day_index].append(session)
 
-    # 시간대 범위 (8:00 ~ 22:00)
+    # 시간대 범위 (8:00 ~ 24:00)
     time_slots = []
-    for hour in range(8, 22):
+    for hour in range(8, 24):
         time_slots.append(f"{hour:02d}:00")
 
     return render_template('teacher/schedule.html',
