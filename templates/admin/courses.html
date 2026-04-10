@@ -24,11 +24,11 @@
     <!-- 필터 -->
     <div class="bg-white rounded-lg shadow p-4 mb-4">
         <form method="GET" action="">
-            <!-- 1행: 상태 / 담당강사 / 학년 / 요일 -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <!-- 1행: 상태 / 담당강사 / 학년 / 요일 / 수업형태 -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
-                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">상태</label>
+                    <select name="status" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">전체</option>
                         <option value="active" {% if status_filter == 'active' %}selected{% endif %}>진행 중</option>
                         <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
@@ -36,8 +36,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">담당 강사</label>
-                    <select name="teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">담당 강사</label>
+                    <select name="teacher" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">전체</option>
                         {% for teacher in teachers %}
                         <option value="{{ teacher.user_id }}" {% if teacher_filter == teacher.user_id %}selected{% endif %}>{{ teacher.name }}</option>
@@ -45,8 +45,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">학년</label>
-                    <select name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">학년</label>
+                    <select name="grade" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">전체</option>
                         {% for g in ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'] %}
                         <option value="{{ g }}" {% if grade_filter == g %}selected{% endif %}>{{ g }}</option>
@@ -54,20 +54,17 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">요일</label>
-                    <select name="weekday" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">요일</label>
+                    <select name="weekday" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">전체</option>
                         {% for wd_val, wd_name in [(0,'월'),(1,'화'),(2,'수'),(3,'목'),(4,'금'),(5,'토'),(6,'일')] %}
                         <option value="{{ wd_val }}" {% if weekday_filter == wd_val|string %}selected{% endif %}>{{ wd_name }}요일</option>
                         {% endfor %}
                     </select>
                 </div>
-            </div>
-            <!-- 2행: 수업 형태 -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">수업 형태</label>
-                    <select name="course_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">수업 형태</label>
+                    <select name="course_type" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">전체</option>
                         {% for ct in ['베이직','프리미엄','정규반','하크니스','체험단','보강수업','시그니처','특강','모의고사','기타'] %}
                         <option value="{{ ct }}" {% if course_type_filter == ct %}selected{% endif %}>{{ ct }}</option>
