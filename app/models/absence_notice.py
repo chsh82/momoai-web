@@ -19,6 +19,7 @@ class AbsenceNotice(db.Model):
     course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id', ondelete='CASCADE'),
                           nullable=False, index=True)
     absence_date = db.Column(db.Date, nullable=False, index=True)
+    absence_date_end = db.Column(db.Date, nullable=True, index=True)  # 장기 결석 종료일 (None이면 단일 날짜)
     reason = db.Column(db.Text, nullable=False)
     notice_type = db.Column(db.String(20), default='absent')  # absent, late
 

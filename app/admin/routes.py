@@ -3275,6 +3275,7 @@ def create_absence_notice():
     student_id = request.form.get('student_id', '').strip()
     course_id = request.form.get('course_id', '').strip()
     absence_date_str = request.form.get('absence_date', '').strip()
+    absence_date_end_str = request.form.get('absence_date_end', '').strip()
     notice_type = request.form.get('notice_type', 'absent').strip()
     reason = request.form.get('reason', '').strip()
 
@@ -3288,6 +3289,15 @@ def create_absence_notice():
         flash('날짜 형식이 올바르지 않습니다.', 'danger')
         return redirect(url_for('admin.absence_notices'))
 
+    absence_date_end = None
+    if absence_date_end_str:
+        try:
+            absence_date_end = datetime.strptime(absence_date_end_str, '%Y-%m-%d').date()
+            if absence_date_end <= absence_date:
+                absence_date_end = None
+        except ValueError:
+            pass
+
     student = Student.query.get_or_404(student_id)
     course = Course.query.get_or_404(course_id)
     notice_label = '결석' if notice_type == 'absent' else '지각'
@@ -3296,6 +3306,7 @@ def create_absence_notice():
         student_id=student_id,
         course_id=course_id,
         absence_date=absence_date,
+        absence_date_end=absence_date_end,
         reason=reason,
         notice_type=notice_type,
         created_by=current_user.user_id,
@@ -3304,13 +3315,21 @@ def create_absence_notice():
     db.session.add(notice)
     db.session.flush()
 
-    # 담당 강사에게 알림 (강사가 확인해야 함)
+    # 날짜 표시 (단일 or 범위)
+    if absence_date_end:
+        date_str = f'{absence_date.strftime("%m/%d")}~{absence_date_end.strftime("%m/%d")}'
+        date_full = f'{absence_date.strftime("%Y년 %m월 %d일")}~{absence_date_end.strftime("%m월 %d일")}'
+    else:
+        date_str = absence_date.strftime("%m/%d")
+        date_full = absence_date.strftime("%Y년 %m월 %d일")
+
+    # 담당 강사에게 알림
     if course.teacher_id:
         Notification.create_notification(
             user_id=course.teacher_id,
             notification_type='absence_notice',
-            title=f'[{notice_label} 예고] {student.name} ({absence_date.strftime("%m/%d")})',
-            message=(f'{student.name} 학생이 {absence_date.strftime("%Y년 %m월 %d일")} '
+            title=f'[{notice_label} 예고] {student.name} ({date_str})',
+            message=(f'{student.name} 학생이 {date_full} '
                      f'{course.course_name} {notice_label} 예정입니다. 사유: {reason}'),
             link_url='/teacher/upcoming-changes'
         )
@@ -3374,6 +3393,32 @@ def edit_absence_notice(notice_id):
     db.session.commit()
     flash('결석 예고가 수정되었습니다.', 'success')
     return redirect(url_for('admin.absence_notices'))
+
+
+@admin_bp.route('/api/student-courses/<student_id>')
+@login_required
+@requires_permission_level(2)
+def api_student_courses(student_id):
+    """학생이 수강 중인 수업 목록 반환 (결석 예고 등록용)"""
+    enrollments = CourseEnrollment.query.filter_by(
+        student_id=student_id, status='active'
+    ).all()
+    courses = []
+    for e in enrollments:
+        c = e.course
+        if c:
+            weekday_names = ['월', '화', '수', '목', '금', '토', '일']
+            wd = weekday_names[c.weekday] if c.weekday is not None else ''
+            teacher_name = c.teacher.name if c.teacher else ''
+            courses.append({
+                'course_id': c.course_id,
+                'course_name': c.course_name,
+                'teacher_name': teacher_name,
+                'weekday': wd,
+                'grade': c.grade or '',
+                'course_type': c.course_type or '',
+            })
+    return jsonify({'courses': courses})
 
 
 @admin_bp.route('/absence-notices/<notice_id>/delete', methods=['POST'])
