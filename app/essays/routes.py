@@ -74,14 +74,8 @@ def index():
             current_user.role_level and current_user.role_level <= 2):
         query = Essay.query
     else:
-        from app.models.course import Course, CourseEnrollment
-        # 강사 수업에 등록된 학생 ID 서브쿼리
-        course_student_ids = db.session.query(CourseEnrollment.student_id).join(
-            Course, CourseEnrollment.course_id == Course.course_id
-        ).filter(
-            Course.teacher_id == current_user.user_id,
-            CourseEnrollment.status == 'active'
-        ).subquery()
+        from app.utils.enrollment_utils import get_active_student_ids_subquery
+        course_student_ids = get_active_student_ids_subquery(current_user.user_id)
 
         query = Essay.query.outerjoin(Student).filter(
             db.or_(
@@ -205,13 +199,8 @@ def index():
         dashboard_stats['teacher_stats'] = None
 
         if selected_teacher_id:
-            from app.models.course import Course, CourseEnrollment
-            course_student_ids = db.session.query(CourseEnrollment.student_id).join(
-                Course, CourseEnrollment.course_id == Course.course_id
-            ).filter(
-                Course.teacher_id == selected_teacher_id,
-                CourseEnrollment.status == 'active'
-            ).subquery()
+            from app.utils.enrollment_utils import get_active_student_ids_subquery
+            course_student_ids = get_active_student_ids_subquery(selected_teacher_id)
 
             def _teacher_essays(since):
                 return Essay.query.outerjoin(Student).filter(

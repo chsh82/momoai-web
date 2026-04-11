@@ -127,13 +127,9 @@ def index():
     course_data = [row.count for row in course_enrollments]
 
     # 차트 데이터: 월별 첨삭 수 (내가 담당한 학생들)
-    six_months_ago = datetime.utcnow() - timedelta(days=180)  # Essay.created_at은 datetime
-    # 내 수업 학생들의 student_id 목록
-    my_student_ids = []
-    for course in my_courses:
-        enrollments = CourseEnrollment.query.filter_by(course_id=course.course_id, status='active').all()
-        my_student_ids.extend([e.student_id for e in enrollments])
-    my_student_ids = list(set(my_student_ids))
+    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    from app.utils.enrollment_utils import get_active_student_ids_for_teacher
+    my_student_ids = get_active_student_ids_for_teacher(current_user.user_id)
 
     monthly_essays = db.session.query(
         extract('year', Essay.created_at).label('year'),
