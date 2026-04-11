@@ -23,7 +23,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    color: rgb(185, 185, 188);
+    color: var(--char-color, rgb(235, 235, 235));
     line-height: 1;
     user-select: none;
   }
@@ -62,7 +62,7 @@
     .wongo-cell {
       border-right: 0.5pt solid #ddd;
       border-bottom: 0.5pt solid #ddd;
-      color: rgb(235, 235, 235) !important;
+      color: var(--char-color, rgb(235, 235, 235)) !important;
     }
     /* 5칸/끝칸 경계선은 JS 인라인 스타일로 처리 */
   }
@@ -122,6 +122,19 @@
         </div>
       </div>
     </div>
+    <div class="mt-3">
+      <label class="block text-sm font-medium text-gray-700 mb-1">글씨 농도</label>
+      <div class="flex gap-2">
+        <button type="button" onclick="setTextColor('rgb(180,180,180)')"
+                class="color-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition" data-color="rgb(180,180,180)">진하게</button>
+        <button type="button" onclick="setTextColor('rgb(210,210,210)')"
+                class="color-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition" data-color="rgb(210,210,210)">보통</button>
+        <button type="button" onclick="setTextColor('rgb(235,235,235)')"
+                class="color-btn px-3 py-1.5 text-xs border border-blue-400 bg-blue-50 rounded-lg font-medium" data-color="rgb(235,235,235)">연하게</button>
+        <button type="button" onclick="setTextColor('rgb(247,247,247)')"
+                class="color-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition" data-color="rgb(247,247,247)">매우 연하게</button>
+      </div>
+    </div>
     <div class="mt-4">
       <label class="block text-sm font-medium text-gray-700 mb-1">
         내용 입력 <span id="charCount" class="text-gray-400 font-normal ml-2">0자</span>
@@ -144,7 +157,21 @@
 </div>
 
 <script>
-const CHAR_COLOR = 'rgb(185, 185, 188)';
+let CHAR_COLOR = 'rgb(235, 235, 235)';
+
+function setTextColor(color) {
+  CHAR_COLOR = color;
+  document.documentElement.style.setProperty('--char-color', color);
+  // 버튼 활성화 표시
+  document.querySelectorAll('.color-btn').forEach(btn => {
+    if (btn.dataset.color === color) {
+      btn.className = 'color-btn px-3 py-1.5 text-xs border border-blue-400 bg-blue-50 rounded-lg font-medium';
+    } else {
+      btn.className = 'color-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition';
+    }
+  });
+  renderWongo();
+}
 
 // 글자 크기별 기본 칸 수 (A4 186mm 기준)
 const FONT_PRESETS = {
@@ -242,6 +269,7 @@ function escHtml(s) {
 
 function printPilsa() {
   const printArea = document.getElementById('print-area').innerHTML;
+  const charColor = CHAR_COLOR;
   const win = window.open('', '_blank', 'width=900,height=700');
   win.document.write(`<!DOCTYPE html>
 <html>
@@ -252,6 +280,7 @@ function printPilsa() {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
   <style>
+    :root { --char-color: ${charColor}; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Serif KR', 'Batang', serif; background: #fff; }
     .wongo-wrap { font-family: 'Noto Serif KR', 'Batang', serif; }
@@ -269,6 +298,7 @@ function printPilsa() {
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      color: var(--char-color);
       line-height: 1;
     }
     .wongo-cell::before {
