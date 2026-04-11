@@ -3376,6 +3376,7 @@ def edit_absence_notice(notice_id):
     notice = AbsenceNotice.query.get_or_404(notice_id)
 
     absence_date_str = request.form.get('absence_date', '').strip()
+    absence_date_end_str = request.form.get('absence_date_end', '').strip()
     notice_type = request.form.get('notice_type', 'absent').strip()
     reason = request.form.get('reason', '').strip()
 
@@ -3385,6 +3386,16 @@ def edit_absence_notice(notice_id):
         except ValueError:
             flash('날짜 형식이 올바르지 않습니다.', 'danger')
             return redirect(url_for('admin.absence_notices'))
+
+    if absence_date_end_str:
+        try:
+            end = datetime.strptime(absence_date_end_str, '%Y-%m-%d').date()
+            notice.absence_date_end = end if end > notice.absence_date else None
+        except ValueError:
+            notice.absence_date_end = None
+    else:
+        notice.absence_date_end = None
+
     if notice_type:
         notice.notice_type = notice_type
     if reason:
