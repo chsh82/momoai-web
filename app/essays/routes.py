@@ -78,7 +78,10 @@ def index():
         # 강사 수업에 등록된 학생 ID 서브쿼리
         course_student_ids = db.session.query(CourseEnrollment.student_id).join(
             Course, CourseEnrollment.course_id == Course.course_id
-        ).filter(Course.teacher_id == current_user.user_id).subquery()
+        ).filter(
+            Course.teacher_id == current_user.user_id,
+            CourseEnrollment.status == 'active'
+        ).subquery()
 
         query = Essay.query.outerjoin(Student).filter(
             db.or_(
@@ -205,7 +208,10 @@ def index():
             from app.models.course import Course, CourseEnrollment
             course_student_ids = db.session.query(CourseEnrollment.student_id).join(
                 Course, CourseEnrollment.course_id == Course.course_id
-            ).filter(Course.teacher_id == selected_teacher_id).subquery()
+            ).filter(
+                Course.teacher_id == selected_teacher_id,
+                CourseEnrollment.status == 'active'
+            ).subquery()
 
             def _teacher_essays(since):
                 return Essay.query.outerjoin(Student).filter(
