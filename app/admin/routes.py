@@ -3402,7 +3402,29 @@ def edit_absence_notice(notice_id):
         notice.reason = reason
 
     db.session.commit()
-    flash('결석 예고가 수정되었습니다.', 'success')
+
+    # 담당 강사에게 수정 알림 발송
+    course = notice.course
+    student = notice.student
+    notice_label = '결석' if notice.notice_type == 'absent' else '지각'
+    if notice.absence_date_end:
+        date_str = f'{notice.absence_date.strftime("%m/%d")}~{notice.absence_date_end.strftime("%m/%d")}'
+        date_full = f'{notice.absence_date.strftime("%Y년 %m월 %d일")}~{notice.absence_date_end.strftime("%m월 %d일")}'
+    else:
+        date_str = notice.absence_date.strftime("%m/%d")
+        date_full = notice.absence_date.strftime("%Y년 %m월 %d일")
+
+    if course and course.teacher_id:
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='absence_notice',
+            title=f'[{notice_label} 예고 수정] {student.name} ({date_str})',
+            message=(f'{student.name} 학생의 {notice_label} 예고가 수정되었습니다. '
+                     f'{date_full} {course.course_name} / 사유: {notice.reason}'),
+            link_url='/teacher/upcoming-changes'
+        )
+
+    flash('결석 예고가 수정되었습니다. 담당 강사에게 알림을 보냈습니다.', 'success')
     return redirect(url_for('admin.absence_notices'))
 
 
