@@ -25,3 +25,17 @@ def get_active_student_ids_subquery(teacher_id):
         Course.teacher_id == teacher_id,
         CourseEnrollment.status == 'active'
     ).subquery()
+
+
+def get_essay_student_ids(student):
+    """학생의 모든 student_id 반환 (서버 이전 등으로 생긴 중복 레코드 방어).
+
+    user_id가 연결된 경우 같은 user_id를 가진 모든 student_id를 반환하여
+    essay 조회 시 중복 레코드에 묶인 글도 함께 보이도록 한다.
+    """
+    from app.models import db
+    from app.models.student import Student
+    if not student.user_id:
+        return [student.student_id]
+    ids = [s.student_id for s in Student.query.filter_by(user_id=student.user_id).all()]
+    return ids if ids else [student.student_id]

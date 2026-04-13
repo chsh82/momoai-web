@@ -25,6 +25,7 @@ from app.models.class_board import ClassBoardPost, ClassBoardComment
 from app.utils.progress_tracker import ProgressTracker
 from app.utils.decorators import requires_role
 from app.utils.content_access import can_access_content, format_file_size, extract_youtube_video_id
+from app.utils.enrollment_utils import get_essay_student_ids
 
 
 @student_bp.route('/')
@@ -56,8 +57,9 @@ def index():
     ).all()
 
     # 최근 첨삭 기록
-    recent_essays = Essay.query.filter_by(
-        student_id=student.student_id
+    _essay_sids = get_essay_student_ids(student)
+    recent_essays = Essay.query.filter(
+        Essay.student_id.in_(_essay_sids)
     ).order_by(desc(Essay.created_at)).limit(5).all()
 
     # 읽지 않은 공지사항 수
@@ -105,10 +107,10 @@ def index():
                 })
 
     # 통계 계산
-    total_essays = Essay.query.filter_by(student_id=student.student_id).count()
-    completed_essays = Essay.query.filter_by(
-        student_id=student.student_id,
-        is_finalized=True
+    total_essays = Essay.query.filter(Essay.student_id.in_(_essay_sids)).count()
+    completed_essays = Essay.query.filter(
+        Essay.student_id.in_(_essay_sids),
+        Essay.is_finalized == True
     ).count()
 
     # ===== 차트 데이터 생성 =====
@@ -124,7 +126,7 @@ def index():
         extract('month', Essay.created_at).label('month'),
         func.count(Essay.essay_id).label('count')
     ).filter(
-        Essay.student_id == student.student_id,
+        Essay.student_id.in_(_essay_sids),
         Essay.created_at >= six_months_ago
     ).group_by('year', 'month')\
      .order_by('year', 'month').all()
@@ -148,7 +150,7 @@ def index():
     recent_scores = db.session.query(Essay, EssayResult)\
         .join(EssayResult, Essay.essay_id == EssayResult.essay_id)\
         .filter(
-            Essay.student_id == student.student_id,
+            Essay.student_id.in_(_essay_sids),
             EssayResult.total_score.isnot(None)
         ).order_by(Essay.completed_at.desc())\
         .limit(10).all()
@@ -475,8 +477,8 @@ def submit_essay():
         return redirect(url_for('student.my_essays'))
 
     # 이전 제출 이력
-    recent_essays = Essay.query.filter_by(
-        student_id=student.student_id
+    recent_essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(desc(Essay.created_at)).limit(10).all()
 
     return render_template('student/submit_essay.html',
@@ -501,8 +503,8 @@ def my_essays():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    essays = Essay.query.filter_by(
-        student_id=student.student_id
+    essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(desc(Essay.created_at)).all()
 
     return render_template('student/my_essays.html',
@@ -2295,8 +2297,8 @@ def export_my_report():
     ).all()
 
     # 첨삭 기록
-    essays = Essay.query.filter_by(
-        student_id=student.student_id
+    essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
     # 출석 통계
@@ -2345,8 +2347,8 @@ def export_my_report_pdf():
     ).all()
 
     # 첨삭 기록
-    essays = Essay.query.filter_by(
-        student_id=student.student_id
+    essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
     # 출석 통계

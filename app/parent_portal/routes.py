@@ -19,6 +19,7 @@ from app.models.consultation import ConsultationRecord
 from app.utils.decorators import requires_role
 from app.utils.course_utils import calculate_tuition_amount
 from app.utils.content_access import can_access_content, format_file_size, extract_youtube_video_id
+from app.utils.enrollment_utils import get_essay_student_ids
 from app.parent_portal.forms import StudentRegistrationSurveyForm
 
 
@@ -1029,9 +1030,9 @@ def essays(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀의 모든 에세이
-    essays = Essay.query.filter_by(
-        student_id=student_id
+    # 자녀의 모든 에세이 (중복 student_id 방어)
+    essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
     return render_template('parent/essays.html',
@@ -1823,9 +1824,9 @@ def export_child_report(student_id):
         status='active'
     ).all()
 
-    # 첨삭 기록
-    essays = Essay.query.filter_by(
-        student_id=student_id
+    # 첨삭 기록 (중복 student_id 방어)
+    essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
     # 출석 통계
@@ -1875,9 +1876,9 @@ def export_child_report_pdf(student_id):
         status='active'
     ).all()
 
-    # 첨삭 기록
-    essays = Essay.query.filter_by(
-        student_id=student_id
+    # 첨삭 기록 (중복 student_id 방어)
+    essays = Essay.query.filter(
+        Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
     # 출석 통계

@@ -165,7 +165,9 @@ def signup():
                 User.role.in_(['teacher', 'admin'])
             ).first()
 
-            if default_teacher:
+            # 이미 이 user_id에 연결된 student 레코드가 있으면 새로 만들지 않음
+            existing_student = Student.query.filter_by(user_id=user.user_id).first()
+            if not existing_student and default_teacher:
                 student_record = Student(
                     teacher_id=default_teacher.user_id,
                     user_id=user.user_id,
