@@ -1067,12 +1067,16 @@ def view_essay(student_id, essay_id):
     html_content = None
     if essay.is_finalized:
         version = essay.latest_version
-        if version and version.html_path:
-            try:
-                with open(version.html_path, 'r', encoding='utf-8') as f:
-                    html_content = f.read()
-            except Exception:
-                pass
+        if version:
+            if version.html_path:
+                try:
+                    with open(version.html_path, 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                except Exception:
+                    pass
+            # 파일 읽기 실패 시 DB에 저장된 html_content로 fallback
+            if not html_content and version.html_content:
+                html_content = version.html_content
 
     return render_template('parent/view_essay.html',
                          student=student,
