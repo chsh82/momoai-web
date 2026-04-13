@@ -591,12 +591,18 @@ def result(essay_id):
         flash('첨삭 결과를 찾을 수 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
-    # HTML 내용 읽기
-    try:
-        with open(version.html_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-    except Exception as e:
-        flash(f'HTML 파일을 읽을 수 없습니다: {e}', 'error')
+    # HTML 내용 읽기 (파일 우선, 실패 시 DB fallback)
+    html_content = None
+    if version.html_path:
+        try:
+            with open(version.html_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except Exception:
+            pass
+    if not html_content and version.html_content:
+        html_content = version.html_content
+    if not html_content:
+        flash('첨삭 결과를 불러올 수 없습니다. 관리자에게 문의해주세요.', 'error')
         return redirect(url_for('essays.index'))
 
     # 수정 요청 폼
