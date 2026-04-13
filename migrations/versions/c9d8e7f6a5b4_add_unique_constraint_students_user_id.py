@@ -1,7 +1,7 @@
 """add unique constraint to students.user_id
 
-Revision ID: a1b2c3d4e5f6
-Revises: f7441b089d4e
+Revision ID: c9d8e7f6a5b4
+Revises: (3bcd43f55321, e1f2a3b4c5d6)
 Create Date: 2026-04-13 00:00:00.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'a1b2c3d4e5f6'
-down_revision = 'f7441b089d4e'
+revision = 'c9d8e7f6a5b4'
+down_revision = ('3bcd43f55321', 'e1f2a3b4c5d6')
 branch_labels = None
 depends_on = None
 
