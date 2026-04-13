@@ -1060,11 +1060,17 @@ def view_version(essay_id, version_number):
     ).first_or_404()
 
     # HTML 내용 읽기
-    try:
-        with open(version.html_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-    except Exception as e:
-        flash(f'HTML 파일을 읽을 수 없습니다: {e}', 'error')
+    html_content = None
+    if version.html_path:
+        try:
+            with open(version.html_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except Exception:
+            pass
+    if not html_content and version.html_content:
+        html_content = version.html_content
+    if not html_content:
+        flash('HTML 파일을 읽을 수 없습니다.', 'error')
         return redirect(url_for('essays.result', essay_id=essay.essay_id))
 
     # Phase 3: 참고 도서 가져오기
@@ -1236,16 +1242,22 @@ def print_essay(essay_id):
     # 최신 버전 가져오기
     version = essay.latest_version
 
-    if not version or not version.html_path:
+    if not version:
         flash('첨삭 결과를 찾을 수 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
     # HTML 내용 읽기
-    try:
-        with open(version.html_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-    except Exception as e:
-        flash(f'첨삭 결과를 불러올 수 없습니다: {e}', 'error')
+    html_content = None
+    if version.html_path:
+        try:
+            with open(version.html_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except Exception:
+            pass
+    if not html_content and version.html_content:
+        html_content = version.html_content
+    if not html_content:
+        flash('첨삭 결과를 불러올 수 없습니다.', 'error')
         return redirect(url_for('essays.index'))
 
     # 인쇄 전용 템플릿 렌더링
