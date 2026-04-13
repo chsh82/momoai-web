@@ -289,14 +289,23 @@ def new():
                 return render_template('essays/new.html', form=form,
                                        students_data=students_data,
                                        harkness_student_ids=list(harkness_student_ids))
-            student = Student(
+            # 동명 학생이 이미 있으면 새 레코드 생성 대신 기존 학생 사용
+            existing = Student.query.filter_by(
                 teacher_id=current_user.user_id,
                 name=new_name,
-                grade=new_grade,
-                is_temp=True
-            )
-            db.session.add(student)
-            db.session.flush()
+                is_temp=False
+            ).first()
+            if existing:
+                student = existing
+            else:
+                student = Student(
+                    teacher_id=current_user.user_id,
+                    name=new_name,
+                    grade=new_grade,
+                    is_temp=True
+                )
+                db.session.add(student)
+                db.session.flush()
         else:
             student_id_val = request.form.get('student_id', '').strip()
             if not student_id_val:
