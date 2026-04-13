@@ -3486,8 +3486,19 @@ def enrollment_schedules():
 
     schedules = query.order_by(EnrollmentSchedule.scheduled_date.asc()).all()
 
-    # 폼용: 전체 학생/수업 목록
-    all_students = Student.query.filter_by(status='active').order_by(Student.name).all()
+    # 폼용: 전체 학생/수업 목록 (중복 레코드 제거 — user_id 있는 것 우선, 없으면 이름 기준 1개만)
+    raw_students = Student.query.filter_by(status='active').order_by(Student.name).all()
+    seen_names = {}
+    deduped = []
+    for s in raw_students:
+        if s.user_id:
+            seen_names[s.name] = s  # 계정 연결 레코드가 있으면 항상 교체
+            deduped = [x for x in deduped if x.name != s.name]
+            deduped.append(s)
+        elif s.name not in seen_names:
+            seen_names[s.name] = s
+            deduped.append(s)
+    all_students = sorted(deduped, key=lambda s: s.name)
     all_courses = Course.query.filter(Course.status == 'active').order_by(Course.course_name).all()
     today = date.today()
 
