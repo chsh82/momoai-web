@@ -144,14 +144,14 @@
 <!-- 신청 모달 -->
 <div id="requestModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="relative w-full max-w-lg shadow-lg rounded-lg bg-white max-h-screen overflow-y-auto">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b">
-            <h3 class="text-2xl font-bold text-gray-800">보강수업 신청</h3>
-            <button onclick="closeRequestModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+        <div class="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
+            <h3 class="text-xl font-bold text-gray-800">보강수업 신청</h3>
+            <button onclick="closeRequestModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">
                 &times;
             </button>
         </div>
 
-        <form id="requestForm" method="POST" action="">
+        <form id="requestForm" method="POST" action="" class="px-6 py-5">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">수업</label>
                 <p id="modalCourseName" class="text-lg font-bold text-blue-800"></p>
