@@ -2,24 +2,40 @@
 """MakeupClassRequest 테이블에 requested_date 컬럼 추가"""
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# .env.production 또는 .env 로드 (GCP 환경 대응)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+for env_file in ['.env.production', '.env']:
+    env_path = os.path.join(BASE_DIR, env_file)
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, _, val = line.partition('=')
+                    os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+        break
+
+sys.path.insert(0, BASE_DIR)
 
 from app import create_app
 from app.models import db
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 
-app = create_app()
+app = create_app('production')
 
 with app.app_context():
     try:
+        inspector = inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('makeup_class_requests')]
+        if 'requested_date' in cols:
+            print("INFO: requested_date column already exists")
+            sys.exit(0)
+
         with db.engine.connect() as conn:
             conn.execute(text("ALTER TABLE makeup_class_requests ADD COLUMN requested_date DATE"))
             conn.commit()
-        print("✅ requested_date 컬럼 추가 완료")
+        print("OK: requested_date column added")
     except Exception as e:
-        err = str(e)
-        if 'duplicate column' in err.lower() or 'already exists' in err.lower():
-            print("ℹ️  requested_date 컬럼이 이미 존재합니다 (정상)")
-        else:
-            print(f"❌ 오류 발생: {e}")
-            sys.exit(1)
+        print(f"ERROR: {e}")
+        sys.exit(1)

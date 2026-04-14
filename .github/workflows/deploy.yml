@@ -38,8 +38,14 @@ jobs:
             git reset --hard origin/master
             echo "=== DB 마이그레이션 ==="
             cd ~/momoai_web
-            PYTHON=$(ls ~/momoai_web/venv/bin/python 2>/dev/null || ls /home/momoai/momoai_web/venv/bin/python 2>/dev/null || which python3)
-            $PYTHON migrate_makeup_requested_date.py || true
+            if [ -f ~/momoai_web/venv/bin/python ]; then
+              VENV_PYTHON=~/momoai_web/venv/bin/python
+            elif [ -f /home/momoai/momoai_web/venv/bin/python ]; then
+              VENV_PYTHON=/home/momoai/momoai_web/venv/bin/python
+            else
+              VENV_PYTHON=python3
+            fi
+            $VENV_PYTHON migrate_makeup_requested_date.py && echo "Migration OK" || echo "Migration failed (continuing)"
             echo "=== 서비스 재시작 ==="
             sudo systemctl restart momoai
             echo "=== 상태 확인 ==="
