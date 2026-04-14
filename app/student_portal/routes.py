@@ -1306,14 +1306,24 @@ def request_makeup_class(course_id):
         flash('이미 해당 수업에 대한 보강신청이 진행 중입니다.', 'warning')
         return redirect(url_for('student.makeup_classes'))
 
-    # 신청 사유
+    # 신청 사유 및 희망 날짜
     reason = request.form.get('reason', '').strip()
+    requested_date_str = request.form.get('requested_date', '').strip()
+    requested_date = None
+    if requested_date_str:
+        from datetime import date as date_type
+        try:
+            from datetime import datetime as datetime_type
+            requested_date = datetime_type.strptime(requested_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
 
     # 보강수업 신청 생성
     makeup_request = MakeupClassRequest(
         student_id=student.student_id,
         requested_course_id=course_id,
         reason=reason,
+        requested_date=requested_date,
         requested_by=current_user.user_id,
         status='pending'
     )

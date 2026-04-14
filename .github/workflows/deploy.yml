@@ -36,6 +36,8 @@ jobs:
             echo "=== 최신 코드 동기화 ==="
             git fetch origin master
             git reset --hard origin/master
+            echo "=== DB 마이그레이션 ==="
+            cd ~/momoai_web && python migrate_makeup_requested_date.py || true
             echo "=== 서비스 재시작 ==="
             sudo systemctl restart momoai
             echo "=== 상태 확인 ==="

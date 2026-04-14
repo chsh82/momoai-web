@@ -88,6 +88,12 @@
                         <span class="text-gray-400 shrink-0">👨‍🏫</span>
                         <span>{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}</span>
                     </div>
+                    {% if req.requested_date %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 shrink-0">📅</span>
+                        <span class="font-medium text-blue-700">희망: {{ req.requested_date.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    {% endif %}
                     {% if req.reason %}
                     <div class="flex items-start gap-2 pt-1">
                         <span class="text-gray-400 shrink-0">💬</span>
@@ -105,7 +111,7 @@
                 <div class="pt-2 border-t border-gray-100">
                     {% if req.status == 'pending' %}
                     <div class="flex gap-2">
-                        <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}')"
+                        <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}')"
                                 class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
                             승인
                         </button>
@@ -155,7 +161,8 @@
                 </label>
                 <input type="date" name="makeup_date" id="makeup_date" required
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <p class="text-xs text-gray-500 mt-1">입력하지 않으면 다음 주 같은 요일로 자동 설정됩니다</p>
+                <p id="requestedDateHint" class="text-xs text-blue-600 mt-1 hidden"></p>
+                <p class="text-xs text-gray-500 mt-0.5">입력하지 않으면 다음 주 같은 요일로 자동 설정됩니다</p>
             </div>
 
             <div class="mb-4">
@@ -218,7 +225,7 @@
 </div>
 
 <script>
-function showApproveModal(requestId, studentName, courseName) {
+function showApproveModal(requestId, studentName, courseName, requestedDate) {
     const modal = document.getElementById('approveModal');
     const form = document.getElementById('approveForm');
 
@@ -226,10 +233,19 @@ function showApproveModal(requestId, studentName, courseName) {
     document.getElementById('approveStudentName').textContent = studentName;
     document.getElementById('approveCourseName').textContent = courseName;
 
-    // Set default date to next week
-    const today = new Date();
-    today.setDate(today.getDate() + 7);
-    document.getElementById('makeup_date').value = today.toISOString().split('T')[0];
+    const hint = document.getElementById('requestedDateHint');
+    if (requestedDate) {
+        // 학생이 희망한 날짜를 기본값으로 설정
+        document.getElementById('makeup_date').value = requestedDate;
+        hint.textContent = `📅 학생 희망 날짜: ${requestedDate}`;
+        hint.classList.remove('hidden');
+    } else {
+        // 희망 날짜 없으면 다음 주로 기본값
+        const today = new Date();
+        today.setDate(today.getDate() + 7);
+        document.getElementById('makeup_date').value = today.toISOString().split('T')[0];
+        hint.classList.add('hidden');
+    }
 
     modal.classList.remove('hidden');
 }

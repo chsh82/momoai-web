@@ -20,6 +20,9 @@ class MakeupClassRequest(db.Model):
     # 신청 사유
     reason = db.Column(db.Text, nullable=True)
 
+    # 학생이 원하는 보강 날짜
+    requested_date = db.Column(db.Date, nullable=True)
+
     # 상태
     status = db.Column(db.String(20), default='pending', index=True)  # pending, approved, rejected
 
