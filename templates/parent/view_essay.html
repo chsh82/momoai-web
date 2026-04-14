@@ -22,23 +22,11 @@
                     <span>👨‍🏫 {{ essay.user.name }} 강사</span>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                {% if essay.is_finalized %}
-                <a href="{{ url_for('essays.print_essay', essay_id=essay.essay_id) }}" target="_blank"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded transition">
-                    📄 HTML
-                </a>
-                <a href="{{ url_for('essays.download_pdf', essay_id=essay.essay_id) }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded transition">
-                    🖨️ PDF
-                </a>
-                {% endif %}
-                <span class="px-4 py-2 text-sm font-medium rounded
-                    {% if essay.is_finalized %}bg-green-100 text-green-800
-                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                    {% if essay.is_finalized %}첨삭 완료{% else %}진행 중{% endif %}
-                </span>
-            </div>
+            <span class="px-4 py-2 text-sm font-medium rounded
+                {% if essay.is_finalized %}bg-green-100 text-green-800
+                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                {% if essay.is_finalized %}첨삭 완료{% else %}진행 중{% endif %}
+            </span>
         </div>
     </div>
 
@@ -103,6 +91,19 @@
             {% endif %}
 
             <!-- 첨삭 결과 -->
+            {% if essay.is_finalized %}
+            <div class="flex justify-center gap-3 py-2">
+                <a href="{{ url_for('essays.print_essay', essay_id=essay.essay_id) }}" target="_blank"
+                   class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-sm">
+                    📄 HTML 저장
+                </a>
+                <a href="{{ url_for('essays.download_pdf', essay_id=essay.essay_id) }}"
+                   class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition shadow-sm">
+                    🖨️ PDF 저장
+                </a>
+            </div>
+            {% endif %}
+
             {% if html_content %}
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200">
