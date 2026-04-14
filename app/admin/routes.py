@@ -64,8 +64,8 @@ def index():
         Course.status != 'cancelled'
     ).count()
 
-    # 2. 전체 학생
-    total_students = Student.query.count()
+    # 2. 전체 학생 (재원 중인 학생만, 휴원/퇴원 제외)
+    total_students = Student.query.filter_by(status='active').count()
 
     # 3. 강사 수
     total_teachers = User.query.filter_by(role='teacher').count()
@@ -170,8 +170,11 @@ def index():
     except Exception:
         weekly_withdrawn = 0
 
-    # 전체강좌: 취소되지 않은 전체 강좌 수
-    total_all_courses = Course.query.filter(Course.status != 'cancelled').count()
+    # 전체강좌: 진행 중인 강좌 수 (취소·종료 제외)
+    total_all_courses = Course.query.filter(
+        Course.end_date >= today,
+        Course.status != 'cancelled'
+    ).count()
 
     return render_template('admin/index.html',
                          # KPI 카드
