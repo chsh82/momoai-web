@@ -225,19 +225,93 @@ def index():
 @requires_role('teacher', 'admin')
 def courses():
     """내 수업 목록"""
-    # 필터
     status_filter = request.args.get('status', '').strip()
+    grade_filter = request.args.get('grade', '').strip()
+    weekday_filter = request.args.get('weekday', '').strip()
+    course_type_filter = request.args.get('course_type', '').strip()
+    search_filter = request.args.get('search', '').strip()
+    sort_order = request.args.get('sort', 'newest')
 
     query = Course.query.filter_by(teacher_id=current_user.user_id)
 
     if status_filter:
         query = query.filter_by(status=status_filter)
+    if grade_filter:
+        query = query.filter_by(grade=grade_filter)
+    if weekday_filter != '':
+        try:
+            query = query.filter_by(weekday=int(weekday_filter))
+        except ValueError:
+            pass
+    if course_type_filter:
+        query = query.filter_by(course_type=course_type_filter)
 
-    courses = query.order_by(Course.created_at.desc()).all()
+    pre_computed_courses = None
+    if search_filter:
+        weekday_map = {'월': 0, '화': 1, '수': 2, '목': 3, '금': 4, '토': 5, '일': 6}
+        wd_num = weekday_map.get(search_filter.replace('요일', ''))
+        student_course_ids = [e.course_id for e in
+                              CourseEnrollment.query
+                              .join(Student, Student.student_id == CourseEnrollment.student_id)
+                              .filter(
+                                  Student.name.ilike(f'%{search_filter}%'),
+                                  CourseEnrollment.course_id.in_(
+                                      [c.course_id for c in query.all()]
+                                  )
+                              ).all()]
+        conditions = [
+            Course.course_name.ilike(f'%{search_filter}%'),
+            Course.course_code.ilike(f'%{search_filter}%'),
+            Course.grade.ilike(f'%{search_filter}%'),
+            Course.course_type.ilike(f'%{search_filter}%'),
+        ]
+        if wd_num is not None:
+            conditions.append(Course.weekday == wd_num)
+
+        if student_course_ids:
+            text_matched = query.filter(db.or_(*conditions)).all()
+            enrollment_matched = Course.query.filter(
+                Course.course_id.in_(student_course_ids),
+                Course.teacher_id == current_user.user_id
+            ).all()
+            seen = set()
+            merged = []
+            for c in enrollment_matched + text_matched:
+                if c.course_id not in seen:
+                    merged.append(c)
+                    seen.add(c.course_id)
+            if sort_order == 'weekday':
+                pre_computed_courses = sorted(
+                    merged,
+                    key=lambda c: (c.weekday if c.weekday is not None else 99, str(c.start_time or ''))
+                )
+            else:
+                pre_computed_courses = sorted(
+                    merged,
+                    key=lambda c: c.created_at or datetime.min,
+                    reverse=True
+                )
+        else:
+            query = query.filter(db.or_(*conditions)).distinct()
+
+    if pre_computed_courses is not None:
+        courses = pre_computed_courses
+    elif sort_order == 'weekday':
+        courses = query.order_by(
+            db.case({None: 99}, value=Course.weekday, else_=Course.weekday),
+            Course.start_time
+        ).all()
+    else:
+        courses = query.order_by(Course.created_at.desc()).all()
 
     return render_template('teacher/courses.html',
                          courses=courses,
-                         status_filter=status_filter)
+                         status_filter=status_filter,
+                         grade_filter=grade_filter,
+                         weekday_filter=weekday_filter,
+                         course_type_filter=course_type_filter,
+                         search_filter=search_filter,
+                         sort_order=sort_order)
 
 
 @teacher_bp.route('/upcoming-changes')

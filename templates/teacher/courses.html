@@ -17,25 +17,83 @@
     </div>
 
     <!-- 필터 -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="GET" action="" class="flex items-center gap-4">
-            <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
-                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">전체</option>
-                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>진행 중</option>
-                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
-                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
-                </select>
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <form method="GET" action="">
+            <!-- 1행: 상태 / 학년 / 요일 / 수업 형태 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">상태</label>
+                    <select name="status" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>진행 중</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>완료</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>취소</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">학년</label>
+                    <select name="grade" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for g in ['초1','초2','초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'] %}
+                        <option value="{{ g }}" {% if grade_filter == g %}selected{% endif %}>{{ g }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">요일</label>
+                    <select name="weekday" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for wd_val, wd_name in [(0,'월'),(1,'화'),(2,'수'),(3,'목'),(4,'금'),(5,'토'),(6,'일')] %}
+                        <option value="{{ wd_val }}" {% if weekday_filter == wd_val|string %}selected{% endif %}>{{ wd_name }}요일</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">수업 형태</label>
+                    <select name="course_type" class="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">전체</option>
+                        {% for ct in ['베이직','프리미엄','정규반','하크니스','체험단','보강수업','시그니처','특강','모의고사','기타'] %}
+                        <option value="{{ ct }}" {% if course_type_filter == ct %}selected{% endif %}>{{ ct }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-
-            <div class="flex items-end">
-                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
-                    필터 적용
+            <!-- 2행: 통합 검색 -->
+            <div class="flex gap-2">
+                <input type="text" name="search" value="{{ search_filter }}"
+                       placeholder="반이름, 학생명, 학년, 요일 등 자유 검색..."
+                       class="min-w-0 flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="shrink-0 bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
+                    검색
                 </button>
+                {% if search_filter or status_filter or grade_filter or weekday_filter or course_type_filter %}
+                <a href="{{ url_for('teacher.courses') }}"
+                   class="shrink-0 bg-white hover:bg-gray-50 text-gray-600 border border-gray-300 font-medium px-4 py-2 text-sm rounded-lg transition duration-200">
+                    초기화
+                </a>
+                {% endif %}
             </div>
         </form>
     </div>
+
+    <!-- 정렬 버튼 + 결과 수 -->
+    {% if courses %}
+    <div class="flex items-center justify-between mb-3">
+        <p class="text-sm text-gray-500">총 {{ courses|length }}개 수업</p>
+        <div class="flex gap-2">
+            <a href="?{{ request.query_string.decode().replace('sort=newest','').replace('sort=weekday','').strip('&') }}&sort=newest"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort_order == 'newest' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                최신순
+            </a>
+            <a href="?{{ request.query_string.decode().replace('sort=newest','').replace('sort=weekday','').strip('&') }}&sort=weekday"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium border transition
+                      {% if sort_order == 'weekday' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %}">
+                요일순
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- 수업 목록 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -44,7 +102,7 @@
             <div class="bg-white rounded-lg shadow hover:shadow-lg transition duration-200">
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-3">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             {% if course.tier %}
                             <span class="px-2 py-1 text-xs font-medium rounded
                                 {% if course.tier == 'A' %}bg-red-100 text-red-800
@@ -63,13 +121,26 @@
                                 {% elif course.status == 'completed' %}완료
                                 {% else %}취소{% endif %}
                             </span>
+                            {% if course.course_type %}
+                            <span class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700">
+                                {{ course.course_type }}
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">{{ course.course_name }}</h3>
-                    <p class="text-sm text-gray-600 mb-4">{{ course.course_code }}</p>
+                    <h3 class="text-lg font-bold text-gray-800 mb-1">{{ course.course_name }}</h3>
+                    <p class="text-sm text-gray-500 mb-3">
+                        {{ course.grade }}
+                        {% if course.weekday is not none %}
+                         · {{ ['월','화','수','목','금','토','일'][course.weekday] }}요일
+                        {% endif %}
+                        {% if course.start_time %}
+                         · {{ course.start_time | kst('%H:%M') }}
+                        {% endif %}
+                    </p>
 
-                    <div class="space-y-2 text-sm text-gray-700 mb-4">
+                    <div class="space-y-1.5 text-sm text-gray-700 mb-4">
                         <p>👥 수강생: {{ course.enrolled_count }}/{{ course.max_students }}</p>
                         <p>📅 세션: {{ course.completed_sessions }}/{{ course.total_sessions }}</p>
                         <p>📆 {{ course.start_date.strftime('%Y-%m-%d') }} ~ {{ course.end_date.strftime('%Y-%m-%d') }}</p>
@@ -84,7 +155,14 @@
             {% endfor %}
         {% else %}
             <div class="col-span-full bg-white rounded-lg shadow p-12 text-center">
+                {% if search_filter or status_filter or grade_filter or weekday_filter or course_type_filter %}
+                <p class="text-gray-500 text-lg">검색 조건에 맞는 수업이 없습니다.</p>
+                <a href="{{ url_for('teacher.courses') }}" class="mt-3 inline-block text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    전체 수업 보기
+                </a>
+                {% else %}
                 <p class="text-gray-500 text-lg">담당하는 수업이 없습니다.</p>
+                {% endif %}
             </div>
         {% endif %}
     </div>
