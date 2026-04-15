@@ -416,15 +416,15 @@ def schedule():
 
     # 내가 담당하는 모든 수업 조회 (관리자 시간표와 동일 로직)
     # is_terminated=True이면서 status!='completed'인 수업만 제외
-    # end_date가 NULL인 수업(종료일 미정)도 포함
     all_my_courses = Course.query.filter_by(
         teacher_id=current_user.user_id
     ).all()
-    my_course_ids = [
-        c.course_id for c in all_my_courses
+    active_courses = [
+        c for c in all_my_courses
         if not (c.is_terminated and c.status != 'completed')
         and (c.end_date is None or c.end_date >= week_start)
     ]
+    my_course_ids = [c.course_id for c in active_courses]
 
     # 해당 주의 모든 세션
     sessions = CourseSession.query.filter(
@@ -433,11 +433,29 @@ def schedule():
         CourseSession.session_date <= week_end
     ).order_by(CourseSession.session_date, CourseSession.start_time).all()
 
+    # 세션에 start_time/end_time 없으면 수업(Course) 기준으로 보완
+    for s in sessions:
+        if s.start_time is None and s.course.start_time:
+            s.start_time = s.course.start_time
+        if s.end_time is None and s.course.end_time:
+            s.end_time = s.course.end_time
+
     # 요일별로 그룹화
     weekly_schedule = {i: [] for i in range(7)}  # 0=월요일 ~ 6=일요일
+    session_course_ids_this_week = set()
     for session in sessions:
         day_index = session.session_date.weekday()
         weekly_schedule[day_index].append(session)
+        session_course_ids_this_week.add(session.course_id)
+
+    # 이번 주 세션이 없는 활성 수업 → Course.weekday 기준으로 표시 (weekly_courses_only)
+    weekly_courses_only = {i: [] for i in range(7)}
+    for course in active_courses:
+        if (course.course_id not in session_course_ids_this_week
+                and course.weekday is not None
+                and not course.is_terminated
+                and course.status == 'active'):
+            weekly_courses_only[course.weekday].append(course)
 
     # 시간대 범위 (8:00 ~ 24:00)
     time_slots = []
@@ -449,6 +467,7 @@ def schedule():
                          week_end=week_end,
                          week_offset=week_offset,
                          weekly_schedule=weekly_schedule,
+                         weekly_courses_only=weekly_courses_only,
                          time_slots=time_slots,
                          today=today,
                          timedelta=timedelta)

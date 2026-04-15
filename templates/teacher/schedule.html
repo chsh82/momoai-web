@@ -82,7 +82,7 @@
                          style="top:{{ (h - START_H) * HOUR_PX + 30 }}px;"></div>
                     {% endfor %}
 
-                    <!-- 수업 블록 -->
+                    <!-- 수업 블록 (세션 기반) -->
                     {% for session in weekly_schedule[i] %}
                     {% if session.start_time and session.end_time %}
                     {% set sh = session.start_time.hour %}
@@ -122,6 +122,35 @@
                         {% if ht >= 44 and ns.names %}
                         <div class="sched-names opacity-80 leading-tight truncate" style="font-size:10px;">
                             {{ ns.names | join(', ') }}
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+
+                    <!-- 수업 블록 (세션 없는 수업 - Course.weekday 기준) -->
+                    {% for course in weekly_courses_only[i] %}
+                    {% if course.start_time and course.end_time %}
+                    {% set sh = course.start_time.hour %}
+                    {% set sm = course.start_time.minute %}
+                    {% set eh = course.end_time.hour %}
+                    {% set em = course.end_time.minute %}
+                    {% set top_px = (sh - START_H) * HOUR_PX + sm %}
+                    {% set dur = (eh - sh) * 60 + (em - sm) %}
+                    {% set ht = [dur, 24] | max %}
+
+                    <a href="{{ url_for('teacher.course_detail', course_id=course.course_id) }}"
+                       class="sched-block absolute rounded overflow-hidden px-1.5 py-1 flex flex-col gap-0.5 bg-blue-300 text-white"
+                       style="top:{{ top_px + 2 }}px; height:{{ [ht - 4, 18] | max }}px; left:2px; right:2px;"
+                       data-top="{{ top_px }}"
+                       data-minhpx="{{ ht }}">
+                        <div class="font-semibold leading-tight truncate text-xs">
+                            {{ course.course_name }}
+                        </div>
+                        {% if ht >= 30 %}
+                        <div class="sched-time opacity-90 leading-tight truncate" style="font-size:10px;">
+                            {{ '%02d:%02d' % (sh, sm) }}–{{ '%02d:%02d' % (eh, em) }}
+                            · {{ course.enrolled_count }}명
                         </div>
                         {% endif %}
                     </a>
