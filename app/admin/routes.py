@@ -64,30 +64,32 @@ def index():
         Course.status != 'cancelled'
     ).count()
 
-    # 2. 전체 학생 (재원 중인 학생만, 휴원/퇴원 제외)
-    total_students = Student.query.filter_by(status='active').count()
+    # 2. 전체 학생 (재원 중인 학생만 - active 상태, 휴원·퇴원 제외)
+    total_students = Student.query.filter(Student.status == 'active').count()
 
-    # 3. 강사 수
-    total_teachers = User.query.filter_by(role='teacher').count()
+    # 3. 강사 수 (활성 계정만)
+    total_teachers = User.query.filter_by(role='teacher', is_active=True).count()
 
-    # 4. 이번 주 수업 (세션 수)
+    # 4. 이번 주 예정된 수업 (scheduled 상태만)
     weekly_sessions = CourseSession.query.filter(
         CourseSession.session_date >= week_start,
-        CourseSession.session_date <= week_end
+        CourseSession.session_date <= week_end,
+        CourseSession.status == 'scheduled'
     ).count()
 
-    # 5. 평균 출석률 (이번 달)
-    monthly_attendance = db.session.query(
+    # 5. 이번 주 평균 출석률 (출석체크 완료된 세션만, 아직 진행 전 세션 제외)
+    weekly_attendance = db.session.query(
         func.count(Attendance.attendance_id).label('total'),
         func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present')
     ).join(CourseSession).filter(
-        CourseSession.session_date >= month_start,
-        CourseSession.session_date <= month_end
+        CourseSession.session_date >= week_start,
+        CourseSession.session_date <= today,
+        CourseSession.attendance_checked == True
     ).first()
 
     attendance_rate = 0
-    if monthly_attendance and monthly_attendance.total > 0:
-        attendance_rate = round((monthly_attendance.present / monthly_attendance.total) * 100, 1)
+    if weekly_attendance and weekly_attendance.total > 0:
+        attendance_rate = round((weekly_attendance.present / weekly_attendance.total) * 100, 1)
 
     # 6. 대기 중 알림
     pending_parent_links = ParentLinkRequest.query.filter_by(status='pending').count()
@@ -97,10 +99,24 @@ def index():
     # 7. 학부모 연결
     total_parent_links = ParentStudent.query.count()
 
-    # 8. 첨삭 현황
-    essays_pending = Essay.query.filter_by(status='draft').count()
-    essays_processing = Essay.query.filter_by(status='processing').count()
-    essays_completed = Essay.query.filter(Essay.status.in_(['reviewing', 'completed'])).count()
+    # 8. 첨삭 현황 (이번 주 기준)
+    week_start_dt = datetime.combine(week_start, datetime.min.time())
+    week_end_dt = datetime.combine(today, datetime.max.time())
+    essays_pending = Essay.query.filter(
+        Essay.status == 'draft',
+        Essay.created_at >= week_start_dt,
+        Essay.created_at <= week_end_dt
+    ).count()
+    essays_processing = Essay.query.filter(
+        Essay.status == 'processing',
+        Essay.created_at >= week_start_dt,
+        Essay.created_at <= week_end_dt
+    ).count()
+    essays_completed = Essay.query.filter(
+        Essay.status.in_(['reviewing', 'completed']),
+        Essay.created_at >= week_start_dt,
+        Essay.created_at <= week_end_dt
+    ).count()
 
     # === 차트 데이터 ===
 
