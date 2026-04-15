@@ -51,10 +51,19 @@
                         세션 {{ session.session_number }}
                         {% if session.start_time %} | {{ session.start_time | kst('%H:%M') }}{% endif %}
                     </p>
-                    <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
-                       class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                        ✓ 출석 체크하기
-                    </a>
+                    <div class="flex gap-2">
+                        <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                           class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                            ✓ 출석 체크하기
+                        </a>
+                        <form method="POST" action="{{ url_for('teacher.hold_session', session_id=session.session_id) }}" style="display:inline;">
+                            <button type="submit"
+                                    class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-300 text-sm font-medium px-4 py-2 rounded transition duration-200"
+                                    onclick="return confirm('출석 확인이 어려운 경우 확인보류로 저장합니다.\n알림은 발송되지 않으며 나중에 완료 처리할 수 있습니다.')">
+                                ⏸ 확인보류
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -311,10 +320,19 @@
                         <p class="text-sm text-gray-600 mb-3">
                             {{ session.session_date.strftime('%Y-%m-%d') }} | 세션 {{ session.session_number }}
                         </p>
-                        <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
-                           class="inline-block bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                            출석 체크하기
-                        </a>
+                        <div class="flex gap-2">
+                            <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                               class="inline-block bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                                출석 체크하기
+                            </a>
+                            <form method="POST" action="{{ url_for('teacher.hold_session', session_id=session.session_id) }}" style="display:inline;">
+                                <button type="submit"
+                                        class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-300 text-sm font-medium px-4 py-2 rounded transition duration-200"
+                                        onclick="return confirm('출석 확인이 어려운 경우 확인보류로 저장합니다.\n알림은 발송되지 않으며 나중에 완료 처리할 수 있습니다.')">
+                                    ⏸ 확인보류
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
