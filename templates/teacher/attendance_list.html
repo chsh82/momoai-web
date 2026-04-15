@@ -180,6 +180,16 @@
                                    {% if session.attendance_checked %}bg-gray-100 text-gray-500 hover:bg-gray-200{% else %}bg-green-600 text-white hover:bg-green-700{% endif %}">
                         {% if session.attendance_checked %}완료 취소{% else %}✓ 완료{% endif %}
                     </button>
+                    {% if not session.attendance_checked or session.status == 'pending_review' %}
+                    <form method="POST" action="{{ url_for('teacher.hold_session', session_id=session.session_id) }}" style="display:inline;">
+                        <button type="submit"
+                                class="hold-btn-{{ session.session_id }} px-2 py-0.5 text-xs rounded font-medium transition
+                                       {% if session.status == 'pending_review' %}bg-yellow-400 text-white{% else %}bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200{% endif %}"
+                                onclick="return confirm('확인보류로 저장합니다. 알림은 발송되지 않습니다.')">
+                            ⏸ 확인보류
+                        </button>
+                    </form>
+                    {% endif %}
                     <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
                        class="text-blue-600 hover:text-blue-800 text-xs font-medium whitespace-nowrap">
                         상세보기 →
