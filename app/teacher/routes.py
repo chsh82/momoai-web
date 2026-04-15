@@ -551,9 +551,9 @@ def attendance_list():
     # 보강수업은 완료 상태여도 출석체크 목록에 포함
     if current_user.is_admin:
         if teacher_filter:
-            active_courses = Course.query.filter_by(
-                teacher_id=teacher_filter,
-                status='active'
+            active_courses = Course.query.filter(
+                Course.teacher_id == teacher_filter,
+                Course.status.in_(['active', 'completed'])
             ).order_by(Course.course_name).all()
             makeup_courses = Course.query.filter(
                 Course.teacher_id == teacher_filter,
@@ -561,7 +561,9 @@ def attendance_list():
                 Course.status != 'cancelled'
             ).order_by(Course.course_name).all()
         else:
-            active_courses = Course.query.filter_by(status='active').order_by(Course.course_name).all()
+            active_courses = Course.query.filter(
+                Course.status.in_(['active', 'completed'])
+            ).order_by(Course.course_name).all()
             makeup_courses = Course.query.filter(
                 Course.course_type == '보강수업',
                 Course.status != 'cancelled'
