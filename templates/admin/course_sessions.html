@@ -100,11 +100,19 @@
                                     {% else %}예정{% endif %}
                                 </span>
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 space-y-1">
                                 <a href="{{ url_for('admin.session_attendance', session_id=session.session_id) }}"
-                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                   class="block text-blue-600 hover:text-blue-800 text-sm font-medium">
                                     출석 보기 →
                                 </a>
+                                {% if session.status == 'scheduled' and session.session_date < today %}
+                                <form method="POST" action="{{ url_for('admin.mark_session_completed', session_id=session.session_id) }}"
+                                      onsubmit="return confirm('이 세션을 완료로 변경합니까?');">
+                                    <button type="submit" class="text-xs text-orange-600 hover:text-orange-800 font-medium">
+                                        완료로 변경
+                                    </button>
+                                </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

@@ -857,7 +857,8 @@ def course_sessions(course_id):
 
     return render_template('admin/course_sessions.html',
                          course=course,
-                         sessions=sessions)
+                         sessions=sessions,
+                         today=today)
 
 
 @admin_bp.route('/sessions/<session_id>/attendance')
@@ -865,22 +866,24 @@ def course_sessions(course_id):
 @requires_permission_level(2)
 def session_attendance(session_id):
     """세션 출석 현황"""
-    from sqlalchemy.orm import joinedload
     session = CourseSession.query.get_or_404(session_id)
-
-    # attendance_checked=True인데 status가 scheduled인 세션 자동 수정
-    if session.attendance_checked and session.status == 'scheduled':
-        session.status = 'completed'
-        db.session.commit()
-
-    attendance_records = (Attendance.query
-                          .filter_by(session_id=session_id)
-                          .options(joinedload(Attendance.student))
-                          .all())
+    attendance_records = Attendance.query.filter_by(session_id=session_id).all()
 
     return render_template('admin/session_attendance.html',
                          session=session,
                          attendance_records=attendance_records)
+
+
+@admin_bp.route('/sessions/<session_id>/mark-completed', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def mark_session_completed(session_id):
+    """세션 상태를 완료로 수동 수정"""
+    session = CourseSession.query.get_or_404(session_id)
+    session.status = 'completed'
+    db.session.commit()
+    flash('세션 상태가 완료로 변경되었습니다.', 'success')
+    return redirect(url_for('admin.course_sessions', course_id=session.course_id))
 
 
 # ==================== 결제 관리 ====================
