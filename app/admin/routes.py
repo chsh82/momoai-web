@@ -64,8 +64,11 @@ def index():
         Course.status != 'cancelled'
     ).count()
 
-    # 2. 전체 학생 (재원 중인 학생만 - active 상태, 휴원·퇴원 제외)
-    total_students = Student.query.filter(Student.status == 'active').count()
+    # 2. 재원 학생 (active + 임시학생 제외)
+    total_students = Student.query.filter(
+        Student.status == 'active',
+        Student.is_temp == False
+    ).count()
 
     # 3. 강사 수 (활성 계정만)
     total_teachers = User.query.filter_by(role='teacher', is_active=True).count()
