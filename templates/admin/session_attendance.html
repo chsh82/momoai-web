@@ -97,9 +97,13 @@
                 {% for record in attendance_records %}
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3">
+                        {% if record.student %}
                         <span class="font-medium text-gray-800">{{ record.student.name }}</span>
                         {% if record.student.grade %}
                         <span class="ml-1 text-xs text-gray-400">{{ record.student.grade }}</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="font-medium text-gray-400">(삭제된 학생)</span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 text-center">
