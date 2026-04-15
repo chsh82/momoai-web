@@ -414,21 +414,19 @@ def schedule():
     week_start = week_start + timedelta(weeks=week_offset)
     week_end = week_start + timedelta(days=6)
 
-    # 내가 담당하는 모든 수업 조회 (관리자 시간표와 동일 로직)
-    # is_terminated=True이면서 status!='completed'인 수업만 제외
+    # 내가 담당하는 모든 수업 조회
     all_my_courses = Course.query.filter_by(
         teacher_id=current_user.user_id
     ).all()
+    # 활성 수업: is_terminated=True이고 status도 active(미완료)인 것만 제외
     active_courses = [
         c for c in all_my_courses
-        if not (c.is_terminated and c.status != 'completed')
-        and (c.end_date is None or c.end_date >= week_start)
+        if not (c.is_terminated and c.status == 'active')
     ]
-    my_course_ids = [c.course_id for c in active_courses]
 
-    # 해당 주의 모든 세션
-    sessions = CourseSession.query.filter(
-        CourseSession.course_id.in_(my_course_ids),
+    # 해당 주의 모든 세션 (teacher_id JOIN으로 직접 조회 → end_date 필터 없음)
+    sessions = CourseSession.query.join(Course).filter(
+        Course.teacher_id == current_user.user_id,
         CourseSession.session_date >= week_start,
         CourseSession.session_date <= week_end
     ).order_by(CourseSession.session_date, CourseSession.start_time).all()
