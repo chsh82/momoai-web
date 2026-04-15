@@ -748,7 +748,10 @@ def attendance_list():
         session_ids = [s.session_id for s in past_sessions]
         all_attendances = Attendance.query.filter(
             Attendance.session_id.in_(session_ids)
-        ).join(Student).order_by(Student.name).all()
+        ).join(Student)\
+        .join(CourseEnrollment, CourseEnrollment.enrollment_id == Attendance.enrollment_id)\
+        .filter(CourseEnrollment.status == 'active')\
+        .order_by(Student.name).all()
         for a in all_attendances:
             attendance_map[a.session_id].append(a)
 
@@ -809,9 +812,11 @@ def check_attendance(session_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('teacher.courses'))
 
-    # 출석 레코드 조회
+    # 출석 레코드 조회 (active 수강 중인 학생만 - 탈퇴/수강취소 학생 제외)
     attendance_records = Attendance.query.filter_by(session_id=session_id)\
         .join(Student)\
+        .join(CourseEnrollment, CourseEnrollment.enrollment_id == Attendance.enrollment_id)\
+        .filter(CourseEnrollment.status == 'active')\
         .order_by(Student.name.asc()).all()
 
     # 세션 메모 폼
