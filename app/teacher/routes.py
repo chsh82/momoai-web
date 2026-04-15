@@ -567,9 +567,10 @@ def attendance_list():
                 Course.status != 'cancelled'
             ).order_by(Course.course_name).all()
     else:
-        active_courses = Course.query.filter_by(
-            teacher_id=current_user.user_id,
-            status='active'
+        # active + completed 모두 포함 (미체크 세션이 남아있을 수 있음), cancelled만 제외
+        active_courses = Course.query.filter(
+            Course.teacher_id == current_user.user_id,
+            Course.status.in_(['active', 'completed'])
         ).order_by(Course.course_name).all()
         makeup_courses = Course.query.filter(
             Course.teacher_id == current_user.user_id,
