@@ -866,16 +866,11 @@ def course_sessions(course_id):
 @requires_permission_level(2)
 def session_attendance(session_id):
     """세션 출석 현황"""
-    import traceback
-    try:
-        session = CourseSession.query.get_or_404(session_id)
-        attendance_records = Attendance.query.filter_by(session_id=session_id).all()
-        return render_template('admin/session_attendance.html',
-                             session=session,
-                             attendance_records=attendance_records)
-    except Exception as e:
-        current_app.logger.error(f'session_attendance error: {traceback.format_exc()}')
-        return f'<pre style="color:red;padding:20px">오류 내용:\n{traceback.format_exc()}</pre>', 500
+    course_session = CourseSession.query.get_or_404(session_id)
+    attendance_records = Attendance.query.filter_by(session_id=session_id).all()
+    return render_template('admin/session_attendance.html',
+                         course_session=course_session,
+                         attendance_records=attendance_records)
 
 
 @admin_bp.route('/sessions/<session_id>/mark-completed', methods=['POST'])
