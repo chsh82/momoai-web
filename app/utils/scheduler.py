@@ -140,6 +140,8 @@ def apply_enrollment_schedules(app):
                             ).all()
                             for att in future_atts:
                                 db.session.delete(att)
+                            from app.utils.enrollment_utils import clear_teacher_if_no_active_enrollment
+                            clear_teacher_if_no_active_enrollment(sched.student_id)
 
                     else:  # makeup: 기존 학적 유지, 추가 수강만 등록
                         existing = CourseEnrollment.query.filter_by(

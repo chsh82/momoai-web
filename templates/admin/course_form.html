@@ -328,6 +328,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const el = document.querySelector(`[name="${name}"]`);
         if (el) el.addEventListener('change', autoSetEndTime);
     });
+
+    // 종료 여부 ↔ 상태 자동 동기화
+    const isTerminatedSel = document.querySelector('[name="is_terminated"]');
+    const statusInput = document.querySelector('[name="status"]');
+    if (isTerminatedSel && statusInput) {
+        isTerminatedSel.addEventListener('change', function() {
+            if (this.value === 'Y') {
+                statusInput.value = 'completed';
+            } else {
+                if (statusInput.value !== 'cancelled') statusInput.value = 'active';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

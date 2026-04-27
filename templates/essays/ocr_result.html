@@ -17,6 +17,21 @@
         </div>
     </div>
 
+    {% if ocr_record.status == 'processing' %}
+    <!-- 처리 중 안내 -->
+    <div id="processing-banner" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 text-center">
+        <div class="flex items-center justify-center gap-3 mb-2">
+            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span class="text-blue-800 font-semibold text-lg">Gemini AI가 이미지를 분석하고 있습니다...</span>
+        </div>
+        <p class="text-blue-600 text-sm">완료되면 자동으로 결과가 표시됩니다. 페이지를 닫지 마세요.</p>
+    </div>
+    <div id="result-area" style="display:none;"></div>
+    {% endif %}
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- 추출된 텍스트 -->
         <div class="lg:col-span-2">
@@ -284,5 +299,21 @@ function addToEssay() {
         alert('오류가 발생했습니다: ' + error.message);
     });
 }
+
+// OCR 처리 중 폴링
+{% if ocr_record.status == 'processing' %}
+(function poll() {
+    fetch('{{ url_for("essays.ocr_status", ocr_id=ocr_record.ocr_id) }}')
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'completed' || data.status === 'failed') {
+                window.location.reload();
+            } else {
+                setTimeout(poll, 3000);
+            }
+        })
+        .catch(() => setTimeout(poll, 5000));
+})();
+{% endif %}
 </script>
 {% endblock %}

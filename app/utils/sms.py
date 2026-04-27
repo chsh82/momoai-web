@@ -28,7 +28,7 @@ def send_sms_message(phone, message, title=None):
     if not phone:
         return False, '수신자 번호 없음'
 
-    msg_type = 'LMS' if len(message) > 90 else 'SMS'
+    msg_type = 'LMS' if len(message.encode('euc-kr', errors='replace')) > 90 else 'SMS'
     data = {
         'key': api_key,
         'user_id': user_id,

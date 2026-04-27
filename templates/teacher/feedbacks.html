@@ -59,19 +59,19 @@
         </div>
     </form>
 
-    {% if feedbacks %}
+    {% if feedbacks or pagination.total > 0 %}
     <!-- 통계 카드 -->
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-purple-600">{{ feedbacks | length }}</div>
-            <div class="text-sm text-gray-600 mt-1">검색 결과</div>
+            <div class="text-2xl font-bold text-purple-600">{{ total_count }}</div>
+            <div class="text-sm text-gray-600 mt-1">전체 결과</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-emerald-600">{{ feedbacks | selectattr('is_read') | list | length }}</div>
+            <div class="text-2xl font-bold text-emerald-600">{{ read_count }}</div>
             <div class="text-sm text-gray-600 mt-1">읽음</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-gray-400">{{ feedbacks | rejectattr('is_read') | list | length }}</div>
+            <div class="text-2xl font-bold text-gray-400">{{ unread_count }}</div>
             <div class="text-sm text-gray-600 mt-1">미읽음</div>
         </div>
     </div>
@@ -164,6 +164,65 @@
             </tbody>
         </table>
     </div>
+
+    <!-- 페이지네이션 -->
+    {% if pagination.pages > 1 %}
+    <div class="flex items-center justify-between mt-4">
+        <p class="text-sm text-gray-600">
+            전체 {{ pagination.total }}건 중
+            {{ (pagination.page - 1) * pagination.per_page + 1 }}–{{ [(pagination.page * pagination.per_page), pagination.total] | min }}건
+        </p>
+        <nav class="flex items-center gap-1">
+            <!-- 이전 -->
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('teacher.feedbacks', page=pagination.prev_num, q=q, type=filter_type, read=filter_read) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+                &laquo; 이전
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 text-sm rounded border border-gray-200 text-gray-300 cursor-not-allowed">&laquo; 이전</span>
+            {% endif %}
+
+            <!-- 페이지 번호 -->
+            {% set start_page = [pagination.page - 2, 1] | max %}
+            {% set end_page   = [pagination.page + 2, pagination.pages] | min %}
+            {% if start_page > 1 %}
+            <a href="{{ url_for('teacher.feedbacks', page=1, q=q, type=filter_type, read=filter_read) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">1</a>
+            {% if start_page > 2 %}
+            <span class="px-2 text-gray-400">…</span>
+            {% endif %}
+            {% endif %}
+
+            {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.page %}
+            <span class="px-3 py-1.5 text-sm rounded border border-purple-500 bg-purple-600 text-white font-medium">{{ p }}</span>
+            {% else %}
+            <a href="{{ url_for('teacher.feedbacks', page=p, q=q, type=filter_type, read=filter_read) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">{{ p }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if end_page < pagination.pages %}
+            {% if end_page < pagination.pages - 1 %}
+            <span class="px-2 text-gray-400">…</span>
+            {% endif %}
+            <a href="{{ url_for('teacher.feedbacks', page=pagination.pages, q=q, type=filter_type, read=filter_read) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">{{ pagination.pages }}</a>
+            {% endif %}
+
+            <!-- 다음 -->
+            {% if pagination.has_next %}
+            <a href="{{ url_for('teacher.feedbacks', page=pagination.next_num, q=q, type=filter_type, read=filter_read) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+                다음 &raquo;
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 text-sm rounded border border-gray-200 text-gray-300 cursor-not-allowed">다음 &raquo;</span>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
 
     {% else %}
     <div class="bg-white rounded-lg shadow p-12 text-center">

@@ -16,8 +16,11 @@ class OCRHistory(db.Model):
     original_filename = db.Column(db.String(255), nullable=False)
     image_path = db.Column(db.String(500), nullable=False)
 
+    # 처리 상태: 'processing' | 'completed' | 'failed'
+    status = db.Column(db.String(20), default='completed', nullable=False)
+
     # OCR 결과
-    extracted_text = db.Column(db.Text, nullable=False)
+    extracted_text = db.Column(db.Text, nullable=True)
 
     # Gemini AI 분석 결과 (선택적)
     summary = db.Column(db.Text)  # 내용 요약 및 분석

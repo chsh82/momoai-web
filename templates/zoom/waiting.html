@@ -38,18 +38,18 @@
             </div>
 
             <!-- 수업 정보 -->
-            {% if session %}
+            {% if course_session %}
             <div class="bg-gray-50 rounded-lg p-4 mb-6">
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <span class="text-gray-600">수업</span>
-                        <span class="font-medium text-gray-800">{{ session.course.course_name }}</span>
+                        <span class="font-medium text-gray-800">{{ course_session.course.course_name }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">수업 시작</span>
                         <span class="font-medium text-gray-800">
-                            {{ session.session_date.strftime('%Y-%m-%d') }}
-                            {{ session.start_time.strftime('%H:%M') if session.start_time else '' }}
+                            {{ course_session.session_date.strftime('%Y-%m-%d') }}
+                            {{ course_session.start_time.strftime('%H:%M') if session.start_time else '' }}
                         </span>
                     </div>
                     <div class="flex justify-between">

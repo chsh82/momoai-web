@@ -13,69 +13,146 @@
 
 
 {% block content %}
-<!-- 출석 체크 알림 모달 -->
-{% if pending_attendance %}
+<!-- 출석 체크 + 학사변동 알림 모달 -->
+{% if pending_attendance or upcoming_academic_changes or absence_notices %}
 <div id="attendanceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto">
         <!-- Header -->
         <div class="bg-red-600 text-white px-6 py-4 rounded-t-lg">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <span class="text-3xl">⚠️</span>
                     <div>
-                        <h3 class="text-xl font-bold">출석 체크 필요</h3>
-                        <p class="text-sm opacity-90">완료된 수업의 출석을 체크해주세요</p>
+                        <h3 class="text-xl font-bold">오늘의 확인 사항</h3>
+                        <p class="text-sm opacity-90">출석 체크 및 학사변동 내역을 확인하세요</p>
                     </div>
                 </div>
                 <button onclick="closeModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
             </div>
         </div>
 
-        <!-- Content -->
-        <div class="p-6">
-            <p class="text-gray-700 mb-4">
-                <strong class="text-red-600">{{ pending_attendance|length }}개</strong>의 수업에서 출석 체크가 필요합니다.
-            </p>
+        <div class="p-6 space-y-6">
 
-            <div class="space-y-3 mb-6">
-                {% for session in pending_attendance %}
-                <div class="border border-red-200 bg-red-50 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="font-medium text-gray-800">{{ session.course.course_name }}</h4>
-                        <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-                            미체크
-                        </span>
+            <!-- 출석 체크 섹션 -->
+            {% if pending_attendance %}
+            <div>
+                <h4 class="text-sm font-semibold text-red-600 uppercase tracking-wide mb-3">
+                    ✓ 출석 체크 필요 ({{ pending_attendance|length }}건)
+                </h4>
+                <div class="space-y-3">
+                    {% for session in pending_attendance %}
+                    <div class="border border-red-200 bg-red-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-gray-800">{{ session.course.course_name }}</h4>
+                            <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">미체크</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">
+                            📅 {{ session.session_date.strftime('%Y년 %m월 %d일') }} |
+                            세션 {{ session.session_number }}
+                            {% if session.start_time %} | {{ session.start_time | kst('%H:%M') }}{% endif %}
+                        </p>
+                        <div class="flex gap-2">
+                            <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
+                               class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
+                                ✓ 출석 체크하기
+                            </a>
+                            <form method="POST" action="{{ url_for('teacher.hold_session', session_id=session.session_id) }}" style="display:inline;">
+                                <button type="submit"
+                                        class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-300 text-sm font-medium px-4 py-2 rounded transition duration-200"
+                                        onclick="return confirm('출석 확인이 어려운 경우 확인보류로 저장합니다.\n알림은 발송되지 않으며 나중에 완료 처리할 수 있습니다.')">
+                                    ⏸ 확인보류
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    <p class="text-sm text-gray-600 mb-3">
-                        📅 {{ session.session_date.strftime('%Y년 %m월 %d일') }} |
-                        세션 {{ session.session_number }}
-                        {% if session.start_time %} | {{ session.start_time | kst('%H:%M') }}{% endif %}
-                    </p>
-                    <div class="flex gap-2">
-                        <a href="{{ url_for('teacher.check_attendance', session_id=session.session_id) }}"
-                           class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                            ✓ 출석 체크하기
-                        </a>
-                        <form method="POST" action="{{ url_for('teacher.hold_session', session_id=session.session_id) }}" style="display:inline;">
-                            <button type="submit"
-                                    class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border border-yellow-300 text-sm font-medium px-4 py-2 rounded transition duration-200"
-                                    onclick="return confirm('출석 확인이 어려운 경우 확인보류로 저장합니다.\n알림은 발송되지 않으며 나중에 완료 처리할 수 있습니다.')">
-                                ⏸ 확인보류
-                            </button>
-                        </form>
-                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+            {% endif %}
+
+            <!-- 학사변동 섹션 (입반/전반/보강 예약) -->
+            {% if upcoming_academic_changes %}
+            <div>
+                <h4 class="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-3">
+                    📋 학사변동 예정 ({{ upcoming_academic_changes|length }}건 · 14일 이내)
+                </h4>
+                <div class="space-y-2">
+                    {% for change in upcoming_academic_changes %}
+                    {% set type_color = {'enroll': 'green', 'withdraw': 'orange', 'makeup': 'purple'}[change.schedule_type] or 'gray' %}
+                    <div class="border border-gray-200 bg-gray-50 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 text-xs font-bold rounded
+                                    {% if change.schedule_type == 'enroll' %}bg-green-100 text-green-700
+                                    {% elif change.schedule_type == 'withdraw' %}bg-orange-100 text-orange-700
+                                    {% else %}bg-purple-100 text-purple-700{% endif %}">
+                                    {{ change.type_label }}
+                                </span>
+                                <span class="font-medium text-gray-800 text-sm">
+                                    {{ change.student.name if change.student else '(학생 미상)' }}
+                                </span>
+                            </div>
+                            <span class="text-xs text-gray-500">
+                                {{ change.scheduled_date.strftime('%m/%d') }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600">
+                            📚 {{ change.course.course_name if change.course else '' }}
+                            {% if change.memo %} · {{ change.memo }}{% endif %}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 결석 예고 섹션 -->
+            {% if absence_notices %}
+            <div>
+                <h4 class="text-sm font-semibold text-yellow-600 uppercase tracking-wide mb-3">
+                    📢 결석 예고 ({{ absence_notices|length }}건)
+                </h4>
+                <div class="space-y-2">
+                    {% for notice in absence_notices %}
+                    <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 text-xs font-bold rounded
+                                    {% if notice.notice_type == 'absent' %}bg-red-100 text-red-700
+                                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                                    {{ '결석' if notice.notice_type == 'absent' else '지각' }}
+                                </span>
+                                <span class="font-medium text-gray-800 text-sm">
+                                    {{ notice.student.name if notice.student else '(학생 미상)' }}
+                                </span>
+                            </div>
+                            <span class="text-xs text-gray-500">
+                                {{ notice.absence_date.strftime('%m/%d') }}
+                                {% if notice.absence_date_end %} ~ {{ notice.absence_date_end.strftime('%m/%d') }}{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600">
+                            📚 {{ notice.course.course_name if notice.course else '' }}
+                            {% if notice.reason %} · {{ notice.reason[:30] }}{% if notice.reason|length > 30 %}…{% endif %}{% endif %}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Footer Buttons -->
-            <div class="flex gap-3 pt-4 border-t border-gray-200">
+            <div class="flex gap-3 pt-2 border-t border-gray-200">
                 <a href="{{ url_for('teacher.attendance_list') }}"
-                   class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 text-center">
-                    전체 출석 관리로 이동
+                   class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 text-center text-sm">
+                    전체 출석 관리
+                </a>
+                <a href="{{ url_for('teacher.upcoming_changes') }}"
+                   class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition duration-200 text-center text-sm">
+                    학사변동 상세보기
                 </a>
                 <button onclick="closeModal()"
-                        class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200">
+                        class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg transition duration-200 text-sm">
                     나중에 하기
                 </button>
             </div>

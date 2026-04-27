@@ -300,24 +300,24 @@ v3.3.0 필수 포함 사항:
                 return text[start:end].strip()
         return text.strip()
 
-    def _call_standard_step(self, standard_system: str, messages: list,
-                             step_name: str, student_name: str,
-                             user_id=None, essay_id=None) -> str:
-        """스탠다드 모델 단계별 API 호출 (retry 포함)"""
+    def _call_standard_single(self, standard_system: str, messages: list,
+                               student_name: str,
+                               user_id=None, essay_id=None) -> str:
+        """스탠다드 모델 단일 API 호출 (max_tokens=16000, retry 포함)"""
         import time
         max_retries = 3
         retry_delays = [30, 60, 120]
 
         for attempt in range(max_retries + 1):
             try:
-                print(f"\n[스탠다드 {step_name}] {student_name} 학생 시작"
+                print(f"\n[스탠다드 단일호출] {student_name} 학생 시작"
                       + (f" (재시도 {attempt})" if attempt > 0 else ""))
                 start_time = time.time()
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=12000,
-                    timeout=300.0,
+                    max_tokens=16000,
+                    timeout=600.0,
                     system=[
                         {
                             "type": "text",
@@ -331,9 +331,11 @@ v3.3.0 필수 포함 사항:
                 elapsed = time.time() - start_time
                 usage = response.usage
                 output_tokens = getattr(usage, 'output_tokens', 0)
-                print(f"[스탠다드 {step_name}] 완료 {elapsed:.1f}초 / {output_tokens}tok")
+                stop_reason = response.stop_reason
+                print(f"[스탠다드 단일호출] 완료 {elapsed:.1f}초 / {output_tokens}tok / {stop_reason}")
+                if stop_reason == 'max_tokens':
+                    print("⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
 
-                # 사용량 로그
                 try:
                     from app.models.api_usage_log import ApiUsageLog
                     input_tok = getattr(usage, 'input_tokens', 0)
@@ -344,7 +346,7 @@ v3.3.0 필수 포함 사항:
                         user_id=user_id,
                         api_type='claude',
                         model_name='claude-sonnet-4-6',
-                        usage_type=f'standard_{step_name}',
+                        usage_type='standard',
                         essay_id=essay_id,
                         input_tokens=input_tok,
                         output_tokens=output_tokens,
@@ -376,66 +378,35 @@ v3.3.0 필수 포함 사항:
                                 user_id: Optional[str] = None,
                                 essay_id: Optional[str] = None) -> str:
         """
-        스탠다드 모델: 3단계 체인 API 호출 후 HTML 결합
+        스탠다드 모델 v3.5.0: 단일 API 호출 (max_tokens=16000)
 
         Returns:
-            합쳐진 완성 HTML 문서
+            완성 HTML 문서
         """
         standard_system = self._load_standard_document()
 
-        # 1차 프롬프트 구성
-        step1_content = f"[학생 원문]\n{essay_text}"
+        user_content = f"[학생 원문]\n{essay_text}"
         if notes:
-            step1_content += f"\n\n[교사 지시]\n{notes}"
-        step1_content += "\n\n1차 작업을 수행하세요."
+            user_content += f"\n\n[교사 지시]\n{notes}"
+        user_content += "\n\n전체 리포트를 생성하세요."
 
         with _api_semaphore:
-            # 1차 호출
-            step1_resp = self._call_standard_step(
+            resp = self._call_standard_single(
                 standard_system,
-                [{"role": "user", "content": step1_content}],
-                "1차", student_name, user_id=user_id, essay_id=essay_id,
+                [{"role": "user", "content": user_content}],
+                student_name, user_id=user_id, essay_id=essay_id,
             )
 
-            # 2차 호출
-            step2_resp = self._call_standard_step(
-                standard_system,
-                [
-                    {"role": "user", "content": step1_content},
-                    {"role": "assistant", "content": step1_resp},
-                    {"role": "user", "content": "계속"},
-                ],
-                "2차", student_name, user_id=user_id, essay_id=essay_id,
-            )
+        html_content = self._extract_html_block(resp)
 
-            # 3차 호출
-            step3_resp = self._call_standard_step(
-                standard_system,
-                [
-                    {"role": "user", "content": step1_content},
-                    {"role": "assistant", "content": step1_resp},
-                    {"role": "user", "content": "계속"},
-                    {"role": "assistant", "content": step2_resp},
-                    {"role": "user", "content": "계속"},
-                ],
-                "3차", student_name, user_id=user_id, essay_id=essay_id,
-            )
-
-        # HTML 블록 추출 후 결합
-        html1 = self._extract_html_block(step1_resp)
-        html2 = self._extract_html_block(step2_resp)
-        html3 = self._extract_html_block(step3_resp)
-        combined = html1 + "\n" + html2 + "\n" + html3
-
-        # 강사 사인 삽입
-        if teacher_name and '</body>' in combined:
+        if teacher_name and '</body>' in html_content:
             sign = (
                 f'\n<div style="text-align:right;margin-top:50px;padding:20px;'
                 f'color:#666;font-style:italic;">첨삭: {teacher_name}</div>\n'
             )
-            combined = combined.replace('</body>', sign + '</body>', 1)
+            html_content = html_content.replace('</body>', sign + '</body>', 1)
 
-        return combined
+        return html_content
 
     def analyze_essay_elementary(self, student_name: str, grade: str, essay_text: str,
                                   notes: Optional[str] = None,
@@ -443,84 +414,73 @@ v3.3.0 필수 포함 사항:
                                   user_id: Optional[str] = None,
                                   essay_id: Optional[str] = None) -> str:
         """
-        초등 모델: 3단계 체인 API 호출 후 HTML 결합 (max_tokens=4096)
+        초등 모델 v3.5.0: 1회 API 호출 후 CSS 래핑 (max_tokens=8192)
 
         Returns:
-            합쳐진 완성 HTML 문서
+            완성 HTML 문서
         """
         elem_system = self._load_elem_document()
 
-        # 1차 프롬프트 구성
-        step1_content = f"[학생 원문]\n{essay_text}"
+        user_content = f"[학생 원문]\n{essay_text}"
         if notes:
-            step1_content += f"\n\n[교사 지시]\n{notes}"
-        step1_content += "\n\n1차 작업을 수행하세요."
+            user_content += f"\n\n[교사 지시]\n{notes}"
+        user_content += "\n\n리포트를 생성하세요."
 
         with _api_semaphore:
-            # 1차 호출
-            step1_resp = self._call_elem_step(
+            resp = self._call_elem_single(
                 elem_system,
-                [{"role": "user", "content": step1_content}],
-                "1차", student_name, user_id=user_id, essay_id=essay_id,
+                [{"role": "user", "content": user_content}],
+                student_name, user_id=user_id, essay_id=essay_id,
             )
 
-            # 2차 호출
-            step2_resp = self._call_elem_step(
-                elem_system,
-                [
-                    {"role": "user", "content": step1_content},
-                    {"role": "assistant", "content": step1_resp},
-                    {"role": "user", "content": "계속"},
-                ],
-                "2차", student_name, user_id=user_id, essay_id=essay_id,
-            )
+        html_body = self._extract_html_block(resp)
+        css = self._extract_css_from_elem_doc(elem_system)
+        return self._wrap_elem_html(html_body, css, teacher_name)
 
-            # 3차 호출
-            step3_resp = self._call_elem_step(
-                elem_system,
-                [
-                    {"role": "user", "content": step1_content},
-                    {"role": "assistant", "content": step1_resp},
-                    {"role": "user", "content": "계속"},
-                    {"role": "assistant", "content": step2_resp},
-                    {"role": "user", "content": "계속"},
-                ],
-                "3차", student_name, user_id=user_id, essay_id=essay_id,
-            )
+    def _extract_css_from_elem_doc(self, doc: str) -> str:
+        """초등 프롬프트 문서에서 CSS 블록 추출"""
+        if '```css' in doc:
+            start = doc.find('```css') + 6
+            end = doc.find('```', start)
+            if end != -1:
+                return doc[start:end].strip()
+        return ''
 
-        # HTML 블록 추출 후 결합
-        html1 = self._extract_html_block(step1_resp)
-        html2 = self._extract_html_block(step2_resp)
-        html3 = self._extract_html_block(step3_resp)
-        combined = html1 + "\n" + html2 + "\n" + html3
-
-        # 강사 사인 삽입
-        if teacher_name and '</body>' in combined:
+    def _wrap_elem_html(self, html_body: str, css: str, teacher_name: Optional[str] = None) -> str:
+        """초등 API 응답(body HTML)을 완전한 HTML 문서로 래핑"""
+        if teacher_name:
             sign = (
                 f'\n<div style="text-align:right;margin-top:50px;padding:20px;'
                 f'color:#666;font-style:italic;">첨삭: {teacher_name}</div>\n'
             )
-            combined = combined.replace('</body>', sign + '</body>', 1)
+            html_body = html_body + sign
+        return (
+            '<!DOCTYPE html>\n<html lang="ko">\n<head>\n'
+            '<meta charset="UTF-8">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+            f'<style>\n{css}\n</style>\n'
+            '</head>\n<body>\n<div class="container">\n'
+            + html_body
+            + '\n</div>\n</body>\n</html>'
+        )
 
-        return combined
-
-    def _call_elem_step(self, elem_system: str, messages: list,
-                        step_name: str, student_name: str,
-                        user_id=None, essay_id=None) -> str:
-        """초등 모델 단계별 API 호출 (max_tokens=12000, retry 포함)"""
+    def _call_elem_single(self, elem_system: str, messages: list,
+                          student_name: str,
+                          user_id=None, essay_id=None) -> str:
+        """초등 모델 단일 API 호출 (max_tokens=8192, retry 포함)"""
         import time
         max_retries = 3
         retry_delays = [30, 60, 120]
 
         for attempt in range(max_retries + 1):
             try:
-                print(f"\n[초등 {step_name}] {student_name} 학생 시작"
+                print(f"\n[초등 단일호출] {student_name} 학생 시작"
                       + (f" (재시도 {attempt})" if attempt > 0 else ""))
                 start_time = time.time()
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=12000,
+                    max_tokens=8192,
                     timeout=300.0,
                     system=[
                         {
@@ -535,9 +495,11 @@ v3.3.0 필수 포함 사항:
                 elapsed = time.time() - start_time
                 usage = response.usage
                 output_tokens = getattr(usage, 'output_tokens', 0)
-                print(f"[초등 {step_name}] 완료 {elapsed:.1f}초 / {output_tokens}tok")
+                stop_reason = response.stop_reason
+                print(f"[초등 단일호출] 완료 {elapsed:.1f}초 / {output_tokens}tok / {stop_reason}")
+                if stop_reason == 'max_tokens':
+                    print("⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
 
-                # 사용량 로그
                 try:
                     from app.models.api_usage_log import ApiUsageLog
                     input_tok = getattr(usage, 'input_tokens', 0)
@@ -548,7 +510,7 @@ v3.3.0 필수 포함 사항:
                         user_id=user_id,
                         api_type='claude',
                         model_name='claude-sonnet-4-6',
-                        usage_type=f'elementary_{step_name}',
+                        usage_type='elementary',
                         essay_id=essay_id,
                         input_tokens=input_tok,
                         output_tokens=output_tokens,

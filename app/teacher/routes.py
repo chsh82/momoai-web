@@ -14,6 +14,8 @@ from app.models import Notification
 from app.models.student_caution import StudentCaution, CATEGORY_LABELS, SEVERITY_META
 from app.models.session_adjustment import SessionAdjustment
 from app.models.announcement import Announcement, AnnouncementRead
+from app.models.enrollment_schedule import EnrollmentSchedule
+from app.models.absence_notice import AbsenceNotice
 from app.models.class_board import ClassBoardPost, ClassBoardComment
 from app.utils.decorators import requires_role
 from app.utils.course_utils import update_enrollment_attendance_stats, get_course_statistics
@@ -188,6 +190,25 @@ def index():
             student_names.append(row.name)
             student_attendance_rates.append(rate)
 
+    # 학사변동 (입반/전반/보강 예약, 14일 이내)
+    upcoming_academic_changes = []
+    if my_course_ids:
+        two_weeks_later = today + timedelta(days=14)
+        enrollment_schedules = EnrollmentSchedule.query.filter(
+            EnrollmentSchedule.course_id.in_(my_course_ids),
+            EnrollmentSchedule.status == 'scheduled',
+            EnrollmentSchedule.scheduled_date >= today,
+            EnrollmentSchedule.scheduled_date <= two_weeks_later
+        ).order_by(EnrollmentSchedule.scheduled_date.asc()).all()
+        upcoming_academic_changes.extend(enrollment_schedules)
+
+        # 결석 예고 (오늘 이후 + 미확인)
+        absence_notices = AbsenceNotice.query.filter(
+            AbsenceNotice.course_id.in_(my_course_ids),
+            AbsenceNotice.status.in_(['pending', 'confirmed']),
+            AbsenceNotice.absence_date >= today
+        ).order_by(AbsenceNotice.absence_date.asc()).all()
+
     # 미해결 주의사항 학생 (내 담당 학생 중)
     active_caution_students = []
     if my_student_ids:
@@ -217,7 +238,9 @@ def index():
                          attendance_data=json.dumps(attendance_data),
                          student_names=json.dumps(student_names),
                          student_attendance_rates=json.dumps(student_attendance_rates),
-                         active_caution_students=active_caution_students)
+                         active_caution_students=active_caution_students,
+                         upcoming_academic_changes=upcoming_academic_changes,
+                         absence_notices=absence_notices if my_course_ids else [])
 
 
 @teacher_bp.route('/courses')
@@ -492,17 +515,15 @@ def schedule():
     all_my_courses = Course.query.filter_by(
         teacher_id=current_user.user_id
     ).all()
-    # 활성 수업: is_terminated=True이고 status도 active(미완료)인 것만 제외
-    active_courses = [
-        c for c in all_my_courses
-        if not (c.is_terminated and c.status == 'active')
-    ]
+    # 활성 수업: 종료되지 않은 수업만 포함
+    active_courses = [c for c in all_my_courses if not c.is_terminated]
 
-    # 해당 주의 모든 세션 (teacher_id JOIN으로 직접 조회 → end_date 필터 없음)
+    # 해당 주의 세션 (종료된 수업 제외)
     sessions = CourseSession.query.join(Course).filter(
         Course.teacher_id == current_user.user_id,
         CourseSession.session_date >= week_start,
-        CourseSession.session_date <= week_end
+        CourseSession.session_date <= week_end,
+        Course.is_terminated == False
     ).order_by(CourseSession.session_date, CourseSession.start_time).all()
 
     # 세션에 start_time/end_time 없으면 수업(Course) 기준으로 보완
@@ -627,31 +648,37 @@ def attendance_list():
         if teacher_filter:
             active_courses = Course.query.filter(
                 Course.teacher_id == teacher_filter,
-                Course.status.in_(['active', 'completed'])
+                Course.status.in_(['active', 'completed']),
+                Course.is_terminated == False
             ).order_by(Course.course_name).all()
             makeup_courses = Course.query.filter(
                 Course.teacher_id == teacher_filter,
                 Course.course_type == '보강수업',
-                Course.status != 'cancelled'
+                Course.status != 'cancelled',
+                Course.is_terminated == False
             ).order_by(Course.course_name).all()
         else:
             active_courses = Course.query.filter(
-                Course.status.in_(['active', 'completed'])
+                Course.status.in_(['active', 'completed']),
+                Course.is_terminated == False
             ).order_by(Course.course_name).all()
             makeup_courses = Course.query.filter(
                 Course.course_type == '보강수업',
-                Course.status != 'cancelled'
+                Course.status != 'cancelled',
+                Course.is_terminated == False
             ).order_by(Course.course_name).all()
     else:
-        # active + completed 모두 포함 (미체크 세션이 남아있을 수 있음), cancelled만 제외
+        # active + completed 모두 포함 (미체크 세션이 남아있을 수 있음), cancelled/종료 제외
         active_courses = Course.query.filter(
             Course.teacher_id == current_user.user_id,
-            Course.status.in_(['active', 'completed'])
+            Course.status.in_(['active', 'completed']),
+            Course.is_terminated == False
         ).order_by(Course.course_name).all()
         makeup_courses = Course.query.filter(
             Course.teacher_id == current_user.user_id,
             Course.course_type == '보강수업',
-            Course.status != 'cancelled'
+            Course.status != 'cancelled',
+            Course.is_terminated == False
         ).order_by(Course.course_name).all()
 
     # 중복 제거 후 병합
@@ -1564,10 +1591,11 @@ def get_student_parents(student_id):
 @login_required
 @requires_role('teacher', 'admin')
 def feedbacks():
-    """내가 작성한 피드백 목록 (검색/필터 지원)"""
+    """내가 작성한 피드백 목록 (검색/필터/페이지네이션 지원)"""
     q             = request.args.get('q', '').strip()
     filter_type   = request.args.get('type', '')
     filter_read   = request.args.get('read', '')
+    page          = request.args.get('page', 1, type=int)
 
     query = TeacherFeedback.query.filter_by(teacher_id=current_user.user_id)
 
@@ -1582,10 +1610,21 @@ def feedbacks():
     elif filter_read == 'unread':
         query = query.filter_by(is_read=False)
 
-    feedbacks = query.order_by(TeacherFeedback.created_at.desc()).all()
+    pagination = query.order_by(TeacherFeedback.created_at.desc()).paginate(
+        page=page, per_page=30, error_out=False
+    )
+
+    # 통계는 전체 결과 기준
+    total_count = pagination.total
+    read_count  = query.filter_by(is_read=True).count()
+    unread_count = total_count - read_count
 
     return render_template('teacher/feedbacks.html',
-                           feedbacks=feedbacks,
+                           feedbacks=pagination.items,
+                           pagination=pagination,
+                           total_count=total_count,
+                           read_count=read_count,
+                           unread_count=unread_count,
                            q=q, filter_type=filter_type, filter_read=filter_read)
 
 

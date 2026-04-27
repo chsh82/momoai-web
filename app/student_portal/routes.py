@@ -3127,20 +3127,33 @@ def zoom_classes():
     if not student:
         return jsonify({'error': '학생 정보를 찾을 수 없습니다.'}), 404
 
+    from sqlalchemy import or_
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id, status='active'
-    ).join(Course).filter(Course.status == 'active').all()
+    ).join(Course).filter(
+        or_(
+            Course.status == 'active',
+            Course.course_type == '보강수업',
+        )
+    ).all()
 
     results = []
+    seen_course_ids = set()
     for enrollment in enrollments:
         course = enrollment.course
+        if course.course_id in seen_course_ids:
+            continue
+        seen_course_ids.add(course.course_id)
         teacher = course.teacher
         if not teacher or not teacher.zoom_link:
             continue
         zoom_url = decrypt_zoom_link(teacher.zoom_link)
         if zoom_url:
+            course_label = course.course_name
+            if course.course_type == '보강수업':
+                course_label = f'[보강] {course.course_name}'
             results.append({
-                'course_name': course.course_name,
+                'course_name': course_label,
                 'teacher_name': teacher.name,
                 'zoom_url': zoom_url,
                 'course_id': course.course_id,

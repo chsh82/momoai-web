@@ -16,15 +16,36 @@ def get_active_student_ids_for_teacher(teacher_id):
 
 
 def get_active_student_ids_subquery(teacher_id):
-    """강사의 현재 수강 중(active) 학생 ID 서브쿼리 반환 (SQLAlchemy subquery용)"""
-    from app.models import db, CourseEnrollment
+    """강사의 현재 수강 중(active) 학생 ID select 반환 (SQLAlchemy IN 절용)"""
+    from sqlalchemy import select
+    from app.models import CourseEnrollment
     from app.models.course import Course
-    return db.session.query(CourseEnrollment.student_id).join(
+    return select(CourseEnrollment.student_id).join(
         Course, CourseEnrollment.course_id == Course.course_id
-    ).filter(
+    ).where(
         Course.teacher_id == teacher_id,
         CourseEnrollment.status == 'active'
-    ).subquery()
+    )
+
+
+def clear_teacher_if_no_active_enrollment(student_id):
+    """전반/퇴반 후 active 수강이 하나도 없으면 Student.teacher_id를 None으로 초기화."""
+    from app.models import db, CourseEnrollment
+    from app.models.course import Course
+    from app.models.student import Student
+
+    has_active = db.session.query(CourseEnrollment.enrollment_id).join(
+        Course, CourseEnrollment.course_id == Course.course_id
+    ).filter(
+        CourseEnrollment.student_id == student_id,
+        CourseEnrollment.status == 'active',
+        Course.status == 'active',
+    ).first()
+
+    if not has_active:
+        student = Student.query.get(student_id)
+        if student and student.teacher_id is not None:
+            student.teacher_id = None
 
 
 def get_essay_student_ids(student):

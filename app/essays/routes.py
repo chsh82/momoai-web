@@ -289,12 +289,11 @@ def new():
                 return render_template('essays/new.html', form=form,
                                        students_data=students_data,
                                        harkness_student_ids=list(harkness_student_ids))
-            # 동명 학생이 이미 있으면 새 레코드 생성 대신 기존 학생 사용
+            # 동명 학생이 이미 있으면 새 레코드 생성 대신 기존 학생 사용 (is_temp 여부 무관)
             existing = Student.query.filter_by(
                 teacher_id=current_user.user_id,
                 name=new_name,
-                is_temp=False
-            ).first()
+            ).order_by(Student.is_temp.asc()).first()  # 정식 학생 우선
             if existing:
                 student = existing
             else:
@@ -417,6 +416,44 @@ def new():
                         from app.essays.momoai_service import MOMOAIService as _Service
                         svc = _Service(api_key)
                     svc.process_essay(essay_obj, student_name, teacher_name)
+
+                    # 첨삭 완료 후 자동 완료 처리 + 학생/학부모 알림 발송
+                    svc.finalize_essay(essay_obj)
+                    try:
+                        from app.models.user import User as _User
+                        from app.models import ParentStudent
+                        from app.models.notification import Notification as _Notif
+                        from flask import url_for as _url_for
+                        _title = essay_obj.title or f'{student_name}의 논술'
+                        student_user = _User.query.filter_by(email=essay_obj.student.email).first()
+                        if student_user:
+                            _Notif.create_notification(
+                                user_id=student_user.user_id,
+                                notification_type='essay_complete',
+                                title='첨삭이 완료되었습니다',
+                                message=f'"{_title}" 첨삭이 완료되었습니다. 확인해보세요!',
+                                link_url=_url_for('student.view_essay', essay_id=essay_obj.essay_id),
+                                related_entity_type='essay',
+                                related_entity_id=essay_obj.essay_id
+                            )
+                        parent_relations = ParentStudent.query.filter_by(
+                            student_id=essay_obj.student.student_id, is_active=True
+                        ).all()
+                        for rel in parent_relations:
+                            _Notif.create_notification(
+                                user_id=rel.parent_id,
+                                notification_type='essay_complete',
+                                title='자녀의 첨삭이 완료되었습니다',
+                                message=f'{student_name} 학생의 "{_title}" 첨삭이 완료되었습니다.',
+                                link_url=_url_for('parent.view_essay',
+                                                  student_id=essay_obj.student.student_id,
+                                                  essay_id=essay_obj.essay_id),
+                                related_entity_type='essay',
+                                related_entity_id=essay_obj.essay_id
+                            )
+                    except Exception as notif_err:
+                        print(f'[알림 발송 오류] {notif_err}')
+
                 except Exception as e:
                     print(f'[첨삭 오류] {e}')
                     essay_obj.status = 'failed'
@@ -476,15 +513,20 @@ def quick():
             flash('글쓰기 내용을 입력하거나 파일을 첨부해주세요.', 'error')
             return redirect(url_for('essays.quick'))
 
-        # 임시 학생 자동 생성
-        temp_student = Student(
+        # 기존 동명 학생 재사용 (중복 temp 생성 방지)
+        temp_student = Student.query.filter_by(
             teacher_id=current_user.user_id,
             name=student_name,
-            grade=grade,
-            is_temp=True
-        )
-        db.session.add(temp_student)
-        db.session.flush()  # student_id 확보
+        ).order_by(Student.is_temp.asc()).first()  # 정식 학생 우선
+        if not temp_student:
+            temp_student = Student(
+                teacher_id=current_user.user_id,
+                name=student_name,
+                grade=grade,
+                is_temp=True
+            )
+            db.session.add(temp_student)
+            db.session.flush()  # student_id 확보
 
         # Essay 생성
         from app.models import EssayNote
@@ -1040,6 +1082,44 @@ def start_correction(essay_id):
                     from app.essays.momoai_service import MOMOAIService as _Service
                     service = _Service(api_key)
                 service.process_essay(essay_obj, student_name, teacher_name)
+
+                # 첨삭 완료 후 자동 완료 처리 + 학생/학부모 알림 발송
+                service.finalize_essay(essay_obj)
+                try:
+                    from app.models.user import User as _User
+                    from app.models import ParentStudent
+                    from app.models.notification import Notification as _Notif
+                    from flask import url_for as _url_for
+                    _title = essay_obj.title or f'{student_name}의 논술'
+                    student_user = _User.query.filter_by(email=essay_obj.student.email).first()
+                    if student_user:
+                        _Notif.create_notification(
+                            user_id=student_user.user_id,
+                            notification_type='essay_complete',
+                            title='첨삭이 완료되었습니다',
+                            message=f'"{_title}" 첨삭이 완료되었습니다. 확인해보세요!',
+                            link_url=_url_for('student.view_essay', essay_id=essay_obj.essay_id),
+                            related_entity_type='essay',
+                            related_entity_id=essay_obj.essay_id
+                        )
+                    parent_relations = ParentStudent.query.filter_by(
+                        student_id=essay_obj.student.student_id, is_active=True
+                    ).all()
+                    for rel in parent_relations:
+                        _Notif.create_notification(
+                            user_id=rel.parent_id,
+                            notification_type='essay_complete',
+                            title='자녀의 첨삭이 완료되었습니다',
+                            message=f'{student_name} 학생의 "{_title}" 첨삭이 완료되었습니다.',
+                            link_url=_url_for('parent.view_essay',
+                                              student_id=essay_obj.student.student_id,
+                                              essay_id=essay_obj.essay_id),
+                            related_entity_type='essay',
+                            related_entity_id=essay_obj.essay_id
+                        )
+                except Exception as notif_err:
+                    print(f'[알림 발송 오류] {notif_err}')
+
             except Exception as e:
                 print(f'[첨삭 오류] {e}')
                 essay_obj.status = 'failed'
@@ -1429,11 +1509,39 @@ def ocr_index():
                          recent_history=recent_history)
 
 
+def _run_ocr_background(app, ocr_id, file_path, user_id, essay_id=None):
+    """백그라운드 스레드에서 OCR 처리 후 결과를 DB에 저장"""
+    import threading
+    with app.app_context():
+        try:
+            gemini_service = GeminiOCRService()
+            extracted_text, summary, corrected_text, processing_time = \
+                gemini_service.extract_and_analyze(file_path, user_id=user_id, essay_id=essay_id)
+            record = OCRHistory.query.get(ocr_id)
+            if record:
+                record.extracted_text = extracted_text
+                record.summary = summary
+                record.corrected_text = corrected_text
+                record.processing_time = processing_time
+                record.character_count = len(extracted_text or '')
+                record.status = 'completed'
+                db.session.commit()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'[OCR Background] ocr_id={ocr_id} 오류: {e}')
+            record = OCRHistory.query.get(ocr_id)
+            if record:
+                record.status = 'failed'
+                record.extracted_text = f'오류: {str(e)}'
+                db.session.commit()
+
+
 @essays_bp.route('/ocr/upload', methods=['GET', 'POST'])
 @login_required
 def ocr_upload():
-    """직접 이미지 업로드하여 OCR 인식 (최대 10장)"""
+    """직접 이미지 업로드하여 OCR 인식 (최대 10장) — 백그라운드 처리"""
     if request.method == 'POST':
+        import threading
         files = request.files.getlist('images')
         files = [f for f in files if f and f.filename]
 
@@ -1451,10 +1559,10 @@ def ocr_upload():
 
         ocr_records = []
         error_files = []
-        total_time = 0
+        app = current_app._get_current_object()
+        user_id = current_user.user_id
 
         for file in files:
-            # 파일 형식 확인 (이미지 + PDF)
             if not ocr_service.is_supported_image(file.filename) and \
                not file.filename.lower().endswith('.pdf'):
                 error_files.append(f'{file.filename}: 지원되지 않는 형식')
@@ -1467,43 +1575,45 @@ def ocr_upload():
                 file_path = os.path.join(upload_folder, stored_filename)
                 file.save(file_path)
 
-                gemini_service = GeminiOCRService()
-                extracted_text, summary, corrected_text, processing_time = \
-                    gemini_service.extract_and_analyze(file_path)
-                total_time += processing_time
-
-                ocr_record = OCRHistory(
-                    user_id=current_user.user_id,
+                # 즉시 'processing' 상태로 레코드 생성
+                record = OCRHistory(
+                    user_id=user_id,
                     original_filename=original_filename,
                     image_path=os.path.join('ocr', stored_filename),
-                    extracted_text=extracted_text,
-                    summary=summary,
-                    corrected_text=corrected_text,
+                    extracted_text='',
                     ocr_method='gemini',
-                    processing_time=processing_time,
-                    character_count=len(extracted_text)
+                    status='processing',
                 )
-                db.session.add(ocr_record)
-                ocr_records.append(ocr_record)
+                db.session.add(record)
+                db.session.flush()  # ocr_id 확보
+                ocr_records.append((record.ocr_id, file_path))
 
             except Exception as e:
                 error_files.append(f'{file.filename}: {str(e)}')
 
-        if ocr_records:
-            db.session.commit()
+        db.session.commit()
+
+        # 백그라운드 스레드 시작 (응답 반환 후 처리)
+        for ocr_id, file_path in ocr_records:
+            t = threading.Thread(
+                target=_run_ocr_background,
+                args=(app, ocr_id, file_path, user_id),
+                daemon=True
+            )
+            t.start()
 
         if error_files:
-            flash(f'⚠️ 실패한 파일: {", ".join(error_files)}', 'warning')
+            flash(f'⚠️ 지원하지 않는 형식: {", ".join(error_files)}', 'warning')
 
         if not ocr_records:
-            flash('모든 파일 처리에 실패했습니다.', 'error')
+            flash('처리할 수 있는 파일이 없습니다.', 'error')
             return redirect(url_for('essays.ocr_upload'))
 
         if len(ocr_records) == 1:
-            flash(f'✨ OCR 완료! (처리 시간: {total_time:.2f}초)', 'success')
-            return redirect(url_for('essays.ocr_result', ocr_id=ocr_records[0].ocr_id))
+            flash('OCR 처리를 시작했습니다. 잠시 기다려주세요.', 'info')
+            return redirect(url_for('essays.ocr_result', ocr_id=ocr_records[0][0]))
         else:
-            flash(f'✨ {len(ocr_records)}장 OCR 완료! (총 처리 시간: {total_time:.2f}초)', 'success')
+            flash(f'{len(ocr_records)}장 OCR 처리를 시작했습니다. 잠시 기다려주세요.', 'info')
             return redirect(url_for('essays.ocr_history'))
 
     return render_template('essays/ocr_upload.html')
@@ -1645,6 +1755,19 @@ def ocr_from_essay(essay_id):
                          essay=essay,
                          student=essay.student,
                          image_attachments=image_attachments)
+
+
+@essays_bp.route('/ocr/<int:ocr_id>/status')
+@login_required
+def ocr_status(ocr_id):
+    """OCR 처리 상태 폴링용 JSON 엔드포인트"""
+    record = OCRHistory.query.get_or_404(ocr_id)
+    if record.user_id != current_user.user_id and current_user.role != 'admin':
+        return jsonify({'error': '권한 없음'}), 403
+    return jsonify({
+        'status': record.status or 'completed',
+        'extracted_text': record.extracted_text or '',
+    })
 
 
 @essays_bp.route('/ocr/result/<int:ocr_id>')

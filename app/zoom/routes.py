@@ -55,15 +55,15 @@ def join(token):
         return redirect(url_for('student.courses'))
 
     # 현재 또는 다가오는 수업 세션 찾기
-    session = get_current_or_upcoming_session(student.student_id)
+    course_session = get_current_or_upcoming_session(student.student_id)
 
     # 수업이 없어도 강사의 줌 링크로 접속은 허용하되, 시간 체크만 수행
-    if session:
+    if course_session:
         # 수업 시작 시간 확인 (10분 전부터 접속 가능)
         session_start = dtime.min
-        if session.start_time:
-            session_start = session.start_time
-        session_dt = datetime.combine(session.session_date, session_start)
+        if course_session.start_time:
+            session_start = course_session.start_time
+        session_dt = datetime.combine(course_session.session_date, session_start)
         can_access, message = can_access_zoom(session_dt)
 
         if not can_access:
@@ -71,7 +71,7 @@ def join(token):
             access_time = session_dt - timedelta(minutes=10)
             return render_template('zoom/waiting.html',
                                  teacher=teacher,
-                                 session=session,
+                                 course_session=course_session,
                                  message=message,
                                  access_time=access_time,
                                  token=token)
@@ -80,8 +80,8 @@ def join(token):
     log_zoom_access(
         student_id=student.student_id,
         teacher_id=teacher.user_id,
-        course_id=session.course_id if session else None,
-        session_id=session.session_id if session else None,
+        course_id=course_session.course_id if course_session else None,
+        session_id=course_session.session_id if course_session else None,
         ip_address=request.remote_addr,
         user_agent=request.headers.get('User-Agent')
     )
@@ -120,21 +120,21 @@ def preview(token):
         abort(404)
 
     # 현재 또는 다가오는 수업 세션 찾기
-    session = get_current_or_upcoming_session(student.student_id)
+    course_session = get_current_or_upcoming_session(student.student_id)
 
     can_access = False
     message = "현재 예정된 수업이 없습니다."
 
-    if session:
+    if course_session:
         session_start = dtime.min
-        if session.start_time:
-            session_start = session.start_time
-        session_dt = datetime.combine(session.session_date, session_start)
+        if course_session.start_time:
+            session_start = course_session.start_time
+        session_dt = datetime.combine(course_session.session_date, session_start)
         can_access, message = can_access_zoom(session_dt)
 
     return render_template('zoom/preview.html',
                          teacher=teacher,
-                         session=session,
+                         course_session=course_session,
                          can_access=can_access,
                          message=message,
                          token=token)

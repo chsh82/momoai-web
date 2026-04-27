@@ -527,11 +527,13 @@ def edit_course(course_id):
         course.price_per_session = form.price_per_session.data
         course.makeup_class_allowed = form.makeup_class_allowed.data
         course.is_terminated = (form.is_terminated.data == 'Y')
-        # is_terminated=Y이면 status를 completed로 강제 동기화
+        # is_terminated 와 status 항상 동기화
         if course.is_terminated:
             course.status = 'completed'
+        elif form.status.data == 'cancelled':
+            course.status = 'cancelled'
         else:
-            course.status = form.status.data
+            course.status = 'active'
 
         # 시작/종료 시간이 변경된 경우: 미래 예정 세션들 시간도 일괄 업데이트
         from datetime import date as _date, timedelta as _td
@@ -767,6 +769,7 @@ def remove_student(enrollment_id):
     """학생 제거"""
     enrollment = CourseEnrollment.query.get_or_404(enrollment_id)
     course_id = enrollment.course_id
+    sid = enrollment.student_id
 
     enrollment.status = 'dropped'
 
@@ -780,6 +783,9 @@ def remove_student(enrollment_id):
     ).all()
     for att in future_attendances:
         db.session.delete(att)
+
+    from app.utils.enrollment_utils import clear_teacher_if_no_active_enrollment
+    clear_teacher_if_no_active_enrollment(sid)
 
     db.session.commit()
 
@@ -3702,6 +3708,8 @@ def apply_enrollment_schedule_now(schedule_id):
         ).first()
         if enrollment:
             enrollment.status = 'inactive'
+            from app.utils.enrollment_utils import clear_teacher_if_no_active_enrollment
+            clear_teacher_if_no_active_enrollment(sched.student_id)
         flash(f'{student.name} 학생의 {course.course_name} 전반이 완료되었습니다.', 'success')
     else:  # makeup
         # 기존 학적 유지, 추가 수강만 등록
@@ -5344,6 +5352,7 @@ def reset_password(user_id):
 
     user.set_password(new_password)
     user.must_change_password = True
+    user.reset_failed_attempts()
     db.session.commit()
 
     return render_template('admin/password_reset_result.html',

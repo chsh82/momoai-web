@@ -28,7 +28,7 @@
             </div>
 
             <!-- 수업 정보 -->
-            {% if session %}
+            {% if course_session %}
             <div class="bg-gray-50 rounded-lg p-4 mb-6">
                 <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
                     <span class="text-xl mr-2">📚</span>
@@ -37,24 +37,24 @@
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <span class="text-gray-600">수업명</span>
-                        <span class="font-medium text-gray-800">{{ session.course.course_name }}</span>
+                        <span class="font-medium text-gray-800">{{ course_session.course.course_name }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">날짜</span>
                         <span class="font-medium text-gray-800">
-                            {{ session.session_date.strftime('%Y-%m-%d') }}
+                            {{ course_session.session_date.strftime('%Y-%m-%d') }}
                         </span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">시작 시간</span>
                         <span class="font-medium text-gray-800">
-                            {{ session.start_time.strftime('%H:%M') if session.start_time else '미정' }}
+                            {{ course_session.start_time.strftime('%H:%M') if session.start_time else '미정' }}
                         </span>
                     </div>
                     {% if session.topic %}
                     <div class="flex justify-between">
                         <span class="text-gray-600">주제</span>
-                        <span class="font-medium text-gray-800">{{ session.topic }}</span>
+                        <span class="font-medium text-gray-800">{{ course_session.topic }}</span>
                     </div>
                     {% endif %}
                 </div>

@@ -324,6 +324,7 @@ def unenroll(student_id, enrollment_id):
     from app.models.attendance import Attendance
     from datetime import datetime
     enrollment = CourseEnrollment.query.get_or_404(enrollment_id)
+    sid = enrollment.student_id
     enrollment.status = 'dropped'
 
     # 미래 출결 레코드 삭제
@@ -335,6 +336,9 @@ def unenroll(student_id, enrollment_id):
     ).all()
     for att in future_attendances:
         db.session.delete(att)
+
+    from app.utils.enrollment_utils import clear_teacher_if_no_active_enrollment
+    clear_teacher_if_no_active_enrollment(sid)
 
     db.session.commit()
     flash('수강반에서 퇴반 처리되었습니다.', 'info')
