@@ -397,7 +397,7 @@ v3.3.0 필수 포함 사항:
                                 user_id: Optional[str] = None,
                                 essay_id: Optional[str] = None) -> str:
         """
-        스탠다드 모델 v3.5.0: 단일 API 호출 (max_tokens=16000)
+        스탠다드 모델 v3.5.0: 단일 API 호출 (max_tokens=32000)
 
         Returns:
             완성 HTML 문서
@@ -433,7 +433,7 @@ v3.3.0 필수 포함 사항:
                                   user_id: Optional[str] = None,
                                   essay_id: Optional[str] = None) -> str:
         """
-        초등 모델 v3.5.0: 1회 API 호출 후 CSS 래핑 (max_tokens=8192)
+        초등 모델 v3.5.0: 1회 API 호출 후 CSS 래핑 (max_tokens=32000)
 
         Returns:
             완성 HTML 문서
