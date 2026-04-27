@@ -641,6 +641,11 @@ def attendance_list():
     weekday_filter = request.args.get('weekday', '').strip()
     course_type_filter = request.args.get('course_type', '').strip()
     status_filter = request.args.get('status', '').strip()
+    per_page = 100
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
 
     # 강사의 수업 조회 (관리자는 전체 또는 선택한 강사)
     # 보강수업은 완료 상태여도 출석체크 목록에 포함
@@ -757,13 +762,17 @@ def attendance_list():
     past_sessions_raw = past_query.order_by(
         CourseSession.session_date.desc(),
         CourseSession.start_time.desc()
-    ).limit(200).all() if regular_course_ids else []
+    ).all() if regular_course_ids else []
 
     # 보강수업 세션을 날짜순으로 통합
     from datetime import time as _time
     combined = list(past_sessions_raw) + list(makeup_sessions_raw)
     combined.sort(key=lambda s: (s.session_date, s.start_time or _time(0, 0)), reverse=True)
-    past_sessions = combined[:100]
+    total_count = len(combined)
+    import math
+    total_pages = max(1, math.ceil(total_count / per_page))
+    page = min(page, total_pages)
+    past_sessions = combined[(page - 1) * per_page : page * per_page]
 
     # 각 세션의 출결 레코드를 딕셔너리로 미리 로드 {session_id: [attendance, ...]}
     from collections import defaultdict
@@ -823,7 +832,11 @@ def attendance_list():
                          grade_filter=grade_filter,
                          weekday_filter=weekday_filter,
                          course_type_filter=course_type_filter,
-                         parent_phones=parent_phones if past_sessions else {})
+                         parent_phones=parent_phones if past_sessions else {},
+                         page=page,
+                         total_pages=total_pages,
+                         total_count=total_count,
+                         per_page=per_page)
 
 
 @teacher_bp.route('/sessions/<session_id>/attendance')
