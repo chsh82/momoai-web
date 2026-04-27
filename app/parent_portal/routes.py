@@ -49,6 +49,8 @@ def index():
         active_enrollments = CourseEnrollment.query.filter_by(
             student_id=child.student_id,
             status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False
         ).all()
         total_enrollments += len(active_enrollments)
 
@@ -92,6 +94,8 @@ def index():
         enrollments = CourseEnrollment.query.filter_by(
             student_id=child.student_id,
             status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False
         ).all()
 
         if enrollments:
@@ -168,6 +172,8 @@ def children():
         enrollments = CourseEnrollment.query.filter_by(
             student_id=student.student_id,
             status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False
         ).all()
 
         # 평균 출석률
@@ -230,6 +236,8 @@ def child_detail(student_id):
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     # 첨삭 기록 (최근 5개)
@@ -266,6 +274,8 @@ def child_attendance(student_id):
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     # 선택된 수업 또는 전체
@@ -508,6 +518,8 @@ def absence_notice(student_id):
     # 수강 중인 수업 목록
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
     courses = [e.course for e in enrollments if e.course]
 
@@ -891,6 +903,8 @@ def child_courses(student_id):
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     return render_template('parent/child_courses.html',
@@ -1286,6 +1300,8 @@ def child_materials(student_id):
     # 자녀가 수강 중인 경우만 접근 가능
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1343,6 +1359,8 @@ def child_material_detail(student_id, material_id):
     # 자녀가 수강 중인 경우만 접근 가능
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1385,6 +1403,8 @@ def download_child_material(student_id, material_id):
     # 자녀가 수강 중인 경우만 접근 가능
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1468,6 +1488,8 @@ def child_videos(student_id):
     # 자녀가 수강 중인 경우만 접근 가능
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1627,6 +1649,8 @@ def link_requests():
         enrollments = CourseEnrollment.query.filter_by(
             student_id=child.student_id,
             status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False
         ).all()
         linked_children_data.append({
             'student': child,
@@ -1831,6 +1855,8 @@ def export_child_report(student_id):
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     # 첨삭 기록 (중복 student_id 방어)
@@ -1883,6 +1909,8 @@ def export_child_report_pdf(student_id):
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False
     ).all()
 
     # 첨삭 기록 (중복 student_id 방어)
