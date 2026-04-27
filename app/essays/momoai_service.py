@@ -156,7 +156,7 @@ v3.3.0 필수 포함 사항:
                 # Prompt Caching 적용: system prompt를 5분간 캐싱
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=32000,
+                    max_tokens=64000,
                     timeout=600.0,
                     system=[
                         {
@@ -182,10 +182,21 @@ v3.3.0 필수 포함 사항:
                 print(f"\n{'='*60}")
                 print(f"[첨삭 완료] API 호출 시간: {elapsed_time:.2f}초")
                 print(f"응답 길이: {len(response.content[0].text):,} chars")
-                print(f"출력 토큰: {output_tokens:,} / 32000")
+                print(f"출력 토큰: {output_tokens:,} / 64000")
                 print(f"Stop reason: {stop_reason}")
                 if stop_reason == 'max_tokens':
                     print(f"⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
+                    # 재시도 없이 경고 배너를 붙여 반환
+                    truncated_warning = (
+                        '<div style="background:#fff3cd;border:2px solid #ffc107;padding:16px;'
+                        'margin:20px;border-radius:8px;font-family:sans-serif;">'
+                        '<strong>⚠️ 응답 길이 초과</strong><br>'
+                        '논술문이 너무 길어 일부 섹션(윤문 완성본, 교사 종합 제언 등)이 누락되었을 수 있습니다. '
+                        '관리자에게 문의해 주세요.</div>'
+                    )
+                    html_content = response.content[0].text
+                    html_content = truncated_warning + html_content
+                    return html_content
                 if cache_creation > 0:
                     print(f"캐시 생성: {cache_creation:,} 토큰 (첫 요청)")
                 if cache_read > 0:
