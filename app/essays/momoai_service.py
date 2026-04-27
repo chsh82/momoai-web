@@ -314,7 +314,7 @@ v3.3.0 필수 포함 사항:
     def _call_standard_single(self, standard_system: str, messages: list,
                                student_name: str,
                                user_id=None, essay_id=None) -> str:
-        """스탠다드 모델 단일 API 호출 (max_tokens=16000, retry 포함)"""
+        """스탠다드 모델 단일 API 호출 (max_tokens=32000, retry 포함)"""
         import time
         max_retries = 3
         retry_delays = [30, 60, 120]
@@ -327,7 +327,7 @@ v3.3.0 필수 포함 사항:
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=16000,
+                    max_tokens=32000,
                     timeout=600.0,
                     system=[
                         {
@@ -346,6 +346,14 @@ v3.3.0 필수 포함 사항:
                 print(f"[스탠다드 단일호출] 완료 {elapsed:.1f}초 / {output_tokens}tok / {stop_reason}")
                 if stop_reason == 'max_tokens':
                     print("⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
+                    truncated_warning = (
+                        '<div style="background:#fff3cd;border:2px solid #ffc107;padding:16px;'
+                        'margin:20px;border-radius:8px;font-family:sans-serif;">'
+                        '<strong>⚠️ 응답 길이 초과</strong><br>'
+                        '논술문이 너무 길어 일부 섹션이 누락되었을 수 있습니다. '
+                        '관리자에게 문의해 주세요.</div>'
+                    )
+                    return truncated_warning + response.content[0].text
 
                 try:
                     from app.models.api_usage_log import ApiUsageLog
@@ -478,7 +486,7 @@ v3.3.0 필수 포함 사항:
     def _call_elem_single(self, elem_system: str, messages: list,
                           student_name: str,
                           user_id=None, essay_id=None) -> str:
-        """초등 모델 단일 API 호출 (max_tokens=8192, retry 포함)"""
+        """초등 모델 단일 API 호출 (max_tokens=32000, retry 포함)"""
         import time
         max_retries = 3
         retry_delays = [30, 60, 120]
@@ -491,7 +499,7 @@ v3.3.0 필수 포함 사항:
 
                 response = self.client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=8192,
+                    max_tokens=32000,
                     timeout=300.0,
                     system=[
                         {
@@ -510,6 +518,14 @@ v3.3.0 필수 포함 사항:
                 print(f"[초등 단일호출] 완료 {elapsed:.1f}초 / {output_tokens}tok / {stop_reason}")
                 if stop_reason == 'max_tokens':
                     print("⚠️ 경고: max_tokens 초과로 응답이 잘렸습니다!")
+                    truncated_warning = (
+                        '<div style="background:#fff3cd;border:2px solid #ffc107;padding:16px;'
+                        'margin:20px;border-radius:8px;font-family:sans-serif;">'
+                        '<strong>⚠️ 응답 길이 초과</strong><br>'
+                        '논술문이 너무 길어 일부 섹션이 누락되었을 수 있습니다. '
+                        '관리자에게 문의해 주세요.</div>'
+                    )
+                    return truncated_warning + response.content[0].text
 
                 try:
                     from app.models.api_usage_log import ApiUsageLog
