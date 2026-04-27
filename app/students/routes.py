@@ -21,12 +21,23 @@ def index():
     # 검색 폼
     search_form = StudentSearchForm(request.args, meta={'csrf': False})
 
-    # 기본 쿼리 (관리자는 모든 학생, 강사는 자신의 학생만)
+    # 기본 쿼리 (관리자는 모든 학생, 강사는 종료되지 않은 수업에 수강 중인 학생만)
     is_admin = current_user.role in ['admin', 'manager'] or (hasattr(current_user, 'role_level') and current_user.role_level <= 2)
     if is_admin:
         base_query = Student.query.filter_by(is_temp=False)
     else:
-        base_query = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)
+        Course, CourseEnrollment = _get_course_models()
+        active_student_ids = db.session.query(CourseEnrollment.student_id).join(
+            Course, CourseEnrollment.course_id == Course.course_id
+        ).filter(
+            Course.teacher_id == current_user.user_id,
+            CourseEnrollment.status == 'active',
+            Course.is_terminated == False
+        ).distinct().subquery()
+        base_query = Student.query.filter(
+            Student.student_id.in_(active_student_ids),
+            Student.is_temp == False
+        )
 
     # ── 대시보드 통계 (필터 적용 전 전체 기준) ──
     today = datetime.now()

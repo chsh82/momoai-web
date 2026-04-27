@@ -10,7 +10,8 @@ def get_active_student_ids_for_teacher(teacher_id):
         Course, CourseEnrollment.course_id == Course.course_id
     ).filter(
         Course.teacher_id == teacher_id,
-        CourseEnrollment.status == 'active'
+        CourseEnrollment.status == 'active',
+        Course.is_terminated == False
     ).distinct().all()
     return [r[0] for r in rows]
 
@@ -24,7 +25,8 @@ def get_active_student_ids_subquery(teacher_id):
         Course, CourseEnrollment.course_id == Course.course_id
     ).where(
         Course.teacher_id == teacher_id,
-        CourseEnrollment.status == 'active'
+        CourseEnrollment.status == 'active',
+        Course.is_terminated == False
     )
 
 
@@ -39,7 +41,7 @@ def clear_teacher_if_no_active_enrollment(student_id):
     ).filter(
         CourseEnrollment.student_id == student_id,
         CourseEnrollment.status == 'active',
-        Course.status == 'active',
+        Course.is_terminated == False,
     ).first()
 
     if not has_active:
