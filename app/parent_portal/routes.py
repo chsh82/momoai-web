@@ -653,7 +653,8 @@ def makeup_classes(student_id):
     available_courses = Course.query.filter(
         Course.grade == student.grade,
         Course.makeup_class_allowed == True,
-        Course.status == 'active'
+        Course.status == 'active',
+        Course.is_terminated == False
     ).order_by(Course.weekday, Course.start_time).all()
     
     # 해당 학생의 신청 내역 조회 (최근 5건만)
