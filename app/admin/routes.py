@@ -2808,6 +2808,7 @@ def student_attendance_report():
         DONE_STATUSES = ['present', 'late', 'absent', 'excused', 'absent_makeup']
 
         # 해당 기간 내 해당 학생의 출석 기록 전체
+        # session_date <= today 기준 (completed 외 보강수업 등 포함)
         records = (Attendance.query
                    .join(CourseSession, Attendance.session_id == CourseSession.session_id)
                    .join(Course, CourseSession.course_id == Course.course_id)
@@ -2815,7 +2816,8 @@ def student_attendance_report():
                        Attendance.student_id == student_id,
                        CourseSession.session_date >= date_from,
                        CourseSession.session_date <= date_to,
-                       CourseSession.status == 'completed',
+                       CourseSession.session_date <= today,
+                       CourseSession.status != 'cancelled',
                        Attendance.status.in_(DONE_STATUSES)
                    )
                    .order_by(CourseSession.session_date.desc(), CourseSession.start_time)
