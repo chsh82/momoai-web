@@ -279,9 +279,8 @@ function autoSetEndDate() {
 
     const courseType = courseTypeSelect ? courseTypeSelect.value : '';
 
-    // 보강수업 선택 시 종료 여부 → Y(종료) 자동 설정
     if (isTerminatedSelect) {
-        isTerminatedSelect.value = (courseType === '보강수업') ? 'Y' : 'N';
+        isTerminatedSelect.value = 'N';
     }
 
     if (!startDateInput || !startDateInput.value) return;

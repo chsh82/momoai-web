@@ -358,13 +358,13 @@ def upcoming_changes():
         AbsenceNotice.status.in_(['pending', 'confirmed'])
     ).order_by(AbsenceNotice.absence_date.asc()).all()
 
-    # 보강 예정
+    # 보강 예정 (출결 미완료된 과거 보강 포함)
     upcoming_makeup = CourseSession.query.join(Course).filter(
         Course.teacher_id == current_user.user_id,
         Course.course_type == '보강수업',
-        CourseSession.session_date >= today,
         CourseSession.session_date <= week_end,
-        CourseSession.status == 'scheduled'
+        CourseSession.status == 'scheduled',
+        CourseSession.attendance_checked == False
     ).order_by(CourseSession.session_date.asc()).all()
 
     # 입반/전반 예약
