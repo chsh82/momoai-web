@@ -852,12 +852,15 @@ def check_attendance(session_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('teacher.courses'))
 
-    # 출석 레코드 조회 (active 수강 중인 학생만 - 탈퇴/수강취소 학생 제외)
-    attendance_records = Attendance.query.filter_by(session_id=session_id)\
+    # 출석 레코드 조회
+    # 마스터 관리자: enrollment 상태 무관하게 전체 표시 (비활성 수강생 레코드 삭제 목적)
+    # 일반 강사/관리자: active 수강생만
+    att_query = Attendance.query.filter_by(session_id=session_id)\
         .join(Student)\
-        .join(CourseEnrollment, CourseEnrollment.enrollment_id == Attendance.enrollment_id)\
-        .filter(CourseEnrollment.status == 'active')\
-        .order_by(Student.name.asc()).all()
+        .join(CourseEnrollment, CourseEnrollment.enrollment_id == Attendance.enrollment_id)
+    if not current_user.is_master_admin:
+        att_query = att_query.filter(CourseEnrollment.status == 'active')
+    attendance_records = att_query.order_by(Student.name.asc()).all()
 
     # 세션 메모 폼
     note_form = SessionNoteForm(obj=course_session)

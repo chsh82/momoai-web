@@ -117,12 +117,15 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-4 flex-1">
                             <!-- 학생 정보 -->
-                            <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                            <div class="w-10 h-10 {% if attendance.enrollment.status != 'active' %}bg-gray-400{% else %}bg-blue-600{% endif %} text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
                                 {{ attendance.student.name[0] }}
                             </div>
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
-                                    <h4 class="font-medium text-gray-800">{{ attendance.student.name }}</h4>
+                                    <h4 class="font-medium {% if attendance.enrollment.status != 'active' %}text-gray-400{% else %}text-gray-800{% endif %}">{{ attendance.student.name }}</h4>
+                                    {% if attendance.enrollment.status != 'active' %}
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-500">{{ attendance.enrollment.status }}</span>
+                                    {% endif %}
                                     {% if attendance.student.tier %}
                                     <span class="px-2 py-1 text-xs font-medium rounded
                                         {% if attendance.student.tier == 'A' %}bg-red-100 text-red-800
