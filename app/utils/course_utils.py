@@ -96,12 +96,15 @@ def create_attendance_records_for_enrollment(enrollment):
 
     enrollment_date = enrollment.enrolled_at.date() if enrollment.enrolled_at else None
 
-    is_makeup = enrollment.course.course_type == '보강수업'
+    # 보강수업 또는 custom(1회성) 수업은 과거 날짜로 개설될 수 있으므로 입반일 필터 적용 안 함
+    skip_date_filter = (
+        enrollment.course.course_type == '보강수업' or
+        enrollment.course.schedule_type == 'custom'
+    )
 
     # 해당 수업의 모든 세션에 대해 출석 레코드 생성
     for session in enrollment.course.sessions:
-        # 보강수업은 과거 날짜로 개설될 수 있으므로 입반일 필터 적용 안 함
-        if not is_makeup and enrollment_date and session.session_date < enrollment_date:
+        if not skip_date_filter and enrollment_date and session.session_date < enrollment_date:
             continue
         # 이미 존재하는지 확인
         existing = Attendance.query.filter_by(
