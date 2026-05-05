@@ -153,7 +153,7 @@
                         </div>
 
                         <!-- 출석 상태 버튼 -->
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <button type="button" onclick="updateAttendance('{{ attendance.attendance_id }}', 'present')"
                                     class="attendance-btn px-4 py-2 rounded font-medium transition duration-200
                                     {% if attendance.status == 'present' %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
@@ -182,6 +182,14 @@
                                     data-student-name-ex="{{ attendance.student.name | e }}">
                                 📝 인정결석
                             </button>
+                            {% if current_user.is_master_admin %}
+                            <button type="button"
+                                    onclick="deleteAttendance('{{ attendance.attendance_id }}', '{{ attendance.student.name | e }}')"
+                                    class="px-3 py-2 rounded font-medium transition duration-200 bg-red-100 text-red-700 hover:bg-red-600 hover:text-white border border-red-300"
+                                    title="출결 레코드 삭제 (마스터 관리자)">
+                                🗑 삭제
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -598,6 +606,22 @@ async function doExcused() {
 }
 
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLateModal(); closeExcusedModal(); } });
+
+async function deleteAttendance(attendanceId, studentName) {
+    if (!confirm(studentName + ' 학생의 출결 레코드를 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
+    var resp = await fetch('/teacher/api/attendance/' + attendanceId, {
+        method: 'DELETE',
+        headers: {'X-CSRFToken': _csrfToken}
+    });
+    var data = await resp.json();
+    if (data.success) {
+        var el = document.getElementById('attendance-' + attendanceId);
+        if (el) el.remove();
+        updateStatistics();
+    } else {
+        alert('삭제 실패: ' + (data.message || '알 수 없는 오류'));
+    }
+}
 
 function updateAttendanceUI(attendanceId, status) {
     var container = document.getElementById('attendance-' + attendanceId);

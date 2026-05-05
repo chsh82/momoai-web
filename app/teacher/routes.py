@@ -976,6 +976,25 @@ def update_attendance(attendance_id):
     })
 
 
+@teacher_bp.route('/api/attendance/<attendance_id>', methods=['DELETE'])
+@login_required
+@requires_role('teacher', 'admin', 'master_admin')
+def delete_attendance(attendance_id):
+    """출결 레코드 삭제 (마스터 관리자 전용)"""
+    if not current_user.is_master_admin:
+        return jsonify({'success': False, 'message': '마스터 관리자만 삭제할 수 있습니다.'}), 403
+
+    attendance = Attendance.query.get_or_404(attendance_id)
+
+    # 연결된 SessionAdjustment 해제 (FK SET NULL)
+    from app.models.session_adjustment import SessionAdjustment
+    SessionAdjustment.query.filter_by(attendance_id=attendance_id).update({'attendance_id': None})
+
+    db.session.delete(attendance)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @teacher_bp.route('/api/attendance/<attendance_id>/excused', methods=['POST'])
 @login_required
 @requires_role('teacher', 'admin')
