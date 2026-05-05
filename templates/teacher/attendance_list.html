@@ -98,7 +98,7 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
-                <!-- 학생 이름 검색 (JS DOM 필터) -->
+                <!-- 학생 이름 검색 (서버사이드 - 전체 데이터 검색) -->
                 <div class="relative flex-1 min-w-[160px]">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,9 +107,9 @@
                     </span>
                     <input type="text" id="studentNameFilter"
                            name="student_name"
-                           placeholder="학생 이름 검색..."
-                           oninput="applyFilters()"
-                           onkeydown="if(event.key==='Enter'){event.preventDefault();applyFilters();}"
+                           value="{{ student_name_filter }}"
+                           placeholder="학생 이름 검색 (전체)..."
+                           onkeydown="if(event.key==='Enter'){this.form.submit();}"
                            class="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <!-- 미완료만 보기 -->
@@ -301,7 +301,7 @@
     </div>
 
     <!-- 페이지네이션 -->
-    {% macro page_url(p) %}{{ url_for('teacher.attendance_list', page=p, course_id=course_filter or None, teacher_id=teacher_filter or None, date=date_filter or None, grade=grade_filter or None, weekday=weekday_filter or None, course_type=course_type_filter or None) }}{% endmacro %}
+    {% macro page_url(p) %}{{ url_for('teacher.attendance_list', page=p, course_id=course_filter or None, teacher_id=teacher_filter or None, date=date_filter or None, grade=grade_filter or None, weekday=weekday_filter or None, course_type=course_type_filter or None, student_name=student_name_filter or None) }}{% endmacro %}
     <div class="mt-6 flex flex-col items-center gap-2">
         <p class="text-sm text-gray-400">
             전체 {{ total_count }}개 세션 중

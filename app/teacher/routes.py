@@ -641,6 +641,7 @@ def attendance_list():
     weekday_filter = request.args.get('weekday', '').strip()
     course_type_filter = request.args.get('course_type', '').strip()
     status_filter = request.args.get('status', '').strip()
+    student_name_filter = request.args.get('student_name', '').strip()
     per_page = 100
     try:
         page = max(1, int(request.args.get('page', 1)))
@@ -759,6 +760,19 @@ def attendance_list():
         filtered_ids = [s.session_id for s in all_sessions if s.session_date.weekday() == int(weekday_filter)]
         past_query = CourseSession.query.filter(CourseSession.session_id.in_(filtered_ids))
 
+    # 학생 이름 필터: 해당 이름 학생의 출결 레코드가 있는 세션만
+    if student_name_filter:
+        matched_session_ids = db.session.query(Attendance.session_id)\
+            .join(Student, Attendance.student_id == Student.student_id)\
+            .filter(Student.name.contains(student_name_filter))\
+            .subquery()
+        past_query = past_query.filter(CourseSession.session_id.in_(matched_session_ids))
+        if makeup_course_ids:
+            makeup_sessions_raw = [s for s in makeup_sessions_raw
+                                   if db.session.query(Attendance).join(Student, Attendance.student_id == Student.student_id)
+                                   .filter(Attendance.session_id == s.session_id,
+                                           Student.name.contains(student_name_filter)).first()]
+
     past_sessions_raw = past_query.order_by(
         CourseSession.session_date.desc(),
         CourseSession.start_time.desc()
@@ -832,6 +846,7 @@ def attendance_list():
                          grade_filter=grade_filter,
                          weekday_filter=weekday_filter,
                          course_type_filter=course_type_filter,
+                         student_name_filter=student_name_filter,
                          parent_phones=parent_phones if past_sessions else {},
                          page=page,
                          total_pages=total_pages,
