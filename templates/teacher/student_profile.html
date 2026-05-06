@@ -109,6 +109,14 @@
                     <p class="font-medium text-gray-800">{{ profile.address or '-' }}</p>
                 </div>
                 <div>
+                    <p class="text-gray-600 mb-1">성별</p>
+                    <p class="font-medium text-gray-800">
+                        {% if student.gender == 'male' %}남자
+                        {% elif student.gender == 'female' %}여자
+                        {% else %}-{% endif %}
+                    </p>
+                </div>
+                <div>
                     <p class="text-gray-600 mb-1">유입 경로</p>
                     <p class="font-medium text-gray-800">{{ profile.referral_source or '-' }}</p>
                 </div>
