@@ -404,7 +404,10 @@ v3.3.0 필수 포함 사항:
         """
         standard_system = self._load_standard_document()
 
-        user_content = f"[학생 원문]\n{essay_text}"
+        user_content = (
+            f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
+            f"[학생 원문]\n{essay_text}"
+        )
         if notes:
             user_content += f"\n\n[교사 지시]\n{notes}"
         user_content += "\n\n전체 리포트를 생성하세요."
@@ -440,7 +443,10 @@ v3.3.0 필수 포함 사항:
         """
         elem_system = self._load_elem_document()
 
-        user_content = f"[학생 원문]\n{essay_text}"
+        user_content = (
+            f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
+            f"[학생 원문]\n{essay_text}"
+        )
         if notes:
             user_content += f"\n\n[교사 지시]\n{notes}"
         user_content += "\n\n리포트를 생성하세요."
