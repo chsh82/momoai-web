@@ -1683,73 +1683,51 @@ def ocr_from_essay(essay_id):
             flash('선택한 파일을 찾을 수 없습니다.', 'error')
             return redirect(url_for('essays.ocr_from_essay', essay_id=essay_id))
 
+        # 백그라운드 처리: 각 파일별 status='processing' 레코드를 먼저 커밋한 뒤
+        # 스레드를 띄워 비동기로 처리한다. 동기 호출이 Gunicorn timeout(30~300s)에 걸려
+        # 워커가 강제 종료되며 "자동 취소"되는 현상을 방지.
+        import threading
+        app_obj = current_app._get_current_object()
+        user_id = current_user.user_id
+
+        ocr_records = []  # [(ocr_id, full_path), ...]
         try:
-            ocr_records = []
-            total_processing_time = 0
-            success_count = 0
-            error_files = []
-
-            # 각 파일을 순차적으로 Gemini OCR 처리
-            for idx, (filename, file_path) in enumerate(selected_files):
-                try:
-                    # 전체 파일 경로
-                    full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_path)
-
-                    # Gemini OCR 사용 (각 이미지마다 새 인스턴스)
-                    ocr_method = 'gemini'
-                    summary = None
-                    corrected_text = None
-
-                    gemini_service = GeminiOCRService()
-                    extracted_text, summary, corrected_text, processing_time = gemini_service.extract_and_analyze(full_path)
-                    total_processing_time += processing_time
-
-                    # 히스토리 저장
-                    ocr_record = OCRHistory(
-                        user_id=current_user.user_id,
-                        essay_id=essay.essay_id,
-                        original_filename=filename,
-                        image_path=file_path,
-                        extracted_text=extracted_text,
-                        summary=summary,
-                        corrected_text=corrected_text,
-                        ocr_method=ocr_method,
-                        processing_time=processing_time,
-                        character_count=len(extracted_text)
-                    )
-                    db.session.add(ocr_record)
-                    ocr_records.append(ocr_record)
-                    success_count += 1
-
-                except Exception as e:
-                    error_msg = f"{filename}: {str(e)}"
-                    error_files.append(error_msg)
-                    # 첫 번째 에러는 즉시 사용자에게 표시
-                    if len(error_files) == 1:
-                        flash(f'🚨 Gemini OCR 에러 발생:\n{error_msg}', 'error')
-
-            # 모든 성공한 레코드 커밋
-            if success_count > 0:
-                db.session.commit()
-
-            # 결과 메시지
-            if success_count > 0:
-                if success_count == 1:
-                    flash(f'✅ OCR 인식 완료! (처리 시간: {total_processing_time:.2f}초)', 'success')
-                    return redirect(url_for('essays.ocr_result', ocr_id=ocr_records[0].ocr_id))
-                else:
-                    flash(f'✅ {success_count}개 파일 OCR 완료! (총 시간: {total_processing_time:.2f}초)', 'success')
-                    if error_files:
-                        flash(f'⚠️ 실패한 파일:\n' + '\n'.join(error_files), 'warning')
-                    return redirect(url_for('essays.ocr_history'))
-            else:
-                # 모든 파일 실패 시
-                flash(f'❌ 모든 파일 처리 실패:\n' + '\n'.join(error_files[:3]), 'error')  # 최대 3개만 표시
-                return redirect(url_for('essays.ocr_from_essay', essay_id=essay_id))
-
+            for filename, file_path in selected_files:
+                full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_path)
+                record = OCRHistory(
+                    user_id=user_id,
+                    essay_id=essay.essay_id,
+                    original_filename=filename,
+                    image_path=file_path,
+                    extracted_text='',
+                    ocr_method='gemini',
+                    status='processing',
+                )
+                db.session.add(record)
+                db.session.flush()
+                ocr_records.append((record.ocr_id, full_path))
+            db.session.commit()
         except Exception as e:
-            flash(f'OCR 처리 중 오류가 발생했습니다: {str(e)}', 'error')
+            db.session.rollback()
+            flash(f'OCR 레코드 생성 중 오류가 발생했습니다: {str(e)}', 'error')
             return redirect(url_for('essays.ocr_from_essay', essay_id=essay_id))
+
+        # 백그라운드 스레드 발사 — _run_ocr_background는 essay_id를 함께 기록
+        for ocr_id, full_path in ocr_records:
+            t = threading.Thread(
+                target=_run_ocr_background,
+                args=(app_obj, ocr_id, full_path, user_id, essay.essay_id),
+                daemon=True
+            )
+            t.start()
+
+        # 단일 파일이면 결과 페이지(폴링 JS 내장)로, 다중이면 히스토리로
+        if len(ocr_records) == 1:
+            flash('OCR 처리를 시작했습니다. 잠시 기다려주세요.', 'info')
+            return redirect(url_for('essays.ocr_result', ocr_id=ocr_records[0][0]))
+        else:
+            flash(f'{len(ocr_records)}장 OCR 처리를 시작했습니다. 잠시 기다려주세요.', 'info')
+            return redirect(url_for('essays.ocr_history'))
 
     return render_template('essays/ocr_from_essay.html',
                          essay=essay,

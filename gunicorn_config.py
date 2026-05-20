@@ -14,7 +14,7 @@ worker_class = "sync"  # 또는 "gevent", "eventlet"
 worker_connections = 1000
 max_requests = 1000  # 메모리 누수 방지를 위해 1000개 요청마다 재시작
 max_requests_jitter = 50  # 재시작 시점 분산
-timeout = 30  # 요청 타임아웃 (초)
+timeout = 300  # 요청 타임아웃 (초) — Gemini OCR/Claude 첨삭 등 장시간 처리 대응
 keepalive = 5  # Keep-Alive 연결 유지 시간
 
 # 로깅
@@ -42,8 +42,8 @@ tmp_upload_dir = "/tmp"
 # 프리로드 (메모리 절약)
 preload_app = True
 
-# 재시작 시 그레이스풀 타임아웃
-graceful_timeout = 30
+# 재시작 시 그레이스풀 타임아웃 (in-flight 첨삭/OCR 보호)
+graceful_timeout = 300
 
 # SSL/TLS (Nginx가 처리하므로 보통 불필요)
 # keyfile = "/etc/ssl/private/momoai.key"

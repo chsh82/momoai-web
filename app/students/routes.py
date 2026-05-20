@@ -246,12 +246,20 @@ def detail(student_id):
     ).order_by(Course.grade, Course.course_name).all()
 
     # 출결 현황 (진행된 세션만)
+    # 퇴반(dropped) / 전반에 따른 비활성(inactive) 수강의 과거 출결도 보존하여 표시 — 뱃지로 구분
     from app.models.course import CourseSession
     from app.models.attendance import Attendance
     from datetime import date
     today = date.today()
+    enrollments_for_attendance = CourseEnrollment.query.filter(
+        CourseEnrollment.student_id == student_id,
+        CourseEnrollment.status.in_(['active', 'dropped', 'inactive'])
+    ).join(Course).order_by(
+        # active 먼저, 그 다음 dropped/inactive — 같은 그룹 안에서는 수업명
+        CourseEnrollment.status.desc(), Course.course_name
+    ).all()
     attendance_by_course = []
-    for enrollment in current_enrollments:
+    for enrollment in enrollments_for_attendance:
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(

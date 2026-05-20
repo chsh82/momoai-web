@@ -269,6 +269,11 @@
                 <div class="flex items-center justify-between mb-3">
                     <div>
                         <span class="font-semibold text-gray-800">{{ acs.course.course_name }}</span>
+                        {% if acs.enrollment.status == 'dropped' %}
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">퇴반</span>
+                        {% elif acs.enrollment.status == 'inactive' %}
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">전반</span>
+                        {% endif %}
                         {% if acs.course.teacher %}
                         <span class="ml-2 text-xs text-gray-500">{{ acs.course.teacher.name }} 강사</span>
                         {% endif %}
