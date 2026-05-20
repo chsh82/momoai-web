@@ -31,23 +31,13 @@ def get_active_student_ids_subquery(teacher_id):
 
 
 def clear_teacher_if_no_active_enrollment(student_id):
-    """전반/퇴반 후 active 수강이 하나도 없으면 Student.teacher_id를 None으로 초기화."""
-    from app.models import db, CourseEnrollment
-    from app.models.course import Course
-    from app.models.student import Student
-
-    has_active = db.session.query(CourseEnrollment.enrollment_id).join(
-        Course, CourseEnrollment.course_id == Course.course_id
-    ).filter(
-        CourseEnrollment.student_id == student_id,
-        CourseEnrollment.status == 'active',
-        Course.is_terminated == False,
-    ).first()
-
-    if not has_active:
-        student = Student.query.get(student_id)
-        if student and student.teacher_id is not None:
-            student.teacher_id = None
+    """과거: 전반/퇴반 후 active 수강이 하나도 없으면 Student.teacher_id=None.
+    Student.teacher_id가 NOT NULL이라 IntegrityError 발생 → 퇴반 자체가 500으로 실패.
+    마지막 담당 강사 정보는 학생 레코드에 보존(no-op).
+    """
+    # 의도적 no-op — Student.teacher_id가 NOT NULL이라 None 세팅 불가.
+    # 학생이 어느 수업도 안 듣는 상태가 되어도 마지막 담당 강사는 그대로 유지.
+    return
 
 
 def get_essay_student_ids(student):
