@@ -42,7 +42,6 @@ class Essay(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     completed_at = db.Column(db.DateTime, nullable=True)
-    error_message = db.Column(db.Text, nullable=True)  # 실패 시 에러 메시지
 
     # Relationships
     student = db.relationship('Student', back_populates='essays')
