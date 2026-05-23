@@ -20,6 +20,19 @@ from app.models.book import EssayBook
 from config import Config
 
 
+def _save_essay_error(essay_id: str, error_msg: str) -> None:
+    """첨삭 실패 에러 메시지를 DB에 저장 (컬럼 없으면 조용히 무시)."""
+    try:
+        from sqlalchemy import text
+        db.session.execute(
+            text("UPDATE essays SET error_message = :msg WHERE essay_id = :id"),
+            {"msg": str(error_msg)[:2000], "id": essay_id}
+        )
+        db.session.commit()
+    except Exception:
+        pass
+
+
 def _can_access_essay(essay):
     """
     현재 로그인 유저가 해당 essay에 접근 가능한지 확인.
@@ -458,6 +471,7 @@ def new():
                     print(f'[첨삭 오류] {e}')
                     essay_obj.status = 'failed'
                     _db.session.commit()
+                    _save_essay_error(essay_id_val, str(e))
 
         t = threading.Thread(target=do_correction, daemon=True)
         t.start()
@@ -583,6 +597,7 @@ def quick():
                     print(f'[임시 첨삭 오류] {e}')
                     essay_obj.status = 'failed'
                     _db.session.commit()
+                    _save_essay_error(essay_obj.essay_id, str(e))
 
         t = threading.Thread(target=do_quick_correction, daemon=True)
         t.start()
@@ -779,6 +794,7 @@ def api_regenerate(essay_id):
                 print(f'[재생성 오류] {e}')
                 essay_obj.status = 'failed'
                 _db.session.commit()
+                _save_essay_error(essay_obj.essay_id, str(e))
 
     t = threading.Thread(target=do_regenerate, daemon=True)
     t.start()
@@ -1124,6 +1140,7 @@ def start_correction(essay_id):
                 print(f'[첨삭 오류] {e}')
                 essay_obj.status = 'failed'
                 _db.session.commit()
+                _save_essay_error(essay_obj.essay_id, str(e))
 
     t = threading.Thread(target=do_correction, daemon=True)
     t.start()
