@@ -61,11 +61,15 @@
                             </div>
                             <div class="text-sm text-gray-600 mb-2">
                                 📅 {{ record.created_at | kst('%Y-%m-%d %H:%M') }}
-                                | ⏱️ {{ "%.2f"|format(record.processing_time) }}초
-                                | 📝 {{ record.character_count }}자
+                                | ⏱️ {{ "%.2f"|format(record.processing_time) if record.processing_time is not none else "-" }}초
+                                | 📝 {{ record.character_count or 0 }}자
                             </div>
                             <div class="text-sm text-gray-500 line-clamp-2">
-                                {{ record.extracted_text[:100] }}{% if record.extracted_text|length > 100 %}...{% endif %}
+                                {% if record.status == 'failed' %}
+                                <span class="text-red-500">⚠️ 처리 실패</span>
+                                {% else %}
+                                {{ (record.extracted_text or '')[:100] }}{% if record.extracted_text and record.extracted_text|length > 100 %}...{% endif %}
+                                {% endif %}
                             </div>
                         </div>
                         <span class="ml-4 text-blue-600 font-medium whitespace-nowrap">
