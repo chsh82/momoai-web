@@ -47,6 +47,7 @@ jobs:
             fi
             $VENV_PYTHON migrate_makeup_requested_date.py && echo "Migration OK" || echo "Migration failed (continuing)"
             $VENV_PYTHON migrate_ocr_status.py && echo "OCR status migration OK" || echo "OCR status migration failed (continuing)"
+            $VENV_PYTHON migrate_ocr_history_types.py && echo "OCR types migration OK" || echo "OCR types migration failed (continuing)"
             echo "=== 서비스 재시작 ==="
             sudo systemctl restart momoai
             echo "=== 상태 확인 ==="

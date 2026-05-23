@@ -9,8 +9,8 @@ class OCRHistory(db.Model):
     __tablename__ = 'ocr_history'
 
     ocr_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    essay_id = db.Column(db.Integer, db.ForeignKey('essays.essay_id'), nullable=True)  # 과제에서 OCR한 경우
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    essay_id = db.Column(db.String(36), db.ForeignKey('essays.essay_id'), nullable=True)  # 과제에서 OCR한 경우
 
     # 원본 이미지 정보
     original_filename = db.Column(db.String(255), nullable=False)
