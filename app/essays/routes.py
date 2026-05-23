@@ -457,6 +457,7 @@ def new():
                 except Exception as e:
                     print(f'[첨삭 오류] {e}')
                     essay_obj.status = 'failed'
+                    essay_obj.error_message = str(e)[:2000]
                     _db.session.commit()
 
         t = threading.Thread(target=do_correction, daemon=True)
@@ -582,6 +583,7 @@ def quick():
                 except Exception as e:
                     print(f'[임시 첨삭 오류] {e}')
                     essay_obj.status = 'failed'
+                    essay_obj.error_message = str(e)[:2000]
                     _db.session.commit()
 
         t = threading.Thread(target=do_quick_correction, daemon=True)
@@ -778,6 +780,7 @@ def api_regenerate(essay_id):
             except Exception as e:
                 print(f'[재생성 오류] {e}')
                 essay_obj.status = 'failed'
+                essay_obj.error_message = str(e)[:2000]
                 _db.session.commit()
 
     t = threading.Thread(target=do_regenerate, daemon=True)
@@ -1123,6 +1126,7 @@ def start_correction(essay_id):
             except Exception as e:
                 print(f'[첨삭 오류] {e}')
                 essay_obj.status = 'failed'
+                essay_obj.error_message = str(e)[:2000]
                 _db.session.commit()
 
     t = threading.Thread(target=do_correction, daemon=True)
