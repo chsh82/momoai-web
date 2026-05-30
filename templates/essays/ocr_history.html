@@ -35,9 +35,19 @@
                                 <h3 class="text-xl font-bold text-gray-800">{{ record.original_filename }}</h3>
                                 <div class="flex items-center gap-3 text-sm text-gray-600 mt-1">
                                     <span>📅 {{ record.created_at | kst('%Y-%m-%d %H:%M') }}</span>
+                                    {% if record.status == 'processing' %}
+                                    <span class="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 rounded animate-pulse">⏳ 처리 중</span>
+                                    {% elif record.status == 'failed' %}
+                                    <span class="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-800 rounded">⚠️ 실패</span>
+                                    {% else %}
+                                    {% if record.processing_time is not none %}
                                     <span>⏱️ {{ "%.2f"|format(record.processing_time) }}초</span>
-                                    <span>📝 {{ record.character_count }}자</span>
+                                    {% endif %}
+                                    <span>📝 {{ record.character_count or 0 }}자</span>
+                                    {% endif %}
+                                    {% if record.user %}
                                     <span>👤 {{ record.user.name }}</span>
+                                    {% endif %}
                                     {% if record.ocr_method == 'gemini' %}
                                     <span class="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded">
                                         ✨ Gemini AI
