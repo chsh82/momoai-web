@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """수업 관리 유틸리티 함수"""
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date as _date
+from sqlalchemy import func
 from app.models import db, Course, CourseSession, CourseEnrollment, Attendance
+
+# 강좌 개설 시 초기 생성 범위 (일). 이후 세션은 주간 스케줄러가 롤링 생성.
+SESSION_INITIAL_LOOKAHEAD_DAYS = 14
 
 
 def generate_course_sessions(course):
     """
-    수업 생성 시 자동으로 세션들을 생성
-
-    Args:
-        course: Course 객체
+    수업 생성 시 근미래 세션만 생성 (weekly: 약 14일, custom/단일: 변동 없음).
+    이후 세션은 매주 일요일 자정 스케줄러가 extend_sessions_for_course()로 롤링 추가.
 
     Returns:
         생성된 CourseSession 객체 리스트
@@ -18,12 +20,9 @@ def generate_course_sessions(course):
         return []
 
     sessions = []
-    current_date = course.start_date
-    session_number = 1
 
-    # weekly 스케줄인 경우
     if course.schedule_type == 'weekly' and course.weekday is not None:
-        # 시작일 = 종료일 (보강수업 등 단일 세션): 요일 매칭 없이 당일 세션만 생성
+        # 단일 세션 (보강수업 등): 요일 매칭 없이 당일만 생성
         if course.start_date == course.end_date:
             session = CourseSession(
                 course_id=course.course_id,
@@ -38,12 +37,19 @@ def generate_course_sessions(course):
             course.total_sessions = 1
             return sessions
 
-        # 첫 수업일 찾기 (시작일부터 지정된 요일 찾기)
+        # 반복 수업: start_date 기준으로 최대 14일 앞까지만 생성
+        today = _date.today()
+        cutoff = min(
+            course.end_date,
+            max(course.start_date, today) + timedelta(days=SESSION_INITIAL_LOOKAHEAD_DAYS - 1)
+        )
+
+        current_date = course.start_date
         while current_date.weekday() != course.weekday:
             current_date += timedelta(days=1)
 
-        # 종료일까지 매주 세션 생성
-        while current_date <= course.end_date:
+        session_number = 1
+        while current_date <= cutoff:
             session = CourseSession(
                 course_id=course.course_id,
                 session_number=session_number,
@@ -54,14 +60,11 @@ def generate_course_sessions(course):
             )
             sessions.append(session)
             db.session.add(session)
-
-            # 다음 주로 이동
             current_date += timedelta(days=7)
             session_number += 1
 
-    # custom 스케줄인 경우는 수동으로 세션 추가
     else:
-        # 기본적으로 시작일에 첫 세션만 생성
+        # custom 스케줄: 시작일에만 첫 세션 생성
         session = CourseSession(
             course_id=course.course_id,
             session_number=1,
@@ -73,10 +76,76 @@ def generate_course_sessions(course):
         sessions.append(session)
         db.session.add(session)
 
-    # 총 세션 수 업데이트
     course.total_sessions = len(sessions)
-
     return sessions
+
+
+def extend_sessions_for_course(course, from_date, to_date):
+    """
+    지정 날짜 범위 안에 누락된 주간 세션을 생성한다 (idempotent).
+    매주 일요일 자정 스케줄러 및 수동 보완에서 호출.
+
+    Args:
+        course:     Course 객체
+        from_date:  생성 시작일 (inclusive)
+        to_date:    생성 종료일 (inclusive)
+
+    Returns:
+        새로 생성된 CourseSession 리스트
+    """
+    if course.schedule_type != 'weekly' or course.weekday is None:
+        return []
+    if course.start_date == course.end_date:  # 1회성 수업
+        return []
+
+    # 실제 범위: 수업 기간과 교집합
+    actual_from = max(from_date, course.start_date)
+    actual_to = min(to_date, course.end_date)
+    if actual_from > actual_to:
+        return []
+
+    # 이미 존재하는 세션 날짜 (중복 방지)
+    existing_dates = {
+        s.session_date
+        for s in course.sessions
+        if actual_from <= s.session_date <= actual_to
+    }
+
+    # 현재 최대 session_number
+    max_num = db.session.query(func.max(CourseSession.session_number)).filter(
+        CourseSession.course_id == course.course_id
+    ).scalar() or 0
+
+    # 범위 내 첫 번째 해당 요일 탐색
+    current = actual_from
+    while current.weekday() != course.weekday:
+        current += timedelta(days=1)
+        if current > actual_to:
+            return []
+
+    created = []
+    session_num = max_num
+    while current <= actual_to:
+        if current not in existing_dates:
+            session_num += 1
+            session = CourseSession(
+                course_id=course.course_id,
+                session_number=session_num,
+                session_date=current,
+                start_time=course.start_time,
+                end_time=course.end_time,
+                status='scheduled'
+            )
+            db.session.add(session)
+            db.session.flush()
+            create_attendance_records_for_session(session)
+            created.append(session)
+        current += timedelta(days=7)
+
+    if created:
+        course.total_sessions = (course.total_sessions or 0) + len(created)
+
+    return created
 
 
 def create_attendance_records_for_enrollment(enrollment):

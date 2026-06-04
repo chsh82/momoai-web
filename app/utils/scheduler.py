@@ -84,6 +84,39 @@ def send_class_reminders(app):
             logger.error(f'[Reminder] 오류: {e}')
 
 
+def generate_weekly_sessions(app):
+    """매주 일요일 자정: 다음 7일치 세션 생성"""
+    from datetime import date, timedelta
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.models.course import Course
+            from app.utils.course_utils import extend_sessions_for_course
+
+            today = date.today()          # 일요일
+            from_date = today + timedelta(days=1)   # 월요일
+            to_date = today + timedelta(days=7)     # 다음 일요일
+
+            active_courses = Course.query.filter(
+                Course.schedule_type == 'weekly',
+                Course.status == 'active',
+                Course.is_terminated == False,
+                Course.end_date >= from_date,
+                Course.start_date <= to_date
+            ).all()
+
+            total_created = 0
+            for course in active_courses:
+                created = extend_sessions_for_course(course, from_date, to_date)
+                total_created += len(created)
+            db.session.commit()
+            if total_created:
+                logger.info(f'[WeeklySession] {total_created}개 세션 생성 완료')
+
+        except Exception as e:
+            logger.error(f'[WeeklySession] 오류: {e}')
+
+
 def apply_enrollment_schedules(app):
     """자정마다 실행: 오늘 날짜로 예약된 입반/전반을 자동 처리"""
     from datetime import date
@@ -214,5 +247,12 @@ def init_scheduler(app):
         id='enrollment_schedule',
         replace_existing=True
     )
+    scheduler.add_job(
+        func=generate_weekly_sessions,
+        args=[app],
+        trigger=CronTrigger(day_of_week='sun', hour=0, minute=1, timezone='Asia/Seoul'),
+        id='weekly_session_gen',
+        replace_existing=True
+    )
     scheduler.start()
-    logger.info('[Scheduler] APScheduler 시작됨 (수업 알림 30분 간격 + 입반/전반 자정 자동처리)')
+    logger.info('[Scheduler] APScheduler 시작됨 (수업 알림 30분 간격 + 입반/전반 자정 자동처리 + 주간 세션 생성)')
