@@ -361,7 +361,7 @@ def upcoming_changes():
     # 보강 예정 (출결 미완료된 과거 보강 포함)
     upcoming_makeup = CourseSession.query.join(Course).filter(
         Course.teacher_id == current_user.user_id,
-        Course.course_type == '보강수업',
+        Course.course_type.like('보강%'),
         CourseSession.session_date <= week_end,
         CourseSession.status == 'scheduled',
         CourseSession.attendance_checked == False
@@ -650,39 +650,38 @@ def attendance_list():
 
     # 강사의 수업 조회 (관리자는 전체 또는 선택한 강사)
     # 보강수업은 완료 상태여도 출석체크 목록에 포함
+    # 종료된 수업도 active_courses에 포함: 과거 출결 레코드를 강사가 조회할 수 있어야 함.
+    # past_sessions는 session_date <= today 로 자동 필터되므로 종료 수업의 미래 세션이 노출될 위험은 없음.
+    # makeup_courses는 미래 보강 일정(-30~+90일) 윈도우라 종료 수업 제외 유지.
     if current_user.is_admin:
         if teacher_filter:
             active_courses = Course.query.filter(
                 Course.teacher_id == teacher_filter,
-                Course.status.in_(['active', 'completed']),
-                Course.is_terminated == False
+                Course.status.in_(['active', 'completed'])
             ).order_by(Course.course_name).all()
             makeup_courses = Course.query.filter(
                 Course.teacher_id == teacher_filter,
-                Course.course_type == '보강수업',
+                Course.course_type.like('보강%'),
                 Course.status != 'cancelled',
                 Course.is_terminated == False
             ).order_by(Course.course_name).all()
         else:
             active_courses = Course.query.filter(
-                Course.status.in_(['active', 'completed']),
-                Course.is_terminated == False
+                Course.status.in_(['active', 'completed'])
             ).order_by(Course.course_name).all()
             makeup_courses = Course.query.filter(
-                Course.course_type == '보강수업',
+                Course.course_type.like('보강%'),
                 Course.status != 'cancelled',
                 Course.is_terminated == False
             ).order_by(Course.course_name).all()
     else:
-        # active + completed 모두 포함 (미체크 세션이 남아있을 수 있음), cancelled/종료 제외
         active_courses = Course.query.filter(
             Course.teacher_id == current_user.user_id,
-            Course.status.in_(['active', 'completed']),
-            Course.is_terminated == False
+            Course.status.in_(['active', 'completed'])
         ).order_by(Course.course_name).all()
         makeup_courses = Course.query.filter(
             Course.teacher_id == current_user.user_id,
-            Course.course_type == '보강수업',
+            Course.course_type.like('보강%'),
             Course.status != 'cancelled',
             Course.is_terminated == False
         ).order_by(Course.course_name).all()
@@ -698,8 +697,8 @@ def attendance_list():
     course_ids = [c.course_id for c in courses]
 
     # 보강수업 / 일반수업 분리 (학년/반형태 필터 적용)
-    makeup_course_ids = [c.course_id for c in courses if c.course_type == '보강수업']
-    regular_courses = [c for c in courses if c.course_type != '보강수업']
+    makeup_course_ids = [c.course_id for c in courses if (c.course_type or '').startswith('보강')]
+    regular_courses = [c for c in courses if not (c.course_type or '').startswith('보강')]
     if grade_filter:
         regular_courses = [c for c in regular_courses if c.grade == grade_filter]
     if course_type_filter:
@@ -910,6 +909,10 @@ def update_attendance(attendance_id):
     if course.teacher_id != current_user.user_id and not current_user.is_admin:
         return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
 
+    # 종료된 수업은 master_admin만 수정 가능 (과거 출결 조회는 허용하되 편집은 차단)
+    if course.is_terminated and not getattr(current_user, 'is_master_admin', False):
+        return jsonify({'success': False, 'message': '종료된 수업의 출결은 수정할 수 없습니다.'}), 403
+
     data = request.json
     new_status = data.get('status')
     notes = data.get('notes')  # None이면 기존 notes 유지
@@ -930,7 +933,7 @@ def update_attendance(attendance_id):
                 .filter(
                     CE.student_id == attendance.student_id,
                     CE.status == 'active',
-                    Course.course_type == '보강수업',
+                    Course.course_type.like('보강%'),
                     CourseSession.status != 'completed',
                 )
                 .first()
@@ -1527,7 +1530,7 @@ def create_feedback():
         student_set = set(e.student for e in enrollments if e.student is not None)
 
         # 보강 수업 1회 이상 참석한 학생 추가
-        makeup_course_ids = [c.course_id for c in my_courses if c.course_type == '보강수업']
+        makeup_course_ids = [c.course_id for c in my_courses if (c.course_type or '').startswith('보강')]
         if makeup_course_ids:
             attended_ids = [row[0] for row in
                 db.session.query(Attendance.student_id)
@@ -2452,7 +2455,7 @@ def class_messages():
     my_courses = Course.query.filter(
         Course.teacher_id == current_user.user_id,
         or_(Course.status == 'active',
-            Course.course_type == '보강수업'),
+            Course.course_type.like('보강%')),
         Course.status != 'cancelled'
     ).order_by(Course.start_date.desc()).all()
 

@@ -57,7 +57,7 @@ def auto_assign_essay_session(essay):
         CourseEnrollment.student_id == student_id,
         CourseEnrollment.status == 'active',
         Course.teacher_id == teacher_id,
-        Course.course_type != '보강수업'
+        ~Course.course_type.like('보강%')
     ).all()
 
     if len(enrollments) == 1:

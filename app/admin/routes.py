@@ -1434,7 +1434,7 @@ def billing():
             Course, CourseEnrollment.course_id == Course.course_id
         ).filter(
             CourseEnrollment.status == 'active',
-            Course.course_type != '보강수업'
+            ~Course.course_type.like('보강%')
         ).all()
 
         # 형제 관계 사전 구축: student_id → [형제이름, ...]
@@ -1858,7 +1858,7 @@ def create_payment():
     form = CreatePaymentForm()
 
     # 수업 목록 로드 (보강수업 제외 - 보강은 출결 추적/이월 용도로만 사용)
-    courses = Course.query.filter(Course.course_type != '보강수업').order_by(Course.course_name).all()
+    courses = Course.query.filter(~Course.course_type.like('보강%')).order_by(Course.course_name).all()
     form.course_id.choices = [('', '-- 수업 선택 --')] + [(c.course_id, c.course_name) for c in courses]
 
     # 기본 납부 기한: 현재 월 말일
@@ -3113,11 +3113,20 @@ def approve_makeup_request(request_id):
         # 고유한 course_code 생성 (날짜 + 요청ID 일부)
         unique_code = f"MAKEUP{makeup_date.strftime('%y%m%d')}{makeup_request.request_id[:8]}"
 
+        # 원 수업 타입으로 보강 타입 결정
+        orig_type = original_course.course_type or ''
+        if orig_type == '하크니스':
+            derived_makeup_type = '보강(하크니스)'
+        elif orig_type in ('정규반', '체험단', '베이직'):
+            derived_makeup_type = '보강(정규반)'
+        else:  # 프리미엄, 기타
+            derived_makeup_type = '보강(프리미엄)'
+
         makeup_course = Course(
             course_name=f"[보강] {original_course.course_name} - {student.name}",
             course_code=unique_code,
             grade=original_course.grade,
-            course_type='보강수업',
+            course_type=derived_makeup_type,
             teacher_id=original_course.teacher_id,
             weekday=makeup_date.weekday(),
             start_time=original_course.start_time,

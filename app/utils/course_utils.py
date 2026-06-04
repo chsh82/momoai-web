@@ -98,7 +98,7 @@ def create_attendance_records_for_enrollment(enrollment):
 
     # 보강수업 또는 custom(1회성) 수업은 과거 날짜로 개설될 수 있으므로 입반일 필터 적용 안 함
     skip_date_filter = (
-        enrollment.course.course_type == '보강수업' or
+        (enrollment.course.course_type or '').startswith('보강') or
         enrollment.course.schedule_type == 'custom'
     )
 
@@ -353,7 +353,7 @@ def enroll_student_to_course(course_id, student_id):
     create_attendance_records_for_enrollment(enrollment)
 
     # 보강수업 입반 시 강사 알림 + 출결 소급 처리
-    if course.course_type == '보강수업':
+    if (course.course_type or '').startswith('보강'):
         _notify_makeup_teachers(course, student_id)
         # 1:1/그룹 구분 없이 원 수업 최근 결석을 absent_makeup으로 변경
         # - 그룹 보강: 학생이 다른 반에서 보충
@@ -379,7 +379,7 @@ def _notify_parents_on_enrollment(course, student_id):
         if not student:
             return
 
-        is_makeup = (course.course_type == '보강수업')
+        is_makeup = (course.course_type or '').startswith('보강')
         if is_makeup:
             title = f'[보강 등록] {student.name} 학생'
             start_str = course.start_date.strftime('%Y년 %m월 %d일') if course.start_date else ''
@@ -453,7 +453,7 @@ def _notify_makeup_teachers(makeup_course, student_id, original_course_id=None):
             .filter(
                 CourseEnrollment.student_id == student_id,
                 CourseEnrollment.status == 'active',
-                Course.course_type != '보강수업',
+                ~Course.course_type.like('보강%'),
                 Course.status == 'active',
                 Course.course_id != makeup_course.course_id
             )
@@ -500,7 +500,7 @@ def _mark_recent_absent_as_makeup(student_id, exclude_course_id):
             .filter(
                 Attendance.student_id == student_id,
                 Attendance.status == 'absent',
-                Course.course_type != '보강수업',
+                ~Course.course_type.like('보강%'),
                 Course.status == 'active',
                 Course.course_id != exclude_course_id
             )

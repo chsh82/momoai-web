@@ -3133,7 +3133,7 @@ def zoom_classes():
     ).join(Course).filter(
         or_(
             Course.status == 'active',
-            Course.course_type == '보강수업',
+            Course.course_type.like('보강%'),
         )
     ).all()
 
@@ -3150,7 +3150,7 @@ def zoom_classes():
         zoom_url = decrypt_zoom_link(teacher.zoom_link)
         if zoom_url:
             course_label = course.course_name
-            if course.course_type == '보강수업':
+            if (course.course_type or '').startswith('보강'):
                 course_label = f'[보강] {course.course_name}'
             results.append({
                 'course_name': course_label,

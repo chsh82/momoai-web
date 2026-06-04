@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 """강사 월별 시수 계산 유틸리티"""
 from datetime import date
-from sqlalchemy import extract, func
+from sqlalchemy import extract, func, or_
 from app.models import db, Course, CourseSession, Attendance
+
+# 보강 관련 course_type 집합 (신규 타입 + 기존 호환)
+MAKEUP_TYPES = frozenset({'보강수업', '보강(프리미엄)', '보강(정규반)', '보강(하크니스)'})
+
+
+def is_makeup_type(course_type: str) -> bool:
+    """보강 계열 수업 타입인지 확인"""
+    return bool(course_type and course_type.startswith('보강'))
 
 
 def get_grade_level(course_grade):
@@ -15,15 +23,18 @@ def calculate_session_hours(course_type, grade_level, attended_count):
     수업 유형 + 학년 구분 + 출석 학생 수 → 시수(float)
     26-03월 이후 기준:
 
-    - 베이직:             0.5 (고정)
-    - 프리미엄:           1.0 (고정)
+    - 베이직:               0.5 (고정)
+    - 프리미엄:             1.0 (고정)
     - 시그니처/특강/모의고사: 0.0 (별도 수당)
-    - 보강수업:           1:1=1.0 / 그룹=0.5
-    - 정규반(초등):       1명=1.0 / 2명=2.0 / n>=3: 2.0+(n-2)*0.5
-    - 정규반(중등/고등):  1명=1.0 / 2명=2.5 / n>=3: 2.5+(n-2)*0.5
-    - 하크니스(초등):     1명=1.0 / 2명=2.5 / n>=3: 2.5+(n-2)*0.5
-    - 하크니스(중등/고등): 1명=1.0 / 2명=3.0 / n>=3: 3.0+(n-2)*0.5
-    - 체험단:             1명=1.0 / n>=2: 정규반 공식 동일
+    - 보강(프리미엄):       0명=0.0 / 1명+=1.0 (1:1 전용)
+    - 보강(정규반):         0명=0.0 / 1명+=0.5 (그룹 보강)
+    - 보강(하크니스):       0명=0.0 / 1명+=0.5 (그룹 보강)
+    - 보강수업 (구형):      0명=0.0 / 1:1=1.0 / 그룹=0.5 (기존 데이터 호환)
+    - 정규반(초등):         1명=1.0 / 2명=2.0 / n>=3: 2.0+(n-2)*0.5
+    - 정규반(중등/고등):    1명=1.0 / 2명=2.5 / n>=3: 2.5+(n-2)*0.5
+    - 하크니스(초등):       1명=1.0 / 2명=2.5 / n>=3: 2.5+(n-2)*0.5
+    - 하크니스(중등/고등):  1명=1.0 / 2명=3.0 / n>=3: 3.0+(n-2)*0.5
+    - 체험단:               0명=0.0 / 1명=1.0 / n>=2: 정규반 공식 동일
     """
     n = max(0, attended_count or 0)
 
@@ -33,8 +44,16 @@ def calculate_session_hours(course_type, grade_level, attended_count):
         return 0.0 if n == 0 else 1.0
     if course_type in ('시그니처', '특강', '모의고사'):
         return 0.0
+    # 보강 신규 타입 (명시적 구분)
+    if course_type == '보강(프리미엄)':
+        return 0.0 if n == 0 else 1.0
+    if course_type in ('보강(정규반)', '보강(하크니스)'):
+        return 0.0 if n == 0 else 0.5
+    # 보강수업 (기존 데이터 호환: 1:1=1.0, 그룹=0.5)
     if course_type == '보강수업':
-        return 1.0 if n <= 1 else 0.5
+        if n == 0:
+            return 0.0
+        return 1.0 if n == 1 else 0.5
 
     is_elem = (grade_level == '초등')
 
@@ -63,7 +82,9 @@ def calculate_session_hours(course_type, grade_level, attended_count):
         return base + (n - 2) * 0.5
 
     if course_type == '체험단':
-        return 1.0 if n <= 1 else regular(n)
+        if n == 0:
+            return 0.0
+        return 1.0 if n == 1 else regular(n)
 
     return 0.0
 
@@ -98,13 +119,27 @@ def build_teacher_monthly_data(teacher_id, year, month):
     """
     SPECIAL_TYPES = {'시그니처', '특강', '모의고사'}
 
-    # completed 세션 조회 (해당 강사, 해당 월)
+    # 시수 집계 대상 세션:
+    #   1) session.status == 'completed' (정상 마킹된 세션)
+    #   2) 또는 출결이 입력된 세션 (attendance.checked_at IS NOT NULL).
+    #      강사가 학생 출결만 입력하고 '✓ 완료' 버튼을 누르지 않은 경우에도
+    #      시수에 정상 반영되도록 한다 (status가 scheduled로 남아있어도 포함).
+    attended_subq = (
+        db.session.query(Attendance.session_id)
+        .filter(Attendance.checked_at.isnot(None))
+        .distinct()
+        .subquery()
+    )
     sessions = (
         CourseSession.query
         .join(Course)
         .filter(
             Course.teacher_id == teacher_id,
-            CourseSession.status == 'completed',
+            CourseSession.status != 'cancelled',
+            or_(
+                CourseSession.status == 'completed',
+                CourseSession.session_id.in_(db.session.query(attended_subq.c.session_id))
+            ),
             extract('year', CourseSession.session_date) == year,
             extract('month', CourseSession.session_date) == month
         )
@@ -160,7 +195,7 @@ def build_teacher_monthly_data(teacher_id, year, month):
         if len(group) < 2:
             continue
         primary = next(
-            (s for s in group if course_map[s.session_id].course_type != '보강수업'),
+            (s for s in group if not is_makeup_type(course_map[s.session_id].course_type)),
             None
         )
         if primary is None:
