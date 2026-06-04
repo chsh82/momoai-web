@@ -8,7 +8,8 @@ import os
 from app.parent_portal import parent_bp
 from app.models import (db, Student, ParentStudent, CourseEnrollment, Course,
                        TeacherFeedback, Payment, Attendance, CourseSession, User)
-from app.models.essay import Essay
+from app.models.essay import Essay, EssayResult
+from app.models.essay_score import EssayScore
 from app.models.teaching_material import TeachingMaterial, TeachingMaterialDownload
 from app.models.video import Video, VideoView
 from app.models.parent_link_request import ParentLinkRequest
@@ -136,6 +137,52 @@ def index():
     payment_labels = [f"{int(row.year)}-{int(row.month):02d}" for row in monthly_payments]
     payment_data = [int(row.total) for row in monthly_payments]
 
+    # 4. 자녀별 점수 추이 + 레이더 데이터
+    children_scores = []
+    for child in children:
+        _essay_sids = get_essay_student_ids(child)
+        recent_scores = db.session.query(Essay, EssayResult)\
+            .join(EssayResult, Essay.essay_id == EssayResult.essay_id)\
+            .filter(
+                Essay.student_id.in_(_essay_sids),
+                EssayResult.total_score.isnot(None)
+            ).order_by(Essay.completed_at.desc())\
+            .limit(10).all()
+
+        score_labels = [
+            essay.completed_at.strftime('%m/%d') if essay.completed_at else f"#{i+1}"
+            for i, (essay, _) in enumerate(reversed(recent_scores))
+        ]
+        score_data = [float(result.total_score) for _, result in reversed(recent_scores)]
+
+        radar_data = {'thinking_types': {}, 'integrated_indicators': {}, 'has_data': False}
+        latest = db.session.query(Essay, EssayResult)\
+            .join(EssayResult, Essay.essay_id == EssayResult.essay_id)\
+            .filter(Essay.student_id == child.student_id)\
+            .order_by(Essay.completed_at.desc()).first()
+        if latest:
+            latest_essay, latest_result = latest
+            scores = EssayScore.query.filter_by(
+                essay_id=latest_essay.essay_id,
+                version_id=latest_result.version_id
+            ).all()
+            for s in scores:
+                if s.category == '사고유형':
+                    radar_data['thinking_types'][s.indicator_name] = float(s.score)
+                elif s.category == '통합지표':
+                    radar_data['integrated_indicators'][s.indicator_name] = float(s.score)
+            if radar_data['thinking_types'] or radar_data['integrated_indicators']:
+                radar_data['has_data'] = True
+
+        children_scores.append({
+            'student_id': child.student_id,
+            'name': child.name,
+            'score_labels': json.dumps(score_labels),
+            'score_data': json.dumps(score_data),
+            'radar_data': radar_data,
+            'has_scores': bool(score_data)
+        })
+
     return render_template('parent/index.html',
                          children=children,
                          children_data=children_data,
@@ -149,7 +196,8 @@ def index():
                          child_essay_names=json.dumps(child_essay_names),
                          child_essay_counts=json.dumps(child_essay_counts),
                          payment_labels=json.dumps(payment_labels),
-                         payment_data=json.dumps(payment_data))
+                         payment_data=json.dumps(payment_data),
+                         children_scores=children_scores)
 
 
 @parent_bp.route('/children')
@@ -270,13 +318,10 @@ def child_attendance(student_id):
     # 필터
     course_filter = request.args.get('course', '').strip()
 
-    # 수강 중인 수업 목록
+    # 수강 이력 전체 (학생 본인 라우트와 동일 — 종료된 수업의 과거 출결도 노출)
     enrollments = CourseEnrollment.query.filter_by(
-        student_id=student_id,
-        status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
-    ).all()
+        student_id=student_id
+    ).order_by(CourseEnrollment.enrolled_at.desc()).all()
 
     # 선택된 수업 또는 전체
     if course_filter:
@@ -1298,11 +1343,9 @@ def child_materials(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능
+    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1357,11 +1400,9 @@ def child_material_detail(student_id, material_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능
+    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1401,11 +1442,9 @@ def download_child_material(student_id, material_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능
+    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1486,11 +1525,9 @@ def child_videos(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능
+    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1852,12 +1889,10 @@ def export_child_report(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 수강 정보
+    # 수강 정보 (종합 리포트 — 종료된 수업도 포함)
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
     ).all()
 
     # 첨삭 기록 (중복 student_id 방어)
@@ -1906,12 +1941,10 @@ def export_child_report_pdf(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 수강 정보
+    # 수강 정보 (종합 리포트 — 종료된 수업도 포함)
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student_id,
         status='active'
-    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
-        Course.is_terminated == False
     ).all()
 
     # 첨삭 기록 (중복 student_id 방어)

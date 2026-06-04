@@ -143,6 +143,60 @@
         </div>
     </div>
 
+    <!-- 자녀 점수 추이 섹션 -->
+    {% set scored_children = children_scores | selectattr('has_scores') | list %}
+    {% if scored_children %}
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800">📈 글쓰기 점수 추이</h3>
+            <p class="text-sm text-gray-600 mt-1">최근 10개 첨삭 점수 변화</p>
+        </div>
+        <div class="p-6">
+            {% if scored_children | length > 1 %}
+            <!-- 자녀 탭 -->
+            <div class="flex gap-2 mb-4 border-b border-gray-200">
+                {% for cs in scored_children %}
+                <button onclick="switchScoreTab('{{ cs.student_id }}')"
+                        id="score-tab-{{ cs.student_id }}"
+                        class="score-tab px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors
+                               {% if loop.first %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+                    {{ cs.name }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% for cs in scored_children %}
+            <div id="score-panel-{{ cs.student_id }}"
+                 class="score-panel {% if not loop.first %}hidden{% endif %}">
+                <div class="relative" style="height: 220px;">
+                    <canvas id="scoreTrend_{{ cs.student_id }}"></canvas>
+                </div>
+                {% if cs.radar_data.has_data %}
+                <div class="mt-6">
+                    <h4 class="text-sm font-semibold text-gray-600 mb-3">최신 첨삭 18개 지표 분석</h4>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-center text-gray-500 mb-2">사고유형</p>
+                            <div class="relative" style="height: 240px;">
+                                <canvas id="thinkingRadar_{{ cs.student_id }}"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-center text-gray-500 mb-2">통합지표</p>
+                            <div class="relative" style="height: 240px;">
+                                <canvas id="integratedRadar_{{ cs.student_id }}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- 내 자녀 -->
         <div class="bg-white rounded-lg shadow">
@@ -261,6 +315,84 @@
 
 {% block extra_js %}
 <script>
+// ===== 점수 추이 + 레이더 차트 =====
+{% for cs in children_scores %}
+{% if cs.has_scores %}
+(function() {
+    const scoreValues = {{ cs.score_data|safe }};
+    const scoreBarColors = scoreValues.map(s =>
+        s >= 90 ? 'rgba(139,92,246,0.7)' : s >= 80 ? 'rgba(59,130,246,0.7)' : s >= 70 ? 'rgba(34,197,94,0.7)' : 'rgba(234,179,8,0.7)'
+    );
+    new Chart(document.getElementById('scoreTrend_{{ cs.student_id }}').getContext('2d'), {
+        data: {
+            labels: {{ cs.score_labels|safe }},
+            datasets: [
+                { type: 'bar', label: '점수', data: scoreValues, backgroundColor: scoreBarColors, borderRadius: 5, order: 2 },
+                { type: 'line', label: '추이', data: scoreValues, borderColor: '#F97316', borderWidth: 2, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#F97316', pointBorderColor: '#fff', pointBorderWidth: 2, fill: false, order: 1 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: true, position: 'top' } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { callback: v => v + '점' } },
+                x: { grid: { display: false } }
+            },
+            animation: {
+                onComplete: function() {
+                    const chart = this;
+                    chart.ctx.save();
+                    chart.ctx.font = 'bold 11px sans-serif';
+                    chart.ctx.fillStyle = '#374151';
+                    chart.ctx.textAlign = 'center';
+                    chart.ctx.textBaseline = 'bottom';
+                    chart.data.datasets[0].data.forEach(function(value, index) {
+                        const meta = chart.getDatasetMeta(0);
+                        const bar = meta.data[index];
+                        if (bar && value !== null) chart.ctx.fillText(value + '점', bar.x, bar.y - 4);
+                    });
+                    chart.ctx.restore();
+                }
+            }
+        }
+    });
+    {% if cs.radar_data.has_data %}
+    const radarOpts = {
+        responsive: true, maintainAspectRatio: false,
+        scales: { r: { min: 0, max: 10, ticks: { stepSize: 2, font: { size: 10 } }, pointLabels: { font: { size: 11 } } } },
+        plugins: { legend: { display: false } }
+    };
+    const thinkingTypes = {{ cs.radar_data.thinking_types | tojson }};
+    const thinkingLabels = ['요약','비교','적용','평가','비판','문제해결','자료해석','견해제시','종합'];
+    new Chart(document.getElementById('thinkingRadar_{{ cs.student_id }}'), {
+        type: 'radar',
+        data: { labels: thinkingLabels, datasets: [{ label: '사고유형', data: thinkingLabels.map(l => thinkingTypes[l] || 0), backgroundColor: 'rgba(217,70,239,0.2)', borderColor: '#D946EF', borderWidth: 2, pointBackgroundColor: '#D946EF', pointBorderColor: '#fff', pointRadius: 4 }] },
+        options: radarOpts
+    });
+    const integratedIndicators = {{ cs.radar_data.integrated_indicators | tojson }};
+    const integratedLabels = ['결론','구조/논리성','표현/명료성','문제인식','개념/정보','목적/적절성','관점/다각성','심층성','완전성'];
+    new Chart(document.getElementById('integratedRadar_{{ cs.student_id }}'), {
+        type: 'radar',
+        data: { labels: integratedLabels, datasets: [{ label: '통합지표', data: integratedLabels.map(l => integratedIndicators[l] || 0), backgroundColor: 'rgba(6,182,212,0.2)', borderColor: '#06B6D4', borderWidth: 2, pointBackgroundColor: '#06B6D4', pointBorderColor: '#fff', pointRadius: 4 }] },
+        options: radarOpts
+    });
+    {% endif %}
+})();
+{% endif %}
+{% endfor %}
+
+function switchScoreTab(studentId) {
+    document.querySelectorAll('.score-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.score-tab').forEach(t => {
+        t.classList.remove('border-blue-500', 'text-blue-600');
+        t.classList.add('border-transparent', 'text-gray-500');
+    });
+    document.getElementById('score-panel-' + studentId).classList.remove('hidden');
+    const tab = document.getElementById('score-tab-' + studentId);
+    tab.classList.remove('border-transparent', 'text-gray-500');
+    tab.classList.add('border-blue-500', 'text-blue-600');
+}
+
 // 자녀별 출석률 차트
 const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
 new Chart(attendanceCtx, {
