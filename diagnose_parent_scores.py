@@ -12,6 +12,9 @@ if os.path.exists(env_path):
                 k, v = line.split('=', 1)
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
+import logging
+logging.disable(logging.CRITICAL)
+
 from app import create_app
 from app.models import db, Student, User
 from app.models.essay import Essay, EssayResult
