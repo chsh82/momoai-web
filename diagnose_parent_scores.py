@@ -15,7 +15,7 @@ if os.path.exists(env_path):
 from app import create_app
 from app.models import db, Student, User
 from app.models.essay import Essay, EssayResult
-from app.models.course_enrollment import CourseEnrollment
+from app.models.course import CourseEnrollment
 
 app = create_app()
 with app.app_context():
