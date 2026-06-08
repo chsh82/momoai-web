@@ -2614,12 +2614,12 @@ def attendance_status():
         date_to = today.strftime('%Y-%m-%d')
 
     # 쿼리 빌드 (Student는 Attendance.student_id 기준으로 명시적 join)
+    # enrollment status 필터 제거 — 관리자는 inactive/dropped 수강의 출결도 조회 가능해야 함
     query = Attendance.query\
         .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
         .join(Course, CourseSession.course_id == Course.course_id)\
         .join(Student, Attendance.student_id == Student.student_id)\
-        .join(CourseEnrollment, Attendance.enrollment_id == CourseEnrollment.enrollment_id)\
-        .filter(CourseEnrollment.status.notin_(['dropped', 'inactive']))
+        .join(CourseEnrollment, Attendance.enrollment_id == CourseEnrollment.enrollment_id)
 
     # 날짜 필터
     if date_from:
