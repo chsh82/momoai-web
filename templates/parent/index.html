@@ -145,7 +145,6 @@
 
     <!-- 자녀 점수 추이 섹션 -->
     {% set scored_children = children_scores | selectattr('has_scores') | list %}
-    {% if scored_children %}
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-xl font-bold text-gray-800">📈 글쓰기 점수 추이</h3>
@@ -166,6 +165,9 @@
             </div>
             {% endif %}
 
+            {% if not scored_children %}
+            <p class="text-gray-400 text-center py-8">완료된 첨삭 점수 데이터가 없습니다.</p>
+            {% endif %}
             {% for cs in scored_children %}
             <div id="score-panel-{{ cs.student_id }}"
                  class="score-panel {% if not loop.first %}hidden{% endif %}">
@@ -195,7 +197,6 @@
             {% endfor %}
         </div>
     </div>
-    {% endif %}
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- 내 자녀 -->
