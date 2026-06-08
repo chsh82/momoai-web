@@ -11,6 +11,40 @@ from google.genai import types
 from config import Config
 
 
+def _repair_json(raw: str) -> str:
+    """잘린 JSON을 최대한 복구. 파싱 가능한 마지막 위치까지 중괄호를 닫아줌."""
+    import re
+    # 마지막 완전한 문자열 값 뒤에서 잘린 경우 처리
+    # 열린 중괄호 수만큼 닫기
+    depth = 0
+    in_str = False
+    escape = False
+    last_valid = 0
+    for i, ch in enumerate(raw):
+        if escape:
+            escape = False
+            continue
+        if ch == '\\' and in_str:
+            escape = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+        if not in_str:
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    last_valid = i + 1
+    if last_valid:
+        return raw[:last_valid]
+    # 복구 불가 시: 열린 괄호를 강제로 닫기
+    truncated = raw.rstrip().rstrip(',')
+    truncated += '"' * raw.count('"') % 2  # 홀수 따옴표 닫기
+    truncated += '}' * depth
+    return truncated
+
+
 class GeminiOCRService:
     """Gemini AI를 활용한 OCR 및 분석 서비스"""
 
@@ -103,7 +137,18 @@ class GeminiOCRService:
                                 config=config,
                             )
 
-                result = json.loads(response.text)
+                raw = response.text or ''
+                # 코드블록 제거 (```json ... ```)
+                if '```' in raw:
+                    import re
+                    m = re.search(r'```(?:json)?\s*([\s\S]*?)```', raw)
+                    raw = m.group(1).strip() if m else raw
+                try:
+                    result = json.loads(raw)
+                except json.JSONDecodeError:
+                    # 잘린 JSON 복구 시도: 마지막 완전한 필드까지만 사용
+                    fixed = _repair_json(raw)
+                    result = json.loads(fixed)
                 if isinstance(result, list):
                     result = result[0] if result else {}
                 original_text   = result.get('original_text',  '텍스트 추출 실패')
