@@ -117,6 +117,12 @@ class GeminiOCRService:
                 err_str = str(e)
                 print(f"[Gemini Error] {err_str}")
                 last_exc = e
+                # 크레딧 소진은 재시도해도 무의미 — 즉시 명확한 메시지로 실패
+                if 'prepayment credits are depleted' in err_str or 'RESOURCE_EXHAUSTED' in err_str:
+                    raise Exception(
+                        'Gemini API 크레딧이 소진되었습니다. '
+                        'Google AI Studio(https://aistudio.google.com)에서 결제 정보를 확인해주세요.'
+                    )
                 if '429' in err_str and attempt < max_retries - 1:
                     wait = 5 * (2 ** attempt) + random.uniform(0, 2)
                     print(f"[Gemini] Rate limit, {wait:.1f}초 후 재시도 ({attempt+1}/{max_retries-1})")
