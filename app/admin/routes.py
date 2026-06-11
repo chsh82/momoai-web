@@ -398,6 +398,9 @@ def create_course():
             '시그니처': 75000,
             '모의고사': 10000,
             '보강수업': 65000,
+            '보강(프리미엄)': 65000,
+            '보강(정규반)': 65000,
+            '보강(하크니스)': 65000,
         }
         price_per_session = price_map.get(form.course_type.data, 0)
 
