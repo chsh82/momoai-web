@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}{{ report.student.name }} — {{ report.period.label }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6">
+
+  <!-- 헤더 -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <a href="{{ url_for('parent.essay_reports') }}" class="text-gray-400 hover:text-gray-600 text-sm">← 목록</a>
+      <h1 class="text-xl font-bold text-gray-800">
+        {{ report.student.name }} — {{ report.period.label }}
+      </h1>
+    </div>
+    <a href="{{ url_for('parent.download_essay_report_pdf', report_id=report.report_id) }}"
+       class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded text-sm transition">
+      📄 PDF 저장
+    </a>
+  </div>
+
+  {% set stats = report.stats %}
+
+  <!-- ① 요약 통계 -->
+  <div class="bg-white rounded-lg shadow p-5 mb-4">
+    <h2 class="font-semibold text-gray-700 mb-4">📋 이번 분기 요약</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+      <div class="bg-purple-50 rounded-lg p-4">
+        <div class="text-3xl font-bold text-purple-700">{{ stats.essays.total }}</div>
+        <div class="text-xs text-gray-500 mt-1">완료 첨삭</div>
+      </div>
+      {% if report.correction_model != 'elementary' %}
+        {% if stats.scores.avg %}
+        <div class="bg-blue-50 rounded-lg p-4">
+          <div class="text-3xl font-bold text-blue-700">{{ stats.scores.avg }}</div>
+          <div class="text-xs text-gray-500 mt-1">평균 점수</div>
+        </div>
+        <div class="bg-green-50 rounded-lg p-4">
+          <div class="text-3xl font-bold text-green-700">{{ stats.scores.max }}</div>
+          <div class="text-xs text-gray-500 mt-1">최고 점수</div>
+        </div>
+        <div class="bg-orange-50 rounded-lg p-4">
+          <div class="text-3xl font-bold text-orange-700">{{ stats.scores.min }}</div>
+          <div class="text-xs text-gray-500 mt-1">최저 점수</div>
+        </div>
+        {% endif %}
+      {% else %}
+        <!-- 초등: 성장단계 분포 -->
+        <div class="col-span-3 bg-green-50 rounded-lg p-4">
+          <div class="text-sm font-medium text-green-700 mb-2">이번 분기 성장단계</div>
+          <div class="flex flex-wrap gap-2 justify-center">
+            {% for stage, cnt in stats.growth_stages.items() %}
+            <span class="bg-white border border-green-200 rounded-full px-3 py-1 text-sm">
+              {{ stage }} {{ cnt }}회
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 월별 추이 -->
+    {% if stats.monthly %}
+    <div class="mt-5 border-t pt-4">
+      <div class="text-xs font-medium text-gray-500 mb-3">월별 첨삭 현황</div>
+      <div class="flex gap-4">
+        {% for m in stats.monthly %}
+        <div class="text-center flex-1">
+          <div class="text-base font-semibold text-gray-700">{{ m.count }}건</div>
+          <div class="text-xs text-gray-400">{{ m.month }}</div>
+          {% if m.avg_score and report.correction_model != 'elementary' %}
+          <div class="text-xs text-blue-500 mt-1">{{ m.avg_score }}점</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ② 지표 분석 -->
+  {% if stats.indicators.top3 or stats.indicators.bottom3 %}
+  <div class="bg-white rounded-lg shadow p-5 mb-4">
+    <h2 class="font-semibold text-gray-700 mb-4">🎯 글쓰기 능력 분석</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% if stats.indicators.top3 %}
+      <div>
+        <div class="text-sm font-medium text-green-600 mb-2">✅ 잘하고 있는 영역</div>
+        <div class="space-y-2">
+          {% for name in stats.indicators.top3 %}
+          {% set score = stats.indicators['사고유형'].get(name) or stats.indicators['통합지표'].get(name) %}
+          <div class="flex justify-between items-center bg-green-50 rounded-lg px-3 py-2">
+            <span class="text-sm text-gray-700">{{ name }}</span>
+            {% if score %}<span class="text-green-600 font-semibold text-sm">{{ score }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if stats.indicators.bottom3 %}
+      <div>
+        <div class="text-sm font-medium text-orange-500 mb-2">💪 더 노력해볼 영역</div>
+        <div class="space-y-2">
+          {% for name in stats.indicators.bottom3 %}
+          {% set score = stats.indicators['사고유형'].get(name) or stats.indicators['통합지표'].get(name) %}
+          <div class="flex justify-between items-center bg-orange-50 rounded-lg px-3 py-2">
+            <span class="text-sm text-gray-700">{{ name }}</span>
+            {% if score %}<span class="text-orange-500 font-semibold text-sm">{{ score }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ③ 반복 지적 패턴 -->
+  {% if report.format_patterns or report.content_patterns %}
+  <div class="bg-white rounded-lg shadow p-5 mb-4">
+    <h2 class="font-semibold text-gray-700 mb-4">🔍 이번 분기 자주 지적된 부분</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {% if report.format_patterns %}
+      <div>
+        <div class="text-sm font-medium text-purple-600 mb-3">✏️ 형식 · 표현</div>
+        <ol class="space-y-2">
+          {% for p in report.format_patterns %}
+          <li class="flex items-start gap-2">
+            <span class="w-5 h-5 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{{ p.rank }}</span>
+            <span class="text-sm text-gray-700">{{ p.pattern }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+      {% if report.content_patterns %}
+      <div>
+        <div class="text-sm font-medium text-blue-600 mb-3">📝 내용 · 구조</div>
+        <ol class="space-y-2">
+          {% for p in report.content_patterns %}
+          <li class="flex items-start gap-2">
+            <span class="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{{ p.rank }}</span>
+            <span class="text-sm text-gray-700">{{ p.pattern }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ④ AI 총평 -->
+  {% if report.ai_summary %}
+  <div class="bg-white rounded-lg shadow p-5 mb-4">
+    <h2 class="font-semibold text-gray-700 mb-3">💬 이번 분기 총평</h2>
+    <div class="bg-purple-50 border-l-4 border-purple-400 rounded-r-lg p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+      {{ report.ai_summary }}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ⑤ 강사 총평 -->
+  {% if report.teacher_comment %}
+  <div class="bg-white rounded-lg shadow p-5 mb-4">
+    <h2 class="font-semibold text-gray-700 mb-3">
+      ✍️ 선생님 총평
+    </h2>
+    <div class="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+      {{ report.teacher_comment }}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 발행일 -->
+  <div class="text-right text-xs text-gray-400 mt-4">
+    발행일: {{ report.published_at.strftime('%Y년 %m월 %d일') if report.published_at else '' }}
+  </div>
+</div>
+{% endblock %}

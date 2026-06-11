@@ -5,3 +5,4 @@ from flask import Blueprint
 parent_bp = Blueprint('parent', __name__)
 
 from app.parent_portal import routes
+from app.parent_portal import report_routes

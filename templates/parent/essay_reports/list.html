@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}모모아이 분기 리포트{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+
+  <h1 class="text-2xl font-bold text-gray-800 mb-6">📊 모모아이 분기 리포트</h1>
+
+  {% if reports_by_child %}
+    {% for child_name, child_reports in reports_by_child.items() %}
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-bold">
+          {{ child_name[0] }}
+        </span>
+        {{ child_name }}
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for r in child_reports %}
+        <a href="{{ url_for('parent.view_essay_report', report_id=r.report_id) }}"
+           class="bg-white rounded-lg shadow hover:shadow-md transition p-5 block">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-gray-800">{{ r.period.label }}</div>
+              <div class="text-xs text-gray-400 mt-1">
+                {{ r.period.start_date }} ~ {{ r.period.end_date }}
+              </div>
+            </div>
+            <span class="text-xl">
+              {% if r.correction_model == 'elementary' %}🌱
+              {% elif r.correction_model == 'harkness' %}📚
+              {% else %}✍️{% endif %}
+            </span>
+          </div>
+          {% set stats = r.stats %}
+          <div class="mt-3 flex gap-3 text-sm">
+            <span class="text-gray-500">첨삭 {{ stats.essays.total }}건</span>
+            {% if r.correction_model != 'elementary' and stats.scores.avg %}
+            <span class="text-purple-600 font-medium">평균 {{ stats.scores.avg }}점</span>
+            {% endif %}
+          </div>
+          <div class="mt-2 text-xs text-gray-400">
+            발행: {{ r.published_at.strftime('%Y.%m.%d') if r.published_at else '-' }}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+    <div class="text-4xl mb-3">📋</div>
+    <div>발행된 분기 리포트가 없습니다.</div>
+    <div class="text-sm mt-2">리포트가 발행되면 이 화면에 표시됩니다.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
