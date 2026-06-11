@@ -8,7 +8,7 @@ from app.parent_portal import parent_bp
 from app.models import db
 from app.models.essay_report import EssayReport
 from app.models.parent_student import ParentStudent
-from app.utils.auth_utils import requires_role
+from app.utils.decorators import requires_role
 
 
 def _get_child_ids(parent_id):

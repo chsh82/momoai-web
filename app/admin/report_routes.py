@@ -9,7 +9,7 @@ from app.models import db
 from app.models.essay_report import EssayReport
 from app.models.payment_period import PaymentPeriod
 from app.models.student import Student
-from app.utils.auth_utils import requires_role
+from app.utils.decorators import requires_role
 
 
 @admin_bp.route('/essay-reports')
