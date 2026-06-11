@@ -694,12 +694,14 @@ def makeup_classes(student_id):
     
     student = Student.query.get_or_404(student_id)
     
-    # 보강신청 가능한 수업 조회 (같은 학년, makeup_class_allowed=True, 진행 중)
+    # 보강신청 가능한 수업 조회 (정규반·하크니스만, makeup_class_allowed=True, 진행 중)
+    _excluded_types = ('프리미엄', '시그니처', '보강수업', '보강(정규반)', '보강(프리미엄)', '보강(하크니스)')
     available_courses = Course.query.filter(
         Course.grade == student.grade,
         Course.makeup_class_allowed == True,
         Course.status == 'active',
-        Course.is_terminated == False
+        Course.is_terminated == False,
+        ~Course.course_type.in_(_excluded_types)
     ).order_by(Course.weekday, Course.start_time).all()
     
     # 해당 학생의 신청 내역 조회 (최근 5건만)
