@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block chart_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block title %}{{ current_user.name }}의 마이 페이지 - MOMOAI v4.0{% endblock %}
 
 {% block page_title %}🏠 {{ current_user.name }}의 마이 페이지{% endblock %}
@@ -314,7 +318,7 @@
     </div>
 </div>
 
-{% block extra_js %}
+{% block scripts %}
 <script>
 // ===== 점수 추이 + 레이더 차트 =====
 {% for cs in children_scores %}
