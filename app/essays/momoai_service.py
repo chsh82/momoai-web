@@ -899,8 +899,15 @@ v3.3.0 필수 포함 사항:
             # 파서 가져오기
             parser = get_parser()
 
-            # HTML 파싱
-            parsed_data = parser.parse_html(html_content)
+            # correction_model 확인
+            essay = Essay.query.get(essay_id)
+            correction_model = essay.correction_model if essay else 'standard'
+
+            # HTML 파싱 (모델 유형에 따라 파서 선택)
+            if correction_model == 'elementary':
+                parsed_data = parser.parse_elementary_html(html_content)
+            else:
+                parsed_data = parser.parse_html(html_content)
 
             if not parsed_data.get('success'):
                 # 파싱 실패 시 로그만 남기고 계속 진행
