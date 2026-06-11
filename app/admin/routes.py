@@ -3120,6 +3120,24 @@ def approve_makeup_request(request_id):
         else:  # 프리미엄, 기타
             derived_makeup_type = '보강(프리미엄)'
 
+        # 보강 타입 + 학년별 수업 시간 자동 설정
+        grade_str = original_course.grade or ''
+        if derived_makeup_type == '보강(프리미엄)':
+            duration_min = 60
+        elif derived_makeup_type == '보강(하크니스)':
+            duration_min = 150
+        elif derived_makeup_type == '보강(정규반)':
+            duration_min = 120 if grade_str.startswith('초') else 150
+        else:
+            duration_min = 60
+
+        makeup_start = original_course.start_time
+        if makeup_start:
+            from datetime import datetime as _dt
+            makeup_end = (_dt.combine(date.today(), makeup_start) + timedelta(minutes=duration_min)).time()
+        else:
+            makeup_end = original_course.end_time
+
         makeup_course = Course(
             course_name=f"[보강] {original_course.course_name} - {student.name}",
             course_code=unique_code,
@@ -3127,8 +3145,9 @@ def approve_makeup_request(request_id):
             course_type=derived_makeup_type,
             teacher_id=original_course.teacher_id,
             weekday=makeup_date.weekday(),
-            start_time=original_course.start_time,
-            end_time=original_course.end_time,
+            start_time=makeup_start,
+            end_time=makeup_end,
+            duration_minutes=duration_min,
             start_date=makeup_date,
             end_date=makeup_date,
             availability_status='available',
@@ -3149,8 +3168,8 @@ def approve_makeup_request(request_id):
             course_id=makeup_course.course_id,
             session_number=1,
             session_date=makeup_date,
-            start_time=original_course.start_time,
-            end_time=original_course.end_time,
+            start_time=makeup_start,
+            end_time=makeup_end,
             topic=f"{student.name} 보강수업",
             status='scheduled'
         )
