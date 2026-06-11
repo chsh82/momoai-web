@@ -147,7 +147,7 @@ def index():
                 Essay.student_id.in_(_essay_sids),
                 EssayResult.total_score.isnot(None)
             ).order_by(Essay.completed_at.desc())\
-            .limit(10).all()
+            .limit(12).all()
 
         score_labels = [
             essay.completed_at.strftime('%m/%d') if essay.completed_at else f"#{i+1}"
@@ -156,9 +156,14 @@ def index():
         score_data = [float(result.total_score) for _, result in reversed(recent_scores)]
 
         radar_data = {'thinking_types': {}, 'integrated_indicators': {}, 'has_data': False}
+        # EssayScore 레코드가 존재하는 가장 최신 첨삭 찾기
         latest = db.session.query(Essay, EssayResult)\
             .join(EssayResult, Essay.essay_id == EssayResult.essay_id)\
-            .filter(Essay.student_id == child.student_id)\
+            .join(EssayScore, db.and_(
+                EssayScore.essay_id == Essay.essay_id,
+                EssayScore.version_id == EssayResult.version_id
+            ))\
+            .filter(Essay.student_id.in_(_essay_sids))\
             .order_by(Essay.completed_at.desc()).first()
         if latest:
             latest_essay, latest_result = latest
