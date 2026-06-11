@@ -783,10 +783,13 @@ def materials():
             categories[category] = []
         categories[category].append(material)
 
-    # 수강 중인 수업 목록
+    # 수강 중인 수업 목록 (종료된 수업 제외)
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id,
         status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False,
+        Course.status == 'active'
     ).all()
 
     return render_template('student/materials.html',
@@ -1442,10 +1445,12 @@ def teaching_materials():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    # 수강 중인 학생만 접근 가능 (admin 제외)
+    # 수강 중인 학생만 접근 가능 (admin 제외, 종료된 수업 제외)
     if current_user.role == 'student':
         is_enrolled = CourseEnrollment.query.filter_by(
             student_id=student.student_id, status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False, Course.status == 'active'
         ).first() is not None
         if not is_enrolled:
             return render_template('student/teaching_materials.html',
@@ -1596,10 +1601,12 @@ def teaching_videos():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    # 수강 중인 학생만 접근 가능
+    # 수강 중인 학생만 접근 가능 (종료된 수업 제외)
     if current_user.role == 'student':
         is_enrolled = CourseEnrollment.query.filter_by(
             student_id=student.student_id, status='active'
+        ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+            Course.is_terminated == False, Course.status == 'active'
         ).first() is not None
         if not is_enrolled:
             return render_template('student/teaching_videos.html',

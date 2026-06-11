@@ -1345,9 +1345,11 @@ def child_materials(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
+    # 자녀가 수강 중인 경우만 접근 가능 (종료된 수업 제외)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False, Course.status == 'active'
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1402,9 +1404,11 @@ def child_material_detail(student_id, material_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
+    # 자녀가 수강 중인 경우만 접근 가능 (종료된 수업 제외)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False, Course.status == 'active'
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1444,9 +1448,11 @@ def download_child_material(student_id, material_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
+    # 자녀가 수강 중인 경우만 접근 가능 (종료된 수업 제외)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False, Course.status == 'active'
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
@@ -1527,9 +1533,11 @@ def child_videos(student_id):
 
     student = Student.query.get_or_404(student_id)
 
-    # 자녀가 수강 중인 경우만 접근 가능 (학생 본인 라우트와 동일하게 종료 여부 무관)
+    # 자녀가 수강 중인 경우만 접근 가능 (종료된 수업 제외)
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student_id, status='active'
+    ).join(Course, CourseEnrollment.course_id == Course.course_id).filter(
+        Course.is_terminated == False, Course.status == 'active'
     ).first() is not None
     if not is_enrolled:
         flash('수강 중인 학생만 이용 가능합니다.', 'warning')
