@@ -435,6 +435,80 @@ def enroll_student_to_course(course_id, student_id):
     return enrollment
 
 
+def create_makeup_course_from_source(source_course, student, makeup_date, schedule_id=None):
+    """EnrollmentSchedule(makeup) 또는 기타 용도로 1회 보강수업 생성 후 학생 등록.
+
+    Returns:
+        생성된 makeup Course 객체
+    """
+    from datetime import date as _d, timedelta as _td, datetime as _dt
+
+    orig_type = source_course.course_type or ''
+    if orig_type in ('하크니스', '보강(하크니스)'):
+        derived_type = '보강(하크니스)'
+    elif orig_type in ('정규반', '체험단', '베이직', '보강수업', '보강(정규반)'):
+        derived_type = '보강(정규반)'
+    elif orig_type in ('프리미엄', '시그니처', '보강(프리미엄)'):
+        derived_type = '보강(프리미엄)'
+    else:
+        derived_type = '보강(정규반)'
+
+    grade_str = source_course.grade or ''
+    if derived_type == '보강(프리미엄)':
+        duration_min = 60
+    elif derived_type == '보강(하크니스)':
+        duration_min = 150
+    else:
+        duration_min = 120 if grade_str.startswith('초') else 150
+
+    makeup_start = source_course.start_time
+    if makeup_start:
+        makeup_end = (_dt.combine(_d.today(), makeup_start) + _td(minutes=duration_min)).time()
+    else:
+        makeup_end = source_course.end_time
+
+    suffix = schedule_id[:8] if schedule_id else str(makeup_date).replace('-', '')
+    unique_code = f"MAKEUP{makeup_date.strftime('%y%m%d')}{suffix}"
+
+    makeup_course = Course(
+        course_name=f"[보강] {source_course.course_name} - {student.name}",
+        course_code=unique_code,
+        grade=source_course.grade,
+        course_type=derived_type,
+        teacher_id=source_course.teacher_id,
+        weekday=makeup_date.weekday(),
+        start_time=makeup_start,
+        end_time=makeup_end,
+        duration_minutes=duration_min,
+        start_date=makeup_date,
+        end_date=makeup_date,
+        availability_status='available',
+        makeup_class_allowed=False,
+        schedule_type='custom',
+        max_students=1,
+        price_per_session=65000,
+        status='active',
+        description=f"{student.name} 학생의 보강수업 (원수업: {source_course.course_name})"
+    )
+    db.session.add(makeup_course)
+    db.session.flush()
+
+    makeup_session = CourseSession(
+        course_id=makeup_course.course_id,
+        session_number=1,
+        session_date=makeup_date,
+        start_time=makeup_start,
+        end_time=makeup_end,
+        topic=f"{student.name} 보강수업",
+        status='scheduled'
+    )
+    db.session.add(makeup_session)
+    db.session.flush()
+
+    enroll_student_to_course(makeup_course.course_id, student.student_id)
+    return makeup_course
+
+
 def _notify_parents_on_enrollment(course, student_id):
     """수업 입반 시 학생 본인 및 연결된 학부모에게 알림 발송"""
     import logging

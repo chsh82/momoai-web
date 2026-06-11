@@ -3715,7 +3715,7 @@ def apply_enrollment_schedule_now(schedule_id):
     """입반/전반 예약 즉시 적용"""
     from app.models.enrollment_schedule import EnrollmentSchedule
     from app.models.course import CourseEnrollment
-    from app.utils.course_utils import enroll_student_to_course
+    from app.utils.course_utils import enroll_student_to_course, create_makeup_course_from_source
 
     sched = EnrollmentSchedule.query.get_or_404(schedule_id)
     if sched.status != 'scheduled':
@@ -3744,14 +3744,11 @@ def apply_enrollment_schedule_now(schedule_id):
             from app.utils.enrollment_utils import clear_teacher_if_no_active_enrollment
             clear_teacher_if_no_active_enrollment(sched.student_id)
         flash(f'{student.name} 학생의 {course.course_name} 전반이 완료되었습니다.', 'success')
-    else:  # makeup
-        # 기존 학적 유지, 추가 수강만 등록
-        existing = CourseEnrollment.query.filter_by(
-            course_id=sched.course_id, student_id=sched.student_id, status='active'
-        ).first()
-        if not existing:
-            enroll_student_to_course(sched.course_id, sched.student_id)
-        flash(f'{student.name} 학생의 {course.course_name} 보강 참여가 등록되었습니다. (기존 학적 유지)', 'success')
+    else:  # makeup: 별도 1회 보강수업 개설 후 학생 배정
+        makeup_course = create_makeup_course_from_source(
+            course, student, sched.scheduled_date, sched.schedule_id
+        )
+        flash(f'{student.name} 학생의 보강수업이 개설되고 배정되었습니다. ({makeup_course.course_name})', 'success')
 
     sched.status = 'applied'
     sched.applied_at = datetime.utcnow()

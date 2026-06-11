@@ -126,7 +126,7 @@ def apply_enrollment_schedules(app):
             from app.models.enrollment_schedule import EnrollmentSchedule
             from app.models.course import CourseEnrollment
             from app.models.notification import Notification
-            from app.utils.course_utils import enroll_student_to_course
+            from app.utils.course_utils import enroll_student_to_course, create_makeup_course_from_source
 
             today = date.today()
             schedules = EnrollmentSchedule.query.filter_by(
@@ -176,14 +176,10 @@ def apply_enrollment_schedules(app):
                             from app.utils.enrollment_utils import clear_teacher_if_no_active_enrollment
                             clear_teacher_if_no_active_enrollment(sched.student_id)
 
-                    else:  # makeup: 기존 학적 유지, 추가 수강만 등록
-                        existing = CourseEnrollment.query.filter_by(
-                            course_id=sched.course_id,
-                            student_id=sched.student_id,
-                            status='active'
-                        ).first()
-                        if not existing:
-                            enroll_student_to_course(sched.course_id, sched.student_id)
+                    else:  # makeup: 별도 1회 보강수업 개설 후 학생 배정
+                        create_makeup_course_from_source(
+                            course, student, sched.scheduled_date, sched.schedule_id
+                        )
 
                     from datetime import datetime
                     sched.status = 'applied'
