@@ -45,25 +45,62 @@ def essay_reports():
     )
 
 
-@admin_bp.route('/essay-reports/generate', methods=['POST'])
+@admin_bp.route('/essay-reports/generate-list', methods=['POST'])
 @login_required
 @requires_role('admin', 'teacher')
-def generate_essay_reports():
-    """선택한 분기의 리포트 일괄 생성"""
-    from app.essays.report_generator import generate_reports_for_period
+def generate_essay_reports_list():
+    """선택한 분기의 대상 학생 목록 반환 (AJAX)"""
+    from app.models.essay import Essay
+    from datetime import datetime
 
     period_id = request.form.get('period_id')
     period = PaymentPeriod.query.get_or_404(period_id)
 
-    result = generate_reports_for_period(period)
+    student_ids = db.session.query(Essay.student_id.distinct()).filter(
+        Essay.correction_model.in_(['standard', 'harkness', 'elementary']),
+        Essay.status == 'completed',
+        Essay.completed_at >= datetime.combine(period.start_date, datetime.min.time()),
+        Essay.completed_at <= datetime.combine(period.end_date, datetime.max.time()),
+    ).all()
+    student_ids = [r[0] for r in student_ids]
 
-    if result['errors']:
-        flash(f"생성 완료 {result['created']}건, 오류 {len(result['errors'])}건: "
-              + ', '.join(result['errors'][:3]), 'warning')
-    else:
-        flash(f"리포트 {result['created']}건 생성 완료 (첨삭 없음 {result['skipped']}건 건너뜀)", 'success')
+    students = []
+    for sid in student_ids:
+        s = Student.query.get(sid)
+        if s:
+            existing = EssayReport.query.filter_by(
+                student_id=sid, period_id=period_id
+            ).first()
+            students.append({
+                'student_id': sid,
+                'name': s.name,
+                'skip': existing is not None and existing.status == 'published',
+            })
 
-    return redirect(url_for('admin.essay_reports', period_id=period_id))
+    return jsonify({'students': students, 'period_id': period_id})
+
+
+@admin_bp.route('/essay-reports/generate-one', methods=['POST'])
+@login_required
+@requires_role('admin', 'teacher')
+def generate_essay_report_one():
+    """학생 1명 리포트 생성 (AJAX)"""
+    from app.essays.report_generator import generate_report
+
+    student_id = request.form.get('student_id', type=int)
+    period_id = request.form.get('period_id')
+
+    student = Student.query.get_or_404(student_id)
+    period = PaymentPeriod.query.get_or_404(period_id)
+
+    try:
+        report = generate_report(student, period)
+        if report:
+            return jsonify({'status': 'ok', 'name': student.name})
+        else:
+            return jsonify({'status': 'skipped', 'name': student.name})
+    except Exception as e:
+        return jsonify({'status': 'error', 'name': student.name, 'error': str(e)}), 200
 
 
 @admin_bp.route('/essay-reports/<report_id>', methods=['GET', 'POST'])

@@ -26,15 +26,26 @@
     </form>
 
     {% if selected_period %}
-    <form method="post" action="{{ url_for('admin.generate_essay_reports') }}"
-          onsubmit="return confirm('{{ selected_period.label }} 리포트를 일괄 생성합니까?\n(이미 발행된 리포트는 건드리지 않습니다)')">
-      <input type="hidden" name="period_id" value="{{ selected_period.period_id }}">
-      <button type="submit"
+    <div>
+      <button id="btn-generate"
+              onclick="startBatchGenerate('{{ selected_period.period_id }}', '{{ selected_period.label }}')"
               class="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700 transition">
         ⚡ 이 분기 리포트 일괄 생성
       </button>
-    </form>
+    </div>
     {% endif %}
+  </div>
+
+  <!-- 일괄 생성 진행 UI -->
+  <div id="progress-box" class="hidden bg-white rounded-lg shadow p-5 mb-6">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-medium text-gray-700">리포트 생성 중...</span>
+      <span id="progress-text" class="text-sm text-gray-500">0 / 0</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
+      <div id="progress-bar" class="bg-purple-500 h-3 rounded-full transition-all duration-300" style="width:0%"></div>
+    </div>
+    <div id="progress-log" class="text-xs text-gray-500 max-h-24 overflow-y-auto space-y-0.5"></div>
   </div>
 
   {% if selected_period %}
@@ -120,4 +131,93 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function startBatchGenerate(periodId, periodLabel) {
+  if (!confirm(periodLabel + ' 리포트를 일괄 생성합니까?\n(이미 발행된 리포트는 건드리지 않습니다)')) return;
+
+  const btn = document.getElementById('btn-generate');
+  const box = document.getElementById('progress-box');
+  const bar = document.getElementById('progress-bar');
+  const text = document.getElementById('progress-text');
+  const log = document.getElementById('progress-log');
+
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
+  box.classList.remove('hidden');
+  log.innerHTML = '';
+
+  // 1단계: 대상 학생 목록 조회
+  const fd = new FormData();
+  fd.append('period_id', periodId);
+  const res = await fetch('{{ url_for("admin.generate_essay_reports_list") }}', { method: 'POST', body: fd });
+  const data = await res.json();
+  const students = data.students;
+  const total = students.length;
+
+  if (total === 0) {
+    log.innerHTML = '<p class="text-gray-400">이 분기에 첨삭 완료된 학생이 없습니다.</p>';
+    btn.disabled = false;
+    btn.textContent = '⚡ 이 분기 리포트 일괄 생성';
+    return;
+  }
+
+  let done = 0, created = 0, skipped = 0, errors = 0;
+
+  // 2단계: 학생 1명씩 순차 처리
+  for (const s of students) {
+    if (s.skip) {
+      done++; skipped++;
+      text.textContent = done + ' / ' + total;
+      bar.style.width = Math.round(done / total * 100) + '%';
+      addLog(log, '⏭ ' + s.name + ' (발행됨, 건너뜀)');
+      continue;
+    }
+
+    addLog(log, '⏳ ' + s.name + ' 생성 중...');
+    const fd2 = new FormData();
+    fd2.append('student_id', s.student_id);
+    fd2.append('period_id', periodId);
+
+    try {
+      const r2 = await fetch('{{ url_for("admin.generate_essay_report_one") }}', { method: 'POST', body: fd2 });
+      const d2 = await r2.json();
+      done++;
+      if (d2.status === 'ok') { created++; updateLastLog(log, '✅ ' + s.name); }
+      else if (d2.status === 'skipped') { skipped++; updateLastLog(log, '⏭ ' + s.name + ' (첨삭 없음)'); }
+      else { errors++; updateLastLog(log, '❌ ' + s.name + ': ' + (d2.error || '오류')); }
+    } catch (e) {
+      done++; errors++;
+      updateLastLog(log, '❌ ' + s.name + ': 네트워크 오류');
+    }
+
+    text.textContent = done + ' / ' + total;
+    bar.style.width = Math.round(done / total * 100) + '%';
+  }
+
+  // 완료
+  bar.classList.replace('bg-purple-500', 'bg-green-500');
+  addLog(log, '🎉 완료: 생성 ' + created + '건 / 건너뜀 ' + skipped + '건' + (errors ? ' / 오류 ' + errors + '건' : ''));
+  btn.disabled = false;
+  btn.textContent = '⚡ 이 분기 리포트 일괄 생성';
+
+  setTimeout(() => location.reload(), 1500);
+}
+
+function addLog(el, msg) {
+  const p = document.createElement('p');
+  p.textContent = msg;
+  p.dataset.live = '1';
+  el.appendChild(p);
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateLastLog(el, msg) {
+  const live = el.querySelector('[data-live="1"]:last-child');
+  if (live) { live.textContent = msg; delete live.dataset.live; }
+  else addLog(el, msg);
+}
+</script>
 {% endblock %}
