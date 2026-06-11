@@ -156,6 +156,9 @@
                     {% if session.course.course_type == '보강수업' %}
                     <span class="px-1.5 py-0.5 bg-orange-100 text-orange-800 text-xs rounded font-medium">🔄 보강</span>
                     {% endif %}
+                    {% if session.course.is_terminated %}
+                    <span class="px-1.5 py-0.5 bg-gray-200 text-gray-700 text-xs rounded font-medium">🔚 수업종료</span>
+                    {% endif %}
                     <!-- 수업명 -->
                     <span class="text-sm font-medium text-gray-700">{{ session.course.course_name }}</span>
                     <!-- 세션 번호 -->
