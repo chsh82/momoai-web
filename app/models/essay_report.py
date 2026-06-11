@@ -12,7 +12,7 @@ class EssayReport(db.Model):
     report_id = db.Column(db.String(36), primary_key=True,
                           default=lambda: str(uuid.uuid4()))
 
-    student_id = db.Column(db.Integer, db.ForeignKey('student.student_id'),
+    student_id = db.Column(db.Integer, db.ForeignKey('students.student_id'),
                            nullable=False, index=True)
     period_id = db.Column(db.String(36), db.ForeignKey('payment_periods.period_id'),
                           nullable=False, index=True)
@@ -37,7 +37,7 @@ class EssayReport(db.Model):
     teacher_comment = db.Column(db.Text)
 
     # 검수 정보
-    reviewed_by = db.Column(db.Integer, db.ForeignKey('user.user_id'))
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     reviewed_at = db.Column(db.DateTime)
     published_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
