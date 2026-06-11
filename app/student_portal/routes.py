@@ -3129,14 +3129,11 @@ def zoom_classes():
     if not student:
         return jsonify({'error': '학생 정보를 찾을 수 없습니다.'}), 404
 
-    from sqlalchemy import or_
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id, status='active'
     ).join(Course).filter(
-        or_(
-            Course.status == 'active',
-            Course.course_type.like('보강%'),
-        )
+        Course.is_terminated == False,
+        Course.status == 'active'
     ).all()
 
     results = []
