@@ -339,6 +339,8 @@ function autoSetEndTime() {
     let minutesToAdd = 60;  // 기본값
     if (courseType === '베이직') {
         minutesToAdd = 30;
+    } else if (courseType === '시그니처') {
+        minutesToAdd = 180;
     } else if (courseType === '프리미엄' || courseType === '보강(프리미엄)') {
         minutesToAdd = 60;
     } else if (courseType === '정규반' || courseType === '보강(정규반)' || courseType === '보강수업') {

@@ -454,12 +454,14 @@ def create_makeup_course_from_source(source_course, student, makeup_date, schedu
         derived_type = '보강(정규반)'
 
     grade_str = source_course.grade or ''
-    if derived_type == '보강(프리미엄)':
-        duration_min = 60
-    elif derived_type == '보강(하크니스)':
+    if orig_type in ('시그니처',):
+        duration_min = 180
+    elif orig_type in ('하크니스', '보강(하크니스)'):
         duration_min = 150
-    else:
+    elif orig_type in ('정규반', '체험단', '베이직', '보강수업', '보강(정규반)'):
         duration_min = 120 if grade_str.startswith('초') else 150
+    else:  # 프리미엄, 보강(프리미엄), 기타
+        duration_min = 60
 
     makeup_start = source_course.start_time
     if makeup_start:

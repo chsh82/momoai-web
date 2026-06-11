@@ -3125,15 +3125,15 @@ def approve_makeup_request(request_id):
         else:
             derived_makeup_type = '보강(정규반)'  # 알 수 없는 타입은 정규반으로 처리
 
-        # 보강 타입 + 학년별 수업 시간 자동 설정
+        # 보강 타입 + 학년별 수업 시간 자동 설정 (orig_type 직접 참조)
         grade_str = original_course.grade or ''
-        if derived_makeup_type == '보강(프리미엄)':
-            duration_min = 60
-        elif derived_makeup_type == '보강(하크니스)':
+        if orig_type in ('시그니처',):
+            duration_min = 180
+        elif orig_type in ('하크니스', '보강(하크니스)'):
             duration_min = 150
-        elif derived_makeup_type == '보강(정규반)':
+        elif orig_type in ('정규반', '체험단', '베이직', '보강수업', '보강(정규반)'):
             duration_min = 120 if grade_str.startswith('초') else 150
-        else:
+        else:  # 프리미엄, 보강(프리미엄), 기타
             duration_min = 60
 
         makeup_start = original_course.start_time
