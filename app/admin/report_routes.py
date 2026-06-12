@@ -45,7 +45,7 @@ def essay_reports():
     )
 
 
-@admin_bp.route('/essay-reports/generate-list', methods=['POST'])
+@admin_bp.route('/essay-reports-generate/list', methods=['POST'])
 @login_required
 @requires_role('admin', 'teacher')
 def generate_essay_reports_list():
@@ -80,7 +80,7 @@ def generate_essay_reports_list():
     return jsonify({'students': students, 'period_id': period_id})
 
 
-@admin_bp.route('/essay-reports/generate-one', methods=['POST'])
+@admin_bp.route('/essay-reports-generate/one', methods=['POST'])
 @login_required
 @requires_role('admin', 'teacher')
 def generate_essay_report_one():
