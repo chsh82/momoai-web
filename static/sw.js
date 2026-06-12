@@ -1,4 +1,4 @@
-const CACHE_NAME = 'momoai-v4.3.1';
+const CACHE_NAME = 'momoai-v4.3.2';
 const urlsToCache = [
   '/',
   '/static/manifest.json',
@@ -132,30 +132,25 @@ const OFFLINE_URL = '/offline.html';
 
 // 설치 이벤트
 self.addEventListener('install', event => {
-  console.log('[SW v4.1.0] Installing... (Performance Optimized)');
+  console.log('[SW v4.3.2] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('[SW] Caching optimized resources');
-        // 오프라인 페이지를 Response 객체로 캐시
         cache.put(OFFLINE_URL, new Response(OFFLINE_HTML, {
           headers: { 'Content-Type': 'text/html' }
         }));
 
-        // 기본 리소스 캐시
         const cachePromises = [
           cache.addAll(urlsToCache).catch(err => {
             console.error('[SW] Failed to cache app shell:', err);
           }),
-          // CDN 리소스 캐시 (실패해도 계속 진행)
           ...CDN_URLS.map(url =>
             fetch(url, { mode: 'cors', cache: 'no-cache' })
               .then(response => {
-                if (response.ok) {
-                  return cache.put(url, response);
-                }
+                if (response.ok) return cache.put(url, response);
               })
-              .catch(err => {
+              .catch(() => {
                 console.warn('[SW] Failed to cache CDN:', url);
               })
           )
@@ -166,31 +161,30 @@ self.addEventListener('install', event => {
       .catch(err => {
         console.error('[SW] Install failed:', err);
       })
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 // 활성화 이벤트 - 오래된 캐시 삭제
 self.addEventListener('activate', event => {
-  console.log('[SW v4.1.0] Activating...');
+  console.log('[SW v4.3.2] Activating...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
+    caches.keys()
+      .then(cacheNames => Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
-      );
-    })
+      ))
+      .then(() => self.clients.claim())
   );
-  return self.clients.claim();
 });
 
-// Fetch 이벤트 - Stale-While-Revalidate 전략
+// Fetch 이벤트
 self.addEventListener('fetch', event => {
-  // POST 요청은 캐시하지 않음
+  // GET 외 요청(POST 등)은 SW가 관여하지 않음
   if (event.request.method !== 'GET') {
     return;
   }
@@ -200,31 +194,22 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML 페이지 요청 (navigation)
-  if (event.request.mode === 'navigate') {
+  // HTML 문서 요청 — 항상 네트워크 우선, 실패 시에만 캐시
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          // 성공하면 캐시에 저장하고 반환
+          // 200 응답이면 캐시 갱신 후 반환
           if (response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseToCache);
-            });
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           }
           return response;
         })
-        .catch(() => {
-          // 네트워크 실패 시 캐시 확인
-          return caches.match(event.request)
-            .then(cachedResponse => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              // 캐시에도 없으면 오프라인 페이지 표시
-              return caches.match(OFFLINE_URL);
-            });
-        })
+        .catch(() =>
+          caches.match(event.request)
+            .then(cached => cached || caches.match(OFFLINE_URL))
+        )
     );
     return;
   }
@@ -387,4 +372,4 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('[SW v4.3.1] Service Worker loaded');
+console.log('[SW v4.3.2] Service Worker loaded');
