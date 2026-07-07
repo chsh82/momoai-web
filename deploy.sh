@@ -16,14 +16,14 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 설정
-APP_DIR="/home/momoai/momoai_web"
+APP_DIR="/home/chsh82/momoai_web"
 VENV_DIR="$APP_DIR/venv"
 SERVICE_NAME="momoai"
 
 # 1. Git Pull (코드 업데이트)
 echo -e "\n${YELLOW}[1/8]${NC} Git 업데이트 중..."
 cd $APP_DIR
-git pull origin main
+git pull origin master
 
 # 2. 가상환경 활성화
 echo -e "\n${YELLOW}[2/8]${NC} 가상환경 활성화..."
@@ -41,6 +41,7 @@ npm run build:css
 echo -e "\n${YELLOW}[5/8]${NC} 데이터베이스 마이그레이션..."
 export FLASK_APP=run.py
 export FLASK_ENV=production
+export DATABASE_URL="sqlite:///momoai.db"
 flask db upgrade
 
 # 6. 정적 파일 권한 설정
