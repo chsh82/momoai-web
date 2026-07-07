@@ -123,9 +123,6 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """프로덕션 환경 설정"""
     DEBUG = False
-    # 프로덕션에서는 PostgreSQL 사용
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql://user:password@localhost/momoai'
 
 
 config = {
