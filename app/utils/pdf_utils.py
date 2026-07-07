@@ -21,6 +21,31 @@ except ImportError:
 import os
 
 
+KOREAN_FONT_CANDIDATES = [
+    # Windows
+    ('MalgunGothic', 'C:\\Windows\\Fonts\\malgun.ttf'),
+    # Linux - Nanum Gothic (sudo apt install fonts-nanum)
+    ('NanumGothic', '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'),
+    ('NanumGothic', '/usr/share/fonts/nanum/NanumGothic.ttf'),
+    ('NanumGothic', '/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf'),
+    # Linux - Noto CJK
+    ('NotoSansCJK', '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'),
+    ('NotoSansCJK', '/usr/share/fonts/noto-cjk/NotoSansCJKkr-Regular.otf'),
+]
+
+
+def get_korean_font_path():
+    """
+    서버에 실제로 설치된 한글 폰트의 (이름, 파일 경로)를 반환.
+    xhtml2pdf 등 reportlab 폰트 등록 없이 파일 경로만 필요한 경우에 사용.
+    못 찾으면 (None, None).
+    """
+    for font_name, font_path in KOREAN_FONT_CANDIDATES:
+        if os.path.exists(font_path):
+            return font_name, font_path
+    return None, None
+
+
 def register_korean_font():
     """
     한글 폰트 등록
@@ -30,20 +55,8 @@ def register_korean_font():
     if not REPORTLAB_AVAILABLE:
         raise ImportError("reportlab이 설치되어 있지 않습니다. pip install reportlab을 실행하세요.")
 
-    candidates = [
-        # Windows
-        ('MalgunGothic', 'C:\\Windows\\Fonts\\malgun.ttf'),
-        # Linux - Nanum Gothic (sudo apt install fonts-nanum)
-        ('NanumGothic', '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'),
-        ('NanumGothic', '/usr/share/fonts/nanum/NanumGothic.ttf'),
-        ('NanumGothic', '/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf'),
-        # Linux - Noto CJK
-        ('NotoSansCJK', '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'),
-        ('NotoSansCJK', '/usr/share/fonts/noto-cjk/NotoSansCJKkr-Regular.otf'),
-    ]
-
     try:
-        for font_name, font_path in candidates:
+        for font_name, font_path in KOREAN_FONT_CANDIDATES:
             if os.path.exists(font_path):
                 pdfmetrics.registerFont(TTFont(font_name, font_path))
                 return font_name

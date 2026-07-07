@@ -67,9 +67,19 @@ def download_essay_report_pdf(report_id):
         abort(403)
 
     try:
+        from pathlib import Path
         from xhtml2pdf import pisa
+        from app.utils.pdf_utils import get_korean_font_path
 
-        html_str = render_template('parent/essay_reports/pdf.html', report=report)
+        font_name, font_path = get_korean_font_path()
+        font_uri = Path(font_path).resolve().as_posix() if font_path else None
+
+        html_str = render_template(
+            'parent/essay_reports/pdf.html',
+            report=report,
+            korean_font_name=font_name,
+            korean_font_uri=font_uri,
+        )
         buf = io.BytesIO()
         pisa.CreatePDF(io.StringIO(html_str), dest=buf, encoding='utf-8')
         buf.seek(0)

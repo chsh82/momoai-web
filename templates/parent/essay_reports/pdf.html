@@ -3,9 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <style>
+  {% if korean_font_uri %}
+  @font-face {
+    font-family: '{{ korean_font_name }}';
+    src: url('{{ korean_font_uri }}');
+  }
+  {% endif %}
   @page { size: A4; margin: 20mm 15mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; font-size: 11px; color: #1a1a1a; line-height: 1.6; }
+  body { font-family: {% if korean_font_name %}'{{ korean_font_name }}', {% endif %}sans-serif; font-size: 11px; color: #1a1a1a; line-height: 1.6; }
   .header { border-bottom: 2px solid #7c3aed; padding-bottom: 12px; margin-bottom: 18px; }
   .header h1 { font-size: 18px; font-weight: 700; color: #7c3aed; }
   .header .sub { font-size: 11px; color: #6b7280; margin-top: 3px; }
