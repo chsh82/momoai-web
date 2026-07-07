@@ -21,40 +21,55 @@ VENV_DIR="$APP_DIR/venv"
 SERVICE_NAME="momoai"
 
 # 1. Git Pull (코드 업데이트)
-echo -e "\n${YELLOW}[1/8]${NC} Git 업데이트 중..."
+echo -e "\n${YELLOW}[1/9]${NC} Git 업데이트 중..."
 cd $APP_DIR
 git pull origin master
 
 # 2. 가상환경 활성화
-echo -e "\n${YELLOW}[2/8]${NC} 가상환경 활성화..."
+echo -e "\n${YELLOW}[2/9]${NC} 가상환경 활성화..."
 source $VENV_DIR/bin/activate
 
 # 3. 패키지 설치/업데이트
-echo -e "\n${YELLOW}[3/8]${NC} Python 패키지 업데이트..."
+echo -e "\n${YELLOW}[3/9]${NC} Python 패키지 업데이트..."
 pip install -r requirements.txt -r requirements-prod.txt --upgrade
 
 # 4. CSS 빌드 (성능 최적화)
-echo -e "\n${YELLOW}[4/8]${NC} CSS 빌드 중..."
+echo -e "\n${YELLOW}[4/9]${NC} CSS 빌드 중..."
 npm run build:css
 
-# 5. 데이터베이스 마이그레이션
-echo -e "\n${YELLOW}[5/8]${NC} 데이터베이스 마이그레이션..."
+# 5. 데이터베이스 백업 (마이그레이션 전 안전장치)
+echo -e "\n${YELLOW}[5/9]${NC} 데이터베이스 백업 중..."
+BACKUP_DIR="$APP_DIR/backups"
+DB_FILE="$APP_DIR/instance/momoai.db"
+mkdir -p "$BACKUP_DIR"
+if [ -f "$DB_FILE" ]; then
+    BACKUP_FILE="$BACKUP_DIR/momoai_$(date +%Y%m%d_%H%M%S).db"
+    cp "$DB_FILE" "$BACKUP_FILE"
+    echo "  백업 완료: $BACKUP_FILE"
+    # 30일 지난 백업 자동 정리
+    find "$BACKUP_DIR" -name "momoai_*.db" -mtime +30 -delete
+else
+    echo -e "  ${YELLOW}⚠ DB 파일을 찾을 수 없어 백업을 건너뜁니다: $DB_FILE${NC}"
+fi
+
+# 6. 데이터베이스 마이그레이션
+echo -e "\n${YELLOW}[6/9]${NC} 데이터베이스 마이그레이션..."
 export FLASK_APP=run.py
 export FLASK_ENV=production
 export DATABASE_URL="sqlite:///momoai.db"
 flask db upgrade
 
-# 6. 정적 파일 권한 설정
-echo -e "\n${YELLOW}[6/8]${NC} 파일 권한 설정..."
+# 7. 정적 파일 권한 설정
+echo -e "\n${YELLOW}[7/9]${NC} 파일 권한 설정..."
 chmod -R 755 static
 chmod -R 755 uploads
 
-# 7. 서비스 재시작
-echo -e "\n${YELLOW}[7/8]${NC} 서비스 재시작..."
+# 8. 서비스 재시작
+echo -e "\n${YELLOW}[8/9]${NC} 서비스 재시작..."
 sudo systemctl restart $SERVICE_NAME
 
-# 8. 상태 확인
-echo -e "\n${YELLOW}[8/8]${NC} 서비스 상태 확인..."
+# 9. 상태 확인
+echo -e "\n${YELLOW}[9/9]${NC} 서비스 상태 확인..."
 sleep 3
 if sudo systemctl is-active --quiet $SERVICE_NAME; then
     echo -e "${GREEN}✅ 배포 완료! 서비스가 정상 작동 중입니다.${NC}"
