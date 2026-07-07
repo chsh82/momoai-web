@@ -269,11 +269,14 @@ def _parse_correction_tables(html: str) -> tuple:
     format_items = []
     content_items = []
 
+    FORMAT_CLASSES = {'fc', 'format-correction'}
+    CONTENT_CLASSES = {'ctc', 'content-correction'}
+
     for table in soup.find_all('table', class_=True):
         classes = table.get('class', [])
-        if 'fc' in classes:
+        if FORMAT_CLASSES & set(classes):
             target = format_items
-        elif 'ctc' in classes:
+        elif CONTENT_CLASSES & set(classes):
             target = content_items
         else:
             continue
