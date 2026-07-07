@@ -49,33 +49,62 @@ def essay_reports():
 @login_required
 @requires_role('admin', 'teacher')
 def generate_essay_reports_list():
-    """선택한 분기의 대상 학생 목록 반환 (AJAX)"""
+    """선택한 분기의 대상 학생 목록 반환 (AJAX) - 생성 가능/불가 여부와 사유 포함"""
     from app.models.essay import Essay
     from datetime import datetime
 
     period_id = request.form.get('period_id')
     period = PaymentPeriod.query.get_or_404(period_id)
 
-    student_ids = db.session.query(Essay.student_id.distinct()).filter(
+    essays = Essay.query.filter(
         Essay.correction_model.in_(['standard', 'harkness', 'elementary']),
         Essay.status == 'completed',
         Essay.completed_at >= datetime.combine(period.start_date, datetime.min.time()),
         Essay.completed_at <= datetime.combine(period.end_date, datetime.max.time()),
     ).all()
-    student_ids = [r[0] for r in student_ids]
+
+    essays_by_student = {}
+    for e in essays:
+        essays_by_student.setdefault(e.student_id, []).append(e)
+
+    student_ids = list(essays_by_student.keys())
+    students_map = {
+        s.student_id: s for s in
+        Student.query.filter(Student.student_id.in_(student_ids)).all()
+    }
+    existing_reports = {
+        r.student_id: r for r in
+        EssayReport.query.filter(
+            EssayReport.period_id == period_id,
+            EssayReport.student_id.in_(student_ids),
+        ).all()
+    }
 
     students = []
-    for sid in student_ids:
-        s = Student.query.get(sid)
-        if s:
-            existing = EssayReport.query.filter_by(
-                student_id=sid, period_id=period_id
-            ).first()
-            students.append({
-                'student_id': sid,
-                'name': s.name,
-                'skip': existing is not None and existing.status == 'published',
-            })
+    for sid, student_essays in essays_by_student.items():
+        s = students_map.get(sid)
+        if not s:
+            continue
+
+        existing = existing_reports.get(sid)
+        has_result = any(e.result is not None for e in student_essays)
+
+        if existing and existing.status == 'published':
+            status, reason = 'published', '이미 발행됨'
+        elif not has_result:
+            status, reason = 'no_result_data', '채점 데이터 없음'
+        else:
+            status, reason = 'available', None
+
+        students.append({
+            'student_id': sid,
+            'name': s.name,
+            'status': status,
+            'reason': reason,
+            'selectable': status == 'available',
+        })
+
+    students.sort(key=lambda x: x['name'])
 
     return jsonify({'students': students, 'period_id': period_id})
 
