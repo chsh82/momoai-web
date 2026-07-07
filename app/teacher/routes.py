@@ -866,6 +866,13 @@ def check_attendance(session_id):
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('teacher.courses'))
 
+    # 과거/오늘 세션에 레코드가 없으면 지금 생성 (수강 신청 시 미래 세션은 건너뛰므로)
+    if course_session.session_date <= date.today():
+        from app.utils.course_utils import create_attendance_records_for_session
+        new_records = create_attendance_records_for_session(course_session, default_status='present')
+        if new_records:
+            db.session.commit()
+
     # 출석 레코드 조회
     # 마스터 관리자: enrollment 상태 무관하게 전체 표시 (비활성 수강생 레코드 삭제 목적)
     # 일반 강사/관리자: active 수강생만
