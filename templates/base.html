@@ -411,10 +411,6 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 첨삭 관리
                             </a>
-                            <a href="{{ url_for('admin.essay_reports') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essay_report' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                📊 모모아이 분기 평가
-                            </a>
                             <a href="{{ url_for('admin.teaching_materials') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.teaching_material' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 학습 교재
@@ -795,10 +791,6 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'ace_evaluation' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 ⭐ ACE 평가
                             </a>
-                            <a href="{{ url_for('admin.essay_reports') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'essay_report' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
-                                📊 모모아이 분기 평가
-                            </a>
                         </div>
                     </div>
 
@@ -999,10 +991,6 @@
                             <a href="{{ url_for('parent.ace_evaluation') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'parent.ace_evaluation' in request.endpoint or request.endpoint and 'parent.child_ace_evaluation' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 ⭐ ACE 분기 평가
-                            </a>
-                            <a href="{{ url_for('parent.essay_reports') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'parent.essay_report' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                📊 모모아이 분기 평가
                             </a>
                         </div>
                     </div>
