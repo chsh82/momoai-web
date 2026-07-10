@@ -178,7 +178,8 @@ def create_attendance_records_for_enrollment(enrollment):
         if not skip_date_filter and enrollment_date and session.session_date < enrollment_date:
             continue
         # 미래 세션은 레코드 생성 안 함 — 출결 체크 시점에 자동 생성됨
-        if session.session_date > today:
+        # (단, 보강/custom 수업은 미래 날짜라도 즉시 생성 — 1회성 단일 세션이라 지연 생성 시 누락됨)
+        if not skip_date_filter and session.session_date > today:
             continue
         # 이미 존재하는지 확인
         existing = Attendance.query.filter_by(
