@@ -787,6 +787,18 @@ def attendance_list():
     page = min(page, total_pages)
     past_sessions = combined[(page - 1) * per_page : page * per_page]
 
+    # 정규 수업은 등록 시점에 미래 세션의 출석 레코드를 생성하지 않으므로
+    # (course_utils.create_attendance_records_for_enrollment 참고),
+    # 세션 날짜가 도래했는데도 아무도 출석체크 화면을 열지 않으면 레코드가 없어
+    # 이 목록에서 학생이 통째로 빠져 보일 수 있다. 화면에 표시되는 세션에 대해 지금 채워준다.
+    from app.utils.course_utils import create_attendance_records_for_session
+    backfilled = False
+    for s in past_sessions:
+        if s.session_date <= today and create_attendance_records_for_session(s, default_status='present'):
+            backfilled = True
+    if backfilled:
+        db.session.commit()
+
     # 각 세션의 출결 레코드를 딕셔너리로 미리 로드 {session_id: [attendance, ...]}
     from collections import defaultdict
     attendance_map = defaultdict(list)
