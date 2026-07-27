@@ -529,6 +529,7 @@ def edit_course(course_id):
         course.end_date = form.end_date.data
         course.price_per_session = form.price_per_session.data
         course.makeup_class_allowed = form.makeup_class_allowed.data
+        was_terminated = course.is_terminated
         course.is_terminated = (form.is_terminated.data == 'Y')
         # is_terminated 와 status 항상 동기화
         if course.is_terminated:
@@ -537,6 +538,14 @@ def edit_course(course_id):
             course.status = 'cancelled'
         else:
             course.status = 'active'
+
+        # 수업이 새로 종료 처리되면 남아있는 활성 수강 등록도 함께 정리
+        if course.is_terminated and not was_terminated:
+            for enrollment in CourseEnrollment.query.filter_by(
+                course_id=course.course_id, status='active'
+            ).all():
+                enrollment.status = 'completed'
+                enrollment.completed_at = datetime.utcnow()
 
         # 시작/종료 시간이 변경된 경우: 미래 예정 세션들 시간도 일괄 업데이트
         from datetime import date as _date, timedelta as _td
