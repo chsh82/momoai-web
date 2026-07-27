@@ -787,6 +787,17 @@ def attendance_list():
     page = min(page, total_pages)
     past_sessions = combined[(page - 1) * per_page : page * per_page]
 
+    # 새로 입반된 학생의 출석 레코드가 아직 없으면 지금 생성
+    # (상세보기에서만 생성되던 로직 — 목록에서도 이름이 바로 보이도록 동일하게 적용)
+    if past_sessions:
+        from app.utils.course_utils import create_attendance_records_for_session
+        created_any = False
+        for s in past_sessions:
+            if s.session_date <= today and create_attendance_records_for_session(s, default_status='present'):
+                created_any = True
+        if created_any:
+            db.session.commit()
+
     # 각 세션의 출결 레코드를 딕셔너리로 미리 로드 {session_id: [attendance, ...]}
     from collections import defaultdict
     attendance_map = defaultdict(list)
