@@ -202,7 +202,7 @@ def create_attendance_records_for_enrollment(enrollment):
     return attendance_records
 
 
-def create_attendance_records_for_session(session, default_status='absent'):
+def create_attendance_records_for_session(session, default_status='present'):
     """
     새로운 세션이 생성되면 모든 수강 학생에 대한 출석 레코드를 자동 생성
 
