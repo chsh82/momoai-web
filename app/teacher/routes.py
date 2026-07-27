@@ -699,7 +699,10 @@ def attendance_list():
     course_ids = [c.course_id for c in courses]
 
     # 보강수업 / 일반수업 분리 (학년/반형태 필터 적용)
-    makeup_course_ids = [c.course_id for c in courses if (c.course_type or '').startswith('보강')]
+    # 보강수업은 active_courses(status IN active/completed)를 통해 종료(is_terminated) 여부와 무관하게
+    # courses에 섞여 들어올 수 있으므로, 여기서 다시 한 번 종료된 보강수업을 제외한다.
+    makeup_course_ids = [c.course_id for c in courses
+                        if (c.course_type or '').startswith('보강') and not c.is_terminated]
     regular_courses = [c for c in courses if not (c.course_type or '').startswith('보강')]
     if grade_filter:
         regular_courses = [c for c in regular_courses if c.grade == grade_filter]
