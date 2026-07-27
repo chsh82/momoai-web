@@ -152,6 +152,7 @@ def signup():
             role_level=5 if role == 'student' else 4,
             country=form.country.data if form.country.data else None,
             city=form.city.data if form.city.data else None,
+            kakao_id=form.kakao_id.data if form.kakao_id.data else None,
         )
         user.set_password(form.password.data)
 

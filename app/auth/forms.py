@@ -102,6 +102,12 @@ class SignupForm(FlaskForm):
     country = StringField('거주 국가', validators=[Optional(), Length(max=100)])
     city = StringField('거주 도시', validators=[Optional(), Length(max=100)])
 
+    # 카카오톡 아이디 (학부모용, 선택)
+    kakao_id = StringField('카카오톡 아이디', validators=[
+        Optional(),
+        Length(max=100, message='카카오톡 아이디는 최대 100자까지 입력 가능합니다.')
+    ])
+
     submit = SubmitField('회원가입')
 
     def validate_email(self, field):
