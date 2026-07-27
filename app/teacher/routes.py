@@ -102,9 +102,10 @@ def index():
         ).all()
         today_sessions.extend(sessions)
 
-    # 출석 체크 필요한 세션 (오늘 이전이고 출석 미체크)
+    # 출석 체크 필요한 세션 (오늘 이전이고 출석 미체크, 종료된 수업은 제외)
     pending_attendance = CourseSession.query.join(Course).filter(
         Course.teacher_id == current_user.user_id,
+        Course.is_terminated == False,
         CourseSession.session_date < today,
         CourseSession.attendance_checked == False
     ).order_by(CourseSession.session_date.desc()).limit(5).all()
@@ -358,10 +359,11 @@ def upcoming_changes():
         AbsenceNotice.status.in_(['pending', 'confirmed'])
     ).order_by(AbsenceNotice.absence_date.asc()).all()
 
-    # 보강 예정 (출결 미완료된 과거 보강 포함)
+    # 보강 예정 (출결 미완료된 과거 보강 포함, 종료된 수업은 제외)
     upcoming_makeup = CourseSession.query.join(Course).filter(
         Course.teacher_id == current_user.user_id,
         Course.course_type.like('보강%'),
+        Course.is_terminated == False,
         CourseSession.session_date <= week_end,
         CourseSession.status == 'scheduled',
         CourseSession.attendance_checked == False
