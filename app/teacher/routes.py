@@ -654,7 +654,7 @@ def attendance_list():
     # 보강수업은 완료 상태여도 출석체크 목록에 포함
     # 종료된 수업도 active_courses에 포함: 과거 출결 레코드를 강사가 조회할 수 있어야 함.
     # past_sessions는 session_date <= today 로 자동 필터되므로 종료 수업의 미래 세션이 노출될 위험은 없음.
-    # makeup_courses는 미래 보강 일정(-30~+90일) 윈도우라 종료 수업 제외 유지.
+    # makeup_courses는 미래 보강 일정(-30일~다음주까지) 윈도우라 종료 수업 제외 유지.
     if current_user.is_admin:
         if teacher_filter:
             active_courses = Course.query.filter(
@@ -730,13 +730,14 @@ def attendance_list():
                              weekday_filter=weekday_filter,
                              course_type_filter=course_type_filter)
 
-    # 보강수업 세션 (과거 30일 ~ 향후 90일)
+    # 보강수업 세션 (과거 30일 ~ 다음주까지) — 그 이후는 미리 생성돼 있어도 혼동을 줄이기 위해 숨김
+    end_of_next_week = today + timedelta(days=(6 - today.weekday()) + 7)
     makeup_sessions_raw = []
     if makeup_course_ids:
         makeup_sessions_raw = CourseSession.query.filter(
             CourseSession.course_id.in_(makeup_course_ids),
             CourseSession.session_date >= today - timedelta(days=30),
-            CourseSession.session_date <= today + timedelta(days=90),
+            CourseSession.session_date <= end_of_next_week,
             CourseSession.status != 'cancelled'
         ).all()
 
