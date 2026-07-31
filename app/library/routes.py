@@ -12,6 +12,60 @@ from app.library import library_bp
 from app.models import db, Book, Video, Student
 from app.models.library import HallOfFame, AdmissionInfo
 from app.models.parent_student import ParentStudent
+from app.utils.content_access import can_access_content
+
+
+class _SimplePagination:
+    """대상 학년/수업 필터링을 먼저 적용해야 하는 목록에서 쓰는 경량 페이지네이션 (Pagination 인터페이스 흉내)."""
+
+    def __init__(self, items_all, page, per_page):
+        self.page = page
+        self.per_page = per_page
+        self.total = len(items_all)
+        self.pages = max(1, (self.total + per_page - 1) // per_page)
+        start = (page - 1) * per_page
+        self.items = items_all[start:start + per_page]
+
+    @property
+    def has_prev(self):
+        return self.page > 1
+
+    @property
+    def has_next(self):
+        return self.page < self.pages
+
+    @property
+    def prev_num(self):
+        return self.page - 1
+
+    @property
+    def next_num(self):
+        return self.page + 1
+
+    def iter_pages(self, left_edge=1, right_edge=1, left_current=2, right_current=2):
+        last = 0
+        for num in range(1, self.pages + 1):
+            if (num <= left_edge
+                    or (self.page - left_current - 1 < num < self.page + right_current)
+                    or num > self.pages - right_edge):
+                if last + 1 != num:
+                    yield None
+                yield num
+                last = num
+
+
+def _can_view_video(video, user):
+    """모모게시판에서 영상을 볼 수 있는지 확인 (target_audience 학년/수업 제한 반영)."""
+    if user.role in ('admin', 'teacher'):
+        return True
+    if user.role == 'student':
+        student = Student.query.filter_by(user_id=user.user_id).first() or \
+                  Student.query.filter_by(email=user.email).first()
+        return can_access_content(video, user, student)
+    if user.role == 'parent':
+        relations = ParentStudent.query.filter_by(parent_id=user.user_id, is_active=True).all()
+        return any(can_access_content(video, user, pr.student) for pr in relations if pr.student)
+    return False
 
 # 학년 → LV 태그 매핑
 GRADE_TO_LV = {
@@ -46,10 +100,11 @@ def extract_youtube_video_id(url):
 @login_required
 def index():
     """도서 자료실 메인 페이지"""
-    # 최신 유튜브 영상 4개
-    latest_videos = Video.query.filter_by(is_public=True).order_by(
+    # 최신 유튜브 영상 4개 (대상 학년/수업 제한 반영)
+    candidate_videos = Video.query.filter_by(is_public=True).order_by(
         Video.created_at.desc()
-    ).limit(4).all()
+    ).limit(20).all()
+    latest_videos = [v for v in candidate_videos if _can_view_video(v, current_user)][:4]
 
     # 추천도서 4개
     recommended_books = Book.query.order_by(Book.created_at.desc()).limit(4).all()
@@ -93,9 +148,11 @@ def videos():
     page = request.args.get('page', 1, type=int)
     per_page = 12
 
-    videos = Video.query.filter_by(is_public=True).order_by(
+    all_public_videos = Video.query.filter_by(is_public=True).order_by(
         Video.created_at.desc()
-    ).paginate(page=page, per_page=per_page, error_out=False)
+    ).all()
+    accessible_videos = [v for v in all_public_videos if _can_view_video(v, current_user)]
+    videos = _SimplePagination(accessible_videos, page, per_page)
 
     return render_template('library/videos.html',
                          videos=videos)
@@ -106,6 +163,11 @@ def videos():
 def video_detail(video_id):
     """유튜브 영상 상세"""
     video = Video.query.get_or_404(video_id)
+
+    # 접근 권한 확인 (공개 여부·기간·대상 학년/수업 제한)
+    if not _can_view_video(video, current_user):
+        flash('접근 권한이 없는 영상입니다.', 'error')
+        return redirect(url_for('library.videos'))
 
     # 조회수 증가
     video.view_count += 1
