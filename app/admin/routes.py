@@ -547,6 +547,14 @@ def edit_course(course_id):
                 enrollment.status = 'completed'
                 enrollment.completed_at = datetime.utcnow()
 
+        # 종료를 취소(다시 진행 중으로)하면, 종료 처리 때 completed로 바뀐 수강 등록을 되돌림
+        elif was_terminated and not course.is_terminated:
+            for enrollment in CourseEnrollment.query.filter_by(
+                course_id=course.course_id, status='completed'
+            ).all():
+                enrollment.status = 'active'
+                enrollment.completed_at = None
+
         # 시작/종료 시간이 변경된 경우: 미래 예정 세션들 시간도 일괄 업데이트
         from datetime import date as _date, timedelta as _td
         time_changed = (old_start_time != course.start_time or old_end_time != course.end_time)
