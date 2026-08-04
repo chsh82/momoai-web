@@ -42,6 +42,16 @@
         </div>
     </div>
 
+    <!-- 재작업 후 미완료 안내 -->
+    {% if not essay.is_finalized and essay.current_version and essay.current_version > 1 %}
+    <div class="bg-orange-50 border border-orange-300 rounded-lg p-4 mb-6 flex items-center justify-between">
+        <div class="text-sm text-orange-800">
+            🔔 재작업 이후 아직 <strong>완료 처리가 되지 않아 학생에게 보이지 않습니다.</strong>
+            내용을 확인한 뒤 완료 버튼을 눌러주세요.
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -134,6 +144,12 @@
     <!-- Revision Form (Hidden by default) -->
     <div id="revisionForm" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">첨삭 재생성 설정</h3>
+        {% if essay.is_finalized %}
+        <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4 text-sm text-yellow-800">
+            ⚠️ 이미 완료 처리된 첨삭입니다. 재생성하면 <strong>학생에게 다시 비공개</strong> 처리되며,
+            재생성 후 결과를 확인하고 <strong>다시 완료 처리</strong>해야 학생이 볼 수 있습니다.
+        </div>
+        {% endif %}
         <form method="POST" action="{{ url_for('essays.regenerate', essay_id=essay.essay_id) }}">
             {{ revision_form.hidden_tag() }}
 
