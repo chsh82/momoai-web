@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'macros/badges.html' import tier_badge %}
 
 {% block title %}내 자녀 - MOMOAI v4.0{% endblock %}
 
@@ -20,16 +21,7 @@
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
                             <h3 class="text-lg font-bold text-gray-800">{{ data.student.name }}</h3>
-                            {% if data.student.tier %}
-                            <span class="px-2 py-1 text-xs font-medium rounded
-                                {% if data.student.tier == 'A' %}bg-red-100 text-red-800
-                                {% elif data.student.tier == 'B' %}bg-blue-100 text-blue-800
-                                {% elif data.student.tier == 'C' %}bg-green-100 text-green-800
-                                {% elif data.student.tier == 'VIP' %}bg-purple-100 text-purple-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ data.student.tier }}
-                            </span>
-                            {% endif %}
+                            {{ tier_badge(data.student.tier) }}
                         </div>
                         <p class="text-sm text-gray-600">{{ data.student.grade }}</p>
                     </div>

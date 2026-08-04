@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'macros/badges.html' import tier_badge %}
 
 {% block title %}내 수업 - MOMOAI v4.0{% endblock %}
 
@@ -103,16 +104,7 @@
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex items-center gap-2 flex-wrap">
-                            {% if course.tier %}
-                            <span class="px-2 py-1 text-xs font-medium rounded
-                                {% if course.tier == 'A' %}bg-red-100 text-red-800
-                                {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
-                                {% elif course.tier == 'C' %}bg-green-100 text-green-800
-                                {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ course.tier }}
-                            </span>
-                            {% endif %}
+                            {{ tier_badge(course.tier) }}
                             <span class="px-2 py-1 text-xs font-medium rounded
                                 {% if course.status == 'active' %}bg-green-100 text-green-800
                                 {% elif course.status == 'completed' %}bg-gray-100 text-gray-800

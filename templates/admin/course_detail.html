@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'macros/badges.html' import tier_badge %}
 
 {% block title %}{{ course.course_name }} - MOMOAI v4.0{% endblock %}
 
@@ -17,16 +18,7 @@
             <div>
                 <div class="flex items-center gap-3 mb-2">
                     <h2 class="text-3xl font-bold text-gray-800">{{ course.course_name }}</h2>
-                    {% if course.tier %}
-                    <span class="px-3 py-1 text-sm font-medium rounded
-                        {% if course.tier == 'A' %}bg-red-100 text-red-800
-                        {% elif course.tier == 'B' %}bg-blue-100 text-blue-800
-                        {% elif course.tier == 'C' %}bg-green-100 text-green-800
-                        {% elif course.tier == 'VIP' %}bg-purple-100 text-purple-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ course.tier }}
-                    </span>
-                    {% endif %}
+                    {{ tier_badge(course.tier, size='sm') }}
                     <span class="px-3 py-1 text-sm font-medium rounded
                         {% if course.status == 'active' %}bg-green-100 text-green-800
                         {% elif course.status == 'completed' %}bg-gray-100 text-gray-800
@@ -253,14 +245,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-700">
                                     {% if enrollment.student.tier %}
-                                    <span class="px-2 py-1 text-xs font-medium rounded
-                                        {% if enrollment.student.tier == 'A' %}bg-red-100 text-red-800
-                                        {% elif enrollment.student.tier == 'B' %}bg-blue-100 text-blue-800
-                                        {% elif enrollment.student.tier == 'C' %}bg-green-100 text-green-800
-                                        {% elif enrollment.student.tier == 'VIP' %}bg-purple-100 text-purple-800
-                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ enrollment.student.tier }}
-                                    </span>
+                                    {{ tier_badge(enrollment.student.tier) }}
                                     {% else %}
                                     -
                                     {% endif %}

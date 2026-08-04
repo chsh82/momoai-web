@@ -1,0 +1,30 @@
+{# 등급(A/B/C/VIP) 배지 공용 매크로 #}
+
+{#
+  사용법:
+    {% from 'macros/badges.html' import tier_badge %}
+    {{ tier_badge(student.tier) }}
+    {{ tier_badge(course.tier, size='sm', suffix='등급') }}
+    {{ tier_badge(student.tier, extra='ml-2') }}
+
+  size: 'xs' (기본, px-2 py-1 text-xs) | 'xs-tight' (px-2 py-0.5 text-xs) | 'sm' (px-3 py-1 text-sm)
+  extra: 배지에 추가로 붙일 클래스 (예: 'ml-2')
+  tier가 없으면 아무것도 렌더링하지 않음.
+#}
+
+{% macro tier_badge(tier, size='xs', suffix='', extra='') %}
+{%- if tier -%}
+{%- set color = {
+    'A': 'bg-red-100 text-red-800',
+    'B': 'bg-blue-100 text-blue-800',
+    'C': 'bg-green-100 text-green-800',
+    'VIP': 'bg-purple-100 text-purple-800'
+}.get(tier, 'bg-gray-100 text-gray-800') -%}
+{%- set size_class = {
+    'xs': 'px-2 py-1 text-xs',
+    'xs-tight': 'px-2 py-0.5 text-xs',
+    'sm': 'px-3 py-1 text-sm'
+}.get(size, 'px-2 py-1 text-xs') -%}
+<span class="{{ extra }} {{ size_class }} font-medium rounded {{ color }}">{{ tier }}{{ suffix }}</span>
+{%- endif -%}
+{% endmacro %}
