@@ -180,7 +180,7 @@
                             {% if current_user.is_master_admin %}
                             <button type="button"
                                     onclick="deleteAttendance('{{ attendance.attendance_id }}', '{{ attendance.student.name | e }}')"
-                                    class="px-3 py-2 rounded font-medium transition duration-200 bg-red-100 text-red-700 hover:bg-red-600 hover:text-white border border-red-300"
+                                    class="px-3 py-2 rounded font-medium transition duration-200 text-red-600 hover:text-red-800"
                                     title="출결 레코드 삭제 (마스터 관리자)">
                                 🗑 삭제
                             </button>

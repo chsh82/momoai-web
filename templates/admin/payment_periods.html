@@ -109,7 +109,7 @@
                     <form method="POST" action="{{ url_for('admin.delete_payment_period', period_id=period.period_id) }}"
                           onsubmit="return confirm('삭제하시겠습니까? 결제 내역이 있으면 삭제되지 않습니다.')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="text-xs text-red-400 hover:text-red-600 font-medium">삭제</button>
+                        <button type="submit" class="text-xs text-red-600 hover:text-red-800 font-medium">삭제</button>
                     </form>
                 </div>
             </div>
@@ -230,7 +230,7 @@
                     <form method="POST" action="{{ url_for('admin.delete_holiday_week', holiday_id=hw.holiday_id) }}"
                           onsubmit="return confirm('이 휴무 기간을 삭제하시겠습니까?')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="text-sm text-red-400 hover:text-red-600 font-medium px-2 py-1">삭제</button>
+                        <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium px-2 py-1">삭제</button>
                     </form>
                 </div>
                 {% endfor %}

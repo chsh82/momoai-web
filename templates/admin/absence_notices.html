@@ -106,7 +106,7 @@
           <form method="POST" action="{{ url_for('admin.delete_absence_notice', notice_id=notice.notice_id) }}"
                 onsubmit="return confirm('완전히 삭제하시겠습니까?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-xs text-gray-400 hover:text-red-500 border border-gray-200 px-3 py-1.5 rounded-lg transition w-full">삭제</button>
+            <button type="submit" class="text-xs text-red-600 hover:text-red-800 font-medium border border-gray-200 px-3 py-1.5 rounded-lg transition w-full">삭제</button>
           </form>
         </div>
       </div>
