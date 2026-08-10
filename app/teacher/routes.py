@@ -1675,26 +1675,26 @@ def feedbacks():
     filter_read   = request.args.get('read', '')
     page          = request.args.get('page', 1, type=int)
 
-    query = TeacherFeedback.query.filter_by(teacher_id=current_user.user_id)
+    query = TeacherFeedback.query.filter(TeacherFeedback.teacher_id == current_user.user_id)
 
     if q:
         query = query.join(TeacherFeedback.student).filter(
             Student.name.ilike(f'%{q}%') | TeacherFeedback.title.ilike(f'%{q}%')
         )
     if filter_type:
-        query = query.filter_by(feedback_type=filter_type)
+        query = query.filter(TeacherFeedback.feedback_type == filter_type)
     if filter_read == 'read':
-        query = query.filter_by(is_read=True)
+        query = query.filter(TeacherFeedback.is_read == True)
     elif filter_read == 'unread':
-        query = query.filter_by(is_read=False)
+        query = query.filter(TeacherFeedback.is_read == False)
 
     pagination = query.order_by(TeacherFeedback.created_at.desc()).paginate(
         page=page, per_page=30, error_out=False
     )
 
-    # 통계는 전체 결과 기준
+    # 통계는 전체 결과 기준 (join된 query 위에서도 안전하게 TeacherFeedback 컬럼을 명시)
     total_count = pagination.total
-    read_count  = query.filter_by(is_read=True).count()
+    read_count  = query.filter(TeacherFeedback.is_read == True).count()
     unread_count = total_count - read_count
 
     return render_template('teacher/feedbacks.html',
