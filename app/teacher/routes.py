@@ -948,8 +948,8 @@ def update_attendance(attendance_id):
     if new_status is not None:
         if new_status not in ['present', 'absent', 'late', 'excused']:
             return jsonify({'success': False, 'message': '잘못된 상태값입니다.'}), 400
-        # 결석 처리 시: 해당 학생이 아직 진행되지 않은 보강 세션에 입반해 있으면 absent_makeup으로 자동 전환
-        if new_status == 'absent':
+        # 결석 처리 시: 원 수업(보강 아님)에서 결석했고 다른 보강 세션에 입반해 있으면 absent_makeup으로 자동 전환
+        if new_status == 'absent' and not (course.course_type or '').startswith('보강'):
             from app.models import CourseEnrollment as CE
             has_future_makeup = (
                 db.session.query(CE)
@@ -959,6 +959,7 @@ def update_attendance(attendance_id):
                     CE.student_id == attendance.student_id,
                     CE.status == 'active',
                     Course.course_type.like('보강%'),
+                    Course.course_id != course.course_id,
                     CourseSession.status != 'completed',
                 )
                 .first()
