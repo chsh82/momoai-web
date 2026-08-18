@@ -216,6 +216,10 @@ def create_attendance_records_for_session(session, default_status='present'):
     if not session or not session.course:
         return []
 
+    # 미래 세션은 레코드 생성 안 함 — 출결 체크 시점에 자동 생성됨
+    if session.session_date > _date.today():
+        return []
+
     attendance_records = []
 
     # 해당 수업의 모든 활성 수강생에 대해 출석 레코드 생성
