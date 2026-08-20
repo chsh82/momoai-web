@@ -646,6 +646,13 @@
                         <span>마이 페이지</span>
                     </a>
 
+                    <!-- 명예의 전당 (우수답안 등록) -->
+                    <a href="{{ url_for('library.hall_of_fame') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">🏆</span>
+                        <span>명예의 전당</span>
+                    </a>
+
                     <!-- 1. 내 수업 -->
                     <div class="mt-2">
                         <button @click="courses = !courses"

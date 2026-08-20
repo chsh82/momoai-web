@@ -8,7 +8,7 @@
     <div class="mb-6">
         <h2 class="text-xl sm:text-3xl font-bold text-gray-800">🏆 명예의 전당</h2>
         <p class="text-sm text-gray-600 mt-1">우수한 답안과 수상작을 확인하세요</p>
-        {% if current_user.role == 'admin' %}
+        {% if current_user.has_permission_level(3) %}
         <a href="{{ url_for('library.create_hall_of_fame') }}"
            class="inline-flex items-center gap-2 mt-3 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 whitespace-nowrap">
             <span>✏️</span>

@@ -61,11 +61,11 @@
     </div>
     {% endif %}
 
-    <!-- Admin Edit Button -->
-    {% if current_user.is_admin %}
+    <!-- Edit/Delete Button (관리자/매니저는 전체, 강사는 본인 글만) -->
+    {% if current_user.has_permission_level(2) or (current_user.role == 'teacher' and post.created_by == current_user.user_id) %}
     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">관리자 전용</span>
+            <span class="text-sm text-gray-600">작성자/관리자 전용</span>
             <div class="space-x-2">
                 <a href="{{ url_for('library.edit_hall_of_fame', post_id=post.post_id) }}"
                    class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition duration-200">

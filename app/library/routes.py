@@ -691,7 +691,7 @@ def delete_book(book_id):
 
 # 명예의 전당 관리
 @library_bp.route('/admin/hall-of-fame/new', methods=['GET', 'POST'])
-@requires_permission_level(2)
+@requires_permission_level(3)
 def create_hall_of_fame():
     """명예의 전당 게시글 생성"""
     if request.method == 'POST':
@@ -712,13 +712,18 @@ def create_hall_of_fame():
                     file.save(file_full_path)
                     file_path = os.path.join('hall_of_fame', stored_filename)
 
+            # 학생 선택 시 실명을 함께 저장 (목록/상세에서 student_name으로 표시)
+            selected_student_id = request.form.get('student_id') or None
+            selected_student = Student.query.get(selected_student_id) if selected_student_id else None
+
             # Create post
             post = HallOfFame(
                 post_id=str(uuid.uuid4()),
                 title=request.form.get('title'),
                 content=request.form.get('content'),
                 category=request.form.get('category'),
-                student_id=request.form.get('student_id') or None,
+                student_id=selected_student_id,
+                student_name=selected_student.name if selected_student else None,
                 award_name=request.form.get('award_name') or None,
                 grade=request.form.get('grade') or None,
                 file_path=file_path,
@@ -753,10 +758,15 @@ def create_hall_of_fame():
 
 
 @library_bp.route('/admin/hall-of-fame/<post_id>/edit', methods=['GET', 'POST'])
-@requires_permission_level(2)
+@requires_permission_level(3)
 def edit_hall_of_fame(post_id):
     """명예의 전당 게시글 수정"""
     post = HallOfFame.query.get_or_404(post_id)
+
+    # 강사는 본인이 작성한 글만 수정 가능 (관리자/매니저는 전체 가능)
+    if current_user.role == 'teacher' and post.created_by != current_user.user_id:
+        flash('본인이 작성한 게시글만 수정할 수 있습니다.', 'error')
+        return redirect(url_for('library.hall_of_fame_detail', post_id=post_id))
 
     if request.method == 'POST':
         try:
@@ -789,11 +799,16 @@ def edit_hall_of_fame(post_id):
                     file.save(file_full_path)
                     post.file_path = os.path.join('hall_of_fame', stored_filename)
 
+            # 학생 선택 시 실명을 함께 저장 (목록/상세에서 student_name으로 표시)
+            selected_student_id = request.form.get('student_id') or None
+            selected_student = Student.query.get(selected_student_id) if selected_student_id else None
+
             # Update post
             post.title = request.form.get('title')
             post.content = request.form.get('content')
             post.category = request.form.get('category')
-            post.student_id = request.form.get('student_id') or None
+            post.student_id = selected_student_id
+            post.student_name = selected_student.name if selected_student else None
             post.award_name = request.form.get('award_name') or None
             post.grade = request.form.get('grade') or None
             post.is_published = bool(request.form.get('is_published'))
@@ -833,11 +848,16 @@ def edit_hall_of_fame(post_id):
 
 
 @library_bp.route('/admin/hall-of-fame/<post_id>/delete', methods=['POST'])
-@requires_permission_level(2)
+@requires_permission_level(3)
 def delete_hall_of_fame(post_id):
     """명예의 전당 게시글 삭제"""
     try:
         post = HallOfFame.query.get_or_404(post_id)
+
+        # 강사는 본인이 작성한 글만 삭제 가능 (관리자/매니저는 전체 가능)
+        if current_user.role == 'teacher' and post.created_by != current_user.user_id:
+            flash('본인이 작성한 게시글만 삭제할 수 있습니다.', 'error')
+            return redirect(url_for('library.hall_of_fame_detail', post_id=post_id))
 
         # Delete file if exists
         if post.file_path:
