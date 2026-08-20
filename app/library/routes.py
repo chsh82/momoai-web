@@ -408,6 +408,10 @@ def hall_of_fame():
         page=page, per_page=per_page, error_out=False
     )
 
+    # NEW 배지 초기화: 이 사용자의 마지막 열람 시각 갱신
+    current_user.hall_of_fame_last_viewed_at = datetime.now()
+    db.session.commit()
+
     return render_template('library/hall_of_fame.html',
                          posts=posts,
                          current_category=category)

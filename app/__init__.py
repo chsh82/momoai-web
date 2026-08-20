@@ -224,7 +224,8 @@ def create_app(config_name='default'):
     @app.context_processor
     def inject_unread_counts():
         default = {'homework': 0, 'announcement': 0, 'essay': 0,
-                   'feedback': 0, 'total': 0, 'assignments': 0, 'pending_users': 0}
+                   'feedback': 0, 'total': 0, 'assignments': 0, 'pending_users': 0,
+                   'hall_of_fame': 0}
         try:
             from flask_login import current_user
             from app.models.notification import Notification
@@ -281,6 +282,15 @@ def create_app(config_name='default'):
                     ConversationMessage.is_read == False
                 ).count()
 
+            # 명예의 전당 새 글 수 (마지막 열람 이후 게시된 글)
+            from datetime import datetime as _dt
+            from app.models.library import HallOfFame
+            hof_last_viewed = current_user.hall_of_fame_last_viewed_at or _dt(2000, 1, 1)
+            hall_of_fame_new = HallOfFame.query.filter(
+                HallOfFame.is_published == True,
+                HallOfFame.created_at > hof_last_viewed
+            ).count()
+
             counts = {
                 'homework': hw,
                 'announcement': ann,
@@ -290,6 +300,7 @@ def create_app(config_name='default'):
                 'new_submission': _count('essay_submitted'),  # 강사용: 새 제출 건수
                 'pending_users': pending_users,  # 관리자용: 승인 대기
                 'dm': dm_unread,  # DM 미읽은 수
+                'hall_of_fame': hall_of_fame_new,  # 명예의 전당 새 글 수
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),

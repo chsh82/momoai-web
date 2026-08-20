@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
     is_deleted = db.Column(db.Boolean, default=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
     must_change_password = db.Column(db.Boolean, default=False)  # 초기 비밀번호 변경 필요 여부
+    hall_of_fame_last_viewed_at = db.Column(db.DateTime, nullable=True)  # 명예의 전당 NEW 배지 계산용
 
     # 프로필 이미지
     profile_image_filename = db.Column(db.String(255), nullable=True)
