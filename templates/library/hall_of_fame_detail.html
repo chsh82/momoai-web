@@ -25,12 +25,21 @@
 
         <h2 class="text-3xl font-bold text-gray-800 mb-3">{{ post.title }}</h2>
 
-        <div class="flex items-center space-x-4 text-sm text-gray-600">
+        <div class="flex items-center space-x-4 text-sm text-gray-600 flex-wrap">
             {% if post.student_name %}
             <span>👤 {{ post.student_name }}</span>
             {% endif %}
             {% if post.grade %}
             <span>📚 {{ post.grade }}</span>
+            {% endif %}
+            {% if post.student and post.student.teacher %}
+            <span>👨‍🏫 지도교사 {{ post.student.teacher.name }}</span>
+            {% endif %}
+            {% if post.week_number %}
+            <span>🗓️ {{ post.week_number }}주차</span>
+            {% endif %}
+            {% if post.book %}
+            <span>📘 {{ post.book.title }}</span>
             {% endif %}
             <span>📅 {{ post.created_at | kst('%Y-%m-%d') }}</span>
             <span>👁️ 조회수 {{ post.view_count }}</span>

@@ -50,15 +50,53 @@
             <label class="block text-sm font-semibold text-gray-700 mb-2">
                 학생 선택
             </label>
-            <select name="student_id"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">선택 안함</option>
-                {% for student in students %}
-                <option value="{{ student.student_id }}" {% if post and post.student_id == student.student_id %}selected{% endif %}>
-                    {{ student.display_name }}
-                </option>
-                {% endfor %}
-            </select>
+
+            <!-- 검색 + 학년 필터 -->
+            <div class="flex gap-2 mb-2">
+                <input type="text" id="student-search"
+                    placeholder="🔍 이름 검색..."
+                    oninput="filterStudents()"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="grade-filter" onchange="filterStudents()"
+                    class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">학년 전체</option>
+                    <option value="초">초등 (초1~초6)</option>
+                    <option value="중">중등 (중1~중3)</option>
+                    <option value="고">고등 (고1~고3)</option>
+                    <optgroup label="초등">
+                        <option value="초1">초1</option>
+                        <option value="초2">초2</option>
+                        <option value="초3">초3</option>
+                        <option value="초4">초4</option>
+                        <option value="초5">초5</option>
+                        <option value="초6">초6</option>
+                    </optgroup>
+                    <optgroup label="중등">
+                        <option value="중1">중1</option>
+                        <option value="중2">중2</option>
+                        <option value="중3">중3</option>
+                    </optgroup>
+                    <optgroup label="고등">
+                        <option value="고1">고1</option>
+                        <option value="고2">고2</option>
+                        <option value="고3">고3</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- 학생 목록 -->
+            <div id="student-list"
+                class="border border-gray-300 rounded-lg overflow-y-auto bg-white"
+                style="max-height: 200px; min-height: 56px;"></div>
+
+            <!-- 선택된 학생 표시 (이름 · 학년 · 지도교사) -->
+            <div id="selected-display" class="hidden mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                선택됨: <strong id="selected-name"></strong>
+                <span id="selected-teacher" class="text-blue-600"></span>
+                <button type="button" onclick="clearStudent()" class="ml-2 text-xs text-gray-500 hover:text-gray-700 underline">선택 해제</button>
+            </div>
+
+            <input type="hidden" name="student_id" id="student_id_input" value="{% if post %}{{ post.student_id or '' }}{% endif %}">
         </div>
 
         <!-- Award Name -->
@@ -74,17 +112,48 @@
                    placeholder="예: 2024학년도 모의고사 1등, 우수 에세이상 등">
         </div>
 
-        <!-- Grade -->
+        <!-- 학년 (학생 선택 시 자동으로 채워짐, 학생 미선택 시 직접 입력) -->
         <div class="mb-6">
             <label class="block text-sm font-semibold text-gray-700 mb-2">
                 학년
             </label>
             <input type="text"
                    name="grade"
+                   id="grade_input"
                    value="{% if post %}{{ post.grade or '' }}{% endif %}"
                    maxlength="20"
                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                   placeholder="예: 고2, 중3 등">
+                   placeholder="예: 고2, 중3 등 (학생을 선택하면 자동으로 채워집니다)">
+        </div>
+
+        <!-- 주차 / 수업도서명 (선택정보) -->
+        <div class="mb-6 grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    주차 <span class="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <input type="number"
+                       name="week_number"
+                       min="1"
+                       max="52"
+                       value="{% if post and post.week_number %}{{ post.week_number }}{% endif %}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="예: 3">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    수업도서명 <span class="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <select name="book_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">선택 안함</option>
+                    {% for book in books %}
+                    <option value="{{ book.book_id }}" {% if post and post.book_id == book.book_id %}selected{% endif %}>
+                        {{ book.title }}{% if book.author %} - {{ book.author }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
         <!-- Content -->
@@ -148,4 +217,68 @@
         </div>
     </form>
 </div>
+
+<script>
+const allStudents = {{ students_data | tojson }};
+let selectedStudentId = {{ (post.student_id if post and post.student_id else '') | tojson }};
+
+function getCurrentFilteredStudents() {
+    const search = (document.getElementById('student-search').value || '').toLowerCase();
+    const grade = document.getElementById('grade-filter').value;
+    return allStudents.filter(s => {
+        const nameMatch = !search || s.name.toLowerCase().includes(search);
+        const gradeMatch = !grade || (grade.length === 1 ? s.grade.startsWith(grade) : s.grade === grade);
+        return nameMatch && gradeMatch;
+    });
+}
+
+function filterStudents() {
+    renderStudentList(getCurrentFilteredStudents());
+}
+
+function renderStudentList(students) {
+    const container = document.getElementById('student-list');
+    if (students.length === 0) {
+        container.innerHTML = '<div class="px-4 py-3 text-sm text-gray-400 text-center">검색 결과가 없습니다.</div>';
+        return;
+    }
+    container.innerHTML = students.map(s => {
+        const isSelected = s.student_id === selectedStudentId;
+        const sub = s.school ? `${s.grade} · ${s.school}` : s.grade;
+        return `<div class="student-item flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition ${isSelected ? 'bg-blue-100 border-l-4 border-l-blue-500' : ''}"
+                     onclick="selectStudent('${s.student_id}', '${s.name}', '${s.grade}', '${s.school}', '${s.teacher_name}')">
+                    <span class="font-medium text-gray-800">${s.name}</span>
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">${sub}${s.teacher_name ? ' · ' + s.teacher_name + ' 강사' : ''}</span>
+                </div>`;
+    }).join('');
+}
+
+function selectStudent(id, name, grade, school, teacherName) {
+    selectedStudentId = id;
+    document.getElementById('student_id_input').value = id;
+    document.getElementById('grade_input').value = grade || '';
+    const display = document.getElementById('selected-display');
+    display.classList.remove('hidden');
+    const sub = school ? `${grade} · ${school}` : grade;
+    document.getElementById('selected-name').textContent = `${name} (${sub})`;
+    document.getElementById('selected-teacher').textContent = teacherName ? ` · 지도교사: ${teacherName}` : '';
+    renderStudentList(getCurrentFilteredStudents());
+}
+
+function clearStudent() {
+    selectedStudentId = '';
+    document.getElementById('student_id_input').value = '';
+    document.getElementById('selected-display').classList.add('hidden');
+    renderStudentList(getCurrentFilteredStudents());
+}
+
+// 초기 렌더링 (수정 화면이면 기존 선택 학생 표시)
+filterStudents();
+if (selectedStudentId) {
+    const existing = allStudents.find(s => s.student_id === selectedStudentId);
+    if (existing) {
+        selectStudent(existing.student_id, existing.name, existing.grade, existing.school, existing.teacher_name);
+    }
+}
+</script>
 {% endblock %}

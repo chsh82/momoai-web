@@ -374,6 +374,21 @@ def rate_book(book_id):
     })
 
 
+def _hall_of_fame_students_data():
+    """명예의 전당 글쓰기 폼의 학생 검색용 데이터 (이름·학년·지도교사)"""
+    students = Student.query.filter_by(is_temp=False).order_by(Student.name).all()
+    return [
+        {
+            'student_id': s.student_id,
+            'name': s.name,
+            'grade': s.grade or '',
+            'school': s.school or '',
+            'teacher_name': s.teacher.name if s.teacher else ''
+        }
+        for s in students
+    ]
+
+
 # ==================== 명예의 전당 ====================
 
 @library_bp.route('/hall-of-fame')
@@ -712,9 +727,13 @@ def create_hall_of_fame():
                     file.save(file_full_path)
                     file_path = os.path.join('hall_of_fame', stored_filename)
 
-            # 학생 선택 시 실명을 함께 저장 (목록/상세에서 student_name으로 표시)
+            # 학생 선택 시 실명·학년을 함께 저장 (목록/상세에서 그대로 표시)
             selected_student_id = request.form.get('student_id') or None
             selected_student = Student.query.get(selected_student_id) if selected_student_id else None
+
+            week_number_raw = request.form.get('week_number') or ''
+            week_number = int(week_number_raw) if week_number_raw.isdigit() else None
+            book_id = request.form.get('book_id') or None
 
             # Create post
             post = HallOfFame(
@@ -724,8 +743,10 @@ def create_hall_of_fame():
                 category=request.form.get('category'),
                 student_id=selected_student_id,
                 student_name=selected_student.name if selected_student else None,
+                grade=selected_student.grade if selected_student else (request.form.get('grade') or None),
                 award_name=request.form.get('award_name') or None,
-                grade=request.form.get('grade') or None,
+                week_number=week_number,
+                book_id=book_id,
                 file_path=file_path,
                 is_published=bool(request.form.get('is_published')),
                 created_by=current_user.user_id,
@@ -750,10 +771,12 @@ def create_hall_of_fame():
             db.session.rollback()
             flash(f'등록 중 오류가 발생했습니다: {str(e)}', 'error')
 
-    students = Student.query.order_by(Student.name).all()
+    students_data = _hall_of_fame_students_data()
+    books = Book.query.filter_by(is_curriculum=True).order_by(Book.title).all()
     return render_template('library/admin/hall_of_fame_form.html',
                          post=None,
-                         students=students,
+                         students_data=students_data,
+                         books=books,
                          images=[])
 
 
@@ -799,9 +822,12 @@ def edit_hall_of_fame(post_id):
                     file.save(file_full_path)
                     post.file_path = os.path.join('hall_of_fame', stored_filename)
 
-            # 학생 선택 시 실명을 함께 저장 (목록/상세에서 student_name으로 표시)
+            # 학생 선택 시 실명·학년을 함께 저장 (목록/상세에서 그대로 표시)
             selected_student_id = request.form.get('student_id') or None
             selected_student = Student.query.get(selected_student_id) if selected_student_id else None
+
+            week_number_raw = request.form.get('week_number') or ''
+            week_number = int(week_number_raw) if week_number_raw.isdigit() else None
 
             # Update post
             post.title = request.form.get('title')
@@ -809,8 +835,10 @@ def edit_hall_of_fame(post_id):
             post.category = request.form.get('category')
             post.student_id = selected_student_id
             post.student_name = selected_student.name if selected_student else None
+            post.grade = selected_student.grade if selected_student else (request.form.get('grade') or None)
             post.award_name = request.form.get('award_name') or None
-            post.grade = request.form.get('grade') or None
+            post.week_number = week_number
+            post.book_id = request.form.get('book_id') or None
             post.is_published = bool(request.form.get('is_published'))
             post.updated_at = datetime.now()
 
@@ -840,10 +868,12 @@ def edit_hall_of_fame(post_id):
 
     from app.utils.image_utils import get_post_images
     images = get_post_images('hall_of_fame', post.post_id)
-    students = Student.query.order_by(Student.name).all()
+    students_data = _hall_of_fame_students_data()
+    books = Book.query.filter_by(is_curriculum=True).order_by(Book.title).all()
     return render_template('library/admin/hall_of_fame_form.html',
                          post=post,
-                         students=students,
+                         students_data=students_data,
+                         books=books,
                          images=images)
 
 

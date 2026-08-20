@@ -27,6 +27,11 @@ class HallOfFame(db.Model):
     award_name = db.Column(db.String(200), nullable=True)  # 수상명
     award_date = db.Column(db.Date, nullable=True)  # 수상일
 
+    # 수업 정보 (선택)
+    week_number = db.Column(db.Integer, nullable=True)  # 주차
+    book_id = db.Column(db.String(36), db.ForeignKey('books.book_id', ondelete='SET NULL'),
+                       nullable=True, index=True)  # 수업도서
+
     # 파일 첨부
     file_path = db.Column(db.String(500), nullable=True)
     original_filename = db.Column(db.String(255), nullable=True)
@@ -45,6 +50,7 @@ class HallOfFame(db.Model):
     # Relationships
     student = db.relationship('Student', backref='hall_of_fame_posts')
     creator = db.relationship('User', backref='hall_of_fame_posts')
+    book = db.relationship('Book')
 
     def __repr__(self):
         return f'<HallOfFame {self.post_id}: {self.title}>'
