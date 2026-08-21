@@ -95,14 +95,20 @@ class ISBNService:
 
     @staticmethod
     def _lookup_google(isbn_clean: str) -> dict | None:
-        """Google Books API로 ISBN 조회 (fallback)"""
+        """Google Books API로 ISBN 조회"""
         try:
+            params = {'q': f'isbn:{isbn_clean}', 'maxResults': 1}
+            api_key = os.environ.get('GOOGLE_BOOKS_API_KEY')
+            if api_key:
+                params['key'] = api_key
+
             resp = requests.get(
                 ISBNService.GOOGLE_API,
-                params={'q': f'isbn:{isbn_clean}', 'maxResults': 1},
+                params=params,
                 timeout=10,
             )
             if resp.status_code != 200:
+                print(f'[Google Books] HTTP {resp.status_code}: {resp.text[:200]}')
                 return None
 
             items = resp.json().get('items', [])
@@ -153,20 +159,20 @@ class ISBNService:
     def lookup_isbn(isbn: str) -> dict | None:
         """
         ISBN으로 도서 정보 조회.
-        1순위: 네이버 도서 API (한국 도서에 최적)
-        2순위: Google Books API (fallback)
+        1순위: Google Books API (네이버가 2026-08 기준 책 검색 API 접근 불가 상태라 기본으로 전환)
+        2순위: 네이버 도서 API (추후 복구되면 자동으로 다시 쓰임)
         """
         isbn_clean = isbn.replace('-', '').replace(' ', '')
         print(f'[ISBN Service] 조회: {isbn_clean}')
 
-        # 1순위: 네이버
-        result = ISBNService._lookup_naver(isbn_clean)
+        # 1순위: Google Books
+        result = ISBNService._lookup_google(isbn_clean)
         if result and result.get('title'):
             return result
 
-        # 2순위: Google Books
-        print('[ISBN Service] 네이버 실패 → Google Books fallback')
-        result = ISBNService._lookup_google(isbn_clean)
+        # 2순위: 네이버 (fallback)
+        print('[ISBN Service] Google Books 실패 → 네이버 fallback')
+        result = ISBNService._lookup_naver(isbn_clean)
         if result and result.get('title'):
             return result
 
