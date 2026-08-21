@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ISBN 조회 서비스 - 네이버 도서 API 우선, Google Books fallback"""
+"""ISBN 조회 서비스 - 알라딘 우선(국내도서 최적), Google Books/네이버 fallback"""
 import re
 import os
 import requests
@@ -12,8 +12,90 @@ def _strip_html(text: str) -> str:
 
 class ISBNService:
 
+    ALADIN_API = 'https://www.aladin.co.kr/ttb/api/ItemLookUp.aspx'
     NAVER_API  = 'https://openapi.naver.com/v1/search/book_adv.json'  # ISBN 전용 고급 검색
     GOOGLE_API = 'https://www.googleapis.com/books/v1/volumes'
+
+    # ------------------------------------------------------------------ #
+    # 알라딘 도서 API (국내도서 전용, 메타데이터 품질 가장 좋음)
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _lookup_aladin(isbn_clean: str) -> dict | None:
+        """알라딘 Open API로 ISBN 조회"""
+        ttb_key = os.environ.get('ALADIN_TTB_KEY')
+        if not ttb_key:
+            print('[Aladin Books] API 키가 설정되지 않았습니다.')
+            return None
+
+        try:
+            resp = requests.get(
+                ISBNService.ALADIN_API,
+                params={
+                    'ttbkey': ttb_key,
+                    'itemIdType': 'ISBN13' if len(isbn_clean) == 13 else 'ISBN',
+                    'ItemId': isbn_clean,
+                    'output': 'js',
+                    'Version': '20131101',
+                    'Cover': 'Big',
+                },
+                timeout=8,
+            )
+            if resp.status_code != 200:
+                print(f'[Aladin Books] HTTP {resp.status_code}: {resp.text[:200]}')
+                return None
+
+            data = resp.json()
+            if data.get('errorCode'):
+                print(f"[Aladin Books] 오류: {data.get('errorMessage')}")
+                return None
+
+            items = data.get('item', [])
+            if not items:
+                print(f'[Aladin Books] ISBN {isbn_clean} 검색 결과 없음')
+                return None
+
+            item = items[0]
+
+            # 출판연도: "2016-09-23" → 2016
+            pub_year = None
+            pub_date = item.get('pubDate', '')
+            if pub_date and len(pub_date) >= 4:
+                try:
+                    pub_year = int(pub_date[:4])
+                except ValueError:
+                    pass
+
+            # 저자: "우지영 (지은이), 김은재 (그림)" → "우지영, 김은재"
+            author_raw = item.get('author', '')
+            author = ', '.join(
+                re.sub(r'\s*\([^)]*\)\s*$', '', p.strip())
+                for p in author_raw.split(',')
+                if p.strip()
+            )
+
+            cover = item.get('cover') or None
+            if cover and cover.startswith('http://'):
+                cover = cover.replace('http://', 'https://')
+
+            result = {
+                'title':            item.get('title', ''),
+                'author':           author,
+                'publisher':        item.get('publisher', ''),
+                'publication_year': pub_year,
+                'description':      item.get('description', ''),
+                'cover_image_url':  cover,
+                'isbn':             item.get('isbn13') or isbn_clean,
+            }
+            print(f'[Aladin Books] 조회 성공: {result["title"]}')
+            return result
+
+        except requests.RequestException as e:
+            print(f'[Aladin Books] 네트워크 오류: {e}')
+            return None
+        except Exception as e:
+            print(f'[Aladin Books] 예상치 못한 오류: {e}')
+            return None
 
     # ------------------------------------------------------------------ #
     # 네이버 도서 API
@@ -159,22 +241,29 @@ class ISBNService:
     def lookup_isbn(isbn: str) -> dict | None:
         """
         ISBN으로 도서 정보 조회.
-        1순위: Google Books API (네이버가 2026-08 기준 책 검색 API 접근 불가 상태라 기본으로 전환)
-        2순위: 네이버 도서 API (추후 복구되면 자동으로 다시 쓰임)
+        1순위: 알라딘 (국내도서 메타데이터 품질 최상)
+        2순위: Google Books (알라딘에 없는 해외도서 등)
+        3순위: 네이버 도서 API (2026-08 기준 접근 불가, 복구되면 자동으로 다시 쓰임)
         """
         isbn_clean = isbn.replace('-', '').replace(' ', '')
         print(f'[ISBN Service] 조회: {isbn_clean}')
 
-        # 1순위: Google Books
+        # 1순위: 알라딘
+        result = ISBNService._lookup_aladin(isbn_clean)
+        if result and result.get('title'):
+            return result
+
+        # 2순위: Google Books
+        print('[ISBN Service] 알라딘 실패 → Google Books fallback')
         result = ISBNService._lookup_google(isbn_clean)
         if result and result.get('title'):
             return result
 
-        # 2순위: 네이버 (fallback)
+        # 3순위: 네이버 (fallback)
         print('[ISBN Service] Google Books 실패 → 네이버 fallback')
         result = ISBNService._lookup_naver(isbn_clean)
         if result and result.get('title'):
             return result
 
-        print(f'[ISBN Service] {isbn_clean} 조회 실패 (두 API 모두)')
+        print(f'[ISBN Service] {isbn_clean} 조회 실패 (전체 API)')
         return None
