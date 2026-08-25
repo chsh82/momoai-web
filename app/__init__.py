@@ -174,6 +174,9 @@ def create_app(config_name='default'):
     from app.books import books_bp
     app.register_blueprint(books_bp, url_prefix='/books')
 
+    from app.curriculum import curriculum_bp
+    app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
+
     from app.community import community_bp
     app.register_blueprint(community_bp, url_prefix='/community')
 

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}커리큘럼 관리 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">📅 커리큘럼 관리</h2>
+        <p class="text-gray-600 mt-2">모모의 책장 연간 주차별 커리큘럼입니다. 전체 {{ total_count }}건 · 조회된 {{ weeks|length }}건</p>
+    </div>
+
+    <form method="GET" class="bg-white rounded-lg shadow p-5 mb-6 flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">연도</label>
+            <select name="year" class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                <option value="">전체</option>
+                {% for y in years %}
+                <option value="{{ y }}" {% if filter_year == y %}selected{% endif %}>{{ y }}년</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">분기</label>
+            <select name="quarter" class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                <option value="">전체</option>
+                {% for q in quarters %}
+                <option value="{{ q }}" {% if filter_quarter == q %}selected{% endif %}>{{ q }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">학년</label>
+            <select name="grade" class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                <option value="">전체</option>
+                {% for code, label in grade_choices %}
+                <option value="{{ code }}" {% if filter_grade == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition">필터 적용</button>
+        {% if filter_year or filter_quarter or filter_grade %}
+        <a href="{{ url_for('curriculum.index') }}" class="text-sm text-gray-400 hover:text-gray-600">초기화</a>
+        {% endif %}
+    </form>
+
+    {% if weeks %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+                <tr>
+                    <th class="text-left px-4 py-3">학년</th>
+                    <th class="text-left px-4 py-3">분기</th>
+                    <th class="text-center px-4 py-3">주차</th>
+                    <th class="text-left px-4 py-3">기간</th>
+                    <th class="text-left px-4 py-3">도서명</th>
+                    <th class="text-left px-4 py-3">저자</th>
+                    <th class="text-left px-4 py-3">출판사</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for w in weeks %}
+                <tr class="{% if w.is_holiday %}bg-gray-50 text-gray-400{% endif %}">
+                    <td class="px-4 py-2 whitespace-nowrap">{{ grade_labels.get(w.grade, w.grade) }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">{{ w.quarter }}</td>
+                    <td class="px-4 py-2 text-center">{{ w.week_number }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">{{ w.date_range or '-' }}</td>
+                    <td class="px-4 py-2">
+                        {% if w.is_holiday %}
+                        {{ w.note or '휴강' }}
+                        {% elif w.book %}
+                        <a href="{{ url_for('books.detail', book_id=w.book.book_id) }}"
+                           class="text-blue-600 hover:underline">{{ w.book.title }}</a>
+                        {% else %}
+                        <span class="text-red-400">도서 미연결</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">{{ (w.book.author if w.book else '') or '-' }}</td>
+                    <td class="px-4 py-2">{{ (w.book.publisher if w.book else '') or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+        조건에 맞는 커리큘럼이 없습니다.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
