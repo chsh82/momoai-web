@@ -62,7 +62,7 @@
                     <th class="text-left px-4 py-3">도서명</th>
                     <th class="text-left px-4 py-3">저자</th>
                     <th class="text-left px-4 py-3">출판사</th>
-                    <th class="text-center px-4 py-3">관리</th>
+                    <th class="text-center px-6 py-3 whitespace-nowrap">관리</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -84,10 +84,10 @@
                     </td>
                     <td class="px-4 py-2" data-field="author">{{ (w.book.author if w.book else '') or '-' }}</td>
                     <td class="px-4 py-2" data-field="publisher">{{ (w.book.publisher if w.book else '') or '-' }}</td>
-                    <td class="px-4 py-2 text-center">
+                    <td class="px-6 py-2 text-center whitespace-nowrap">
                         {% if not w.is_holiday %}
                         <button onclick="openSwapModal('{{ w.curriculum_week_id }}')"
-                                class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition">
+                                class="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition whitespace-nowrap">
                             ✏️ 책 교체
                         </button>
                         {% endif %}
