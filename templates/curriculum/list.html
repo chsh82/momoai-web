@@ -62,6 +62,7 @@
                     <th class="text-left px-4 py-3">도서명</th>
                     <th class="text-left px-4 py-3">저자</th>
                     <th class="text-left px-4 py-3">출판사</th>
+                    <th class="text-center px-4 py-3 whitespace-nowrap">자료</th>
                     <th class="text-center px-6 py-3 whitespace-nowrap">관리</th>
                 </tr>
             </thead>
@@ -84,6 +85,43 @@
                     </td>
                     <td class="px-4 py-2" data-field="author">{{ (w.book.author if w.book else '') or '-' }}</td>
                     <td class="px-4 py-2" data-field="publisher">{{ (w.book.publisher if w.book else '') or '-' }}</td>
+                    <td class="px-4 py-2 text-center whitespace-nowrap">
+                        {% if not w.is_holiday and w.book_id %}
+                        <div class="flex items-center justify-center gap-1">
+                            {% if w.student_material %}
+                            <a href="{{ url_for('admin.edit_teaching_material', material_id=w.student_material.material_id) }}"
+                               target="_blank" title="학생용 자료 관리"
+                               class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 whitespace-nowrap">
+                                📄 학생({{ w.student_material.files|length }})
+                            </a>
+                            {% else %}
+                            <label title="학생용 자료 올리기"
+                                   class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded cursor-pointer whitespace-nowrap">
+                                ➕📄 학생
+                                <input type="file" multiple class="hidden"
+                                       onchange="uploadWeekMaterial('{{ w.curriculum_week_id }}', 'student', this)">
+                            </label>
+                            {% endif %}
+
+                            {% if w.teacher_material %}
+                            <a href="{{ url_for('admin.edit_teaching_material', material_id=w.teacher_material.material_id) }}"
+                               target="_blank" title="교사용 자료 관리"
+                               class="text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 whitespace-nowrap">
+                                🗂️ 교사({{ w.teacher_material.files|length }})
+                            </a>
+                            {% else %}
+                            <label title="교사용 자료 올리기"
+                                   class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded cursor-pointer whitespace-nowrap">
+                                ➕🗂️ 교사
+                                <input type="file" multiple class="hidden"
+                                       onchange="uploadWeekMaterial('{{ w.curriculum_week_id }}', 'teacher', this)">
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-gray-300 text-xs">-</span>
+                        {% endif %}
+                    </td>
                     <td class="px-6 py-2 text-center whitespace-nowrap">
                         {% if not w.is_holiday %}
                         <button onclick="openSwapModal('{{ w.curriculum_week_id }}')"
@@ -183,6 +221,28 @@ async function selectSwapBook(book) {
         closeSwapModal();
     } catch (err) {
         statusArea.innerHTML = '<span class="text-red-500">네트워크 오류가 발생했습니다.</span>';
+    }
+}
+
+async function uploadWeekMaterial(weekId, audienceRole, inputEl) {
+    if (!inputEl.files.length) return;
+    const formData = new FormData();
+    for (const f of inputEl.files) formData.append('files', f);
+    formData.append('audience_role', audienceRole);
+
+    inputEl.disabled = true;
+    try {
+        const res = await fetch(`/curriculum/weeks/${weekId}/material`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || '업로드 중 오류가 발생했습니다.');
+            return;
+        }
+        location.reload();
+    } catch (err) {
+        alert('네트워크 오류가 발생했습니다.');
+    } finally {
+        inputEl.disabled = false;
     }
 }
 </script>

@@ -53,6 +53,26 @@ def compute_curriculum_grades(book_id: str, sequence: int | None, year: int | No
     return sorted(matched)
 
 
+def compute_week_sequence(week) -> int | None:
+    """주어진 CurriculumWeek이 같은 (연도,분기,학년) 안에서 같은 도서로 이어지는 연속 구간에서
+    몇 번째(차시)인지 계산. book_id가 없으면 None."""
+    if not week.book_id:
+        return None
+    siblings = CurriculumWeek.query.filter_by(
+        year=week.year, quarter=week.quarter, grade=week.grade, book_id=week.book_id
+    ).order_by(CurriculumWeek.week_number).all()
+
+    run_start = 0
+    for i in range(1, len(siblings) + 1):
+        if i == len(siblings) or siblings[i].week_number != siblings[i - 1].week_number + 1:
+            run = siblings[run_start:i]
+            ids = [w.curriculum_week_id for w in run]
+            if week.curriculum_week_id in ids:
+                return ids.index(week.curriculum_week_id) + 1
+            run_start = i
+    return None
+
+
 def compute_curriculum_sequences(book_id: str, year: int | None = None) -> list:
     """관리자 화면에서 "N주차 - 배정 학년" 미리보기용. [{"sequence": 1, "grades": [...]}, ...] 반환."""
     if not book_id:
