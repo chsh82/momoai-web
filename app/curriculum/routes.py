@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """모모의 책장 커리큘럼 관리 라우트"""
-from flask import render_template, request
-from flask_login import login_required
+import io
+
+from flask import render_template, request, jsonify
+from flask_login import login_required, current_user
 from sqlalchemy import distinct
 
 from app.curriculum import curriculum_bp
+from app.curriculum.importer import parse_workbook, apply_import
 from app.models import db
 from app.models.curriculum import CurriculumWeek
 from app.utils.decorators import requires_permission_level
@@ -55,3 +58,35 @@ def index():
         filter_grade=grade,
         total_count=CurriculumWeek.query.count(),
     )
+
+
+@curriculum_bp.route('/upload', methods=['GET'])
+@login_required
+@requires_permission_level(2)
+def upload_page():
+    return render_template('curriculum/upload.html')
+
+
+@curriculum_bp.route('/upload', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def upload():
+    """엑셀 업로드 -> "연간 전체 리스트" 시트 파싱 -> curriculum_weeks/books upsert.
+    같은 (연도, 분기, 학년, 주차) 조합은 덮어쓰므로 같은 파일을 수정해서 다시 올려도 안전함."""
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'error': '파일을 선택하세요.'}), 400
+    if not file.filename.lower().endswith(('.xlsx', '.xls')):
+        return jsonify({'error': '.xlsx 파일만 업로드할 수 있습니다.'}), 400
+
+    try:
+        rows = parse_workbook(io.BytesIO(file.read()))
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    if not rows:
+        return jsonify({'error': '파싱된 데이터가 없습니다. 파일 형식을 확인하세요.'}), 400
+
+    stats = apply_import(rows, current_user.user_id)
+    db.session.commit()
+    return jsonify({'ok': True, **stats})

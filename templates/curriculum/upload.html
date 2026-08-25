@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}커리큘럼 업로드 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">⬆️ 커리큘럼 업로드</h2>
+            <p class="text-gray-600 mt-2">같은 형식의 엑셀 파일을 올리면 (연도, 분기, 학년, 주차) 기준으로 자동 반영됩니다.</p>
+        </div>
+        <a href="{{ url_for('curriculum.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← 목록으로</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <p class="text-sm text-gray-500 mb-4">
+            "연간 전체 리스트" 시트에 <b>연도 / 분기 / 학년 / 주차 / 기간 / 도서명 / 저자(역자) / 출판사 / 휴강여부</b>
+            9개 열이 있어야 합니다. 같은 (연도,분기,학년,주차) 조합은 덮어쓰기(upsert)되므로 파일을 수정해서
+            다시 올려도 안전합니다. 도서명은 기존 도서 목록과 제목이 일치하면 그 도서를 재사용하고,
+            없으면 새 도서로 등록됩니다.
+        </p>
+
+        <form id="upload-form" class="space-y-4">
+            <input type="file" name="file" id="file-input" accept=".xlsx,.xls"
+                   class="block w-full text-sm text-gray-600 border border-gray-300 rounded-md p-2
+                          file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <button type="submit" id="upload-btn"
+                    class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition">
+                업로드
+            </button>
+        </form>
+
+        <div id="upload-result" class="mt-5"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('file-input');
+    const btn = document.getElementById('upload-btn');
+    const resultArea = document.getElementById('upload-result');
+
+    if (!fileInput.files.length) {
+        resultArea.innerHTML = '<p class="text-sm text-red-500">파일을 선택하세요.</p>';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    btn.disabled = true;
+    btn.textContent = '업로드 중...';
+    resultArea.innerHTML = '';
+
+    try {
+        const res = await fetch("{{ url_for('curriculum.upload') }}", { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+            resultArea.innerHTML = `<p class="text-sm text-red-500">${data.error || '업로드 중 오류가 발생했습니다.'}</p>`;
+            return;
+        }
+        resultArea.innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded-md p-4 text-sm text-green-800">
+                <p class="font-medium mb-1">업로드 완료</p>
+                <p>파싱된 행: ${data.rows_parsed}건</p>
+                <p>주차 추가: ${data.weeks_added}건 / 갱신: ${data.weeks_updated}건 (휴강 ${data.holiday_weeks}건 포함)</p>
+                <p>도서 신규 생성: ${data.books_created}건 / 기존 도서 갱신: ${data.books_updated}건</p>
+            </div>`;
+        setTimeout(() => { window.location.href = "{{ url_for('curriculum.index') }}"; }, 1800);
+    } catch (err) {
+        resultArea.innerHTML = '<p class="text-sm text-red-500">네트워크 오류가 발생했습니다.</p>';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '업로드';
+    }
+});
+</script>
+{% endblock %}

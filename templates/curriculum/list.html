@@ -4,9 +4,16 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
-    <div class="mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">📅 커리큘럼 관리</h2>
-        <p class="text-gray-600 mt-2">모모의 책장 연간 주차별 커리큘럼입니다. 전체 {{ total_count }}건 · 조회된 {{ weeks|length }}건</p>
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">📅 커리큘럼 관리</h2>
+            <p class="text-gray-600 mt-2">모모의 책장 연간 주차별 커리큘럼입니다. 전체 {{ total_count }}건 · 조회된 {{ weeks|length }}건</p>
+        </div>
+        <a href="{{ url_for('curriculum.upload_page') }}"
+           class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2">
+            <span class="text-xl">⬆️</span>
+            <span>엑셀 업로드</span>
+        </a>
     </div>
 
     <form method="GET" class="bg-white rounded-lg shadow p-5 mb-6 flex flex-wrap gap-3 items-end">
