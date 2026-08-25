@@ -5071,6 +5071,7 @@ def teacher_teaching_materials():
     today = date.today()
     all_materials = TeachingMaterial.query.filter(
         TeachingMaterial.is_public == True,
+        TeachingMaterial.audience_role == 'student',
         TeachingMaterial.publish_date <= today,
         db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
     ).order_by(TeachingMaterial.created_at.desc()).all()
@@ -5102,6 +5103,58 @@ def teacher_teaching_materials():
         accessible = [m for m in accessible if m.grade == grade_filter]
 
     return render_template('teacher/teaching_materials.html',
+                           materials=accessible,
+                           teacher_grades=teacher_grades,
+                           search=search,
+                           grade_filter=grade_filter)
+
+
+@teacher_bp.route('/materials-board')
+@login_required
+@requires_role('teacher', 'admin')
+def teacher_materials_board():
+    """교사용 교재 게시판 - 관리자가 올린 교사 전용 자료를 담당 학년 기준으로 열람"""
+    import json
+    from app.models.teaching_material import TeachingMaterial
+
+    try:
+        teacher_grades = json.loads(current_user.teacher_grades or '[]')
+    except (json.JSONDecodeError, TypeError):
+        teacher_grades = []
+
+    today = date.today()
+    all_materials = TeachingMaterial.query.filter(
+        TeachingMaterial.is_public == True,
+        TeachingMaterial.audience_role == 'teacher',
+        TeachingMaterial.publish_date <= today,
+        db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
+    ).order_by(TeachingMaterial.created_at.desc()).all()
+
+    accessible = []
+    for mat in all_materials:
+        try:
+            target = json.loads(mat.target_audience)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if target.get('type') == 'grade':
+            target_grades = target.get('grades', [])
+            if not target_grades:
+                accessible.append(mat)
+            elif teacher_grades and any(g in target_grades for g in teacher_grades):
+                accessible.append(mat)
+        elif target.get('type') == 'course':
+            if teacher_grades:
+                accessible.append(mat)
+
+    search = request.args.get('search', '').strip()
+    grade_filter = request.args.get('grade', '').strip()
+
+    if search:
+        accessible = [m for m in accessible if search.lower() in m.title.lower()]
+    if grade_filter:
+        accessible = [m for m in accessible if m.grade == grade_filter]
+
+    return render_template('teacher/materials_board.html',
                            materials=accessible,
                            teacher_grades=teacher_grades,
                            search=search,

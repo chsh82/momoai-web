@@ -1459,10 +1459,11 @@ def teaching_materials():
                                    search='', grade_filter='',
                                    is_blocked=True)
 
-    # 모든 공개된 교재 조회
+    # 모든 공개된 교재 조회 (학생용만)
     today = date.today()
     all_materials = TeachingMaterial.query.filter(
         TeachingMaterial.is_public == True,
+        TeachingMaterial.audience_role == 'student',
         TeachingMaterial.publish_date <= today,
         db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
     ).order_by(TeachingMaterial.created_at.desc()).all()

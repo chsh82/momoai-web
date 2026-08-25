@@ -3834,6 +3834,7 @@ def teaching_materials():
     grade_filter = request.args.get('grade', '')
     status_filter = request.args.get('status', 'all')  # active, expired, all
     is_public_filter = request.args.get('is_public', '')  # '', '0', '1'
+    audience_role_filter = request.args.get('audience_role', '')  # '', 'student', 'teacher'
 
     # 기본 쿼리
     query = TeachingMaterial.query
@@ -3841,6 +3842,10 @@ def teaching_materials():
     # 학년 필터
     if grade_filter:
         query = query.filter(TeachingMaterial.grade == grade_filter)
+
+    # 구분(학생용/교사용) 필터
+    if audience_role_filter:
+        query = query.filter(TeachingMaterial.audience_role == audience_role_filter)
 
     # 공개 여부 필터
     if is_public_filter == '1':
@@ -3886,6 +3891,7 @@ def teaching_materials():
                          grade_filter=grade_filter,
                          is_public_filter=is_public_filter,
                          status_filter=status_filter,
+                         audience_role_filter=audience_role_filter,
                          format_file_size=format_file_size)
 
 
@@ -3976,6 +3982,7 @@ def create_teaching_material():
             publish_date=form.publish_date.data,
             end_date=form.end_date.data,
             is_public=form.is_public.data,
+            audience_role=form.audience_role.data,
             target_audience=target_audience,
             created_by=current_user.user_id,
             book_id=book_id
@@ -4085,6 +4092,7 @@ def edit_teaching_material(material_id):
         material.publish_date = form.publish_date.data
         material.end_date = form.end_date.data
         material.is_public = form.is_public.data
+        material.audience_role = form.audience_role.data
         material.target_audience = target_audience
         material.book_id = request.form.get('book_id') or None
 

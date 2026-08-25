@@ -30,6 +30,10 @@ def can_access_content(content, user, student=None):
     if user.role_level <= 2:
         return True
 
+    # 1-1. 교사용 자료는 학생/학부모에게 노출되지 않음 (Video에는 없는 필드라 기본값 'student')
+    if getattr(content, 'audience_role', 'student') != 'student':
+        return False
+
     # 2. Check if published
     if not content.is_public:
         return False

@@ -263,6 +263,14 @@ class TeachingMaterialForm(FlaskForm):
 
     is_public = BooleanField('공개', default=True)
 
+    audience_role = SelectField('구분',
+                               choices=[
+                                   ('student', '학생용'),
+                                   ('teacher', '교사용'),
+                               ],
+                               default='student',
+                               validators=[DataRequired()])
+
     target_type = SelectField('대상 선택 방식',
                              choices=[
                                  ('grade', '학년별'),

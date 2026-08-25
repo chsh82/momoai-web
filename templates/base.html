@@ -715,6 +715,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.teacher_teaching_material' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 📚 학습 교재
                             </a>
+                            <a href="{{ url_for('teacher.teacher_materials_board') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.teacher_materials_board' %}text-blue-600 bg-blue-50{% endif %}">
+                                🗂️ 교사용 교재 게시판
+                            </a>
                         </div>
                     </div>
 
