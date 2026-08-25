@@ -274,7 +274,8 @@ class TeachingMaterialForm(FlaskForm):
     target_type = SelectField('대상 선택 방식',
                              choices=[
                                  ('grade', '학년별'),
-                                 ('course', '수업별')
+                                 ('course', '수업별'),
+                                 ('curriculum', '도서 연동(커리큘럼)'),
                              ],
                              default='grade',
                              validators=[DataRequired()])

@@ -123,22 +123,7 @@
                 <div class="space-y-1 mb-3 text-xs text-gray-600">
                     <div class="flex items-center gap-2">
                         <span class="text-gray-400 shrink-0">📚</span>
-                        <span class="min-w-0">
-                            {% if material.target_type == 'grade' %}
-                                {% if material.target_grades %}
-                                    {% for grade in material.target_grades[:3] %}
-                                    <span class="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 mr-0.5">{{ grade }}</span>
-                                    {% endfor %}
-                                    {% if material.target_grades|length > 3 %}
-                                    <span class="inline-block px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">+{{ material.target_grades|length - 3 }}</span>
-                                    {% endif %}
-                                {% else %}
-                                전체
-                                {% endif %}
-                            {% else %}
-                                <span class="inline-block px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">수업별</span>
-                            {% endif %}
-                        </span>
+                        <span class="min-w-0 truncate">{{ material.target_display }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-gray-400 shrink-0">📎</span>

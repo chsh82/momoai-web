@@ -154,6 +154,22 @@
                         <div id="selectedCourses" class="mt-3 space-y-2"></div>
                         <p class="text-xs text-gray-500 mt-2">선택하지 않으면 모든 수업에 공개됩니다</p>
                     </div>
+
+                    <div id="curriculumSelect" class="hidden">
+                        <p class="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                            아래 "연결 도서"에서 책을 먼저 검색해 선택하세요. 선택하면 그 책이 올해 커리큘럼에서
+                            배정된 주차 목록이 아래에 나타납니다.
+                        </p>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">차시(주차)</label>
+                        <select id="curriculumSequenceField" name="curriculum_sequence"
+                                data-initial-sequence="{{ material.curriculum_sequence if mode == 'edit' and material.curriculum_sequence is not none else '' }}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">먼저 도서를 선택하세요</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">
+                            "전체(차시 구분 없음)"을 고르면 그 책이 배정된 모든 주차의 학생에게 노출됩니다.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- 파일 업로드 -->
@@ -479,11 +495,37 @@ function selectBook(book) {
     document.getElementById('bookSearchResults').classList.add('hidden');
     document.getElementById('bookSearchResults').innerHTML = '';
     document.getElementById('bookTitleSearch').value = '';
+
+    const curriculumType = document.querySelector('input[name="target_type"]:checked');
+    if (curriculumType && curriculumType.value === 'curriculum') {
+        loadCurriculumSequences(book.book_id);
+    }
 }
 
 function clearBook() {
     document.getElementById('bookIdField').value = '';
     document.getElementById('selectedBookCard').classList.add('hidden');
+}
+
+// ── 도서 연동 차시 목록 로드 ──────────────────────────────────
+async function loadCurriculumSequences(bookId, selectedSequence) {
+    const field = document.getElementById('curriculumSequenceField');
+    field.innerHTML = '<option value="">불러오는 중...</option>';
+
+    const res = await fetch(`{{ url_for('admin.curriculum_sequences_for_material') }}?book_id=${bookId}`);
+    const data = await res.json();
+
+    let options = '<option value="">전체(차시 구분 없음)</option>';
+    if (!data.sequences.length) {
+        options += '<option value="" disabled>이 책은 올해 커리큘럼에 배정되어 있지 않습니다</option>';
+    } else {
+        data.sequences.forEach(s => {
+            options += `<option value="${s.sequence}">${s.sequence}주차 — ${s.grades.join(', ')}</option>`;
+        });
+    }
+    field.innerHTML = options;
+    field.value = selectedSequence || '';
+    field.dataset.initialSequence = '';
 }
 
 // 엔터키로 검색
@@ -511,17 +553,23 @@ function updateFileCount(input) {
 }
 
 // 대상 타입 전환
+function toggleTargetTypeSections(value) {
+    const gradeSelect = document.getElementById('gradeSelect');
+    const courseSelect = document.getElementById('courseSelect');
+    const curriculumSelect = document.getElementById('curriculumSelect');
+    gradeSelect.classList.toggle('hidden', value !== 'grade');
+    courseSelect.classList.toggle('hidden', value !== 'course');
+    curriculumSelect.classList.toggle('hidden', value !== 'curriculum');
+    if (value === 'curriculum') {
+        const bookId = document.getElementById('bookIdField').value;
+        const field = document.getElementById('curriculumSequenceField');
+        if (bookId) loadCurriculumSequences(bookId, field.dataset.initialSequence || '');
+    }
+}
+
 document.querySelectorAll('input[name="target_type"]').forEach(radio => {
     radio.addEventListener('change', function() {
-        const gradeSelect = document.getElementById('gradeSelect');
-        const courseSelect = document.getElementById('courseSelect');
-        if (this.value === 'grade') {
-            gradeSelect.classList.remove('hidden');
-            courseSelect.classList.add('hidden');
-        } else {
-            gradeSelect.classList.add('hidden');
-            courseSelect.classList.remove('hidden');
-        }
+        toggleTargetTypeSections(this.value);
     });
 });
 
@@ -641,15 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 초기 target_type 표시
     const selectedTargetType = document.querySelector('input[name="target_type"]:checked');
     if (selectedTargetType) {
-        const gradeSelect = document.getElementById('gradeSelect');
-        const courseSelect = document.getElementById('courseSelect');
-        if (selectedTargetType.value === 'grade') {
-            gradeSelect.classList.remove('hidden');
-            courseSelect.classList.add('hidden');
-        } else {
-            gradeSelect.classList.add('hidden');
-            courseSelect.classList.remove('hidden');
-        }
+        toggleTargetTypeSections(selectedTargetType.value);
     }
 
     // 게시 시작일 변경 시 종료일 자동 설정 (1개월 후)

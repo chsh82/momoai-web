@@ -89,6 +89,29 @@ def can_access_content(content, user, student=None):
         enrolled_ids = [e.course_id for e in enrollments]
         return any(cid in target_course_ids for cid in enrolled_ids)
 
+    elif target.get('type') == 'curriculum':
+        # 도서(+차시) 기준으로 그 해 커리큘럼에서 배정된 학년을 자동 계산해서 매칭
+        # (book_id/차시는 target_audience가 아니라 content.book_id/curriculum_sequence 컬럼에 있음)
+        from app.utils.curriculum_targeting import compute_curriculum_grades
+        book_id = getattr(content, 'book_id', None)
+        if not book_id:
+            return False
+        eligible_grades = compute_curriculum_grades(book_id, getattr(content, 'curriculum_sequence', None))
+        if not eligible_grades:
+            return False
+
+        student_grades = set(GRADE_MAP.get(student.grade, [student.grade]))
+        enrollments = CourseEnrollment.query.filter_by(
+            student_id=student.student_id, status='active'
+        ).all()
+        from app.models.course import Course
+        for e in enrollments:
+            course = Course.query.get(e.course_id)
+            if course and course.grade:
+                student_grades.update(GRADE_MAP.get(course.grade, [course.grade]))
+
+        return any(g in eligible_grades for g in student_grades)
+
     return False
 
 

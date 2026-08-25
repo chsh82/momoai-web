@@ -3825,6 +3825,50 @@ def resend_enrollment_notification(schedule_id):
 # 교재 관리 (Teaching Materials)
 # ============================================================================
 
+def _build_teaching_material_target(form):
+    """target_type에 따라 target_audience JSON, 화면표시용 grade, book_id, curriculum_sequence를 만듦"""
+    if form.target_type.data == 'grade':
+        target_grades = form.target_grades.data or []
+        target_audience = json.dumps({'type': 'grade', 'grades': target_grades}, ensure_ascii=False)
+        auto_grade = target_grades[0] if target_grades else '전체'
+        return target_audience, auto_grade, request.form.get('book_id') or None, None
+
+    if form.target_type.data == 'curriculum':
+        book_id = request.form.get('book_id') or None
+        sequence_raw = (request.form.get('curriculum_sequence') or '').strip()
+        sequence = int(sequence_raw) if sequence_raw.isdigit() else None
+        target_audience = json.dumps({'type': 'curriculum'}, ensure_ascii=False)
+        return target_audience, '커리큘럼연동', book_id, sequence
+
+    course_ids = form.target_course_ids.data.split(',') if form.target_course_ids.data else []
+    course_ids = [cid.strip() for cid in course_ids if cid.strip()]
+    target_audience = json.dumps({'type': 'course', 'course_ids': course_ids}, ensure_ascii=False)
+    return target_audience, '수업별', request.form.get('book_id') or None, None
+
+
+def _teaching_material_target_display(material) -> str:
+    """관리자 목록 화면용 대상 표시 문자열(대상 선택 방식과 무관하게 실제 target_audience를 파싱해서 만듦)"""
+    try:
+        target = json.loads(material.target_audience)
+    except (TypeError, ValueError):
+        return '-'
+
+    if target.get('type') == 'grade':
+        grades = target.get('grades') or []
+        return ', '.join(grades) if grades else '전체 학년'
+    if target.get('type') == 'course':
+        return '수업별 지정'
+    if target.get('type') == 'curriculum':
+        from app.utils.curriculum_targeting import compute_curriculum_grades
+        book_title = material.book.title if material.book else '(도서 미지정)'
+        seq = material.curriculum_sequence
+        grades = compute_curriculum_grades(material.book_id, seq) if material.book_id else []
+        seq_label = f'{seq}주차' if seq else '전체 주차'
+        grades_label = ', '.join(grades) if grades else '해당 학년 없음'
+        return f'{book_title} ({seq_label}) → {grades_label}'
+    return '-'
+
+
 @admin_bp.route('/teaching-materials')
 @login_required
 @requires_permission_level(2)
@@ -3865,6 +3909,8 @@ def teaching_materials():
         query = query.filter(TeachingMaterial.end_date < today)
 
     materials = query.order_by(TeachingMaterial.created_at.desc()).all()
+    for m in materials:
+        m.target_display = _teaching_material_target_display(m)
 
     # 통계
     today = date.today()
@@ -3920,6 +3966,18 @@ def search_books_for_material():
     } for b in books])
 
 
+@admin_bp.route('/teaching-materials/api/curriculum-sequences')
+@login_required
+@requires_permission_level(2)
+def curriculum_sequences_for_material():
+    """도서 연동형 교재 등록용 - 선택한 도서가 올해 커리큘럼에서 몇 주차까지 있고 어느 학년에 배정됐는지"""
+    from app.utils.curriculum_targeting import compute_curriculum_sequences
+    book_id = request.args.get('book_id', '').strip()
+    if not book_id:
+        return jsonify({'sequences': []})
+    return jsonify({'sequences': compute_curriculum_sequences(book_id)})
+
+
 @admin_bp.route('/teaching-materials/new', methods=['GET', 'POST'])
 @login_required
 @requires_permission_level(2)
@@ -3953,15 +4011,7 @@ def create_teaching_material():
         os.makedirs(upload_folder, exist_ok=True)
 
         # 대상 선택 JSON 생성 및 grade 자동 설정
-        if form.target_type.data == 'grade':
-            target_grades = form.target_grades.data or []
-            target_audience = json.dumps({'type': 'grade', 'grades': target_grades}, ensure_ascii=False)
-            auto_grade = target_grades[0] if target_grades else '전체'
-        else:
-            course_ids = form.target_course_ids.data.split(',') if form.target_course_ids.data else []
-            course_ids = [cid.strip() for cid in course_ids if cid.strip()]
-            target_audience = json.dumps({'type': 'course', 'course_ids': course_ids}, ensure_ascii=False)
-            auto_grade = '수업별'
+        target_audience, auto_grade, book_id, curriculum_sequence = _build_teaching_material_target(form)
 
         # 첫 번째 파일 정보로 TeachingMaterial 레코드 생성 (backward compat)
         first_file = uploaded_files[0]
@@ -3969,8 +4019,6 @@ def create_teaching_material():
         first_name = safe_original_filename(first_file.filename) or f"file{first_raw_ext}"
         first_ext = first_raw_ext
         first_stored = f"{uuid.uuid4().hex}{first_ext}"
-
-        book_id = request.form.get('book_id') or None
 
         material = TeachingMaterial(
             title=form.title.data,
@@ -3985,7 +4033,8 @@ def create_teaching_material():
             audience_role=form.audience_role.data,
             target_audience=target_audience,
             created_by=current_user.user_id,
-            book_id=book_id
+            book_id=book_id,
+            curriculum_sequence=curriculum_sequence,
         )
         db.session.add(material)
         db.session.flush()  # material_id 확보
@@ -4069,22 +4118,14 @@ def edit_teaching_material(material_id):
             form.target_type.data = target_audience.get('type', 'grade')
             if target_audience.get('type') == 'grade':
                 form.target_grades.data = target_audience.get('grades', [])
-            else:
+            elif target_audience.get('type') == 'course':
                 form.target_course_ids.data = ','.join(target_audience.get('course_ids', []))
     except:
         target_audience = {'type': 'grade', 'grades': []}
 
     if form.validate_on_submit():
         # 대상 선택 업데이트 및 grade 자동 설정
-        if form.target_type.data == 'grade':
-            target_grades = form.target_grades.data or []
-            target_audience = json.dumps({'type': 'grade', 'grades': target_grades}, ensure_ascii=False)
-            auto_grade = target_grades[0] if target_grades else '전체'
-        else:
-            course_ids = form.target_course_ids.data.split(',') if form.target_course_ids.data else []
-            course_ids = [cid.strip() for cid in course_ids if cid.strip()]
-            target_audience = json.dumps({'type': 'course', 'course_ids': course_ids}, ensure_ascii=False)
-            auto_grade = '수업별'
+        target_audience, auto_grade, book_id, curriculum_sequence = _build_teaching_material_target(form)
 
         # 기본 정보 업데이트
         material.title = form.title.data
@@ -4094,7 +4135,8 @@ def edit_teaching_material(material_id):
         material.is_public = form.is_public.data
         material.audience_role = form.audience_role.data
         material.target_audience = target_audience
-        material.book_id = request.form.get('book_id') or None
+        material.book_id = book_id
+        material.curriculum_sequence = curriculum_sequence
 
         # 새 파일 추가 (기존 파일 유지, 추가만)
         new_files = request.files.getlist('file_uploads')

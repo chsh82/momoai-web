@@ -5054,6 +5054,33 @@ def pilsa_note():
 
 # ==================== 학습 교재 (Teaching Materials) ====================
 
+def _teacher_can_access_material(mat, teacher_grades):
+    """강사 담당 학년(teacher_grades) 기준으로 교재 접근 가능 여부"""
+    import json as _json
+    try:
+        target = _json.loads(mat.target_audience)
+    except (_json.JSONDecodeError, TypeError):
+        return False
+
+    if target.get('type') == 'grade':
+        target_grades = target.get('grades', [])
+        if not target_grades:  # 제한 없음 = 전체 공개
+            return True
+        return bool(teacher_grades) and any(g in target_grades for g in teacher_grades)
+
+    if target.get('type') == 'course':
+        # 수업 지정 교재도 담당 학년 설정된 강사에게 공개
+        return bool(teacher_grades)
+
+    if target.get('type') == 'curriculum':
+        from app.utils.curriculum_targeting import compute_curriculum_grades
+        if not mat.book_id:
+            return False
+        eligible_grades = compute_curriculum_grades(mat.book_id, mat.curriculum_sequence)
+        return bool(teacher_grades) and any(g in eligible_grades for g in teacher_grades)
+
+    return False
+
 @teacher_bp.route('/teaching-materials')
 @login_required
 @requires_role('teacher', 'admin')
@@ -5077,22 +5104,7 @@ def teacher_teaching_materials():
     ).order_by(TeachingMaterial.created_at.desc()).all()
 
     # 담당 학년에 해당하는 교재 필터링
-    accessible = []
-    for mat in all_materials:
-        try:
-            target = json.loads(mat.target_audience)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if target.get('type') == 'grade':
-            target_grades = target.get('grades', [])
-            if not target_grades:  # 제한 없음 = 전체 공개
-                accessible.append(mat)
-            elif teacher_grades and any(g in target_grades for g in teacher_grades):
-                accessible.append(mat)
-        elif target.get('type') == 'course':
-            # 수업 지정 교재도 담당 학년 설정된 강사에게 공개
-            if teacher_grades:
-                accessible.append(mat)
+    accessible = [mat for mat in all_materials if _teacher_can_access_material(mat, teacher_grades)]
 
     search = request.args.get('search', '').strip()
     grade_filter = request.args.get('grade', '').strip()
@@ -5130,21 +5142,7 @@ def teacher_materials_board():
         db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
     ).order_by(TeachingMaterial.created_at.desc()).all()
 
-    accessible = []
-    for mat in all_materials:
-        try:
-            target = json.loads(mat.target_audience)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if target.get('type') == 'grade':
-            target_grades = target.get('grades', [])
-            if not target_grades:
-                accessible.append(mat)
-            elif teacher_grades and any(g in target_grades for g in teacher_grades):
-                accessible.append(mat)
-        elif target.get('type') == 'course':
-            if teacher_grades:
-                accessible.append(mat)
+    accessible = [mat for mat in all_materials if _teacher_can_access_material(mat, teacher_grades)]
 
     search = request.args.get('search', '').strip()
     grade_filter = request.args.get('grade', '').strip()

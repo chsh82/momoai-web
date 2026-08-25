@@ -20,7 +20,8 @@ class TeachingMaterial(db.Model):
     end_date = db.Column(db.Date, nullable=True, index=True)
     is_public = db.Column(db.Boolean, default=True, nullable=False, index=True)
     audience_role = db.Column(db.String(10), nullable=False, default='student', server_default='student', index=True)  # 'student' | 'teacher'
-    target_audience = db.Column(db.Text, nullable=False)  # JSON: {"type": "grade"|"course", "grades": [...], "course_ids": [...]}
+    target_audience = db.Column(db.Text, nullable=False)  # JSON: {"type": "grade"|"course"|"curriculum", "grades": [...], "course_ids": [...]}
+    curriculum_sequence = db.Column(db.Integer, nullable=True)  # target_audience.type=='curriculum'일 때 몇 번째 주차(차시)인지. null=차시 무관(그 책이 배정된 모든 주차)
     download_count = db.Column(db.Integer, default=0, nullable=False)
     view_count = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
