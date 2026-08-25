@@ -976,6 +976,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.material' in request.endpoint or request.endpoint and 'parent.child_material' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 학습 교재
                             </a>
+                            <a href="{{ url_for('library.books') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'library.books' or request.endpoint == 'library.book_detail' %}text-green-600 bg-green-50{% endif %}">
+                                📖 도서 추천
+                            </a>
                             <a href="{{ url_for('parent.videos_list') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.video' in request.endpoint or request.endpoint and 'parent.child_video' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 학습 동영상
@@ -1162,6 +1166,10 @@
                             <a href="{{ url_for('student.teaching_materials') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.teaching_material' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 학습 교재
+                            </a>
+                            <a href="{{ url_for('library.books') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'library.books' or request.endpoint == 'library.book_detail' %}text-purple-600 bg-purple-50{% endif %}">
+                                📖 도서 추천
                             </a>
                             <a href="{{ url_for('student.teaching_videos') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.teaching_video' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
