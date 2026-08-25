@@ -22,6 +22,7 @@ import openpyxl
 from app.models import db
 from app.models.book import Book
 from app.models.curriculum import CurriculumWeek
+from app.utils.grades import GRADE_TO_LV
 
 SHEET_NAME = '연간 전체 리스트'
 REQUIRED_HEADERS = ['연도', '분기', '학년', '주차', '기간', '도서명', '저자(역자)', '출판사', '휴강여부']
@@ -91,6 +92,10 @@ def _pick_book(candidates: list[Book], author: str | None) -> Book:
 
 def _find_or_create_book(title_index: dict, title: str, author: str | None, publisher: str | None,
                           grade_code: str, owner_user_id: str, stats: dict) -> Book:
+    # Book.grade_tags는 학년 코드가 아니라 추천 레벨 코드(LV1~LV10)로 저장하는 컨벤션
+    # (templates/library/admin/book_form.html 체크박스 값 참고) - 그대로 넣으면 안 됨.
+    lv_tag = GRADE_TO_LV.get(grade_code)
+
     candidates = title_index.get(title)
     if candidates:
         book = _pick_book(candidates, author)
@@ -105,8 +110,8 @@ def _find_or_create_book(title_index: dict, title: str, author: str | None, publ
             book.publisher = publisher
             changed = True
         tags = json.loads(book.grade_tags) if book.grade_tags else []
-        if grade_code not in tags:
-            tags.append(grade_code)
+        if lv_tag and lv_tag not in tags:
+            tags.append(lv_tag)
             book.grade_tags = json.dumps(tags, ensure_ascii=False)
             changed = True
         if changed:
@@ -120,7 +125,7 @@ def _find_or_create_book(title_index: dict, title: str, author: str | None, publ
         author=author,
         publisher=publisher,
         is_curriculum=True,
-        grade_tags=json.dumps([grade_code], ensure_ascii=False),
+        grade_tags=json.dumps([lv_tag] if lv_tag else [], ensure_ascii=False),
     )
     db.session.add(book)
     title_index[title] = [book]

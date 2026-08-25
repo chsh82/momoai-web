@@ -68,12 +68,7 @@ def _can_view_video(video, user):
     return False
 
 # 학년 → LV 태그 매핑
-GRADE_TO_LV = {
-    '초1': 'LV1', '초2': 'LV2', '초3': 'LV3',
-    '초4': 'LV4', '초5': 'LV5', '초6': 'LV6',
-    '중1': 'LV7', '중2': 'LV8', '중3': 'LV9',
-    '고1': 'LV9', '고2': 'LV10', '고3': 'LV10',
-}
+from app.utils.grades import GRADE_TO_LV
 from app.utils.decorators import requires_permission_level
 
 
