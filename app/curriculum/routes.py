@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """모모의 책장 커리큘럼 관리 라우트"""
 import io
+from datetime import datetime
 
 from flask import render_template, request, jsonify
 from flask_login import login_required, current_user
@@ -9,6 +10,7 @@ from sqlalchemy import distinct
 from app.curriculum import curriculum_bp
 from app.curriculum.importer import parse_workbook, apply_import
 from app.models import db
+from app.models.book import Book
 from app.models.curriculum import CurriculumWeek
 from app.utils.decorators import requires_permission_level
 
@@ -90,3 +92,57 @@ def upload():
     stats = apply_import(rows, current_user.user_id)
     db.session.commit()
     return jsonify({'ok': True, **stats})
+
+
+@curriculum_bp.route('/books/search')
+@login_required
+@requires_permission_level(2)
+def search_books():
+    """주차 도서 교체용 - 기존 도서 제목/저자로 검색(신규 도서 생성은 도서 관리에서)"""
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 1:
+        return jsonify({'items': []})
+
+    books = Book.query.filter(
+        db.or_(Book.title.contains(q), Book.author.contains(q))
+    ).order_by(Book.title).limit(15).all()
+
+    return jsonify({'items': [
+        {
+            'book_id': b.book_id,
+            'title': b.title,
+            'author': b.author or '',
+            'publisher': b.publisher or '',
+            'cover_image_url': b.cover_image_url or '',
+        } for b in books
+    ]})
+
+
+@curriculum_bp.route('/weeks/<week_id>/book', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def set_week_book(week_id):
+    """주차 1건에 연결된 도서만 교체(주차 추가/삭제, 학년/분기 구조 변경은 지원하지 않음)"""
+    week = CurriculumWeek.query.get(week_id)
+    if not week:
+        return jsonify({'error': '주차를 찾을 수 없습니다.'}), 404
+    if week.is_holiday:
+        return jsonify({'error': '휴강 주차는 도서를 연결할 수 없습니다.'}), 400
+
+    body = request.get_json(silent=True) or {}
+    book_id = (body.get('book_id') or '').strip()
+    book = Book.query.get(book_id) if book_id else None
+    if not book:
+        return jsonify({'error': '도서를 찾을 수 없습니다.'}), 404
+
+    week.book_id = book.book_id
+    week.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({
+        'ok': True,
+        'book': {
+            'book_id': book.book_id, 'title': book.title,
+            'author': book.author or '', 'publisher': book.publisher or '',
+        },
+    })

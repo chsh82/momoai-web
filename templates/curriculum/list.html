@@ -62,16 +62,17 @@
                     <th class="text-left px-4 py-3">도서명</th>
                     <th class="text-left px-4 py-3">저자</th>
                     <th class="text-left px-4 py-3">출판사</th>
+                    <th class="text-center px-4 py-3">관리</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for w in weeks %}
-                <tr class="{% if w.is_holiday %}bg-gray-50 text-gray-400{% endif %}">
+                <tr class="{% if w.is_holiday %}bg-gray-50 text-gray-400{% endif %}" id="week-row-{{ w.curriculum_week_id }}">
                     <td class="px-4 py-2 whitespace-nowrap">{{ grade_labels.get(w.grade, w.grade) }}</td>
                     <td class="px-4 py-2 whitespace-nowrap">{{ w.quarter }}</td>
                     <td class="px-4 py-2 text-center">{{ w.week_number }}</td>
                     <td class="px-4 py-2 whitespace-nowrap">{{ w.date_range or '-' }}</td>
-                    <td class="px-4 py-2">
+                    <td class="px-4 py-2" data-field="title">
                         {% if w.is_holiday %}
                         {{ w.note or '휴강' }}
                         {% elif w.book %}
@@ -81,8 +82,16 @@
                         <span class="text-red-400">도서 미연결</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-2">{{ (w.book.author if w.book else '') or '-' }}</td>
-                    <td class="px-4 py-2">{{ (w.book.publisher if w.book else '') or '-' }}</td>
+                    <td class="px-4 py-2" data-field="author">{{ (w.book.author if w.book else '') or '-' }}</td>
+                    <td class="px-4 py-2" data-field="publisher">{{ (w.book.publisher if w.book else '') or '-' }}</td>
+                    <td class="px-4 py-2 text-center">
+                        {% if not w.is_holiday %}
+                        <button onclick="openSwapModal('{{ w.curriculum_week_id }}')"
+                                class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition">
+                            ✏️ 책 교체
+                        </button>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -94,4 +103,87 @@
     </div>
     {% endif %}
 </div>
+
+<!-- 책 교체 모달 -->
+<div id="swap-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" onclick="if(event.target===this) closeSwapModal()">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-gray-800">주차 도서 교체</h3>
+            <button onclick="closeSwapModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">
+            기존에 등록된 도서 중에서만 검색됩니다. 찾는 책이 없으면 먼저 "도서 관리"에서 등록해주세요.
+        </p>
+        <input type="text" id="swap-search-input" placeholder="도서명 또는 저자로 검색"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 mb-3">
+        <div id="swap-results" class="max-h-72 overflow-y-auto space-y-1"></div>
+        <div id="swap-status" class="text-sm mt-2"></div>
+    </div>
+</div>
+
+<script>
+let swapWeekId = null;
+let swapDebounce = null;
+
+function openSwapModal(weekId) {
+    swapWeekId = weekId;
+    document.getElementById('swap-modal').classList.remove('hidden');
+    document.getElementById('swap-search-input').value = '';
+    document.getElementById('swap-results').innerHTML = '';
+    document.getElementById('swap-status').innerHTML = '';
+    document.getElementById('swap-search-input').focus();
+}
+
+function closeSwapModal() {
+    swapWeekId = null;
+    document.getElementById('swap-modal').classList.add('hidden');
+}
+
+document.getElementById('swap-search-input').addEventListener('input', (e) => {
+    clearTimeout(swapDebounce);
+    const q = e.target.value.trim();
+    if (!q) {
+        document.getElementById('swap-results').innerHTML = '';
+        return;
+    }
+    swapDebounce = setTimeout(async () => {
+        const res = await fetch(`{{ url_for('curriculum.search_books') }}?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const box = document.getElementById('swap-results');
+        if (!data.items.length) {
+            box.innerHTML = '<p class="text-sm text-gray-400 py-2">검색 결과가 없습니다.</p>';
+            return;
+        }
+        box.innerHTML = data.items.map(b => `
+            <button onclick='selectSwapBook(${JSON.stringify(b)})'
+                    class="w-full text-left px-3 py-2 hover:bg-gray-50 rounded border border-gray-100 flex flex-col">
+                <span class="text-sm font-medium text-gray-800">${b.title}</span>
+                <span class="text-xs text-gray-400">${b.author || '-'} · ${b.publisher || '-'}</span>
+            </button>`).join('');
+    }, 250);
+});
+
+async function selectSwapBook(book) {
+    const statusArea = document.getElementById('swap-status');
+    try {
+        const res = await fetch(`/curriculum/weeks/${swapWeekId}/book`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ book_id: book.book_id }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            statusArea.innerHTML = `<span class="text-red-500">${data.error || '오류가 발생했습니다.'}</span>`;
+            return;
+        }
+        const row = document.getElementById(`week-row-${swapWeekId}`);
+        row.querySelector('[data-field="title"]').textContent = data.book.title;
+        row.querySelector('[data-field="author"]').textContent = data.book.author || '-';
+        row.querySelector('[data-field="publisher"]').textContent = data.book.publisher || '-';
+        closeSwapModal();
+    } catch (err) {
+        statusArea.innerHTML = '<span class="text-red-500">네트워크 오류가 발생했습니다.</span>';
+    }
+}
+</script>
 {% endblock %}
