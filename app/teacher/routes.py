@@ -5125,38 +5125,60 @@ def teacher_teaching_materials():
 @login_required
 @requires_role('teacher', 'admin')
 def teacher_materials_board():
-    """교사용 교재 게시판 - 관리자가 올린 교사 전용 자료를 담당 학년 기준으로 열람"""
+    """교사용 교재 게시판 - 담당 학년 탭 + 분기 선택, 커리큘럼 주차 기준 내림차순 정렬"""
     import json
     from app.models.teaching_material import TeachingMaterial
+    from app.models.curriculum import CurriculumWeek
+    from app.utils.curriculum_targeting import compute_week_sequence
 
     try:
         teacher_grades = json.loads(current_user.teacher_grades or '[]')
     except (json.JSONDecodeError, TypeError):
         teacher_grades = []
 
+    grade_filter = request.args.get('grade') or (teacher_grades[0] if teacher_grades else '')
+    quarter_filter = request.args.get('quarter') or ''
+    year = date.today().year
     today = date.today()
-    all_materials = TeachingMaterial.query.filter(
-        TeachingMaterial.is_public == True,
-        TeachingMaterial.audience_role == 'teacher',
-        TeachingMaterial.publish_date <= today,
-        db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today)
-    ).order_by(TeachingMaterial.created_at.desc()).all()
 
-    accessible = [mat for mat in all_materials if _teacher_can_access_material(mat, teacher_grades)]
+    quarters = []
+    items = []
 
-    search = request.args.get('search', '').strip()
-    grade_filter = request.args.get('grade', '').strip()
+    if grade_filter and grade_filter in teacher_grades:
+        quarters = [r[0] for r in db.session.query(CurriculumWeek.quarter).filter_by(
+            year=year, grade=grade_filter
+        ).distinct().order_by(CurriculumWeek.quarter).all()]
 
-    if search:
-        accessible = [m for m in accessible if search.lower() in m.title.lower()]
-    if grade_filter:
-        accessible = [m for m in accessible if m.grade == grade_filter]
+        weeks_q = CurriculumWeek.query.filter_by(
+            year=year, grade=grade_filter, is_holiday=False
+        ).filter(CurriculumWeek.book_id.isnot(None))
+        if quarter_filter:
+            weeks_q = weeks_q.filter_by(quarter=quarter_filter)
+        weeks = weeks_q.order_by(CurriculumWeek.quarter, CurriculumWeek.week_number).all()
+
+        for w in weeks:
+            sequence = compute_week_sequence(w)
+            if not sequence:
+                continue
+            mat = TeachingMaterial.query.filter_by(
+                book_id=w.book_id, curriculum_sequence=sequence, audience_role='teacher',
+            ).filter(
+                TeachingMaterial.is_public == True,
+                TeachingMaterial.publish_date <= today,
+                db.or_(TeachingMaterial.end_date == None, TeachingMaterial.end_date >= today),
+            ).first()
+            if mat:
+                items.append({'week': w, 'material': mat})
+
+        # 주차 내림차순 (같은 분기 안에서 최근 주차가 먼저 보이도록, 분기도 최신이 먼저)
+        items.sort(key=lambda it: (it['week'].quarter, it['week'].week_number), reverse=True)
 
     return render_template('teacher/materials_board.html',
-                           materials=accessible,
+                           items=items,
                            teacher_grades=teacher_grades,
-                           search=search,
-                           grade_filter=grade_filter)
+                           quarters=quarters,
+                           grade_filter=grade_filter,
+                           quarter_filter=quarter_filter)
 
 
 @teacher_bp.route('/teaching-materials/<material_id>/download')
@@ -5177,3 +5199,27 @@ def teacher_download_material(material_id):
     material.download_count += 1
     db.session.commit()
     return send_file(file_path, as_attachment=True, download_name=material.original_filename)
+
+
+@teacher_bp.route('/teaching-materials/<material_id>/files/<file_id>/download')
+@login_required
+@requires_role('teacher', 'admin')
+def teacher_download_material_file(material_id, file_id):
+    """강사용 교재의 개별 파일 다운로드 (파일이 여러 개인 자료용)"""
+    import os
+    from flask import send_file
+    from app.models.teaching_material import TeachingMaterial, TeachingMaterialFile, TeachingMaterialDownload
+
+    tmf = TeachingMaterialFile.query.filter_by(file_id=file_id, material_id=material_id).first_or_404()
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], tmf.storage_path)
+    if not os.path.exists(file_path):
+        flash('파일을 찾을 수 없습니다.', 'error')
+        return redirect(url_for('teacher.teacher_materials_board'))
+
+    material = TeachingMaterial.query.get(material_id)
+    if material:
+        db.session.add(TeachingMaterialDownload(material_id=material_id, user_id=current_user.user_id))
+        material.download_count += 1
+        db.session.commit()
+
+    return send_file(file_path, as_attachment=True, download_name=tmf.original_filename)
