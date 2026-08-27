@@ -213,15 +213,21 @@
                         <span>알림</span>
                     </a>
 
-                    <a href="{{ url_for('library.index') }}"
-                       class="sidebar-link flex items-center justify-between gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('library.hall_of_fame') }}"
+                       class="sidebar-link flex items-center justify-between gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}active{% endif %}">
                         <span class="flex items-center gap-3">
-                            <span class="text-xl">📖</span>
-                            <span>모모 게시판</span>
+                            <span class="text-xl">🏆</span>
+                            <span>명예의 전당</span>
                         </span>
                         {% if unread_counts.hall_of_fame > 0 %}
                         <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.hall_of_fame }}</span>
                         {% endif %}
+                    </a>
+
+                    <a href="{{ url_for('library.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library' in request.endpoint and 'hall_of_fame' not in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">📖</span>
+                        <span>학습 자료실</span>
                     </a>
 
                     <a href="{{ url_for('news.hub') }}"
@@ -596,7 +602,7 @@
                             </a>
                             <a href="{{ url_for('library.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.index' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
-                                모모 게시판
+                                학습 자료실
                             </a>
                             <a href="{{ url_for('library.hall_of_fame') }}"
                                class="sidebar-link-sub flex items-center justify-between gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
@@ -656,18 +662,6 @@
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.index' %}active{% endif %}">
                         <span class="text-xl">🏠</span>
                         <span>마이 페이지</span>
-                    </a>
-
-                    <!-- 명예의 전당 (우수답안 등록) -->
-                    <a href="{{ url_for('library.hall_of_fame') }}"
-                       class="sidebar-link flex items-center justify-between gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}active{% endif %}">
-                        <span class="flex items-center gap-3">
-                            <span class="text-xl">🏆</span>
-                            <span>명예의 전당</span>
-                        </span>
-                        {% if unread_counts.hall_of_fame > 0 %}
-                        <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.hall_of_fame }}</span>
-                        {% endif %}
                     </a>
 
                     <!-- 1. 내 수업 -->
