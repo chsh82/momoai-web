@@ -137,3 +137,68 @@ TIER_TABLE = [
     (4, '다이아', 50000),
     (5, '마스터', 100000),
 ]
+
+# 정책 제7조 3항 - 월간 랭킹 그룹 (학년 밴드). Student.grade(초1~고3, 12개 값)를
+# 그대로 그룹으로 쓰면 그룹당 인원이 너무 적어 순위가 무의미해질 수 있어
+# 5개 밴드로 묶는다(2026-08-28 결정사항). 나중에 밴드를 조정할 수 있도록
+# 상수로 분리해 둔다 - 코드 변경 없이 이 딕셔너리만 고치면 됨.
+RANKING_LEVEL_GROUPS = {
+    'elem12': {'label': '초1~2', 'grades': ['초1', '초2']},
+    'elem34': {'label': '초3~4', 'grades': ['초3', '초4']},
+    'elem56': {'label': '초5~6', 'grades': ['초5', '초6']},
+    'middle': {'label': '중1~3', 'grades': ['중1', '중2', '중3']},
+    'high': {'label': '고1~3', 'grades': ['고1', '고2', '고3']},
+}
+
+
+# AT01/AT02 출결 판정 기준 status 값(2026-08-28 결정사항).
+# Attendance 모델 주석에는 present/absent/late/excused 4가지만 적혀 있지만
+# 실데이터 확인 결과 absent_makeup(보강 처리된 결석)도 존재했다. 결석 판정에
+# 쓰는 값을 여기서 명시적으로 관리해, 나중에 또 다른 status가 나타나도
+# 코드를 안 뒤지고 이 목록만 보면 되게 한다. 목록에 없는 값을 만나면
+# 배치가 경고 로그를 남긴다(mileage_batch_service.py).
+ATTENDANCE_ATTENDED_STATUSES = ('present', 'late')
+ATTENDANCE_ABSENT_STATUSES = ('absent', 'absent_makeup', 'excused')
+# absent_makeup은 "결석했고 보강 처리됨"이라는 뜻이라 결석에 포함한다 - 실제
+# 보강 출석 여부는 makeup_attended_count가 별도로 확인하므로, 여기서 빼면
+# 보강 신청만 하고 출석 안 한 학생이 통과한다. excused도 사유 불문 결석
+# 처리한다(정책 4.5.4).
+ATTENDANCE_KNOWN_STATUSES = ATTENDANCE_ATTENDED_STATUSES + ATTENDANCE_ABSENT_STATUSES
+
+# 중복 정규 세션(강사 교체 등으로 병행 생성된 Course) 출결 채택 우선순위
+# (2026-08-28 재결정 - "가장 나쁜 상태 채택"에서 변경).
+# 근거: 같은 시각에 강좌가 두 개 등록돼 있어도 학생은 한 곳에만 있을 수
+# 있다. 한쪽에 present가 찍혔으면 실제로 출석한 것이고, 다른 쪽의 absent는
+# 관리되지 않는 중복 레코드의 잔재일 가능성이 크다(실제로 동일 시간대에
+# 병행 생성된 정규 강좌가 있던 학생 사례에서 확인됨 - 한쪽 강좌가 8주 내내
+# absent로 방치돼 있었음). 출석은
+# 확인해야 찍히지만 결석은 방치해도 남으므로, "체크된 좋은 기록"을 우선한다.
+# 숫자가 낮을수록 먼저 채택된다. 체크 자체가 안 된 기록(None)은 이 표와
+# 무관하게 항상 가장 마지막 순위다.
+ATTENDANCE_STATUS_PRIORITY = {
+    'present': 0,
+    'late': 1,
+    'absent_makeup': 2,
+    'excused': 3,
+    'absent': 4,
+}
+
+
+# AT02(분기 완주) 판정에서 "보강 수업"을 구분하는 기준(2026-08-28 결정사항).
+# 실데이터 확인 결과 Course.course_type이 '보강수업'/'보강(정규반)'/'보강(프리미엄)'/
+# '보강(하크니스)' 등으로 다양하게 찍히지만 전부 '보강'으로 시작한다. 강좌 유형이
+# 늘어날 수 있어 하드코딩하지 않고 여기서 접두어 하나로 관리한다.
+MAKEUP_COURSE_TYPE_PREFIX = '보강'
+
+
+def is_makeup_course_type(course_type):
+    """course_type이 보강 수업 계열인지 여부."""
+    return (course_type or '').startswith(MAKEUP_COURSE_TYPE_PREFIX)
+
+
+def get_level_group(grade):
+    """학생의 grade 값으로 랭킹 그룹 코드를 반환한다. 매칭되는 밴드가 없으면 None."""
+    for code, info in RANKING_LEVEL_GROUPS.items():
+        if grade in info['grades']:
+            return code
+    return None

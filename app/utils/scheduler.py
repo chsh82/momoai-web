@@ -214,6 +214,92 @@ def apply_enrollment_schedules(app):
             logger.error(f'[EnrollSchedule] 전체 오류: {e}')
 
 
+def mileage_confirm_job(app):
+    """1시간 간격: 질문·댓글의 24시간 대기 포인트를 확정 상태로 전환"""
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.services.mileage_service import confirm_pending_points
+            count = confirm_pending_points()
+            db.session.commit()
+            if count:
+                logger.info(f'[MileageConfirm] {count}건 확정')
+        except Exception as e:
+            logger.error(f'[MileageConfirm] 오류: {e}')
+
+
+def mileage_weekly_job(app):
+    """매주 월요일 00:10: 직전 주 AT01(주간 출석) 집계"""
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.services.mileage_batch_service import run_weekly_attendance_batch
+            results = run_weekly_attendance_batch()
+            db.session.commit()
+            awarded = sum(1 for r in results if r['action'].startswith('awarded'))
+            logger.info(f'[MileageWeekly] {len(results)}명 검토, {awarded}명 지급')
+        except Exception as e:
+            logger.error(f'[MileageWeekly] 오류: {e}')
+
+
+def mileage_quarterly_job(app):
+    """3/6/9/12월 1일 00:20: 직전 분기 AT02(분기 완주) 판정 (PaymentPeriod 기준 분기)"""
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.services.mileage_batch_service import run_quarterly_completion_batch
+            results = run_quarterly_completion_batch()
+            db.session.commit()
+            awarded = sum(1 for r in results if r['action'].startswith('awarded'))
+            logger.info(f'[MileageQuarterly] {len(results)}명 검토, {awarded}명 지급')
+            for r in results:
+                logger.info(f'[MileageQuarterly] {r}')
+        except Exception as e:
+            logger.error(f'[MileageQuarterly] 오류: {e}')
+
+
+def ranking_monthly_provisional_job(app):
+    """매월 1일 00:30: 전월 시즌 잠정 순위 집계·저장 (is_final=False)"""
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.services.ranking_service import build_ranking, previous_season
+            season = previous_season()
+            results = build_ranking(season, finalize=True, is_final=False)
+            db.session.commit()
+            logger.info(f'[RankingMonthly] {season} 잠정 순위 저장 - {len(results)}명')
+        except Exception as e:
+            logger.error(f'[RankingMonthly] 오류: {e}')
+
+
+def ranking_monthly_final_job(app):
+    """매월 3일 00:30: 전월 시즌 순위 확정 (is_final=True)"""
+    with app.app_context():
+        try:
+            from app.models import db
+            from app.services.ranking_service import build_ranking, previous_season
+            season = previous_season()
+            results = build_ranking(season, finalize=True, is_final=True)
+            db.session.commit()
+            logger.info(f'[RankingFinal] {season} 순위 확정 - {len(results)}명')
+        except Exception as e:
+            logger.error(f'[RankingFinal] 오류: {e}')
+
+
+def badge_sweep_job(app):
+    """매일 03:00: 전체 학생 뱃지 조건 재검사 (누락 보정용)"""
+    with app.app_context():
+        try:
+            from app.services.badge_service import run_badge_sweep
+            from app.models import db
+            results = run_badge_sweep()
+            db.session.commit()
+            total_granted = sum(len(r['granted']) for r in results)
+            logger.info(f'[BadgeSweep] {len(results)}명에게 총 {total_granted}건 부여')
+        except Exception as e:
+            logger.error(f'[BadgeSweep] 오류: {e}')
+
+
 def init_scheduler(app):
     """스케줄러 초기화 및 시작 (단일 워커에서만 실행)"""
     if scheduler.running:
@@ -250,5 +336,53 @@ def init_scheduler(app):
         id='weekly_session_gen',
         replace_existing=True
     )
+
+    # --- 마일리지 배치 (docs/mileage/08_개발지시서_3단계.md) ---
+    scheduler.add_job(
+        func=mileage_confirm_job,
+        args=[app],
+        trigger=IntervalTrigger(hours=1),
+        id='mileage_confirm',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        func=mileage_weekly_job,
+        args=[app],
+        trigger=CronTrigger(day_of_week='mon', hour=0, minute=10, timezone='Asia/Seoul'),
+        id='mileage_weekly',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        func=mileage_quarterly_job,
+        args=[app],
+        # 역년 분기(1/4/7/10월)가 아니라 이 프로젝트의 실제 분기 시작월(3/6/9/12월)에
+        # 맞춘다 - PaymentPeriod.generate_quarterly() 기준(2026-08-28 결정사항)
+        trigger=CronTrigger(month='3,6,9,12', day=1, hour=0, minute=20, timezone='Asia/Seoul'),
+        id='mileage_quarterly',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        func=ranking_monthly_provisional_job,
+        args=[app],
+        trigger=CronTrigger(day=1, hour=0, minute=30, timezone='Asia/Seoul'),
+        id='ranking_monthly_provisional',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        func=ranking_monthly_final_job,
+        args=[app],
+        trigger=CronTrigger(day=3, hour=0, minute=30, timezone='Asia/Seoul'),
+        id='ranking_monthly_final',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        func=badge_sweep_job,
+        args=[app],
+        trigger=CronTrigger(hour=3, minute=0, timezone='Asia/Seoul'),
+        id='badge_sweep',
+        replace_existing=True
+    )
+
     scheduler.start()
-    logger.info('[Scheduler] APScheduler 시작됨 (수업 알림 30분 간격 + 입반/전반 자정 자동처리 + 주간 세션 생성)')
+    logger.info('[Scheduler] APScheduler 시작됨 (수업 알림 30분 간격 + 입반/전반 자정 자동처리 + '
+               '주간 세션 생성 + 마일리지 배치 6종)')

@@ -338,3 +338,35 @@ def award_quiz_points(student_id, session_id, score, occurred_at=None):
             occurred_at=occurred_at,
         )
     return results
+
+
+def can_select_excellent(teacher_id, at=None):
+    """EX01(우수답안) "강사당 주 3명" 상한을 검사한다.
+
+    학생 기준이 아니라 지급자(강사) 기준 주간 상한이라 POINT_RULES의
+    daily_cap/monthly_cap 구조로 표현할 수 없어 별도 함수로 둔다(1단계 조사
+    보고서 ③ 결정 사항). award_points()는 이 상한을 검사하지 않으므로,
+    호출부(2단계에서는 미연결 - 4단계 화면 작업에서 실제로 호출)가 반드시
+    이 함수로 먼저 확인해야 한다.
+
+    "3명"은 지급 건수가 아니라 서로 다른 학생 수 기준이다(정책 4.5.4조).
+
+    Returns:
+        tuple[bool, int]: (이번 주에 더 선정 가능한지, 남은 인원 수)
+    """
+    at = at or datetime.utcnow()
+    week_start, week_end = get_kst_week_range(at)
+
+    distinct_students = db.session.query(
+        func.count(func.distinct(PointEvent.student_id))
+    ).filter(
+        PointEvent.granted_by == teacher_id,
+        PointEvent.activity_code == 'EX01',
+        PointEvent.entry_type == 'award',
+        PointEvent.status != 'cancelled',
+        PointEvent.occurred_at >= week_start,
+        PointEvent.occurred_at < week_end,
+    ).scalar()
+
+    remaining = max(0, 3 - distinct_students)
+    return remaining > 0, remaining
