@@ -25,6 +25,14 @@ EX01("강사당 주 3명")은 학생이 아니라 지급자(강사) 기준 상�
 구조로 표현할 수 없다. 1단계 award_points()는 이 상한을 검사하지 않으며,
 2단계에서 "우수답안 선정" 라우트가 직접 검사한다.
 """
+from datetime import date
+
+# 마일리지 적립 시작일(KST 기준). 이보다 이전 활동에는 포인트를 부여하지
+# 않는다(2026-08-29 결정사항) - mileage_service.award_points()의 게이트와
+# mileage_batch_service.run_weekly_attendance_batch()의 주간 배치 게이트가
+# 이 상수 하나만 참조한다. 나중에 게이트를 걷어낼 때 이 상수와 두 참조
+# 지점만 지우면 된다(app/services/mileage_service.py, app/services/mileage_batch_service.py).
+MILEAGE_START_DATE = date(2026, 9, 1)
 
 POINT_RULES = {
     'RW01': {

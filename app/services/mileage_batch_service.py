@@ -23,7 +23,7 @@ from app.services.mileage_service import award_points
 from app.services.mileage_rules import (
     is_makeup_course_type, MAKEUP_COURSE_TYPE_PREFIX,
     ATTENDANCE_ATTENDED_STATUSES, ATTENDANCE_ABSENT_STATUSES, ATTENDANCE_KNOWN_STATUSES,
-    ATTENDANCE_STATUS_PRIORITY,
+    ATTENDANCE_STATUS_PRIORITY, MILEAGE_START_DATE,
 )
 
 logger = logging.getLogger(__name__)
@@ -82,6 +82,18 @@ def run_weekly_attendance_batch(monday=None, dry_run=False):
     """
     if monday is None:
         monday = _previous_week_monday()
+
+    # 마일리지 적립 시작일 게이트(2026-08-29 결정사항) - 대상 주의 시작일이
+    # 시작일보다 이르면 그 주는 시작일 이전 수업이 섞여 있으므로 통째로
+    # 건너뛴다(award_points() 쪽 게이트는 occurred_at을 넘기지 않아 실행
+    # 시점 기준으로 통과해버리므로, 배치 쪽에서 별도로 막아야 한다).
+    if monday < MILEAGE_START_DATE:
+        logger.info(
+            '[MileageWeekly] 시작일(%s) 이전 주라 배치를 건너뜀 - monday=%s',
+            MILEAGE_START_DATE, monday,
+        )
+        return []
+
     sunday = monday + timedelta(days=6)
     iso_year, iso_week, _ = monday.isocalendar()
 

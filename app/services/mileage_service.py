@@ -7,6 +7,7 @@
 DB 커밋은 호출부에서 한다. 이 모듈의 함수들은 db.session.add()/flush()까지만
 하고 commit()은 하지 않는다 - 기존 라우트가 커밋 시점을 자체적으로 관리하기 때문이다.
 """
+import logging
 from datetime import datetime, timedelta
 
 from sqlalchemy import func
@@ -14,9 +15,10 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import db
 from app.models.mileage import PointEvent, MileageConsent
-from app.services.mileage_rules import POINT_RULES, TIER_TABLE
+from app.services.mileage_rules import POINT_RULES, TIER_TABLE, MILEAGE_START_DATE
 
 KST_OFFSET = timedelta(hours=9)
+logger = logging.getLogger(__name__)
 
 
 def _to_kst(dt):
@@ -95,6 +97,20 @@ def award_points(student_id, activity_code, source_type, source_id,
         ValueError: 알 수 없는 activity_code, 허용되지 않은 source_type,
                    points 값이 규칙과 맞지 않는 경우
     """
+    occurred_at = occurred_at or datetime.utcnow()
+
+    # 마일리지 적립 시작일 게이트(2026-08-29 결정사항) - 이보다 이전 활동은
+    # 예외 없이 조용히 무시한다. 호출부(essays/community/student_portal 등
+    # 기존 라우트)의 try/except를 그대로 통과해도 아무 일이 없어야 하므로
+    # ValueError 등 다른 검증보다 먼저, 예외를 던지지 않는 방식으로 확인한다.
+    if _to_kst(occurred_at).date() < MILEAGE_START_DATE:
+        logger.debug(
+            '[Mileage] 시작일(%s) 이전 활동이라 적립하지 않음 - '
+            'student_id=%s activity_code=%s source_type=%s source_id=%s occurred_at=%s',
+            MILEAGE_START_DATE, student_id, activity_code, source_type, source_id, occurred_at,
+        )
+        return None
+
     rule = POINT_RULES.get(activity_code)
     if rule is None:
         raise ValueError(f"알 수 없는 활동 코드: {activity_code}")
@@ -108,7 +124,6 @@ def award_points(student_id, activity_code, source_type, source_id,
 
     final_points = _validate_points(rule, activity_code, points)
 
-    occurred_at = occurred_at or datetime.utcnow()
     source_id = str(source_id)
     season = get_season(occurred_at)
 
@@ -336,36 +351,6 @@ def get_consent_status(student_id):
     return status
 
 
-def get_tier(total_points):
-    """정책 8.3(등급)·8.4(별 진행도)를 함께 반환.
-
-    Returns:
-        dict: {'level', 'name', 'stars', 'next_at', 'progress'}
-             마스터(최고 등급)는 stars/progress가 None (표시 안 함)
-    """
-    current = TIER_TABLE[0]
-    next_tier = None
-    for i, tier in enumerate(TIER_TABLE):
-        level, name, threshold = tier
-        if total_points >= threshold:
-            current = tier
-            next_tier = TIER_TABLE[i + 1] if i + 1 < len(TIER_TABLE) else None
-        else:
-            break
-
-    level, name, threshold = current
-    if next_tier is None:
-        return {'level': level, 'name': name, 'stars': None, 'next_at': None, 'progress': None}
-
-    next_at = next_tier[2]
-    span = next_at - threshold
-    progressed = total_points - threshold
-    progress = progressed / span if span > 0 else 0.0
-    stars = min(4, int(progress * 4))
-
-    return {'level': level, 'name': name, 'stars': stars, 'next_at': next_at, 'progress': progress}
-
-
 def award_quiz_points(student_id, session_id, score, occurred_at=None):
     """퀴즈 세션 채점 결과에 따라 QZ01(정답률 60% 이상)·QZ02(만점 보너스)를 적립한다.
 
@@ -502,3 +487,33 @@ def get_teacher_ex01_weekly_summary(at=None):
         })
     summary.sort(key=lambda s: -s['count'])
     return summary
+
+
+def get_tier(total_points):
+    """정책 8.3(등급)·8.4(별 진행도)를 함께 반환.
+
+    Returns:
+        dict: {'level', 'name', 'stars', 'next_at', 'progress'}
+             마스터(최고 등급)는 stars/progress가 None (표시 안 함)
+    """
+    current = TIER_TABLE[0]
+    next_tier = None
+    for i, tier in enumerate(TIER_TABLE):
+        level, name, threshold = tier
+        if total_points >= threshold:
+            current = tier
+            next_tier = TIER_TABLE[i + 1] if i + 1 < len(TIER_TABLE) else None
+        else:
+            break
+
+    level, name, threshold = current
+    if next_tier is None:
+        return {'level': level, 'name': name, 'stars': None, 'next_at': None, 'progress': None}
+
+    next_at = next_tier[2]
+    span = next_at - threshold
+    progressed = total_points - threshold
+    progress = progressed / span if span > 0 else 0.0
+    stars = min(4, int(progress * 4))
+
+    return {'level': level, 'name': name, 'stars': stars, 'next_at': next_at, 'progress': progress}
