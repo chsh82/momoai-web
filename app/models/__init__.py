@@ -60,6 +60,7 @@ from app.models.action_item import ActionItem
 from app.models.absence_notice import AbsenceNotice
 from app.models.enrollment_schedule import EnrollmentSchedule
 from app.models.curriculum import CurriculumWeek
+from app.models.mileage import PointEvent, Badge, StudentBadge, MonthlyRanking, MileageConsent
 
 __all__ = [
     'db',
@@ -134,4 +135,9 @@ __all__ = [
     'AbsenceNotice',
     'EnrollmentSchedule',
     'CurriculumWeek',
+    'PointEvent',
+    'Badge',
+    'StudentBadge',
+    'MonthlyRanking',
+    'MileageConsent',
 ]
