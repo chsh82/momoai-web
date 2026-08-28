@@ -196,6 +196,23 @@ def is_makeup_course_type(course_type):
     return (course_type or '').startswith(MAKEUP_COURSE_TYPE_PREFIX)
 
 
+# 뱃지 아이콘 자산(static/badges/*)이 아직 없어 임시로 쓰는 이모지 매핑
+# (2026-08-28 결정사항, 4단계 화면 작업). Badge.icon_path가 채워지면 그쪽을
+# 우선 쓰고, 없을 때만 이 표를 fallback으로 쓴다 - badge_service.get_badge_board()에서 사용.
+BADGE_EMOJI_FALLBACK = {
+    'BG01': '🖊️',
+    'BG02': '❓',
+    'BG03': '✏️',
+    'BG04': '✨',
+    'BG05': '🌱',
+    'BG06': '👣',
+    'BG07': '❤️',
+    'BG08': '🌳',
+    'BG09': '🏆',
+    'BG10': '📚',
+}
+
+
 def get_level_group(grade):
     """학생의 grade 값으로 랭킹 그룹 코드를 반환한다. 매칭되는 밴드가 없으면 None."""
     for code, info in RANKING_LEVEL_GROUPS.items():

@@ -1036,12 +1036,54 @@ def manual_correction(essay_id):
         existing_score = str(essay.result.total_score) if essay.result.total_score else ''
         existing_grade = essay.result.final_grade or ''
 
+    ex01_status = None
+    if current_user.role in ('admin', 'teacher'):
+        from app.services.mileage_service import get_ex01_selection_status
+        ex01_status = get_ex01_selection_status(current_user.user_id, 'essay', essay.essay_id)
+
     return render_template('essays/manual_correction.html',
                            essay=essay,
                            student=essay.student,
                            existing_content=existing_content,
                            existing_score=existing_score,
-                           existing_grade=existing_grade)
+                           existing_grade=existing_grade,
+                           ex01_status=ex01_status)
+
+
+@essays_bp.route('/<essay_id>/select-excellent', methods=['POST'])
+@login_required
+def select_excellent(essay_id):
+    """우수답안(EX01) 선정 - 강사·관리자 전용, 강사당 주 3명 상한(정책 4.5.4조)."""
+    essay = Essay.query.get_or_404(essay_id)
+
+    if not _can_access_essay(essay) or current_user.role not in ('admin', 'teacher'):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('essays.index'))
+
+    from app.services.mileage_service import get_ex01_selection_status, award_points
+    from app.services.badge_service import evaluate_badges
+
+    status = get_ex01_selection_status(current_user.user_id, 'essay', essay.essay_id)
+    if not status['can_select']:
+        reason = '이미 우수답안으로 선정된 첨삭입니다.' if status['already_selected'] \
+            else '이번 주 우수답안 선정 가능 인원(3명)을 모두 사용했습니다.'
+        flash(reason, 'error')
+        return redirect(url_for('essays.manual_correction', essay_id=essay_id))
+
+    event = award_points(
+        student_id=essay.student_id, activity_code='EX01',
+        source_type='essay', source_id=str(essay.essay_id),
+        granted_by=current_user.user_id,
+    )
+    if event:
+        evaluate_badges(essay.student_id, trigger_codes=['EX01'])
+        db.session.commit()
+        flash(f'{essay.student.name} 학생의 답안을 우수답안으로 선정했습니다. (+1,000점)', 'success')
+    else:
+        db.session.rollback()
+        flash('선정에 실패했습니다. 이미 선정된 항목이거나 주간 상한을 초과했습니다.', 'error')
+
+    return redirect(url_for('essays.manual_correction', essay_id=essay_id))
 
 
 @essays_bp.route('/<essay_id>/start', methods=['POST'])

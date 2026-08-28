@@ -173,11 +173,103 @@ def detail(post_id):
     from app.utils.image_utils import get_post_images
     images = get_post_images('community', post.post_id)
 
+    ex01_status = None
+    qs02_already_selected = False
+    if current_user.role in ('admin', 'teacher') and post.category == 'question':
+        from app.services.mileage_service import get_ex01_selection_status, is_awarded
+        ex01_status = get_ex01_selection_status(current_user.user_id, 'post', post.post_id)
+        qs02_already_selected = is_awarded('QS02', 'post', post.post_id)
+
     return render_template('community/detail.html',
                          post=post,
                          images=images,
                          comment_form=comment_form,
-                         comments=comments)
+                         comments=comments,
+                         ex01_status=ex01_status,
+                         qs02_already_selected=qs02_already_selected)
+
+
+def _post_author_student(post):
+    """게시글 작성자(User)에 연결된 Student 레코드. 없으면 None (강사가 쓴 글 등)."""
+    return Student.query.filter_by(user_id=post.user_id).first()
+
+
+@community_bp.route('/<post_id>/select-question', methods=['POST'])
+@login_required
+def select_question(post_id):
+    """우수질문(QS02) 선정 - 강사·관리자 전용. 정책상 선정 인원 상한 없음(EX01과 별개)."""
+    post = Post.query.get_or_404(post_id)
+
+    if current_user.role not in ('admin', 'teacher'):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+    if post.category != 'question':
+        flash('질문 게시글만 우수질문으로 선정할 수 있습니다.', 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+
+    student = _post_author_student(post)
+    if not student:
+        flash('작성자의 학생 계정 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+
+    event = award_points(
+        student_id=student.student_id, activity_code='QS02',
+        source_type='post', source_id=str(post.post_id),
+        granted_by=current_user.user_id,
+    )
+    if event:
+        from app.services.badge_service import evaluate_badges
+        evaluate_badges(student.student_id, trigger_codes=['QS02'])
+        db.session.commit()
+        flash('우수질문으로 선정했습니다. (+500점)', 'success')
+    else:
+        db.session.rollback()
+        flash('이미 우수질문으로 선정된 게시글입니다.', 'error')
+
+    return redirect(url_for('community.detail', post_id=post_id))
+
+
+@community_bp.route('/<post_id>/select-excellent', methods=['POST'])
+@login_required
+def select_excellent(post_id):
+    """우수답안(EX01) 선정 - 커뮤니티 질문 답안에도 적용(정책 4.5.1조 2항). 강사당 주 3명 상한."""
+    post = Post.query.get_or_404(post_id)
+
+    if current_user.role not in ('admin', 'teacher'):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+    if post.category != 'question':
+        flash('질문 게시글만 우수답안으로 선정할 수 있습니다.', 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+
+    student = _post_author_student(post)
+    if not student:
+        flash('작성자의 학생 계정 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+
+    from app.services.mileage_service import get_ex01_selection_status
+    status = get_ex01_selection_status(current_user.user_id, 'post', post.post_id)
+    if not status['can_select']:
+        reason = '이미 우수답안으로 선정된 게시글입니다.' if status['already_selected'] \
+            else '이번 주 우수답안 선정 가능 인원(3명)을 모두 사용했습니다.'
+        flash(reason, 'error')
+        return redirect(url_for('community.detail', post_id=post_id))
+
+    event = award_points(
+        student_id=student.student_id, activity_code='EX01',
+        source_type='post', source_id=str(post.post_id),
+        granted_by=current_user.user_id,
+    )
+    if event:
+        from app.services.badge_service import evaluate_badges
+        evaluate_badges(student.student_id, trigger_codes=['EX01'])
+        db.session.commit()
+        flash('우수답안으로 선정했습니다. (+1,000점)', 'success')
+    else:
+        db.session.rollback()
+        flash('선정에 실패했습니다.', 'error')
+
+    return redirect(url_for('community.detail', post_id=post_id))
 
 
 @community_bp.route('/<post_id>/edit', methods=['GET', 'POST'])

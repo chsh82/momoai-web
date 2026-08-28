@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from 'macros/badges.html' import mileage_tier_badge %}
+
+{% block title %}{{ student.name }} 마일리지 관리 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🏅 {{ student.name }} 마일리지 관리{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div>
+        <a href="{{ url_for('admin.mileage_dashboard') }}" class="text-sm text-blue-600 hover:text-blue-800">← 마일리지 모니터링으로</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 요약 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center gap-3 mb-2">
+            <h2 class="text-xl font-bold text-gray-800">{{ student.name }}</h2>
+            <span class="text-sm text-gray-500">{{ student.grade }}</span>
+            {{ mileage_tier_badge(tier) }}
+        </div>
+        <div class="text-2xl font-bold text-gray-800">{{ "{:,}".format(total_points) }}점</div>
+        {% if pending_points > 0 %}
+        <p class="text-sm text-amber-600 mt-1">⏳ 확정 대기 {{ "{:,}".format(pending_points) }}점 포함</p>
+        {% endif %}
+    </div>
+
+    <!-- EV01 수동 지급 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">EV01 재량 지급 <span class="text-xs font-normal text-gray-400">(100~500점, 월 500점 상한)</span></h3>
+        <form method="POST" action="{{ url_for('admin.mileage_grant', student_id=student.student_id) }}" class="space-y-3">
+            <div class="flex gap-3">
+                <input type="number" name="points" min="100" max="500" step="1" required placeholder="점수 (100~500)"
+                       class="w-40 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <input type="text" name="reason" required placeholder="지급 사유 (필수)"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">지급</button>
+        </form>
+    </div>
+
+    <!-- BG09 등 수동 뱃지 수여 -->
+    {% if manual_badges %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">뱃지 수동 수여</h3>
+        <form method="POST" action="{{ url_for('admin.mileage_grant_badge', student_id=student.student_id) }}" class="space-y-3">
+            <div class="flex gap-3">
+                <select name="badge_code" class="w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    {% for b in manual_badges %}
+                    <option value="{{ b.badge_code }}">{{ b.icon_emoji }} {{ b.name }}{% if b.owned %} (보유 ×{{ b.earned_count }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="memo" required placeholder="회차 정보 등 메모 (필수)"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">수여</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- 적립 내역 + 취소 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">적립 내역 (전체)</h3>
+        {% if history %}
+        <div class="space-y-2">
+            {% for ev in history %}
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-medium {% if ev.status == 'cancelled' %}text-gray-400 line-through{% else %}text-gray-800{% endif %}">
+                            {{ point_rules.get(ev.activity_code).name if point_rules.get(ev.activity_code) else ev.activity_code }}
+                        </span>
+                        {% if ev.status == 'confirmed' %}<span class="px-1.5 py-0.5 text-[10px] rounded bg-green-100 text-green-700">확정</span>
+                        {% elif ev.status == 'pending' %}<span class="px-1.5 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700">확정 대기</span>
+                        {% else %}<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-200 text-gray-600">취소</span>{% endif %}
+                        <span class="font-bold text-sm {% if ev.points < 0 %}text-gray-400{% else %}text-blue-600{% endif %}">{{ '%+d' | format(ev.points) }}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-0.5">
+                        {{ ev.created_at | kst('%Y-%m-%d %H:%M') }} · {{ ev.source_type }}/{{ ev.source_id }}
+                        {% if ev.granted_by %} · 처리자: {{ ev.granter.name if ev.granter else ev.granted_by }}{% endif %}
+                    </div>
+                    {% if ev.status == 'cancelled' and ev.cancel_reason %}
+                    <div class="text-xs text-red-600 mt-0.5">취소 사유: {{ ev.cancel_reason }}</div>
+                    {% endif %}
+                </div>
+                {% if ev.entry_type == 'award' and ev.status != 'cancelled' %}
+                <form method="POST" action="{{ url_for('admin.mileage_cancel_event', student_id=student.student_id, event_id=ev.event_id) }}"
+                      onsubmit="return confirmCancel(this)" class="flex-shrink-0 flex items-center gap-2">
+                    <input type="text" name="reason" placeholder="취소 사유 (필수)" required
+                           class="w-40 px-2 py-1.5 border border-gray-300 rounded text-xs">
+                    <button type="submit" class="px-3 py-1.5 text-xs font-medium rounded bg-red-100 text-red-700 hover:bg-red-200">취소</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="flex items-center justify-center gap-2 mt-4">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.mileage_student_detail', student_id=student.student_id, page=page - 1) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">← 이전</a>
+            {% endif %}
+            <span class="text-sm text-gray-500">{{ page }} / {{ total_pages }}</span>
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.mileage_student_detail', student_id=student.student_id, page=page + 1) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">다음 →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="text-sm text-gray-500 text-center py-6">적립 내역이 없습니다.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function confirmCancel(form) {
+    const reason = form.querySelector('input[name="reason"]').value.trim();
+    if (!reason) { return false; }
+    return confirm('이 적립 건을 취소하시겠습니까? 취소 사유: ' + reason);
+}
+</script>
+{% endblock %}

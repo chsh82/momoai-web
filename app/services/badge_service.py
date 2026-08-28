@@ -28,6 +28,7 @@ from app.models.parent_student import ParentStudent
 from app.models.community import Post, Comment, PostLike
 from app.models.mileage import Badge, StudentBadge, PointEvent
 from app.models.notification import Notification
+from app.services.mileage_rules import BADGE_EMOJI_FALLBACK
 
 logger = logging.getLogger(__name__)
 
@@ -153,11 +154,11 @@ def _notify_badge_earned(student_id, badge):
         logger.exception('뱃지 알림 발송 실패(학부모, badge=%s)', badge.badge_code)
 
 
-def _create_student_badge(student_id, badge, earned_count=1, granted_by=None, notify=True):
+def _create_student_badge(student_id, badge, earned_count=1, granted_by=None, notify=True, memo=None):
     now = datetime.utcnow()
     sb = StudentBadge(
         student_id=student_id, badge_code=badge.badge_code, earned_count=earned_count,
-        first_earned_at=now, last_earned_at=now, granted_by=granted_by,
+        first_earned_at=now, last_earned_at=now, granted_by=granted_by, memo=memo,
     )
     db.session.add(sb)
     db.session.flush()
@@ -231,8 +232,13 @@ def evaluate_badges(student_id, trigger_codes=None, dry_run=False):
     return granted
 
 
-def grant_badge(student_id, badge_code, granted_by=None):
-    """수동 수여. 반복 가능 뱃지는 earned_count를 늘린다."""
+def grant_badge(student_id, badge_code, granted_by=None, memo=None):
+    """수동 수여. 반복 가능 뱃지는 earned_count를 늘린다.
+
+    memo는 BG09(장원) 등 "어느 회차에 대한 수여인지" 근거가 필요한 뱃지에 쓴다
+    (4단계 지시서 E항 "회차 정보를 메모로 입력받는다"). 반복 수여 시에는 가장
+    최근 memo로 덮어쓴다 - 과거 회차 이력까지 누적해서 남기는 요구사항은 아니었음.
+    """
     badge = Badge.query.get(badge_code)
     if not badge:
         raise ValueError(f"알 수 없는 뱃지 코드: {badge_code}")
@@ -245,11 +251,13 @@ def grant_badge(student_id, badge_code, granted_by=None):
         existing.last_earned_at = datetime.utcnow()
         if granted_by:
             existing.granted_by = granted_by
+        if memo:
+            existing.memo = memo
         db.session.flush()
         _notify_badge_earned(student_id, badge)
         result = existing
     else:
-        result = _create_student_badge(student_id, badge, earned_count=1, granted_by=granted_by)
+        result = _create_student_badge(student_id, badge, earned_count=1, granted_by=granted_by, memo=memo)
 
     _check_and_grant_bg10(student_id)
     return result
@@ -280,6 +288,75 @@ def _check_and_grant_bg10(student_id):
     if met:
         return _create_student_badge(student_id, bg10, earned_count=1)
     return None
+
+
+def _badge_progress(student_id, student, badge, config, owned_codes):
+    """뱃지 하나의 미획득 상태 진행도(0.0~1.0)와 안내 문구를 계산한다.
+    3×3 수집판에서 잠긴 칸에 "달성 조건 + 진행도"를 보여주기 위한 것(4단계
+    화면 지시서 1항) - evaluate_badges()의 판정 로직과 별개로 표시용으로만 쓴다."""
+    if badge.rule_type == 'manual':
+        return 0.0, badge.description
+    if badge.rule_type == 'all_badges':
+        required = config.get('required_badges', [])
+        have = sum(1 for c in required if c in owned_codes)
+        total = len(required) or 1
+        return have / total, f'{badge.description} ({have}/{total})'
+    if badge.rule_type == 'first_event':
+        count = _first_event_count(student_id, config)
+        return (1.0 if count > 0 else 0.0), badge.description
+    if badge.rule_type in ('external_metric', 'count_threshold'):
+        primary = _metric_value(student, config['metric'])
+        best_ratio = primary / config['threshold'] if config['threshold'] else 0.0
+        best_value, threshold = primary, config['threshold']
+        if 'or_metric' in config:
+            alt = _metric_value(student, config['or_metric'])
+            alt_ratio = alt / config['or_threshold'] if config['or_threshold'] else 0.0
+            if alt_ratio > best_ratio:
+                best_ratio, best_value, threshold = alt_ratio, alt, config['or_threshold']
+        return min(1.0, best_ratio), f'{badge.description} ({best_value}/{threshold})'
+    return 0.0, badge.description
+
+
+def get_badge_board(student_id):
+    """마이페이지 3×3 수집판에 쓸 뱃지 전체 목록(획득/미획득 공통 표시용).
+
+    Returns:
+        list[dict]: sort_order 순. 각 항목:
+            {badge_code, name, description, category, icon, is_final,
+             is_repeatable, owned, earned_count, progress(0.0~1.0), progress_label}
+    """
+    student = Student.query.get(student_id)
+    badges = Badge.query.filter_by(is_active=True).order_by(Badge.sort_order).all()
+    owned = {sb.badge_code: sb for sb in StudentBadge.query.filter_by(student_id=student_id).all()
+             if sb.revoked_at is None}
+    owned_codes = set(owned.keys())
+
+    board = []
+    for badge in badges:
+        config = _load_config(badge)
+        sb = owned.get(badge.badge_code)
+        if sb:
+            progress, label = 1.0, badge.description
+        elif student is None:
+            progress, label = 0.0, badge.description
+        else:
+            progress, label = _badge_progress(student_id, student, badge, config, owned_codes)
+
+        board.append({
+            'badge_code': badge.badge_code,
+            'name': badge.name,
+            'description': badge.description,
+            'category': badge.category,
+            'icon_path': badge.icon_path,
+            'icon_emoji': BADGE_EMOJI_FALLBACK.get(badge.badge_code, '🏅'),
+            'is_final': badge.rule_type == 'all_badges',
+            'is_repeatable': badge.is_repeatable,
+            'owned': sb is not None,
+            'earned_count': sb.earned_count if sb else 0,
+            'progress': progress,
+            'progress_label': label,
+        })
+    return board
 
 
 def run_badge_sweep(dry_run=False):

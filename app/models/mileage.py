@@ -83,6 +83,7 @@ class StudentBadge(db.Model):
     first_earned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     last_earned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     granted_by = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=True)  # 수동 수여자
+    memo = db.Column(db.String(200), nullable=True)  # 수동 수여 사유(예: BG09 모의고사 회차 정보)
     revoked_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships

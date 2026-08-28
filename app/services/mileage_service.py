@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from app.models import db
-from app.models.mileage import PointEvent
+from app.models.mileage import PointEvent, MileageConsent
 from app.services.mileage_rules import POINT_RULES, TIER_TABLE
 
 KST_OFFSET = timedelta(hours=9)
@@ -177,7 +177,33 @@ def award_points(student_id, activity_code, source_type, source_id,
     return event
 
 
-def cancel_points(source_type, source_id, reason, student_id=None):
+def _cancel_one(original, reason, now, cancelled_by=None):
+    """award 행 하나를 취소 처리한다 - cancel_points()/cancel_point_event()가 공유하는 내부 로직."""
+    original.status = 'cancelled'
+    original.cancelled_at = now
+    original.cancel_reason = reason
+
+    cancel_event = PointEvent(
+        student_id=original.student_id,
+        activity_code=original.activity_code,
+        entry_type='cancel',
+        points=-original.points,
+        status='cancelled',
+        source_type=original.source_type,
+        source_id=original.source_id,
+        season=original.season,
+        occurred_at=now,
+        confirmed_at=now,
+        cancelled_at=now,
+        cancel_reason=reason,
+        related_event_id=original.event_id,
+        granted_by=cancelled_by,  # 취소 행에서는 "누가 취소했는지"를 의미한다
+    )
+    db.session.add(cancel_event)
+    return cancel_event
+
+
+def cancel_points(source_type, source_id, reason, student_id=None, cancelled_by=None):
     """해당 대상의 award 행을 취소 처리한다.
 
     원본 행의 status를 'cancelled'로 바꾸고, entry_type='cancel'인 음수 행을
@@ -200,31 +226,31 @@ def cancel_points(source_type, source_id, reason, student_id=None):
     now = datetime.utcnow()
     count = 0
     for original in events:
-        original.status = 'cancelled'
-        original.cancelled_at = now
-        original.cancel_reason = reason
-
-        cancel_event = PointEvent(
-            student_id=original.student_id,
-            activity_code=original.activity_code,
-            entry_type='cancel',
-            points=-original.points,
-            status='cancelled',
-            source_type=original.source_type,
-            source_id=original.source_id,
-            season=original.season,
-            occurred_at=now,
-            confirmed_at=now,
-            cancelled_at=now,
-            cancel_reason=reason,
-            related_event_id=original.event_id,
-        )
-        db.session.add(cancel_event)
+        _cancel_one(original, reason, now, cancelled_by=cancelled_by)
         count += 1
 
     if count:
         db.session.flush()
     return count
+
+
+def cancel_point_event(event_id, reason, cancelled_by=None):
+    """관리자 모니터링 화면에서 특정 적립 건 하나를 지정해 취소한다(부정 적립 회수).
+
+    cancel_points()는 source_type/source_id에 걸린 모든 미취소 행을 찾아 한꺼번에
+    취소하지만, 이 함수는 event_id 하나만 정확히 취소한다 - 관리자가 목록에서
+    특정 한 줄을 골라 취소 버튼을 누르는 화면에 맞춘 것이다.
+
+    Returns:
+        PointEvent: 새로 생성된 취소 행. 대상이 없거나 이미 취소된 경우 None.
+    """
+    original = PointEvent.query.filter_by(event_id=event_id, entry_type='award').first()
+    if not original or original.status == 'cancelled':
+        return None
+
+    cancel_event = _cancel_one(original, reason, datetime.utcnow(), cancelled_by=cancelled_by)
+    db.session.flush()
+    return cancel_event
 
 
 def confirm_pending_points(now=None):
@@ -277,6 +303,37 @@ def get_point_history(student_id, limit=50, offset=0):
     return PointEvent.query.filter_by(student_id=student_id) \
         .order_by(PointEvent.created_at.desc()) \
         .offset(offset).limit(limit).all()
+
+
+def count_point_history(student_id):
+    """적립·취소 이력 전체 건수 (마이페이지 페이징용)."""
+    return PointEvent.query.filter_by(student_id=student_id).count()
+
+
+def get_pending_points(student_id):
+    """확정 대기 중인 포인트 합계. get_total_points()에는 이미 포함돼 있어
+    "합산은 그대로 두고 대기분만 별도로 안내"하는 화면 요구사항에 쓴다."""
+    total = db.session.query(func.coalesce(func.sum(PointEvent.points), 0)).filter(
+        PointEvent.student_id == student_id,
+        PointEvent.status == 'pending',
+    ).scalar()
+    return int(total)
+
+
+def get_consent_status(student_id):
+    """정책 03문서 A/B/C 항목의 현재 동의 상태. 항목별로 가장 최근 행을 채택한다
+    (mileage_consents는 변경 시 새 행만 추가하고 기존 행은 수정하지 않으므로)."""
+    status = {'A': False, 'B': False, 'C': False}
+    rows = MileageConsent.query.filter_by(student_id=student_id) \
+        .order_by(MileageConsent.agreed_at.desc()).all()
+    seen = set()
+    for row in rows:
+        if row.consent_type in seen:
+            continue
+        seen.add(row.consent_type)
+        if row.consent_type in status:
+            status[row.consent_type] = bool(row.is_agreed)
+    return status
 
 
 def get_tier(total_points):
@@ -370,3 +427,78 @@ def can_select_excellent(teacher_id, at=None):
 
     remaining = max(0, 3 - distinct_students)
     return remaining > 0, remaining
+
+
+def is_awarded(activity_code, source_type, source_id):
+    """해당 대상에 이미 (취소되지 않은) 적립이 있는지 여부.
+
+    우수답안/우수질문 선정 버튼을 "이미 선정됨" 상태로 비활성화할 때 쓴다 -
+    award_points()의 유니크 제약과 같은 키로 확인하므로 결과가 항상 일치한다.
+    """
+    return PointEvent.query.filter_by(
+        activity_code=activity_code, source_type=source_type, source_id=str(source_id),
+        entry_type='award',
+    ).filter(PointEvent.status != 'cancelled').first() is not None
+
+
+def get_ex01_selection_status(teacher_id, source_type, source_id, at=None):
+    """EX01(우수답안) 선정 버튼 화면에 필요한 정보를 한 번에 반환한다.
+
+    강사가 버튼을 눌러본 뒤에야 상한을 알게 되는 일이 없도록, 화면을 그릴
+    시점에 미리 잔여 인원과 이미 선정됐는지 여부를 함께 계산한다(4단계
+    추가 지시 3항).
+    """
+    can_select, remaining = can_select_excellent(teacher_id, at=at)
+    already_selected = is_awarded('EX01', source_type, source_id)
+    return {
+        'can_select': can_select and not already_selected,
+        'remaining': remaining,
+        'already_selected': already_selected,
+    }
+
+
+def get_recent_events(limit=50):
+    """관리자 모니터링 화면의 "최근 적립 내역" 피드 - 전체 학생 대상, 최신순."""
+    return PointEvent.query.order_by(PointEvent.created_at.desc()).limit(limit).all()
+
+
+def get_pending_count():
+    """확정 대기 중인 포인트 건수 (전체 학생 합계)."""
+    return PointEvent.query.filter_by(entry_type='award', status='pending').count()
+
+
+def get_teacher_ex01_weekly_summary(at=None):
+    """강사별 이번 주 우수답안(EX01) 선정 현황 - 편중 확인용 모니터링 화면에 쓴다.
+
+    granted_by가 없는(=수동 지급자 미상) 행은 집계에서 제외한다.
+    """
+    from app.models.user import User
+
+    at = at or datetime.utcnow()
+    week_start, week_end = get_kst_week_range(at)
+
+    rows = db.session.query(
+        PointEvent.granted_by, func.count(func.distinct(PointEvent.student_id))
+    ).filter(
+        PointEvent.activity_code == 'EX01',
+        PointEvent.entry_type == 'award',
+        PointEvent.status != 'cancelled',
+        PointEvent.occurred_at >= week_start,
+        PointEvent.occurred_at < week_end,
+        PointEvent.granted_by.isnot(None),
+    ).group_by(PointEvent.granted_by).all()
+
+    teacher_ids = [teacher_id for teacher_id, _ in rows]
+    teachers = {u.user_id: u for u in User.query.filter(User.user_id.in_(teacher_ids)).all()}
+
+    summary = []
+    for teacher_id, count in rows:
+        teacher = teachers.get(teacher_id)
+        summary.append({
+            'teacher_id': teacher_id,
+            'teacher_name': teacher.name if teacher else '(탈퇴한 강사)',
+            'count': count,
+            'remaining': max(0, 3 - count),
+        })
+    summary.sort(key=lambda s: -s['count'])
+    return summary

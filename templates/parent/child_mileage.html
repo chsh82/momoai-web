@@ -1,17 +1,10 @@
 {% extends "base.html" %}
 {% from 'macros/badges.html' import mileage_tier_badge %}
 
-{% block title %}내 프로필 - MOMOAI v4.0{% endblock %}
+{% block title %}{{ student.name }} 마일리지 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
-    <!-- Header -->
-    <div class="mb-6">
-        <h2 class="text-3xl font-bold text-gray-800">👤 내 프로필</h2>
-        <p class="text-gray-600 mt-1">프로필 정보 및 활동 내역</p>
-    </div>
-
-    <!-- Flash messages -->
+<div class="max-w-4xl mx-auto">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -22,152 +15,29 @@
         {% endif %}
     {% endwith %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 왼쪽: 프로필 정보 -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <!-- 프로필 사진 -->
-                <div class="text-center mb-6">
-                    {% if user.profile_image_path %}
-                    <img src="{{ url_for('profile.profile_image', user_id=user.user_id) }}"
-                         alt="프로필 이미지"
-                         class="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-4 border-blue-600">
-                    {% else %}
-                    <div class="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4">
-                        {{ user.name[0] }}
-                    </div>
-                    {% endif %}
-                    <h3 class="text-2xl font-bold text-gray-800">{{ user.name }}</h3>
-                    <p class="text-gray-600 mt-1">{{ user.email }}</p>
-                </div>
-
-                <!-- 기본 정보 -->
-                <div class="space-y-3 mb-6">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="text-gray-600 font-medium">가입일</span>
-                        <span class="text-gray-800">{{ user.created_at | kst('%Y-%m-%d') }}</span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="text-gray-600 font-medium">최근 접속</span>
-                        <span class="text-gray-800">{{ user.last_login.strftime('%Y-%m-%d') if user.last_login else '-' }}</span>
-                    </div>
-                </div>
-
-                <!-- 액션 버튼 -->
-                <div class="space-y-3">
-                    <a href="{{ url_for('profile.edit') }}"
-                       class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
-                        프로필 수정
-                    </a>
-                    <a href="{{ url_for('profile.change_password') }}"
-                       class="block text-center bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 rounded-lg transition duration-200">
-                        비밀번호 변경
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 오른쪽: 통계 및 활동 -->
-        <div class="lg:col-span-2 space-y-6">
-            <!-- 통계 카드 -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">📊 활동 통계</h3>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="text-center p-4 bg-blue-50 rounded-lg">
-                        <div class="text-3xl font-bold text-blue-600">{{ total_essays }}</div>
-                        <div class="text-sm text-gray-600 mt-1">총 첨삭</div>
-                    </div>
-                    <div class="text-center p-4 bg-green-50 rounded-lg">
-                        <div class="text-3xl font-bold text-green-600">{{ total_students }}</div>
-                        <div class="text-sm text-gray-600 mt-1">학생 수</div>
-                    </div>
-                    <div class="text-center p-4 bg-purple-50 rounded-lg">
-                        <div class="text-3xl font-bold text-purple-600">{{ total_posts }}</div>
-                        <div class="text-sm text-gray-600 mt-1">게시글</div>
-                    </div>
-                    <div class="text-center p-4 bg-orange-50 rounded-lg">
-                        <div class="text-3xl font-bold text-orange-600">{{ total_books }}</div>
-                        <div class="text-sm text-gray-600 mt-1">도서</div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="text-sm text-gray-600 mb-1">최근 30일 첨삭</div>
-                        <div class="text-2xl font-bold text-gray-800">{{ recent_essays }}건</div>
-                    </div>
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="text-sm text-gray-600 mb-1">최근 30일 게시글</div>
-                        <div class="text-2xl font-bold text-gray-800">{{ recent_posts }}건</div>
-                    </div>
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="text-sm text-gray-600 mb-1">평균 점수</div>
-                        <div class="text-2xl font-bold text-gray-800">
-                            {% if avg_score %}
-                            {{ "%.1f"|format(avg_score) }}점
-                            {% else %}
-                            -
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 최근 활동 -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">🕐 최근 활동</h3>
-
-                {% if recent_activities %}
-                <div class="space-y-3">
-                    {% for activity in recent_activities %}
-                    <div class="flex items-start gap-4 p-4 {% if activity.type == 'essay' %}bg-blue-50 border-l-4 border-blue-500{% else %}bg-purple-50 border-l-4 border-purple-500{% endif %} rounded-lg">
-                        <div class="flex-shrink-0 w-10 h-10 {% if activity.type == 'essay' %}bg-blue-600{% else %}bg-purple-600{% endif %} text-white rounded-full flex items-center justify-center text-xl">
-                            {{ activity.icon }}
-                        </div>
-                        <div class="flex-1">
-                            <div class="font-medium text-gray-800">{{ activity.title }}</div>
-                            <div class="text-sm text-gray-600 mt-1">
-                                {{ activity.time | kst('%Y-%m-%d %H:%M') }}
-                            </div>
-                        </div>
-                        {% if activity.link %}
-                        <a href="{{ activity.link }}"
-                           class="flex-shrink-0 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded transition duration-200">
-                            보기
-                        </a>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-8 text-gray-500">
-                    <div class="text-4xl mb-2">📋</div>
-                    <p>최근 활동이 없습니다</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    {% if student_record %}
-    <!-- 마일리지 -->
-    <div id="mileage" class="mt-6 space-y-6">
+    <div class="mb-6">
+        <a href="{{ url_for('parent.child_detail', student_id=student.student_id) }}"
+           class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
+            ← {{ student.name }} 정보로
+        </a>
         <div class="flex items-center justify-between">
-            <h3 class="text-2xl font-bold text-gray-800">🏅 마일리지</h3>
-            <a href="{{ url_for('student.mileage_ranking') }}"
+            <h2 class="text-2xl font-bold text-gray-800">🏅 {{ student.name }} 학생 마일리지</h2>
+            <a href="{{ url_for('student.mileage_ranking', student_id=student.student_id) }}"
                class="text-sm font-medium text-blue-600 hover:text-blue-800">월간 랭킹 보기 →</a>
         </div>
-
-        {% if not mileage.under_14 and not student_record.nickname %}
-        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-3">
-            <p class="text-sm text-amber-800">
-                아직 닉네임이 없어요. 닉네임을 설정하면 랭킹에 실명 대신 표시할 수 있어요.
-            </p>
-            <a href="#mileage-privacy" class="flex-shrink-0 text-sm font-medium text-amber-900 underline">지금 설정하기</a>
-        </div>
+        {% if not can_edit %}
+        <p class="text-xs text-gray-500 mt-1">조회 권한만 있어 닉네임·공개 설정은 변경할 수 없습니다.</p>
         {% endif %}
+    </div>
 
+    {% if can_edit and not student.nickname %}
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-3 mb-6">
+        <p class="text-sm text-amber-800">아직 닉네임이 없어요. 닉네임을 설정하면 랭킹에 실명 대신 표시할 수 있어요.</p>
+        <a href="#mileage-privacy" class="flex-shrink-0 text-sm font-medium text-amber-900 underline">지금 설정하기</a>
+    </div>
+    {% endif %}
+
+    <div class="space-y-6">
         <!-- 등급 카드 -->
         <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -191,9 +61,7 @@
                         <div class="w-full bg-gray-200 rounded-full h-3">
                             <div class="bg-blue-600 h-3 rounded-full" style="width: {{ (mileage.tier.progress * 100) | round(1) }}%"></div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">
-                            다음 등급까지 {{ "{:,}".format(mileage.tier.next_at - mileage.total_points) }}점 남음
-                        </p>
+                        <p class="text-xs text-gray-500 mt-1">다음 등급까지 {{ "{:,}".format(mileage.tier.next_at - mileage.total_points) }}점 남음</p>
                     </div>
                     {% else %}
                     <p class="text-xs text-gray-500 mt-3">최고 등급입니다.</p>
@@ -213,7 +81,6 @@
         </div>
 
         {% if mileage.total_points == 0 %}
-        <!-- 시작 안내: 아직 적립 이력이 없는 학생용 -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h4 class="font-bold text-blue-900 mb-3">📖 이렇게 하면 점수를 받아요</h4>
             <ul class="space-y-1.5 text-sm text-blue-800">
@@ -264,7 +131,7 @@
             {% if mileage.history %}
             <div class="space-y-2">
                 {% for ev in mileage.history %}
-                <div class="flex items-center justify-between p-3 rounded-lg {% if ev.status == 'cancelled' %}bg-gray-50{% else %}bg-gray-50{% endif %}">
+                <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-medium {% if ev.status == 'cancelled' %}text-gray-400 line-through{% else %}text-gray-800{% endif %}">
@@ -293,12 +160,12 @@
             {% if mileage.history_total_pages > 1 %}
             <div class="flex items-center justify-center gap-2 mt-4">
                 {% if mileage.history_page > 1 %}
-                <a href="{{ url_for('profile.index', mpage=mileage.history_page - 1) }}#mileage"
+                <a href="{{ url_for('parent.child_mileage', student_id=student.student_id, mpage=mileage.history_page - 1) }}"
                    class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">← 이전</a>
                 {% endif %}
                 <span class="text-sm text-gray-500">{{ mileage.history_page }} / {{ mileage.history_total_pages }}</span>
                 {% if mileage.history_page < mileage.history_total_pages %}
-                <a href="{{ url_for('profile.index', mpage=mileage.history_page + 1) }}#mileage"
+                <a href="{{ url_for('parent.child_mileage', student_id=student.student_id, mpage=mileage.history_page + 1) }}"
                    class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">더보기 →</a>
                 {% endif %}
             </div>
@@ -313,13 +180,9 @@
             <h4 class="text-lg font-bold text-gray-800 mb-1">공개 설정</h4>
             <p class="text-xs text-gray-500 mb-4">동의하지 않아도 마일리지 적립·뱃지 획득 등 모든 학습 기능을 정상적으로 이용할 수 있으며 어떠한 불이익도 없습니다.</p>
 
-            {% if mileage.under_14 %}
-            <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                만 14세 미만 학생은 본인이 직접 동의할 수 없습니다. 연결된 학부모 계정에서 동의해주세요.
-            </div>
-            {% else %}
-            <form method="POST" action="{{ url_for('profile.update_mileage_nickname') }}" class="flex items-center gap-2 mb-4">
-                <input type="text" name="nickname" value="{{ student_record.nickname or '' }}" maxlength="10" placeholder="닉네임 (2~10자)"
+            {% if can_edit %}
+            <form method="POST" action="{{ url_for('parent.child_mileage_nickname', student_id=student.student_id) }}" class="flex items-center gap-2 mb-4">
+                <input type="text" name="nickname" value="{{ student.nickname or '' }}" maxlength="10" placeholder="닉네임 (2~10자)"
                        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg">저장</button>
             </form>
@@ -328,7 +191,7 @@
                 {% for ctype, label in [('A', '월간 랭킹에 닉네임·학년·순위·점수·뱃지 공개'), ('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-sm text-gray-700">{{ label }}</span>
-                    <form method="POST" action="{{ url_for('profile.update_mileage_consent', consent_type=ctype) }}">
+                    <form method="POST" action="{{ url_for('parent.child_mileage_consent', student_id=student.student_id, consent_type=ctype) }}">
                         <input type="hidden" name="is_agreed" value="{{ '0' if mileage.consent_status[ctype] else '1' }}">
                         <button type="submit"
                                 class="px-3 py-1 text-xs font-medium rounded-full {% if mileage.consent_status[ctype] %}bg-green-100 text-green-700{% else %}bg-gray-200 text-gray-600{% endif %}">
@@ -338,12 +201,22 @@
                 </div>
                 {% endfor %}
             </div>
-            {% if not student_record.nickname %}
+            {% if not student.nickname %}
             <p class="text-xs text-gray-400 mt-2">랭킹 공개(A)에 동의하려면 먼저 닉네임을 설정해주세요.</p>
             {% endif %}
+            {% else %}
+            <div class="space-y-2">
+                {% for ctype, label in [('A', '월간 랭킹 공개'), ('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span class="text-sm text-gray-700">{{ label }}</span>
+                    <span class="px-3 py-1 text-xs font-medium rounded-full {% if mileage.consent_status[ctype] %}bg-green-100 text-green-700{% else %}bg-gray-200 text-gray-600{% endif %}">
+                        {{ '동의함' if mileage.consent_status[ctype] else '미동의' }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
         </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

@@ -14,6 +14,7 @@ class Student(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'),
                        nullable=True)  # Phase 4에서 사용 (학생 계정 연결)
     name = db.Column(db.String(100), nullable=False, index=True)
+    nickname = db.Column(db.String(20), nullable=True)  # 마일리지 랭킹 등 공개 화면에 쓰는 별명 (실명 대체)
     grade = db.Column(db.String(20), nullable=False)  # 초1~고3 (구체적 학년)
     school = db.Column(db.String(200), nullable=True)  # 학교명
     birth_date = db.Column(db.Date, nullable=True)  # 생년월일

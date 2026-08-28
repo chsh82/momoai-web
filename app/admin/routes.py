@@ -8183,3 +8183,159 @@ def impersonate_exit():
         if admin_user:
             login_user(admin_user)
     return redirect(url_for('admin.index'))
+
+
+# ===================== 마일리지 관리 (4-2단계) =====================
+# 권한: 전부 매니저 이상(requires_permission_level(2)) - 정책 문서 "EV01 재량
+# 지급·부정 적립 회수는 매니저 이상" 기준을 모니터링/BG09 수여에도 동일 적용.
+# point_events는 여기서도 직접 쿼리하지 않고 mileage_service를 거친다.
+
+@admin_bp.route('/mileage')
+@login_required
+@requires_permission_level(2)
+def mileage_dashboard():
+    """마일리지 모니터링 - 강사별 이번 주 우수답안 선정 현황, 최근 적립 50건,
+    대기 중 포인트 건수, 학생 검색."""
+    from app.services import mileage_service
+
+    search = request.args.get('search', '').strip()
+    search_results = []
+    if search:
+        search_results = Student.query.filter(
+            (Student.name.like(f'%{search}%')) | (Student.student_id.like(f'%{search}%'))
+        ).order_by(Student.name).limit(20).all()
+
+    return render_template('admin/mileage_dashboard.html',
+                         teacher_summary=mileage_service.get_teacher_ex01_weekly_summary(),
+                         recent_events=mileage_service.get_recent_events(limit=50),
+                         pending_count=mileage_service.get_pending_count(),
+                         search=search,
+                         search_results=search_results)
+
+
+@admin_bp.route('/mileage/students/<student_id>')
+@login_required
+@requires_permission_level(2)
+def mileage_student_detail(student_id):
+    """학생별 포인트 상세 조회 - 전체 이력, EV01 수동 지급, 개별 건 취소, BG09 수동 수여."""
+    from app.services import mileage_service, badge_service
+    from app.models.mileage import Badge
+    from app.services.mileage_rules import POINT_RULES
+
+    student = Student.query.get_or_404(student_id)
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
+    total = mileage_service.count_point_history(student_id)
+    total_pages = max(1, -(-total // per_page))
+    page = min(max(page, 1), total_pages)
+    history = mileage_service.get_point_history(student_id, limit=per_page, offset=(page - 1) * per_page)
+
+    manual_badge_codes = {b.badge_code for b in Badge.query.filter_by(rule_type='manual', is_active=True).all()}
+    manual_badges = [b for b in badge_service.get_badge_board(student_id) if b['badge_code'] in manual_badge_codes]
+
+    total_points = mileage_service.get_total_points(student_id)
+    return render_template('admin/mileage_student_detail.html',
+                         student=student,
+                         total_points=total_points,
+                         pending_points=mileage_service.get_pending_points(student_id),
+                         tier=mileage_service.get_tier(total_points),
+                         history=history,
+                         page=page,
+                         total_pages=total_pages,
+                         manual_badges=manual_badges,
+                         point_rules=POINT_RULES)
+
+
+@admin_bp.route('/mileage/students/<student_id>/grant', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def mileage_grant(student_id):
+    """EV01 재량 지급 (월 500점 상한은 award_points()가 자동 검사)."""
+    from app.services.mileage_service import award_points
+
+    student = Student.query.get_or_404(student_id)
+    reason = (request.form.get('reason') or '').strip()
+    points_raw = request.form.get('points', '').strip()
+
+    if not reason:
+        flash('지급 사유는 필수입니다.', 'error')
+        return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+    try:
+        points = int(points_raw)
+    except ValueError:
+        flash('점수는 숫자로 입력해주세요.', 'error')
+        return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+    try:
+        event = award_points(
+            student_id=student_id, activity_code='EV01', source_type='manual',
+            source_id=f'manual-{uuid.uuid4().hex[:12]}', points=points,
+            granted_by=current_user.user_id, memo=reason,
+        )
+    except ValueError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+    if event:
+        db.session.commit()
+        flash(f'{student.name} 학생에게 {points}점을 지급했습니다.', 'success')
+    else:
+        db.session.rollback()
+        flash('월 상한(500점) 초과로 지급하지 못했습니다.', 'error')
+
+    return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+
+@admin_bp.route('/mileage/students/<student_id>/cancel/<int:event_id>', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def mileage_cancel_event(student_id, event_id):
+    """부정 적립 회수 - 사유 필수, 누가/언제 취소했는지는 취소 행의 granted_by/created_at에 기록."""
+    from app.services.mileage_service import cancel_point_event
+
+    reason = (request.form.get('reason') or '').strip()
+    if not reason:
+        flash('취소 사유는 필수입니다.', 'error')
+        return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+    result = cancel_point_event(event_id, reason, cancelled_by=current_user.user_id)
+    if result:
+        db.session.commit()
+        flash('해당 적립 건을 취소했습니다.', 'success')
+    else:
+        db.session.rollback()
+        flash('이미 취소되었거나 존재하지 않는 적립 건입니다.', 'error')
+
+    return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+
+@admin_bp.route('/mileage/students/<student_id>/grant-badge', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def mileage_grant_badge(student_id):
+    """BG09(장원) 등 manual 뱃지 수동 수여 - 회차 정보를 memo로 입력받는다."""
+    from app.services.badge_service import grant_badge
+
+    student = Student.query.get_or_404(student_id)
+    badge_code = (request.form.get('badge_code') or '').strip()
+    memo = (request.form.get('memo') or '').strip()
+
+    if not badge_code or not memo:
+        flash('뱃지 종류와 회차 정보(메모)는 필수입니다.', 'error')
+        return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+    try:
+        result = grant_badge(student_id, badge_code, granted_by=current_user.user_id, memo=memo)
+    except ValueError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
+
+    if result:
+        db.session.commit()
+        flash(f'{student.name} 학생에게 뱃지를 수여했습니다.', 'success')
+    else:
+        db.session.rollback()
+        flash('이미 보유한(반복 불가) 뱃지입니다.', 'error')
+
+    return redirect(url_for('admin.mileage_student_detail', student_id=student_id))

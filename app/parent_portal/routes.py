@@ -302,6 +302,112 @@ def child_detail(student_id):
                          recent_essays=recent_essays)
 
 
+@parent_bp.route('/children/<student_id>/mileage')
+@login_required
+@requires_role('parent', 'admin')
+def child_mileage(student_id):
+    """자녀 마일리지 - 누적 포인트·등급·뱃지·적립내역 조회 및 공개 설정 변경.
+
+    ParentStudent.permission_level을 지금까지는 아무 라우트도 실제로 검사하지
+    않았다(전체 코드베이스에 확인 코드가 없었음) - 이 화면에서 처음으로
+    view_only는 조회만, full은 닉네임·공개동의 변경까지 허용하도록 적용한다.
+    """
+    relation = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id,
+        student_id=student_id,
+        is_active=True
+    ).first()
+
+    if not relation and not current_user.is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('parent.children'))
+
+    student = Student.query.get_or_404(student_id)
+    can_edit = current_user.is_admin or (relation is not None and relation.permission_level != 'view_only')
+
+    from app.services.mileage_view_service import build_mileage_context
+    mileage = build_mileage_context(student, page=request.args.get('mpage', 1, type=int))
+
+    return render_template('parent/child_mileage.html',
+                         student=student,
+                         mileage=mileage,
+                         can_edit=can_edit)
+
+
+@parent_bp.route('/children/<student_id>/mileage/nickname', methods=['POST'])
+@login_required
+@requires_role('parent', 'admin')
+def child_mileage_nickname(student_id):
+    """자녀 닉네임 설정 - permission_level='full'인 학부모만."""
+    relation = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id, student_id=student_id, is_active=True
+    ).first()
+    if not relation and not current_user.is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('parent.children'))
+    if relation is not None and relation.permission_level == 'view_only' and not current_user.is_admin:
+        flash('조회 권한만 있어 변경할 수 없습니다.', 'error')
+        return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+    student = Student.query.get_or_404(student_id)
+    nickname = (request.form.get('nickname') or '').strip()
+    if not (2 <= len(nickname) <= 10):
+        flash('닉네임은 2~10자로 입력해주세요.', 'error')
+        return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+    student.nickname = nickname
+    db.session.commit()
+    flash('닉네임이 저장되었습니다.', 'success')
+    return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+
+@parent_bp.route('/children/<student_id>/mileage/consent/<consent_type>', methods=['POST'])
+@login_required
+@requires_role('parent', 'admin')
+def child_mileage_consent(student_id, consent_type):
+    """자녀 공개 동의 변경 - permission_level='full'인 학부모만.
+
+    만 14세 미만 아동은 정책상 본인이 아니라 법정대리인(학부모)만 동의할 수
+    있으므로, 학생 마이페이지 쪽 나이 제한과 반대로 여기는 나이 제한이 없다.
+    """
+    if consent_type not in ('A', 'B', 'C'):
+        flash('잘못된 동의 항목입니다.', 'error')
+        return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+    relation = ParentStudent.query.filter_by(
+        parent_id=current_user.user_id, student_id=student_id, is_active=True
+    ).first()
+    if not relation and not current_user.is_admin:
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('parent.children'))
+    if relation is not None and relation.permission_level == 'view_only' and not current_user.is_admin:
+        flash('조회 권한만 있어 변경할 수 없습니다.', 'error')
+        return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+    student = Student.query.get_or_404(student_id)
+    is_agreed = request.form.get('is_agreed') == '1'
+
+    if consent_type == 'A' and is_agreed and not (student.nickname or '').strip():
+        flash('랭킹 공개 동의 전에 자녀의 닉네임을 먼저 설정해주세요.', 'error')
+        return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+    from app.models.mileage import MileageConsent
+    from app.services.mileage_view_service import MILEAGE_CONSENT_DOC_VERSION
+    consent = MileageConsent(
+        student_id=student.student_id,
+        consent_type=consent_type,
+        is_agreed=is_agreed,
+        agreed_by_user_id=current_user.user_id,
+        agreed_by_relation='parent',
+        doc_version=MILEAGE_CONSENT_DOC_VERSION,
+    )
+    db.session.add(consent)
+    db.session.commit()
+
+    flash('공개 설정이 저장되었습니다.' if is_agreed else '공개 설정을 철회했습니다.', 'success')
+    return redirect(url_for('parent.child_mileage', student_id=student_id))
+
+
 @parent_bp.route('/children/<student_id>/attendance')
 @login_required
 @requires_role('parent', 'admin')

@@ -3244,3 +3244,85 @@ def help_pdf():
 def pilsa_note():
     """필사 노트 - 원고지 인쇄 도구"""
     return render_template('teacher/pilsa_note.html')
+
+
+@student_bp.route('/mileage/ranking')
+@login_required
+@requires_role('student', 'admin', 'parent')
+def mileage_ranking():
+    """월간 랭킹 (정책 제7조) - 학년 그룹별 탭, 잠정/확정 구분.
+
+    point_events는 직접 쿼리하지 않고 ranking_service를 통해서만 조회한다
+    (4단계 지시서 "하지 말 것" 준수).
+
+    role별 "본인 학생" 결정 방식이 다르다:
+      - student: 로그인 계정에 연결된 Student
+      - parent: 쿼리스트링 student_id로 지정한 자녀 - ParentStudent 연결 확인 필수
+                (연결되지 않은 학생 id를 넣으면 차단해야 한다, 4-2 추가 지시 2항)
+      - admin: 테스트/확인용으로 아무 학생 1명(첫 번째)
+    """
+    from app.services import ranking_service
+    from app.services.mileage_rules import get_level_group, RANKING_LEVEL_GROUPS
+
+    if current_user.role == 'student':
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
+        if not student:
+            flash('학생 정보를 찾을 수 없습니다.', 'error')
+            return redirect(url_for('student.index'))
+    elif current_user.role == 'parent':
+        from app.models import ParentStudent
+        student_id_param = request.args.get('student_id', '').strip()
+        relation = ParentStudent.query.filter_by(
+            parent_id=current_user.user_id, student_id=student_id_param, is_active=True
+        ).first() if student_id_param else None
+        if not relation:
+            flash('접근 권한이 없습니다.', 'error')
+            return redirect(url_for('parent.children'))
+        student = Student.query.get_or_404(student_id_param)
+    else:
+        student = Student.query.first()
+        if not student:
+            flash('등록된 학생이 없습니다.', 'error')
+            return redirect(url_for('student.index'))
+
+    seasons = ranking_service.recent_seasons(12)
+    current_season = seasons[0]
+    season = request.args.get('season', current_season)
+    if season not in seasons:
+        season = current_season
+
+    my_group = get_level_group(student.grade)
+    group = request.args.get('group', my_group or 'elem12')
+    if group not in RANKING_LEVEL_GROUPS:
+        group = my_group or 'elem12'
+
+    rows = ranking_service.get_ranking(season, level_group=group)
+
+    TOP_N = 20
+    top_rows = rows[:TOP_N]
+    my_row = next((r for r in rows if r['student_id'] == student.student_id), None)
+    my_row_in_top = my_row is not None and any(r is my_row for r in top_rows)
+    is_final = rows[0]['is_final'] if rows else None
+
+    self_label = '나' if current_user.role == 'student' else student.name
+    back_url = url_for('parent.child_mileage', student_id=student.student_id) if current_user.role == 'parent' \
+        else url_for('profile.index') + '#mileage'
+    view_student_id = student.student_id if current_user.role == 'parent' else None
+
+    return render_template('student/mileage_ranking.html',
+                         seasons=seasons,
+                         season=season,
+                         current_season=current_season,
+                         groups=RANKING_LEVEL_GROUPS,
+                         group=group,
+                         my_group=my_group,
+                         rows=top_rows,
+                         total_rows=len(rows),
+                         is_final=is_final,
+                         my_row=my_row,
+                         my_row_in_top=my_row_in_top,
+                         my_student_id=student.student_id,
+                         self_label=self_label,
+                         back_url=back_url,
+                         view_student_id=view_student_id)

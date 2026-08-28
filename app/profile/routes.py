@@ -2,7 +2,7 @@
 """프로필 라우트"""
 from flask import render_template, redirect, url_for, flash, request, current_app, send_from_directory
 from flask_login import login_required, current_user
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from app.utils.file_utils import safe_original_filename
@@ -12,6 +12,17 @@ import uuid
 from app.profile import profile_bp
 from app.profile.forms import ProfileEditForm, PasswordChangeForm
 from app.models import db, User, Essay, Student, Post, Book, EssayResult
+from app.models.mileage import MileageConsent
+from app.services.mileage_view_service import (
+    build_mileage_context, is_under_14, MILEAGE_CONSENT_DOC_VERSION,
+)
+
+
+def _get_student_record(user):
+    """profile.index/edit와 동일한 학생 레코드 조회 패턴."""
+    if user.role != 'student':
+        return None
+    return Student.query.filter_by(user_id=user.user_id).first()
 
 
 @profile_bp.route('/')
@@ -73,6 +84,9 @@ def index():
     recent_activities.sort(key=lambda x: x['time'], reverse=True)
     recent_activities = recent_activities[:10]
 
+    student_record = _get_student_record(user)
+    mileage = build_mileage_context(student_record) if student_record else None
+
     return render_template('profile/index.html',
                          user=user,
                          total_essays=total_essays,
@@ -82,7 +96,67 @@ def index():
                          recent_essays=recent_essays,
                          recent_posts=recent_posts,
                          avg_score=avg_score,
-                         recent_activities=recent_activities)
+                         recent_activities=recent_activities,
+                         student_record=student_record,
+                         mileage=mileage)
+
+
+@profile_bp.route('/mileage/nickname', methods=['POST'])
+@login_required
+def update_mileage_nickname():
+    """랭킹 등에 표시할 닉네임 설정/변경 (실명 대체용, 4단계 화면 지시서)."""
+    student = _get_student_record(current_user)
+    if not student:
+        flash('학생 계정에서만 닉네임을 설정할 수 있습니다.', 'error')
+        return redirect(url_for('profile.index'))
+
+    nickname = (request.form.get('nickname') or '').strip()
+    if not (2 <= len(nickname) <= 10):
+        flash('닉네임은 2~10자로 입력해주세요.', 'error')
+        return redirect(url_for('profile.index'))
+
+    student.nickname = nickname
+    db.session.commit()
+    flash('닉네임이 저장되었습니다.', 'success')
+    return redirect(url_for('profile.index'))
+
+
+@profile_bp.route('/mileage/consent/<consent_type>', methods=['POST'])
+@login_required
+def update_mileage_consent(consent_type):
+    """정책 03문서 A/B/C 항목 동의 변경. 기존 행은 수정하지 않고 새 행만 추가한다."""
+    if consent_type not in ('A', 'B', 'C'):
+        flash('잘못된 동의 항목입니다.', 'error')
+        return redirect(url_for('profile.index'))
+
+    student = _get_student_record(current_user)
+    if not student:
+        flash('학생 계정에서만 변경할 수 있습니다.', 'error')
+        return redirect(url_for('profile.index'))
+
+    if is_under_14(student.birth_date):
+        flash('만 14세 미만 학생은 연결된 학부모 계정에서만 동의할 수 있습니다.', 'error')
+        return redirect(url_for('profile.index'))
+
+    is_agreed = request.form.get('is_agreed') == '1'
+
+    if consent_type == 'A' and is_agreed and not (student.nickname or '').strip():
+        flash('랭킹 공개 동의 전에 닉네임을 먼저 설정해주세요.', 'error')
+        return redirect(url_for('profile.index'))
+
+    consent = MileageConsent(
+        student_id=student.student_id,
+        consent_type=consent_type,
+        is_agreed=is_agreed,
+        agreed_by_user_id=current_user.user_id,
+        agreed_by_relation='self',
+        doc_version=MILEAGE_CONSENT_DOC_VERSION,
+    )
+    db.session.add(consent)
+    db.session.commit()
+
+    flash('공개 설정이 저장되었습니다.' if is_agreed else '공개 설정을 철회했습니다.', 'success')
+    return redirect(url_for('profile.index'))
 
 
 @profile_bp.route('/edit', methods=['GET', 'POST'])

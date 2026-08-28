@@ -361,6 +361,10 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_profile' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 📋 학생 프로필
                             </a>
+                            <a href="{{ url_for('admin.mileage_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.mileage' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                🏅 마일리지 관리
+                            </a>
                             <a href="{{ url_for('admin.student_risk_analysis') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_risk_analysis' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
                                 🤖 학생 위험도 분석
@@ -1085,6 +1089,13 @@
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'student.index' in request.endpoint %}active{% endif %}">
                         <span class="text-xl">🏠</span>
                         <span>마이 페이지</span>
+                    </a>
+
+                    <!-- 월간 랭킹 -->
+                    <a href="{{ url_for('student.mileage_ranking') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'student.mileage_ranking' %}active{% endif %}">
+                        <span class="text-xl">🏆</span>
+                        <span>월간 랭킹</span>
                     </a>
 
                     <!-- 강의실 바로가기 -->

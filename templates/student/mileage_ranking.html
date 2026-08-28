@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}월간 랭킹 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🏆 월간 랭킹{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">닉네임·학년·점수·뱃지만 공개됩니다</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-4">
+        <a href="{{ back_url }}" class="text-sm text-blue-600 hover:text-blue-800">← 돌아가기</a>
+    </div>
+
+    <!-- 학년 그룹 탭 -->
+    <div class="flex gap-1 overflow-x-auto pb-1 mb-4 -mx-1 px-1">
+        {% for code, info in groups.items() %}
+        <a href="{{ url_for('student.mileage_ranking', season=season, group=code, student_id=view_student_id) }}"
+           class="flex-shrink-0 px-3 py-2 text-sm font-medium rounded-lg whitespace-nowrap
+                  {% if code == group %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-600{% endif %}
+                  {% if code == my_group %}ring-2 ring-blue-300{% endif %}">
+            {{ info.label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- 월 선택 -->
+    <div class="flex items-center justify-between mb-4">
+        <select onchange="location.href=this.value"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            {% for s in seasons %}
+            <option value="{{ url_for('student.mileage_ranking', season=s, group=group, student_id=view_student_id) }}" {% if s == season %}selected{% endif %}>
+                {{ s }}{% if s == current_season %} (이번 달){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+
+        {% if rows %}
+            {% if is_final %}
+            <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">확정</span>
+            {% else %}
+            <span class="px-2 py-1 text-xs font-medium rounded bg-amber-100 text-amber-700">집계 중</span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if not rows %}
+    <div class="bg-white rounded-lg shadow p-8 text-center">
+        <div class="text-3xl mb-2">📭</div>
+        <p class="text-gray-500 text-sm">
+            {% if season == current_season %}
+            아직 이번 달 순위가 집계되지 않았어요. 활동하면 순위에 반영됩니다.
+            {% else %}
+            이 달에는 집계된 순위가 없어요.
+            {% endif %}
+        </p>
+        <a href="{{ back_url }}" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-800">
+            무엇을 하면 점수를 받는지 확인하기 →
+        </a>
+    </div>
+    {% else %}
+
+    <div class="bg-white rounded-lg shadow divide-y divide-gray-100">
+        {% for row in rows %}
+        {% set is_me = row.student_id == my_student_id %}
+        <div class="flex items-center gap-3 p-3 {% if is_me %}bg-blue-50{% endif %}">
+            <div class="w-8 flex-shrink-0 text-center font-bold {% if row.rank <= 3 %}text-amber-500{% else %}text-gray-400{% endif %}">
+                {{ row.rank }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-sm font-medium text-gray-800 truncate">
+                        {% if is_me %}{{ self_label }}{% else %}{{ row.display_name }}{% endif %}
+                    </span>
+                    {% if is_me and row.anonymous %}
+                    <span class="text-[10px] text-gray-400">(비공개 상태)</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-gray-500">{{ row.grade }} · 뱃지 {{ row.badge_count }}개</div>
+            </div>
+            <div class="text-sm font-bold text-blue-600 flex-shrink-0">{{ "{:,}".format(row.points) }}점</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if my_row and not my_row_in_top %}
+    <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p class="text-xs text-gray-500 mb-2">내 순위 (상위 {{ rows|length }}위 밖)</p>
+        <div class="flex items-center gap-3">
+            <div class="w-8 flex-shrink-0 text-center font-bold text-blue-600">{{ my_row.rank }}</div>
+            <div class="flex-1 min-w-0">
+                <span class="text-sm font-medium text-gray-800">{{ self_label }}</span>
+                <div class="text-xs text-gray-500">{{ my_row.grade }} · 뱃지 {{ my_row.badge_count }}개</div>
+            </div>
+            <div class="text-sm font-bold text-blue-600">{{ "{:,}".format(my_row.points) }}점</div>
+        </div>
+    </div>
+    {% elif not my_row %}
+    <p class="text-xs text-gray-400 text-center mt-3">이 달에는 순위에 포함되지 않았어요 (점수 0점).</p>
+    {% endif %}
+
+    <p class="text-xs text-gray-400 text-center mt-4">전체 {{ total_rows }}명 중 상위 {{ rows|length }}명까지 표시됩니다.</p>
+    {% endif %}
+</div>
+{% endblock %}
