@@ -958,4 +958,18 @@ v3.3.0 필수 포함 사항:
         essay.is_finalized = True
         essay.finalized_at = datetime.utcnow()
         essay.status = 'completed'
+
+        try:
+            from app.services.mileage_service import award_points
+            event = award_points(
+                student_id=essay.student_id, activity_code='RW01',
+                source_type='essay', source_id=str(essay.essay_id),
+                occurred_at=essay.finalized_at,
+            )
+            if event:
+                from app.services.badge_service import evaluate_badges
+                evaluate_badges(essay.student_id, trigger_codes=['RW01'])
+        except Exception:
+            current_app.logger.exception('RW01 마일리지 적립 실패 (essay_id=%s)', essay.essay_id)
+
         db.session.commit()

@@ -191,9 +191,9 @@
                     </div>
 
                     <!-- 대댓글 -->
-                    {% if comment.replies %}
+                    {% if comment.visible_replies %}
                     <div class="ml-6 mt-3 space-y-3">
-                        {% for reply in comment.replies %}
+                        {% for reply in comment.visible_replies %}
                         <div class="flex gap-3" id="comment-{{ reply.comment_id }}">
                             <div class="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                                 {{ reply.user.name[0] }}

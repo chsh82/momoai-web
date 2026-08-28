@@ -307,3 +307,34 @@ def get_tier(total_points):
     stars = min(4, int(progress * 4))
 
     return {'level': level, 'name': name, 'stars': stars, 'next_at': next_at, 'progress': progress}
+
+
+def award_quiz_points(student_id, session_id, score, occurred_at=None):
+    """퀴즈 세션 채점 결과에 따라 QZ01(정답률 60% 이상)·QZ02(만점 보너스)를 적립한다.
+
+    어휘퀴즈·스키마퀴즈 양쪽에서 이 함수 하나를 공통으로 호출한다(2단계 지시서 4.2절).
+    정책상 "회차당 1회"이나 세션 모델에 회차 컬럼이 없어서, source_id를 세션 ID로 써서
+    point_events의 유니크 제약이 "세션당 1회"를 강제하도록 한다.
+
+    Returns:
+        dict: {'QZ01': PointEvent|None, 'QZ02': PointEvent|None} - 조건을 만족하지 않아
+             애초에 시도하지 않은 코드는 키 자체가 없음
+    """
+    results = {}
+    if score is None:
+        return results
+
+    source_id = str(session_id)
+    if score >= 60:
+        results['QZ01'] = award_points(
+            student_id=student_id, activity_code='QZ01',
+            source_type='quiz_session', source_id=source_id,
+            occurred_at=occurred_at,
+        )
+    if score >= 100:
+        results['QZ02'] = award_points(
+            student_id=student_id, activity_code='QZ02',
+            source_type='quiz_session', source_id=source_id,
+            occurred_at=occurred_at,
+        )
+    return results

@@ -9,7 +9,8 @@ import uuid
 
 from app.community import community_bp
 from app.community.forms import PostForm, CommentForm
-from app.models import db, Post, Comment, PostLike, Notification, Tag, PostTag, Bookmark, PostFile
+from app.models import db, Post, Comment, PostLike, Notification, Tag, PostTag, Bookmark, PostFile, Student
+from app.services.mileage_service import award_points, cancel_points
 
 
 @community_bp.route('/')
@@ -122,6 +123,24 @@ def new():
         for img in save_post_images(img_files, 'community', post.post_id, current_user.user_id):
             db.session.add(img)
 
+        # QS01(질문 등록) - 학생 글쓰기 권한 개방 시 활성화됨.
+        # 이 라우트 진입 자체가 위에서 admin 전용으로 막혀 있어(line 63) 현재는
+        # current_user.role == 'student'가 될 수 없는 죽은 코드지만, 나중에
+        # 커뮤니티 글쓰기 권한이 학생에게 열리면 그대로 동작하도록 미리 심어둔다.
+        if current_user.role == 'student' and post.category == 'question':
+            student = Student.query.filter_by(user_id=current_user.user_id).first()
+            if student:
+                try:
+                    event = award_points(
+                        student_id=student.student_id, activity_code='QS01',
+                        source_type='post', source_id=str(post.post_id),
+                    )
+                    if event:
+                        from app.services.badge_service import evaluate_badges
+                        evaluate_badges(student.student_id, trigger_codes=['QS01', 'post'])
+                except Exception:
+                    current_app.logger.exception('QS01 마일리지 적립 실패 (post_id=%s)', post.post_id)
+
         db.session.commit()
 
         flash('게시글이 작성되었습니다.', 'success')
@@ -147,8 +166,8 @@ def detail(post_id):
     # 댓글 폼
     comment_form = CommentForm()
 
-    # 최상위 댓글만 가져오기 (대댓글은 replies로 접근)
-    comments = Comment.query.filter_by(post_id=post_id, parent_comment_id=None)\
+    # 최상위 댓글만 가져오기 (대댓글은 visible_replies로 접근), 소프트 삭제된 댓글은 제외
+    comments = Comment.query.filter_by(post_id=post_id, parent_comment_id=None, is_deleted=False)\
         .order_by(Comment.created_at.asc()).all()
 
     from app.utils.image_utils import get_post_images
@@ -244,6 +263,17 @@ def delete(post_id):
         flash('관리자만 게시글을 삭제할 수 있습니다.', 'error')
         return redirect(url_for('community.detail', post_id=post_id))
 
+    # 마일리지 회수 - Post.comments는 cascade='all, delete-orphan'이라 아래
+    # db.session.delete(post)에서 댓글이 통째로 하드 삭제된다. 삭제되고 나면
+    # comment_id로 취소 대상을 찾을 수 없으므로, 반드시 삭제 전에 먼저 처리한다.
+    try:
+        cancel_points('post', post_id, '게시글 삭제')
+        active_comments = Comment.query.filter_by(post_id=post_id, is_deleted=False).all()
+        for c in active_comments:
+            cancel_points('comment', c.comment_id, '게시글 삭제')
+    except Exception:
+        current_app.logger.exception('게시글 삭제에 따른 마일리지 취소 실패 (post_id=%s)', post_id)
+
     db.session.delete(post)
     db.session.commit()
 
@@ -289,6 +319,15 @@ def like_post(post_id):
                 related_entity_id=post_id
             )
 
+            # BG07(받은 좋아요/댓글) - 좋아요를 "받은" 게시글 작성자 기준으로 재평가
+            try:
+                recipient = Student.query.filter_by(user_id=post.user_id).first()
+                if recipient:
+                    from app.services.badge_service import evaluate_badges
+                    evaluate_badges(recipient.student_id, trigger_codes=['BG07'])
+            except Exception:
+                current_app.logger.exception('BG07 뱃지 판정 실패 (post_id=%s)', post_id)
+
     db.session.commit()
 
     return jsonify({
@@ -319,6 +358,32 @@ def add_comment(post_id):
     )
 
     db.session.add(comment)
+
+    # CM01(댓글 작성) - 학생 작성자일 때만 적립
+    if current_user.role == 'student':
+        student = Student.query.filter_by(user_id=current_user.user_id).first()
+        if student:
+            try:
+                event = award_points(
+                    student_id=student.student_id, activity_code='CM01',
+                    source_type='comment', source_id=str(comment.comment_id),
+                )
+                if event:
+                    from app.services.badge_service import evaluate_badges
+                    evaluate_badges(student.student_id, trigger_codes=['CM01'])
+            except Exception:
+                current_app.logger.exception('CM01 마일리지 적립 실패 (comment_id=%s)', comment.comment_id)
+
+    # BG07(받은 좋아요/댓글) - 댓글을 "받은" 게시글 작성자 기준으로 재평가 (본인 댓글 제외)
+    if post.user_id != current_user.user_id:
+        try:
+            recipient = Student.query.filter_by(user_id=post.user_id).first()
+            if recipient:
+                from app.services.badge_service import evaluate_badges
+                evaluate_badges(recipient.student_id, trigger_codes=['BG07'])
+        except Exception:
+            current_app.logger.exception('BG07 뱃지 판정 실패 (post_id=%s)', post_id)
+
     db.session.commit()
 
     # 알림 생성 (게시글 작성자에게, 본인 댓글이 아닌 경우)
@@ -378,7 +443,31 @@ def delete_comment(comment_id):
     if comment.user_id != current_user.user_id:
         return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
 
-    db.session.delete(comment)
+    from datetime import datetime
+    now = datetime.utcnow()
+    comment.is_deleted = True
+    comment.deleted_at = now
+
+    try:
+        cancel_points('comment', comment.comment_id, '댓글 삭제')
+    except Exception:
+        current_app.logger.exception('CM01 마일리지 취소 실패 (comment_id=%s)', comment.comment_id)
+
+    # 대댓글도 함께 소프트 삭제 + 포인트 회수. 부모만 지우면 화면에서는
+    # (visible_replies가 부모를 안 보여주니) 안 보이지만, 대댓글 자체는
+    # is_deleted=False로 DB에 남고 CM01도 회수가 안 되는 문제가 있었다.
+    # 대댓글을 단독으로 삭제하는 경우 comment.replies는 비어 있으므로
+    # 이 블록이 그냥 아무 일도 안 해서 기존 동작이 그대로 유지된다.
+    for reply in comment.replies:
+        if reply.is_deleted:
+            continue
+        reply.is_deleted = True
+        reply.deleted_at = now
+        try:
+            cancel_points('comment', reply.comment_id, '부모 댓글 삭제')
+        except Exception:
+            current_app.logger.exception('CM01 마일리지 취소 실패 (comment_id=%s)', reply.comment_id)
+
     db.session.commit()
 
     return jsonify({'success': True})

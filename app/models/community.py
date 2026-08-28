@@ -44,8 +44,8 @@ class Post(db.Model):
 
     @property
     def comment_count(self):
-        """댓글 수 (대댓글 포함)"""
-        return len(self.comments)
+        """댓글 수 (대댓글 포함, 소프트 삭제된 댓글 제외)"""
+        return len([c for c in self.comments if not c.is_deleted])
 
     def is_liked_by(self, user_id):
         """특정 사용자가 좋아요를 눌렀는지 확인"""
@@ -77,6 +77,8 @@ class Comment(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)  # 마일리지 회수 근거 보존용 소프트 삭제
+    deleted_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
     post = db.relationship('Post', back_populates='comments')
@@ -96,6 +98,11 @@ class Comment(db.Model):
     def is_reply(self):
         """대댓글 여부"""
         return self.parent_comment_id is not None
+
+    @property
+    def visible_replies(self):
+        """소프트 삭제되지 않은 대댓글만 (템플릿에서 replies 관계 대신 이걸 사용할 것)"""
+        return [r for r in self.replies if not r.is_deleted]
 
     @property
     def reply_count(self):

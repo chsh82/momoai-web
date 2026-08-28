@@ -977,6 +977,19 @@ def manual_correction(essay_id):
             essay.finalized_at = datetime.utcnow()
             essay.completed_at = datetime.utcnow()
 
+            try:
+                from app.services.mileage_service import award_points
+                event = award_points(
+                    student_id=essay.student_id, activity_code='RW01',
+                    source_type='essay', source_id=str(essay.essay_id),
+                    occurred_at=essay.finalized_at,
+                )
+                if event:
+                    from app.services.badge_service import evaluate_badges
+                    evaluate_badges(essay.student_id, trigger_codes=['RW01'])
+            except Exception:
+                current_app.logger.exception('RW01 마일리지 적립 실패 (essay_id=%s)', essay.essay_id)
+
         # 첨부파일 저장
         if valid_files:
             from app.models.essay import CorrectionAttachment
@@ -1898,6 +1911,12 @@ def reset_essay(essay_id):
     essay.current_version = 1
     essay.teacher_guide = None
 
+    try:
+        from app.services.mileage_service import cancel_points
+        cancel_points('essay', essay_id, '첨삭 확정 취소')
+    except Exception:
+        current_app.logger.exception('RW01 마일리지 취소 실패 (essay_id=%s)', essay_id)
+
     db.session.commit()
     return jsonify({'success': True, 'message': '과제가 초기화되었습니다.'})
 
@@ -1912,6 +1931,13 @@ def delete_essay(essay_id):
     essay = Essay.query.get_or_404(essay_id)
     student_name = essay.student.name if essay.student else '알 수 없음'
     title = essay.title or f'{student_name}의 논술'
+
+    # 마일리지 회수 - essay row가 사라지기 전에 먼저 취소해야 대상을 찾을 수 있음
+    try:
+        from app.services.mileage_service import cancel_points
+        cancel_points('essay', essay_id, '과제 삭제')
+    except Exception:
+        current_app.logger.exception('RW01 마일리지 취소 실패 (essay_id=%s)', essay_id)
 
     # SQLite는 FK cascade를 기본 비활성화 — 수동으로 연관 레코드 먼저 삭제
     OCRHistory.query.filter_by(essay_id=essay_id).delete(synchronize_session=False)

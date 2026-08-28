@@ -2800,6 +2800,16 @@ def vocabulary_quiz_result(session_id):
     if session.total_questions and session.total_questions > 0:
         session.score = (session.correct_count / session.total_questions) * 100
         session.completed_at = datetime.utcnow()
+
+        try:
+            from app.services.mileage_service import award_quiz_points
+            award_quiz_points(
+                student_id=student.student_id, session_id=session.session_id,
+                score=session.score, occurred_at=session.completed_at,
+            )
+        except Exception:
+            current_app.logger.exception('QZ01/QZ02 마일리지 적립 실패 (session_id=%s)', session.session_id)
+
         db.session.commit()
 
     return render_template('student/vocabulary_quiz/result.html',
@@ -2968,6 +2978,16 @@ def schema_quiz_result(session_id):
     if session.total_questions and session.total_questions > 0:
         session.score = (session.correct_count / session.total_questions) * 100
         session.completed_at = datetime.utcnow()
+
+        try:
+            from app.services.mileage_service import award_quiz_points
+            award_quiz_points(
+                student_id=student.student_id, session_id=session.session_id,
+                score=session.score, occurred_at=session.completed_at,
+            )
+        except Exception:
+            current_app.logger.exception('QZ01/QZ02 마일리지 적립 실패 (session_id=%s)', session.session_id)
+
         db.session.commit()
 
     # 이 세션의 모든 결과 가져오기 (답안 비교용)
