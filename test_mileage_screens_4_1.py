@@ -110,7 +110,7 @@ check("응답 200", resp.status_code == 200)
 check("0점 안내 문구 노출", '이렇게 하면 점수를 받아요' in html_a)
 check("적립 규칙 이름(리라이팅 제출) 노출", '리라이팅 제출' in html_a)
 check("적립 내역 빈 안내 노출", '아직 적립 내역이 없어요' in html_a)
-check("뱃지 수집판 잠금 상태 노출(진행도 문구)", '서비스 내 최초 게시글 작성' in html_a)
+check("뱃지 수집판 잠금 상태 노출(진행도 문구)", '서비스 내 최초 과제(첨삭) 제출' in html_a)
 
 resp_r = client.get('/student/mileage/ranking')
 html_ar = resp_r.data.decode('utf-8')

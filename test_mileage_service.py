@@ -98,18 +98,20 @@ with app.app_context():
         # award 행 자체가 status='cancelled'로 바뀌므로 위 합계는 취소행(음수, status='cancelled')만 제외한 것
         check(f"RW01만 놓고 보면 합계 0 (실제: {rw01_total})", rw01_total == 0)
 
-        # 5. 등급 계산이 정책표와 일치하는가 (경계값)
-        print("\n[5] 등급 계산 경계값 확인 (0 / 5,000 / 20,000 / 50,000 / 100,000)")
+        # 5. 등급 계산이 정책표와 일치하는가 (경계값) - 2026-08-29 개정
+        # (essay_type 기능으로 RW02가 신설되어 누적 속도가 빨라진 것을 반영해
+        # 0 / 2,000 / 8,000 / 20,000 / 45,000으로 하향 조정)
+        print("\n[5] 등급 계산 경계값 확인 (0 / 2,000 / 8,000 / 20,000 / 45,000)")
         boundary_cases = [
             (0, 1, '브론즈'),
-            (4999, 1, '브론즈'),
-            (5000, 2, '실버'),
-            (19999, 2, '실버'),
-            (20000, 3, '골드'),
-            (49999, 3, '골드'),
-            (50000, 4, '다이아'),
-            (99999, 4, '다이아'),
-            (100000, 5, '마스터'),
+            (1999, 1, '브론즈'),
+            (2000, 2, '실버'),
+            (7999, 2, '실버'),
+            (8000, 3, '골드'),
+            (19999, 3, '골드'),
+            (20000, 4, '다이아'),
+            (44999, 4, '다이아'),
+            (45000, 5, '마스터'),
             (500000, 5, '마스터'),
         ]
         for points, expected_level, expected_name in boundary_cases:
@@ -117,7 +119,7 @@ with app.app_context():
             ok = tier['level'] == expected_level and tier['name'] == expected_name
             check(f"{points}점 -> {expected_name}(레벨{expected_level}) (실제: {tier['name']}(레벨{tier['level']}))", ok)
         # 마스터는 진행도 표시 안 함
-        master_tier = svc.get_tier(100000)
+        master_tier = svc.get_tier(45000)
         check("마스터는 stars/progress가 None", master_tier['stars'] is None and master_tier['progress'] is None)
 
         # get_kst_day_range / get_kst_week_range 공통 헬퍼 동작 확인 (④ 결정 사항)

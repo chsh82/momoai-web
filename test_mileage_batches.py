@@ -23,6 +23,7 @@ from app.models.attendance import Attendance
 from app.models.makeup_request import MakeupClassRequest
 from app.models.payment_period import PaymentPeriod
 from app.models.community import Post, Comment, PostLike
+from app.models.essay import Essay
 from app.models.mileage import PointEvent, Badge, StudentBadge, MonthlyRanking, MileageConsent
 from app.models.notification import Notification
 from app.services import mileage_service as svc
@@ -42,7 +43,7 @@ from datetime import date as _date
 _mileage_service_mod.MILEAGE_START_DATE = _date(2000, 1, 1)
 _mileage_batch_service_mod.MILEAGE_START_DATE = _date(2000, 1, 1)
 failures = []
-created = {'users': [], 'students': [], 'courses': [], 'posts': []}
+created = {'users': [], 'students': [], 'courses': [], 'posts': [], 'essays': []}
 
 
 def check(label, condition):
@@ -310,46 +311,62 @@ with app.app_context():
                                      relation_type='parent', permission_level='full', is_active=True))
         db.session.flush()
 
-        # BG01(첫 문장) - 실제 Post 테이블 직접 확인
+        # BG01(첫 문장)/BG03(첫 고쳐쓰기) - 2026-08-29 개정으로 point_events가
+        # 아니라 essays 테이블을 직접 본다. 리라이팅 유형 과제 하나면 둘 다
+        # 동시에 충족된다(BG01은 유형 무관, BG03은 essay_type='rewriting').
         post_f = Post(user_id=student_owner_user.user_id, title='_batch_post', content='내용', category='free')
         db.session.add(post_f)
         db.session.flush()
         created['posts'].append(post_f.post_id)
 
-        granted1 = badge_svc.evaluate_badges(studentF.student_id)
+        essay_f = Essay(student_id=studentF.student_id, user_id=teacher.user_id,
+                        title='_batch_essay', original_text='내용', grade='초3',
+                        essay_type='rewriting')
+        db.session.add(essay_f)
+        db.session.flush()
+        created['essays'].append(essay_f.essay_id)
+
+        granted1 = badge_svc.evaluate_badges(studentF.student_id, trigger_codes=['essay'])
         granted_codes = {(g.badge_code if hasattr(g, 'badge_code') else g.get('badge_code')) for g in granted1}
-        check(f"BG01(게시글 작성) 획득 (실제 부여: {granted_codes})", 'BG01' in granted_codes)
+        check(f"BG01(과제 제출) 획득 (실제 부여: {granted_codes})", 'BG01' in granted_codes)
+        check(f"BG03(리라이팅) 획득 (실제 부여: {granted_codes})", 'BG03' in granted_codes)
 
         notif_count_student = Notification.query.filter_by(user_id=student_owner_user.user_id).count()
         notif_count_parent = Notification.query.filter_by(user_id=parent_user.user_id).count()
         check(f"학생에게 뱃지 알림 발송됨 (실제: {notif_count_student}건)", notif_count_student >= 1)
         check(f"학부모에게도 뱃지 알림 발송됨 (실제: {notif_count_parent}건)", notif_count_parent >= 1)
 
-        # BG03(첫 고쳐쓰기) - RW01 포인트
-        svc.award_points(student_id=studentF.student_id, activity_code='RW01',
-                         source_type='essay', source_id='batch-essay-F')
-        granted2 = badge_svc.evaluate_badges(studentF.student_id, trigger_codes=['RW01'])
-        granted_codes2 = {(g.badge_code if hasattr(g, 'badge_code') else g.get('badge_code')) for g in granted2}
-        check(f"BG03(리라이팅) 획득 (실제 부여: {granted_codes2})", 'BG03' in granted_codes2)
-
-        # BG07(받은 좋아요) - 100개 임계치, 90개만 만들고 미달 확인 -> 그 다음 10개 더 채워 충족 확인
-        for i in range(90):
-            db.session.add(PostLike(user_id=f'_batch_fake_liker_{i}', post_id=post_f.post_id))
+        # BG07(받은 좋아요) - 2026-08-29 개정으로 임계치 100->30, 마일리지
+        # 시작일(2026-09-01, KST) 이후 좋아요만 집계한다. 25개만 만들고
+        # 미달 확인 -> 그 다음 5개 더 채워(합 30개) 충족 확인.
+        gate_dt = datetime(2026, 9, 10)  # 시작일 이후 - 게이트 통과용
+        for i in range(25):
+            db.session.add(PostLike(user_id=f'_batch_fake_liker_{i}', post_id=post_f.post_id,
+                                    created_at=gate_dt))
         db.session.flush()
-        # 90개는 존재하지 않는 user_id를 써서 FK 제약이 없는 로컬 sqlite 특성을 이용한 카운트 전용
-        # 더미이므로, 실제 집계 쿼리(PostLike join Post)가 이 값을 정확히 세는지만 확인한다.
+        # 존재하지 않는 user_id를 써서 FK 제약이 없는 로컬 sqlite 특성을 이용한 카운트
+        # 전용 더미이므로, 실제 집계 쿼리(PostLike join Post)가 이 값을 정확히 세는지만 확인한다.
         under_threshold = badge_svc._received_likes_count(studentF)
-        check(f"좋아요 90개 집계됨 (실제: {under_threshold})", under_threshold == 90)
+        check(f"좋아요 25개 집계됨 (실제: {under_threshold})", under_threshold == 25)
         granted_partial = badge_svc.evaluate_badges(studentF.student_id, trigger_codes=['BG07'])
         granted_codes_partial = {(g.badge_code if hasattr(g, 'badge_code') else g.get('badge_code')) for g in granted_partial}
-        check("좋아요 90개(임계치 100 미달) -> BG07 아직 미획득", 'BG07' not in granted_codes_partial)
+        check("좋아요 25개(임계치 30 미달) -> BG07 아직 미획득", 'BG07' not in granted_codes_partial)
 
-        for i in range(90, 100):
-            db.session.add(PostLike(user_id=f'_batch_fake_liker_{i}', post_id=post_f.post_id))
+        for i in range(25, 30):
+            db.session.add(PostLike(user_id=f'_batch_fake_liker_{i}', post_id=post_f.post_id,
+                                    created_at=gate_dt))
         db.session.flush()
         granted3 = badge_svc.evaluate_badges(studentF.student_id, trigger_codes=['BG07'])
         granted_codes3 = {(g.badge_code if hasattr(g, 'badge_code') else g.get('badge_code')) for g in granted3}
-        check(f"좋아요 100개 달성 -> BG07 획득 (실제 부여: {granted_codes3})", 'BG07' in granted_codes3)
+        check(f"좋아요 30개 달성 -> BG07 획득 (실제 부여: {granted_codes3})", 'BG07' in granted_codes3)
+
+        # 시작일 이전 좋아요는 집계에서 빠지는지 확인 (게이트 확인)
+        pre_gate_liker = f'_batch_fake_liker_pregate'
+        db.session.add(PostLike(user_id=pre_gate_liker, post_id=post_f.post_id,
+                                created_at=datetime(2026, 8, 20)))
+        db.session.flush()
+        still_30 = badge_svc._received_likes_count(studentF)
+        check(f"시작일 이전 좋아요는 집계에서 제외됨 (실제: {still_30})", still_30 == 30)
 
         # BG02, BG04, BG05, BG06, BG09 - 남은 뱃지 강제 충족시키기(BG10 확인용)
         svc.award_points(student_id=studentF.student_id, activity_code='QS01',
@@ -386,6 +403,7 @@ with app.app_context():
         print("\n" + "=" * 70)
         print("테스트 데이터 정리 중...")
 
+        Essay.query.filter(Essay.essay_id.in_(created['essays'])).delete(synchronize_session=False)
         PointEvent.query.filter(PointEvent.student_id.in_(created['students'])).delete(synchronize_session=False)
         StudentBadge.query.filter(StudentBadge.student_id.in_(created['students'])).delete(synchronize_session=False)
         MonthlyRanking.query.filter(MonthlyRanking.student_id.in_(created['students'])).delete(synchronize_session=False)

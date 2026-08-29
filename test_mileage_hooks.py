@@ -92,10 +92,11 @@ with app.app_context():
     reply2_id_val = None
 
     try:
-        # 1. 첨삭 확정 -> 학생에게 500점 (강사가 아니라)
-        print("\n[1] 첨삭 확정 -> 학생에게 500점이 붙는가 (강사가 아니라)")
+        # 1. 첨삭 확정(리라이팅 유형) -> 학생에게 500점 (강사가 아니라)
+        print("\n[1] 첨삭 확정(리라이팅) -> 학생에게 500점이 붙는가 (강사가 아니라)")
         essay = Essay(student_id=student_id, user_id=teacher.user_id,
-                      original_text='테스트 원문', grade='초5', status='reviewing')
+                      original_text='테스트 원문', grade='초5', status='reviewing',
+                      essay_type='rewriting')
         db.session.add(essay)
         db.session.flush()
         essay_id_val = essay.essay_id
