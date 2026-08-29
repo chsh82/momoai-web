@@ -25,7 +25,7 @@ EX01("강사당 주 3명")은 학생이 아니라 지급자(강사) 기준 상�
 구조로 표현할 수 없다. 1단계 award_points()는 이 상한을 검사하지 않으며,
 2단계에서 "우수답안 선정" 라우트가 직접 검사한다.
 """
-from datetime import date
+from datetime import date, datetime, timedelta
 
 # 마일리지 적립 시작일(KST 기준). 이보다 이전 활동에는 포인트를 부여하지
 # 않는다(2026-08-29 결정사항) - mileage_service.award_points()의 게이트와
@@ -33,6 +33,11 @@ from datetime import date
 # 이 상수 하나만 참조한다. 나중에 게이트를 걷어낼 때 이 상수와 두 참조
 # 지점만 지우면 된다(app/services/mileage_service.py, app/services/mileage_batch_service.py).
 MILEAGE_START_DATE = date(2026, 9, 1)
+# MILEAGE_START_DATE(KST 자정)에 해당하는 UTC 시각. BG07처럼 point_events가
+# 아니라 다른 테이블(post_likes/comments)의 created_at(naive UTC)을 직접
+# 비교해야 하는 게이트에서 쓴다 - award_points()처럼 매번 KST로 변환할 필요
+# 없이 이 상수 하나로 UTC 컬럼과 바로 비교할 수 있다.
+MILEAGE_START_DATETIME_UTC = datetime.combine(MILEAGE_START_DATE, datetime.min.time()) - timedelta(hours=9)
 
 POINT_RULES = {
     'RW01': {
@@ -157,13 +162,14 @@ ESSAY_TYPE_POINT_CODE = {
     'etc': None,
 }
 
-# 정책 8.3 회원 등급 (누적 포인트 기준, 오름차순)
+# 정책 8.3 회원 등급 (누적 포인트 기준, 오름차순) - 2026-08-29 개정
+# (RW02 신설로 기본과제글도 매 회 적립되어 누적 속도가 빨라진 것을 반영).
 TIER_TABLE = [
     (1, '브론즈', 0),
-    (2, '실버', 5000),
-    (3, '골드', 20000),
-    (4, '다이아', 50000),
-    (5, '마스터', 100000),
+    (2, '실버', 2000),
+    (3, '골드', 8000),
+    (4, '다이아', 20000),
+    (5, '마스터', 45000),
 ]
 
 # 정책 제7조 3항 - 월간 랭킹 그룹 (학년 밴드). Student.grade(초1~고3, 12개 값)를

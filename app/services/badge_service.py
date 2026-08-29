@@ -26,9 +26,10 @@ from app.models import db
 from app.models.student import Student
 from app.models.parent_student import ParentStudent
 from app.models.community import Post, Comment, PostLike
+from app.models.essay import Essay
 from app.models.mileage import Badge, StudentBadge, PointEvent
 from app.models.notification import Notification
-from app.services.mileage_rules import BADGE_EMOJI_FALLBACK
+from app.services.mileage_rules import BADGE_EMOJI_FALLBACK, MILEAGE_START_DATETIME_UTC
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +55,24 @@ def _first_event_count(student_id, config):
             return 0  # 학생 계정 미연결 - 판정 불가(0건 취급)
         return Post.query.filter_by(user_id=student.user_id).count()
 
+    if source_type == 'essay':
+        # BG01(전체 유형)/BG03(리라이팅) - point_events가 아니라 essays
+        # 테이블을 직접 본다. 첨삭 확정(포인트 지급) 전인 업로드 시점에도
+        # 바로 판정할 수 있어야 하고, BG01은 마일리지 시작일 게이트와
+        # 무관하게(2026-08-29 결정사항) 기존에 쌓인 과제에도 소급 적용된다.
+        query = Essay.query.filter_by(student_id=student_id)
+        essay_type = config.get('essay_type')
+        if essay_type:
+            query = query.filter_by(essay_type=essay_type)
+        return query.count()
+
     return 0
 
 
 def _received_likes_count(student):
+    # BG07은 마일리지 시작일(2026-09-01, KST) 이후 받은 좋아요만 센다
+    # (2026-08-29 결정사항) - RW01/RW02와 마찬가지로 시작일 이전 활동은
+    # 마일리지 체계 밖으로 취급한다.
     if not student.user_id:
         return 0
     return db.session.query(func.count(PostLike.post_id)).join(
@@ -65,6 +80,7 @@ def _received_likes_count(student):
     ).filter(
         Post.user_id == student.user_id,
         PostLike.user_id != student.user_id,
+        PostLike.created_at >= MILEAGE_START_DATETIME_UTC,
     ).scalar() or 0
 
 
@@ -77,6 +93,7 @@ def _received_comments_count(student):
         Post.user_id == student.user_id,
         Comment.user_id != student.user_id,
         Comment.is_deleted == False,  # noqa: E712
+        Comment.created_at >= MILEAGE_START_DATETIME_UTC,
     ).scalar() or 0
 
 

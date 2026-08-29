@@ -26,10 +26,12 @@ from app.models.mileage import Badge
 BADGES = [
     {
         'badge_code': 'BG01', 'name': '첫 문장',
-        'description': '서비스 내 최초 게시글 작성',
+        'description': '서비스 내 최초 과제(첨삭) 제출',
         'category': '초급', 'sort_order': 1, 'is_repeatable': False,
         'rule_type': 'first_event',
-        'rule_config': {'source_type': 'post', 'threshold': 1},
+        # essays 테이블을 직접 본다(유형 무관, 마일리지 시작일 게이트 없음 -
+        # 2026-08-29 결정사항). 기존에 쌓인 과제에도 소급 적용된다.
+        'rule_config': {'source_type': 'essay', 'threshold': 1},
     },
     {
         'badge_code': 'BG02', 'name': '첫 물음표',
@@ -43,7 +45,9 @@ BADGES = [
         'description': '리라이팅 최초 1편 제출',
         'category': '초급', 'sort_order': 3, 'is_repeatable': False,
         'rule_type': 'first_event',
-        'rule_config': {'activity_code': 'RW01', 'threshold': 1},
+        # RW01 point_events가 아니라 essays.essay_type을 직접 본다 - 첨삭
+        # 확정(포인트 지급) 전 업로드 시점에 바로 판정하기 위함(2026-08-29 결정사항).
+        'rule_config': {'source_type': 'essay', 'essay_type': 'rewriting', 'threshold': 1},
     },
     {
         'badge_code': 'BG04', 'name': '빛나는 문장',
@@ -68,11 +72,11 @@ BADGES = [
     },
     {
         'badge_code': 'BG07', 'name': '모두의 글',
-        'description': '받은 댓글 누적 50개 또는 받은 좋아요 누적 100개',
+        'description': '받은 댓글 누적 20개 또는 받은 좋아요 누적 30개(마일리지 시작일 이후)',
         'category': '고급', 'sort_order': 7, 'is_repeatable': False,
         'rule_type': 'count_threshold',
-        'rule_config': {'metric': 'received_likes', 'threshold': 100,
-                        'or_metric': 'received_comments', 'or_threshold': 50},
+        'rule_config': {'metric': 'received_likes', 'threshold': 30,
+                        'or_metric': 'received_comments', 'or_threshold': 20},
     },
     {
         'badge_code': 'BG08', 'name': '사계절 독서가',
