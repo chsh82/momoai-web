@@ -241,7 +241,7 @@ with app.app_context():
         # ============================================================
         # 3. 월간 랭킹
         # ============================================================
-        print("\n[3] 월간 랭킹 - 밴드 그룹핑 + 동점 처리 + 동의 익명화")
+        print("\n[3] 월간 랭킹 - 밴드 그룹핑 + 동점 처리 + 실명 표시(2026-08-30 익명 처리 폐지)")
         season = '2026-08'
         studentE = make_student(teacher.user_id, '_batch_studentE', '고1')  # 다른 밴드
 
@@ -262,6 +262,8 @@ with app.app_context():
         db.session.add_all([pe1, pe2, pe3_ex01, pe4])
         db.session.flush()
 
+        # A항목(랭킹 공개) 동의 여부와 무관하게 실명이 표시돼야 하므로, 일부러
+        # 비동의 기록을 만들어도 결과에 영향이 없어야 한다는 것까지 확인한다.
         consent = MileageConsent(student_id=studentB.student_id, consent_type='A', is_agreed=False,
                                  agreed_by_user_id=teacher.user_id, agreed_by_relation='self',
                                  doc_version='v1', agreed_at=now)
@@ -280,11 +282,12 @@ with app.app_context():
         check(f"1위가 studentA (점수가 더 높음, 실제 1위: {elem_sorted[0]['student_id'] == studentA.student_id})",
               elem_sorted[0]['student_id'] == studentA.student_id)
         studentB_entry = next(e for e in elem_group if e['student_id'] == studentB.student_id)
-        check(f"studentB는 비동의라 anonymous=True (실제: {studentB_entry['anonymous']})",
-              studentB_entry['anonymous'] is True)
+        check(f"studentB는 A항목 비동의여도 실명+학년으로 표시됨 (실제: {studentB_entry['display_name']})",
+              studentB_entry['display_name'] == f'{studentB.name} {studentB.grade}')
+        check("anonymous 키가 결과에 없음(익명 처리 폐지)", 'anonymous' not in studentB_entry)
         studentA_entry = next(e for e in elem_group if e['student_id'] == studentA.student_id)
-        check(f"studentA는 동의 기록 없어 기본값 anonymous=True (실제: {studentA_entry['anonymous']})",
-              studentA_entry['anonymous'] is True)
+        check(f"studentA는 동의 기록이 아예 없어도 실명+학년으로 표시됨 (실제: {studentA_entry['display_name']})",
+              studentA_entry['display_name'] == f'{studentA.name} {studentA.grade}')
 
         # 저장(1일차 잠정) -> 확정(3일차)
         rank_svc.build_ranking(season, finalize=True, is_final=False)

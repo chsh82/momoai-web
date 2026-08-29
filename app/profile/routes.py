@@ -124,8 +124,13 @@ def update_mileage_nickname():
 @profile_bp.route('/mileage/consent/<consent_type>', methods=['POST'])
 @login_required
 def update_mileage_consent(consent_type):
-    """정책 03문서 A/B/C 항목 동의 변경. 기존 행은 수정하지 않고 새 행만 추가한다."""
-    if consent_type not in ('A', 'B', 'C'):
+    """정책 03문서 B/C 항목 동의 변경. 기존 행은 수정하지 않고 새 행만 추가한다.
+
+    A항목(랭킹 공개)은 랭킹 표시명을 전원 실명으로 전환하면서 폐지했다
+    (2026-08-30 결정사항) - 화이트리스트에서 뺀 것만으로 이 라우트에 A를
+    보내도 그대로 막힌다. mileage_consents 테이블/기존 A 이력은 그대로 둔다.
+    """
+    if consent_type not in ('B', 'C'):
         flash('잘못된 동의 항목입니다.', 'error')
         return redirect(url_for('profile.index'))
 
@@ -139,10 +144,6 @@ def update_mileage_consent(consent_type):
         return redirect(url_for('profile.index'))
 
     is_agreed = request.form.get('is_agreed') == '1'
-
-    if consent_type == 'A' and is_agreed and not (student.nickname or '').strip():
-        flash('랭킹 공개 동의 전에 닉네임을 먼저 설정해주세요.', 'error')
-        return redirect(url_for('profile.index'))
 
     consent = MileageConsent(
         student_id=student.student_id,

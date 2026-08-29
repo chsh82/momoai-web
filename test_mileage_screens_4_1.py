@@ -128,8 +128,6 @@ with app.app_context():
     msvc.cancel_points('essay', ev_to_cancel.source_id, '중복 제출 확인되어 취소')
     for code in ('BG01', 'BG02', 'BG03'):
         db.session.add(StudentBadge(student_id=student_b_id, badge_code=code, earned_count=1))
-    db.session.add(MileageConsent(student_id=student_b_id, consent_type='A', is_agreed=True,
-                                  agreed_by_user_id=user_b_id, agreed_by_relation='self', doc_version='v1.0'))
     db.session.commit()
 
     total_b = msvc.get_total_points(student_b_id)
@@ -140,16 +138,17 @@ with app.app_context():
     user_c_id, student_c_id = make_student('테스트순', grade='초3', nickname='익명이될철')
     msvc.award_points(student_c_id, 'AT02', 'attendance_quarter', f'q-{uuid.uuid4().hex[:8]}', points=1000)
     db.session.commit()
-    # 동의 안 함 - MileageConsent 행 자체를 만들지 않음(기본값 미동의와 동일해야 함)
+    # 공개 동의(A) 여부와 무관하게 실명이 노출돼야 한다(2026-08-30 결정사항으로
+    # A항목 기반 익명 처리 폐지) - 동의 기록을 아예 안 만든 상태로 확인한다.
 
     from app.services import ranking_service
     season = msvc.get_season()
     student_c_grade = db.session.get(Student, student_c_id).grade
     live = ranking_service.build_ranking(season, finalize=False)
     row_c = next((r for r in live if r['student_id'] == student_c_id), None)
-    check("미동의 학생은 anonymous=True", row_c is not None and row_c['anonymous'] is True)
-    check("미동의 학생 display_name이 실명이 아니라 학년 학습자 형식",
-          row_c is not None and row_c['display_name'] == f'{student_c_grade} 학습자')
+    check("anonymous 키가 결과에 없음(익명 처리 폐지)", row_c is not None and 'anonymous' not in row_c)
+    check("동의 여부와 무관하게 실명+학년으로 표시됨",
+          row_c is not None and row_c['display_name'] == f'테스트순 {student_c_grade}')
 
     user_e_id, student_e_id = make_student('테스트차단')
 
@@ -167,36 +166,34 @@ check("보유 뱃지 3개(BG01~03) 표시", '첫 문장' in html_b and '첫 물�
 check("뱃지 획득 시 컬러(초록) 스타일 적용", 'bg-green-50 border-green-300' in html_b)
 check("최종 뱃지(BG10) 별도 영역 노출", '책장의 주인' in html_b)
 
-print("\n[C] 공개 미동의 학생 - 본인 시점(실명·순위 노출) vs 타인 시점(익명)")
+print("\n[C] 실명 전환 확인 - 본인 시점('나' 강조) vs 타인 시점(실명 노출)")
 login_as(user_c_id)
 resp_c_self = client.get(f'/student/mileage/ranking?season={season}')
 content_c_self = content_only(resp_c_self.data.decode('utf-8'))
 check("본인 시점에서 '나' 라벨 노출", re.search(r'>\s*나\s*<', content_c_self) is not None)
-check("본인 시점에서 비공개 상태 안내 노출", '비공개 상태' in content_c_self)
-check("본인 시점에서도 실명(테스트순)은 본문에 노출 안 함", '테스트순' not in content_c_self)
+check("비공개 상태 문구는 더 이상 존재하지 않음", '비공개 상태' not in content_c_self)
+check("본인 행은 실명 대신 '나'로 표시됨(테스트순은 본문에 없음)", '테스트순' not in content_c_self)
 
 login_as(user_b_id)  # 같은 그룹의 다른 학생(B) 시점 = 타인 시점
 resp_c_other = client.get(f'/student/mileage/ranking?season={season}')
 content_c_other = content_only(resp_c_other.data.decode('utf-8'))
-check("타인 시점에서 학년 학습자 익명 표기 노출", f'{student_c_grade} 학습자' in content_c_other)
-check("타인 시점에서 실명(테스트순) 본문에 미노출", '테스트순' not in content_c_other)
-check("타인 시점에서 닉네임(익명이될철)도 본문에 미노출", '익명이될철' not in content_c_other)
+check("타인 시점에서도 실명+학년으로 노출됨(익명 표기 없음)",
+      f'테스트순 {student_c_grade}' in content_c_other)
+check("학년 학습자 익명 표기는 더 이상 나오지 않음", '학습자' not in content_c_other)
+check("타인 시점에서 닉네임(익명이될철)은 표시되지 않음(랭킹은 nickname을 참조하지 않음)",
+      '익명이될철' not in content_c_other)
 
-print("\n[D] 닉네임 설정 및 공개 동의 토글 라우트")
+print("\n[D] 닉네임 저장 라우트는 유지 / 공개 동의(A) 라우트는 차단")
 login_as(user_a_id)
 client.post('/profile/mileage/nickname', data={'nickname': '새싹독서가'}, follow_redirects=True)
-client.post('/profile/mileage/consent/A', data={'is_agreed': '1'}, follow_redirects=True)
-
-login_as(user_e_id)
-client.post('/profile/mileage/consent/A', data={'is_agreed': '1'}, follow_redirects=True)  # 닉네임 미설정 -> 차단돼야 함
+resp_a_consent_a = client.post('/profile/mileage/consent/A', data={'is_agreed': '1'}, follow_redirects=True)
 
 with app.app_context():
     student_a = db.session.get(Student, student_a_id)
-    check("닉네임 저장 성공", student_a.nickname == '새싹독서가')
+    check("닉네임 저장 라우트는 여전히 동작함", student_a.nickname == '새싹독서가')
     status_a = msvc.get_consent_status(student_a_id)
-    check("닉네임 설정 후 A 동의 성공", status_a['A'] is True)
-    status_e = msvc.get_consent_status(student_e_id)
-    check("닉네임 미설정 상태에서 A 동의는 차단됨", status_e['A'] is False)
+    check("A항목 라우트로 POST해도 동의 상태가 바뀌지 않음(차단됨)", status_a['A'] is False)
+    check("A 라우트 POST에 잘못된 항목 안내 노출", '잘못된 동의 항목입니다' in resp_a_consent_a.data.decode('utf-8'))
 
     # 만 14세 미만 차단 확인 (student_e를 이제 미성년으로 바꿔서 재확인)
     student_e = db.session.get(Student, student_e_id)

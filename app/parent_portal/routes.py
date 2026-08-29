@@ -365,12 +365,15 @@ def child_mileage_nickname(student_id):
 @login_required
 @requires_role('parent', 'admin')
 def child_mileage_consent(student_id, consent_type):
-    """자녀 공개 동의 변경 - permission_level='full'인 학부모만.
+    """자녀 공개 동의(B/C) 변경 - permission_level='full'인 학부모만.
 
     만 14세 미만 아동은 정책상 본인이 아니라 법정대리인(학부모)만 동의할 수
     있으므로, 학생 마이페이지 쪽 나이 제한과 반대로 여기는 나이 제한이 없다.
+
+    A항목(랭킹 공개)은 폐지했다(2026-08-30 결정사항) - 화이트리스트에서
+    빼서 막는다. mileage_consents 테이블/기존 A 이력은 그대로 둔다.
     """
-    if consent_type not in ('A', 'B', 'C'):
+    if consent_type not in ('B', 'C'):
         flash('잘못된 동의 항목입니다.', 'error')
         return redirect(url_for('parent.child_mileage', student_id=student_id))
 
@@ -386,10 +389,6 @@ def child_mileage_consent(student_id, consent_type):
 
     student = Student.query.get_or_404(student_id)
     is_agreed = request.form.get('is_agreed') == '1'
-
-    if consent_type == 'A' and is_agreed and not (student.nickname or '').strip():
-        flash('랭킹 공개 동의 전에 자녀의 닉네임을 먼저 설정해주세요.', 'error')
-        return redirect(url_for('parent.child_mileage', student_id=student_id))
 
     from app.models.mileage import MileageConsent
     from app.services.mileage_view_service import MILEAGE_CONSENT_DOC_VERSION

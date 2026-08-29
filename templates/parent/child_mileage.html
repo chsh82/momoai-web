@@ -26,16 +26,9 @@
                class="text-sm font-medium text-blue-600 hover:text-blue-800">월간 랭킹 보기 →</a>
         </div>
         {% if not can_edit %}
-        <p class="text-xs text-gray-500 mt-1">조회 권한만 있어 닉네임·공개 설정은 변경할 수 없습니다.</p>
+        <p class="text-xs text-gray-500 mt-1">조회 권한만 있어 공개 설정은 변경할 수 없습니다.</p>
         {% endif %}
     </div>
-
-    {% if can_edit and not student.nickname %}
-    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-3 mb-6">
-        <p class="text-sm text-amber-800">아직 닉네임이 없어요. 닉네임을 설정하면 랭킹에 실명 대신 표시할 수 있어요.</p>
-        <a href="#mileage-privacy" class="flex-shrink-0 text-sm font-medium text-amber-900 underline">지금 설정하기</a>
-    </div>
-    {% endif %}
 
     <div class="space-y-6">
         <!-- 등급 카드 -->
@@ -181,14 +174,8 @@
             <p class="text-xs text-gray-500 mb-4">동의하지 않아도 마일리지 적립·뱃지 획득 등 모든 학습 기능을 정상적으로 이용할 수 있으며 어떠한 불이익도 없습니다.</p>
 
             {% if can_edit %}
-            <form method="POST" action="{{ url_for('parent.child_mileage_nickname', student_id=student.student_id) }}" class="flex items-center gap-2 mb-4">
-                <input type="text" name="nickname" value="{{ student.nickname or '' }}" maxlength="10" placeholder="닉네임 (2~10자)"
-                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg">저장</button>
-            </form>
-
             <div class="space-y-3">
-                {% for ctype, label in [('A', '월간 랭킹에 닉네임·학년·순위·점수·뱃지 공개'), ('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
+                {% for ctype, label in [('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-sm text-gray-700">{{ label }}</span>
                     <form method="POST" action="{{ url_for('parent.child_mileage_consent', student_id=student.student_id, consent_type=ctype) }}">
@@ -201,12 +188,9 @@
                 </div>
                 {% endfor %}
             </div>
-            {% if not student.nickname %}
-            <p class="text-xs text-gray-400 mt-2">랭킹 공개(A)에 동의하려면 먼저 닉네임을 설정해주세요.</p>
-            {% endif %}
             {% else %}
             <div class="space-y-2">
-                {% for ctype, label in [('A', '월간 랭킹 공개'), ('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
+                {% for ctype, label in [('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-sm text-gray-700">{{ label }}</span>
                     <span class="px-3 py-1 text-xs font-medium rounded-full {% if mileage.consent_status[ctype] %}bg-green-100 text-green-700{% else %}bg-gray-200 text-gray-600{% endif %}">

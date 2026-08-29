@@ -5,8 +5,9 @@
 동점 처리 순서: ① EX01 적립 건수 ② RW01 적립 건수 ③ 해당 점수 도달 시각
   - "해당 점수 도달 시각"은 그 시즌 마지막 confirmed 적립의 created_at으로
     본다(그 적립이 최종 누적 점수를 완성한 시점이므로).
-랭킹 공개 비동의 학생은 순위 산정에는 포함하되(다른 학생 등수 왜곡 방지),
-결과 항목에 anonymous=True를 표시한다 - 실제 익명 표시는 4단계 화면 몫이다.
+모든 학생을 이름+학년으로 표시한다(2026-08-30 결정사항 - 공개 동의(A항목)
+기반 익명 처리를 폐지). mileage_consents A항목은 더 이상 조회하지 않는다 -
+테이블과 기존 데이터, B·C항목(우수답안 게시·홍보물 활용) 동의는 그대로 둔다.
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -15,7 +16,7 @@ from sqlalchemy import func
 
 from app.models import db
 from app.models.student import Student
-from app.models.mileage import PointEvent, MonthlyRanking, MileageConsent, StudentBadge
+from app.models.mileage import PointEvent, MonthlyRanking, StudentBadge
 from app.services.mileage_rules import get_level_group
 
 
@@ -55,15 +56,9 @@ def _badge_count_by_student(student_ids):
     return {student_id: count for student_id, count in rows}
 
 
-def _display_label(student, agreed):
-    """공개 동의하지 않은 학생은 실명 대신 학년 기반 익명 표기.
-    동의했더라도 닉네임을 아직 설정하지 않은 학생 역시 같은 형식으로
-    표시한다(4단계 추가 지시 1항) - "실명이 노출되지 않는다"는 원칙이
-    닉네임 설정 여부와 무관하게 항상 지켜져야 하기 때문이다. 현재는 전
-    학생이 닉네임 미설정 상태라 이 분기가 사실상 기본값이다."""
-    if not agreed or not (student.nickname or '').strip():
-        return f'{student.grade} 학습자'
-    return student.nickname
+def _display_label(student):
+    """이름+학년으로 표시한다. 학교명·연락처·생년월일 등은 절대 포함하지 않는다."""
+    return f'{student.name} {student.grade}'
 
 
 def _season_points_by_student(season):
@@ -101,23 +96,6 @@ def _reach_time_by_student(season, student_ids):
         PointEvent.student_id.in_(student_ids),
     ).group_by(PointEvent.student_id).all()
     return {student_id: reached_at for student_id, reached_at in rows}
-
-
-def _consent_map(student_ids):
-    """정책 A항목(랭킹 공개) 동의 여부. 같은 학생의 여러 행 중 가장 최근 것을 채택한다."""
-    if not student_ids:
-        return {}
-    rows = MileageConsent.query.filter(
-        MileageConsent.student_id.in_(student_ids),
-        MileageConsent.consent_type == 'A',
-    ).order_by(MileageConsent.agreed_at.desc()).all()
-
-    result = {}
-    for c in rows:
-        if c.student_id in result:
-            continue  # 이미 최신 행을 채택함
-        result[c.student_id] = bool(c.is_agreed) and c.revoked_at is None
-    return result
 
 
 def _upsert_ranking_row(season, level_group, student_id, rank, points, is_final):
@@ -158,7 +136,6 @@ def build_ranking(season, finalize=False, is_final=False):
     ex01_counts = _activity_count_by_student(season, 'EX01', student_ids)
     rw01_counts = _activity_count_by_student(season, 'RW01', student_ids)
     reach_times = _reach_time_by_student(season, student_ids)
-    consents = _consent_map(student_ids)
     badge_counts = _badge_count_by_student(student_ids)
 
     grouped = defaultdict(list)
@@ -174,17 +151,15 @@ def build_ranking(season, finalize=False, is_final=False):
                 student_id, student.grade,
             )
             continue
-        agreed = consents.get(student_id, False)
         grouped[group].append({
             'student_id': student_id,
             'points': points,
             'grade': student.grade,
             'badge_count': badge_counts.get(student_id, 0),
-            'display_name': _display_label(student, agreed),
+            'display_name': _display_label(student),
             'ex01_count': ex01_counts.get(student_id, 0),
             'rw01_count': rw01_counts.get(student_id, 0),
             'reach_time': reach_times.get(student_id) or datetime.max,
-            'consent': agreed,
         })
 
     results = []
@@ -194,7 +169,6 @@ def build_ranking(season, finalize=False, is_final=False):
             e['rank'] = idx
             e['level_group'] = group
             e['season'] = season
-            e['anonymous'] = not e['consent']
             del e['reach_time']  # 원본 datetime.max 채움값은 결과에 노출하지 않음
             results.append(e)
             if finalize:
@@ -216,13 +190,11 @@ def get_ranking(season, level_group=None):
 
     if rows:
         student_ids = [r.student_id for r in rows]
-        consents = _consent_map(student_ids)
         badge_counts = _badge_count_by_student(student_ids)
         students = {s.student_id: s for s in Student.query.filter(Student.student_id.in_(student_ids)).all()}
         result = []
         for r in rows:
             student = students.get(r.student_id)
-            agreed = consents.get(r.student_id, False)
             result.append({
                 'student_id': r.student_id,
                 'level_group': r.level_group,
@@ -230,9 +202,8 @@ def get_ranking(season, level_group=None):
                 'points': r.points,
                 'grade': student.grade if student else None,
                 'badge_count': badge_counts.get(r.student_id, 0),
-                'display_name': _display_label(student, agreed) if student else '(탈퇴한 학생)',
+                'display_name': _display_label(student) if student else '(탈퇴한 학생)',
                 'season': season,
-                'anonymous': not agreed,
                 'is_final': True,
             })
         return result

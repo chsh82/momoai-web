@@ -128,9 +128,9 @@ with app.app_context():
     post_id = post.post_id
     created_post_ids.append(post_id)
 
-    # 1) 닉네임 미설정 + 공개 동의(A)만 먼저 된 상태(라우트를 거치지 않고 직접
-    # DB에 넣어 "닉네임 없이 동의만 된" 예외 상황을 재현 - 서비스 계층
-    # 자체의 방어 로직을 확인하기 위함)
+    # 1) 닉네임 미설정 + 공개 동의(A) 기록이 있는 상태(라우트를 거치지 않고
+    # 직접 DB에 넣음) - A항목과 무관하게 실명+학년으로 표시되는지 확인
+    # (2026-08-30 결정사항으로 A 기반 익명 처리 폐지, nickname도 더는 참조 안 함)
     nickname_test_id = make_student('테스트닉네임없음')
     msvc.award_points(nickname_test_id, 'RW01', 'essay', f'nick-{uuid.uuid4().hex[:8]}')
     db.session.add(MileageConsent(student_id=nickname_test_id, consent_type='A', is_agreed=True,
@@ -144,10 +144,9 @@ with app.app_context():
     live = ranking_service.build_ranking(season, finalize=False)
     row = next((r for r in live if r['student_id'] == nickname_test_id), None)
 
-print("\n[1] 닉네임 미설정 학생의 랭킹 표시 기본값")
-check("동의는 True (anonymous=False)", row is not None and row['anonymous'] is False)
-check("닉네임이 없으면 동의 여부와 무관하게 '학년 학습자' 형식으로 표시", row is not None and row['display_name'] == f'{student_grade} 학습자')
-check("실명이 표시되지 않음", row is not None and '테스트닉네임없음' not in row['display_name'])
+print("\n[1] 닉네임 미설정 학생도 실명+학년으로 표시됨")
+check("anonymous 키가 결과에 없음(익명 처리 폐지)", row is not None and 'anonymous' not in row)
+check("닉네임 미설정이어도 실명+학년으로 표시", row is not None and row['display_name'] == f'테스트닉네임없음 {student_grade}')
 
 print("\n[2] 학부모 접근 통제 - 자녀가 아닌 student_id 직접 접근 차단")
 login_as(parent_id)
