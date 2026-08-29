@@ -3,6 +3,16 @@
 from datetime import datetime
 from app.models import db
 
+# 과제 유형(essay_type) 값과 표시명. 새 유형이 늘어나도 이 딕셔너리만
+# 고치면 되게 하드코딩을 피한다(2026-08-29 결정사항 - 마일리지 RW01/RW02
+# 분기, BG01/BG03 뱃지 조건이 이 값을 그대로 참조한다).
+ESSAY_TYPES = {
+    'basic': '기본과제글',
+    'rewriting': '리라이팅',
+    'etc': '기타',
+}
+ESSAY_TYPE_DEFAULT = 'basic'
+
 
 class Essay(db.Model):
     """첨삭 작업 모델"""
@@ -16,6 +26,11 @@ class Essay(db.Model):
     title = db.Column(db.String(255), nullable=True)
     original_text = db.Column(db.Text, nullable=False)
     grade = db.Column(db.String(20), nullable=False)
+    essay_type = db.Column(db.String(20), nullable=False, default=ESSAY_TYPE_DEFAULT)
+    # essay_type: basic(기본과제글) / rewriting(리라이팅) / etc(기타) - ESSAY_TYPES 참고.
+    # 첨삭 확정(is_finalized) 전까지만 변경 가능 - 확정 후 변경을 허용하면 포인트
+    # 취소 후 다른 코드로 재지급해야 하는데, source_id(essay_id) 유니크 제약 때문에
+    # 재지급이 막혀 점수가 0이 되는 문제가 생긴다(2026-08-29 결정사항).
     status = db.Column(db.String(20), nullable=False, default='draft', index=True)
 
     # 수업-세션 연결 (자동 배정 또는 수동 설정)

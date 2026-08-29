@@ -30,6 +30,14 @@
                     {% if essay.title %}
                     <span class="font-medium text-gray-800">「{{ essay.title }}」</span>
                     {% endif %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-full
+                        {% if essay.essay_type == 'rewriting' %}bg-indigo-100 text-indigo-800
+                        {% elif essay.essay_type == 'etc' %}bg-gray-100 text-gray-600
+                        {% else %}bg-sky-100 text-sky-800{% endif %}">
+                        {% if essay.essay_type == 'rewriting' %}✍️ 리라이팅
+                        {% elif essay.essay_type == 'etc' %}📎 기타
+                        {% else %}📄 기본과제글{% endif %}
+                    </span>
                 </div>
             </div>
             <span class="px-3 py-1 text-sm font-medium rounded

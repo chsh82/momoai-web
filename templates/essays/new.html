@@ -139,6 +139,8 @@
                 <input type="hidden" name="student_mode" id="student_mode_input" value="existing">
             </div>
 
+            {% include 'essays/_essay_type_selector.html' %}
+
             <!-- Title (Optional) -->
             <div class="mb-6">
                 {{ form.title.label(class="block text-gray-700 font-medium mb-2") }}

@@ -40,6 +40,8 @@
                 <input type="hidden" name="teacher_id" value="{{ default_teacher_id }}">
                 {% endif %}
 
+                {% include 'essays/_essay_type_selector.html' %}
+
                 <div class="mb-6">
                     <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
                         제목 <span class="text-red-500">*</span>

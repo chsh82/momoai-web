@@ -379,9 +379,11 @@ def submit_essay():
             default_teacher_id = oldest.course.teacher_id
 
     if request.method == 'POST':
+        from app.models.essay import ESSAY_TYPES
         title = request.form.get('title')
         content = request.form.get('content', '').strip()
         selected_teacher_id = request.form.get('teacher_id') or default_teacher_id
+        essay_type_input = request.form.get('essay_type')
 
         # 제목은 필수
         if not title:
@@ -396,13 +398,18 @@ def submit_essay():
             flash('본문 내용을 입력하거나 파일을 첨부해주세요.', 'error')
             return redirect(url_for('student.submit_essay'))
 
+        if essay_type_input not in ESSAY_TYPES:
+            flash('과제 유형을 선택해주세요.', 'error')
+            return redirect(url_for('student.submit_essay'))
+
         # 첨삭 생성
         essay = Essay(
             student_id=student.student_id,
             user_id=selected_teacher_id,
             title=title,
             original_text=content,
-            grade=student.grade
+            grade=student.grade,
+            essay_type=essay_type_input
         )
         db.session.add(essay)
         db.session.flush()  # essay_id 생성을 위해 flush
@@ -410,6 +417,12 @@ def submit_essay():
         # 수업-세션 자동 배정
         from app.utils.essay_utils import auto_assign_essay_session
         auto_assign_essay_session(essay)
+
+        try:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(essay.student_id, trigger_codes=['essay'])
+        except Exception:
+            current_app.logger.exception('업로드 시점 뱃지 판정 실패 (essay_id=%s)', essay.essay_id)
 
         # 다중 파일 첨부 처리
         if 'attachments' in request.files:

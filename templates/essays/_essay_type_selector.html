@@ -1,0 +1,48 @@
+<!-- 과제 유형 선택 - RW01(리라이팅)/RW02(기본과제글)/기타(적립 없음) 마일리지
+     코드 분기와 BG01/BG03 뱃지 조건이 이 값을 그대로 사용한다. 첨삭 확정 후에는
+     essays/<id>/update-essay-type PATCH로만 변경 가능하다.
+
+     일부러 기본 선택값을 두지 않는다(2026-08-29 결정사항) - 예전에는
+     기본과제글이 미리 체크돼 있어서, 강사가 리라이팅을 올리면서 유형을
+     안 바꾸면 조용히 100점(RW02)이 나가고 500점(RW01)이 아니었다. 확정
+     후에는 유형이 잠기므로 되돌리려면 관리자 수동 조정이 필요했다. 아무것도
+     선택 안 된 상태로 두고 서버(app/essays/routes.py 등)에서도 essay_type이
+     없으면 업로드 자체를 막아, "고르지 않으면 진행이 안 되게" 한다. -->
+<div class="mb-6">
+    <label class="block text-gray-700 font-medium mb-3">과제 유형 <span class="text-red-500">*</span></label>
+    <div class="grid grid-cols-3 gap-2" id="essay-type-selector">
+        <label class="flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition essay-type-option" id="label-essay-type-basic">
+            <input type="radio" name="essay_type" value="basic" class="accent-blue-600" required>
+            <span class="font-medium text-gray-800 text-sm">📄 기본과제글</span>
+        </label>
+        <label class="flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition essay-type-option" id="label-essay-type-rewriting">
+            <input type="radio" name="essay_type" value="rewriting" class="accent-purple-600" required>
+            <span class="font-medium text-gray-800 text-sm">✍️ 리라이팅</span>
+        </label>
+        <label class="flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition essay-type-option" id="label-essay-type-etc">
+            <input type="radio" name="essay_type" value="etc" class="accent-gray-600" required>
+            <span class="font-medium text-gray-800 text-sm">📎 기타</span>
+        </label>
+    </div>
+    <p class="text-xs text-gray-500 mt-2">⚠️ 반드시 선택해주세요. 유형에 따라 마일리지 적립 점수가 달라지고, 첨삭 확정 후에는 변경할 수 없습니다.</p>
+</div>
+<script>
+(function() {
+    function updateEssayTypeOptionStyle() {
+        document.querySelectorAll('.essay-type-option').forEach(function(label) {
+            var radio = label.querySelector('input[type="radio"]');
+            if (radio && radio.checked) {
+                label.classList.add('border-blue-500', 'bg-blue-50');
+                label.classList.remove('border-gray-200');
+            } else {
+                label.classList.remove('border-blue-500', 'bg-blue-50');
+                label.classList.add('border-gray-200');
+            }
+        });
+    }
+    document.querySelectorAll('input[name="essay_type"]').forEach(function(radio) {
+        radio.addEventListener('change', updateEssayTypeOptionStyle);
+    });
+    updateEssayTypeOptionStyle();
+})();
+</script>

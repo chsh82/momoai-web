@@ -21,6 +21,28 @@
                     <span>🎓 {{ student.grade }}</span>
                     <span>📅 {{ essay.created_at | kst('%Y년 %m월 %d일 %H:%M') }}</span>
                 </div>
+                <div class="mt-2 flex items-center gap-2">
+                    <span class="text-sm text-gray-600">📌 과제 유형</span>
+                    {% if essay.is_finalized %}
+                    <span class="px-3 py-1 text-xs font-medium rounded-full
+                        {% if essay.essay_type == 'rewriting' %}bg-indigo-100 text-indigo-800
+                        {% elif essay.essay_type == 'etc' %}bg-gray-100 text-gray-600
+                        {% else %}bg-sky-100 text-sky-800{% endif %}">
+                        {% if essay.essay_type == 'rewriting' %}✍️ 리라이팅
+                        {% elif essay.essay_type == 'etc' %}📎 기타
+                        {% else %}📄 기본과제글{% endif %}
+                    </span>
+                    <span class="text-xs text-gray-400">(첨삭 확정 후에는 변경할 수 없습니다)</span>
+                    {% else %}
+                    <select id="essayTypeSelect" onchange="updateEssayType(this.value)"
+                            class="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="basic" {% if essay.essay_type == 'basic' %}selected{% endif %}>📄 기본과제글</option>
+                        <option value="rewriting" {% if essay.essay_type == 'rewriting' %}selected{% endif %}>✍️ 리라이팅</option>
+                        <option value="etc" {% if essay.essay_type == 'etc' %}selected{% endif %}>📎 기타</option>
+                    </select>
+                    <span id="essayTypeSaveStatus" class="text-xs text-gray-400"></span>
+                    {% endif %}
+                </div>
             </div>
             <div class="flex gap-2">
             <button onclick="openResetModal()"
@@ -165,6 +187,33 @@
     document.getElementById('resetModal').addEventListener('click', function(e) {
         if (e.target === this) closeResetModal();
     });
+
+    async function updateEssayType(newType) {
+        const select = document.getElementById('essayTypeSelect');
+        const status = document.getElementById('essayTypeSaveStatus');
+        select.disabled = true;
+        status.textContent = '저장 중...';
+        try {
+            const res = await fetch('/essays/{{ essay.essay_id }}/update-essay-type', {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({essay_type: newType})
+            });
+            const data = await res.json();
+            if (data.success) {
+                status.textContent = '저장됨';
+                setTimeout(() => { status.textContent = ''; }, 2000);
+            } else {
+                alert(data.message || '유형 변경 실패');
+                status.textContent = '';
+            }
+        } catch (e) {
+            alert('유형 변경 중 오류가 발생했습니다.');
+            status.textContent = '';
+        } finally {
+            select.disabled = false;
+        }
+    }
     </script>
 
     <!-- 제목 카드 -->

@@ -1289,10 +1289,12 @@ def submit_essay():
         return redirect(url_for('parent.link_requests'))
 
     if request.method == 'POST':
+        from app.models.essay import ESSAY_TYPES
         student_id = request.form.get('student_id')
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
         selected_teacher_id = request.form.get('teacher_id', '').strip() or None
+        essay_type_input = request.form.get('essay_type')
 
         # 권한 확인
         relation = ParentStudent.query.filter_by(
@@ -1317,6 +1319,10 @@ def submit_essay():
             flash('본문 내용을 입력하거나 파일을 첨부해주세요.', 'error')
             return redirect(url_for('parent.submit_essay'))
 
+        if essay_type_input not in ESSAY_TYPES:
+            flash('과제 유형을 선택해주세요.', 'error')
+            return redirect(url_for('parent.submit_essay'))
+
         # 강사 결정: 선택한 강사 or 학생 기본 강사
         if not selected_teacher_id:
             selected_teacher_id = student.teacher_id
@@ -1326,7 +1332,8 @@ def submit_essay():
             user_id=selected_teacher_id,
             title=title,
             original_text=content,
-            grade=student.grade
+            grade=student.grade,
+            essay_type=essay_type_input
         )
         db.session.add(essay)
         db.session.flush()
@@ -1337,6 +1344,12 @@ def submit_essay():
             auto_assign_essay_session(essay)
         except Exception:
             pass
+
+        try:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(essay.student_id, trigger_codes=['essay'])
+        except Exception:
+            current_app.logger.exception('업로드 시점 뱃지 판정 실패 (essay_id=%s)', essay.essay_id)
 
         # 다중 파일 첨부 처리
         if 'attachments' in request.files:

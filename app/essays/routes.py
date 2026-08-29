@@ -287,6 +287,14 @@ def new():
     ]
 
     if form.validate_on_submit():
+        from app.models.essay import ESSAY_TYPES
+        essay_type_input = request.form.get('essay_type')
+        if essay_type_input not in ESSAY_TYPES:
+            flash('과제 유형을 선택해주세요.', 'error')
+            return render_template('essays/new.html', form=form,
+                                   students_data=students_data,
+                                   harkness_student_ids=list(harkness_student_ids))
+
         student_mode = request.form.get('student_mode', 'existing')
 
         if student_mode == 'new':
@@ -364,12 +372,19 @@ def new():
             notes=form.notes.data
         )
 
-        # 첨삭 모델, API 제공자, 강사 가이드 저장
+        # 첨삭 모델, API 제공자, 강사 가이드, 과제 유형 저장
         essay.correction_model = correction_model
         essay.api_provider = api_provider
         teacher_guide = request.form.get('teacher_guide', '').strip() or None
         essay.teacher_guide = teacher_guide
+        essay.essay_type = essay_type_input
         db.session.commit()
+
+        try:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(essay.student_id, trigger_codes=['essay'])
+        except Exception:
+            current_app.logger.exception('업로드 시점 뱃지 판정 실패 (essay_id=%s)', essay.essay_id)
 
         # 파일 첨부 처리
         if form.attachment.data:
@@ -501,12 +516,18 @@ def quick():
         requested_model = request.form.get('correction_model', 'standard')
         correction_model = 'elementary' if requested_model == 'elementary' else 'standard'
 
+        from app.models.essay import ESSAY_TYPES
+        essay_type_input = request.form.get('essay_type')
+
         # 유효성 검사
         if not student_name:
             flash('학생 이름을 입력해주세요.', 'error')
             return redirect(url_for('essays.quick'))
         if grade not in GRADES:
             flash('학년을 선택해주세요.', 'error')
+            return redirect(url_for('essays.quick'))
+        if essay_type_input not in ESSAY_TYPES:
+            flash('과제 유형을 선택해주세요.', 'error')
             return redirect(url_for('essays.quick'))
 
         # 파일 첨부 처리
@@ -570,7 +591,14 @@ def quick():
         essay.api_provider = api_provider
         essay.correction_model = correction_model
         essay.teacher_guide = request.form.get('teacher_guide', '').strip() or None
+        essay.essay_type = essay_type_input
         db.session.commit()
+
+        try:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(essay.student_id, trigger_codes=['essay'])
+        except Exception:
+            current_app.logger.exception('업로드 시점 뱃지 판정 실패 (essay_id=%s)', essay.essay_id)
 
         # 백그라운드 스레드로 첨삭 처리
         essay_id_val   = essay.essay_id
@@ -1909,6 +1937,50 @@ def update_original_text(essay_id):
         'success': True,
         'message': '본문이 저장되었습니다.',
         'has_text': bool(new_text)
+    })
+
+
+@essays_bp.route('/<essay_id>/update-essay-type', methods=['PATCH'])
+@login_required
+def update_essay_type(essay_id):
+    """과제 유형 변경 - 첨삭 확정 전까지만 가능. 유형이 실제로 바뀌면 뱃지를 재판정한다.
+
+    확정 후 변경을 막는 이유: 첨삭 확정 시 essay_type에 맞는 RW01/RW02가
+    이미 지급됐는데, 확정 후 유형이 바뀌면 지급된 코드와 현재 유형이
+    어긋난다. source_id(essay_id) 유니크 제약 때문에 취소 후 다른 코드로
+    재지급하는 것도 불가능하다(2026-08-29 결정사항).
+    """
+    from app.models.essay import ESSAY_TYPES
+
+    essay = Essay.query.get_or_404(essay_id)
+
+    if not _can_access_essay(essay):
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+
+    if essay.is_finalized:
+        return jsonify({'success': False, 'message': '첨삭이 확정된 과제는 유형을 변경할 수 없습니다.'}), 400
+
+    data = request.json or {}
+    new_type = data.get('essay_type')
+    if new_type not in ESSAY_TYPES:
+        return jsonify({'success': False, 'message': '유효하지 않은 유형입니다.'}), 400
+
+    old_type = essay.essay_type
+    essay.essay_type = new_type
+    db.session.commit()
+
+    if new_type != old_type:
+        try:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(essay.student_id, trigger_codes=['essay'])
+        except Exception:
+            current_app.logger.exception('유형 변경 후 뱃지 재판정 실패 (essay_id=%s)', essay_id)
+
+    return jsonify({
+        'success': True,
+        'message': '과제 유형이 변경되었습니다.',
+        'essay_type': essay.essay_type,
+        'essay_type_label': ESSAY_TYPES[essay.essay_type],
     })
 
 
