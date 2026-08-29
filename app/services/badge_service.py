@@ -184,11 +184,18 @@ def _create_student_badge(student_id, badge, earned_count=1, granted_by=None, no
     return sb
 
 
-def evaluate_badges(student_id, trigger_codes=None, dry_run=False):
+def evaluate_badges(student_id, trigger_codes=None, dry_run=False, notify=True):
     """해당 학생의 미획득 뱃지 조건을 검사해 충족분을 부여한다.
 
     trigger_codes를 주면 first_event 계열 중 무관한 코드는 건너뛰어 배치
     호출 시 불필요한 쿼리를 줄인다(선택적 최적화 - 결과는 생략해도 동일).
+
+    notify=False로 호출하면 이번 호출에서 새로 부여되는 뱃지에 한해
+    알림을 보내지 않는다 - BG01처럼 essay_type 기능 도입으로 기존 데이터에
+    소급 적용되는 조건 변경을 배치로 반영할 때, 재원생 전체에게 한꺼번에
+    알림이 발송되는 것을 막기 위한 용도다(scripts/backfill_bg01_badge.py
+    전용, 2026-08-29 결정사항). 평소 실시간 트리거/야간 배치는 기본값(True)을
+    그대로 쓴다.
 
     Returns:
         list: dry_run=False면 부여/갱신된 StudentBadge 목록,
@@ -232,7 +239,7 @@ def evaluate_badges(student_id, trigger_codes=None, dry_run=False):
                 granted.append({'badge_code': badge.badge_code, 'name': badge.name,
                                'action': f'would_grant(x{new_count})'})
             else:
-                sb = _create_student_badge(student_id, badge, earned_count=new_count)
+                sb = _create_student_badge(student_id, badge, earned_count=new_count, notify=notify)
                 granted.append(sb)
                 owned[badge.badge_code] = sb
                 owned_codes.add(badge.badge_code)
@@ -243,18 +250,23 @@ def evaluate_badges(student_id, trigger_codes=None, dry_run=False):
             else:
                 existing.earned_count = new_count
                 existing.last_earned_at = datetime.utcnow()
-                _notify_badge_earned(student_id, badge)
+                if notify:
+                    _notify_badge_earned(student_id, badge)
                 granted.append(existing)
 
     return granted
 
 
-def grant_badge(student_id, badge_code, granted_by=None, memo=None):
+def grant_badge(student_id, badge_code, granted_by=None, memo=None, notify=True):
     """수동 수여. 반복 가능 뱃지는 earned_count를 늘린다.
 
     memo는 BG09(장원) 등 "어느 회차에 대한 수여인지" 근거가 필요한 뱃지에 쓴다
     (4단계 지시서 E항 "회차 정보를 메모로 입력받는다"). 반복 수여 시에는 가장
     최근 memo로 덮어쓴다 - 과거 회차 이력까지 누적해서 남기는 요구사항은 아니었음.
+
+    notify=False는 evaluate_badges()와 동일하게 소급 일괄 수여 시 알림을
+    끄는 용도다(2026-08-29 결정사항) - 이 함수는 관리자 수동 수여(BG09 등)
+    경로라 평소에는 거의 항상 기본값(True)을 쓴다.
     """
     badge = Badge.query.get(badge_code)
     if not badge:
@@ -271,10 +283,12 @@ def grant_badge(student_id, badge_code, granted_by=None, memo=None):
         if memo:
             existing.memo = memo
         db.session.flush()
-        _notify_badge_earned(student_id, badge)
+        if notify:
+            _notify_badge_earned(student_id, badge)
         result = existing
     else:
-        result = _create_student_badge(student_id, badge, earned_count=1, granted_by=granted_by, memo=memo)
+        result = _create_student_badge(student_id, badge, earned_count=1, granted_by=granted_by,
+                                       memo=memo, notify=notify)
 
     _check_and_grant_bg10(student_id)
     return result
@@ -376,15 +390,19 @@ def get_badge_board(student_id):
     return board
 
 
-def run_badge_sweep(dry_run=False):
+def run_badge_sweep(dry_run=False, notify=True):
     """매일 새벽 배치 - 전체 활성 학생을 검사한다(누락 보정용).
 
     학생 수 증가를 감안해 yield_per로 스트리밍 처리한다(전체를 한 번에 메모리에 안 올림).
+    notify는 evaluate_badges()에 그대로 전달한다 - 평소 야간 배치는 기본값(True)
+    그대로 두고, 알림을 꺼야 하는 일회성 소급 반영은 이 함수 대신
+    scripts/backfill_bg01_badge.py처럼 trigger_codes로 범위를 좁힌 별도
+    스크립트를 쓴다(전체 학생·전체 뱃지를 한 번에 침묵시키는 것은 의도와 다름).
     """
     results = []
     for student in Student.query.filter_by(status='active').yield_per(200):
         try:
-            granted = evaluate_badges(student.student_id, dry_run=dry_run)
+            granted = evaluate_badges(student.student_id, dry_run=dry_run, notify=notify)
             if granted:
                 results.append({'student_id': student.student_id, 'name': student.name, 'granted': granted})
         except Exception:
