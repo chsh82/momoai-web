@@ -8,6 +8,14 @@ import logging
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler(timezone='Asia/Seoul')
 
+# init_scheduler()의 flock 파일 핸들을 프로세스 생존 기간 내내 붙잡아 두기 위한
+# 모듈 전역 참조. 지역변수로 두면 init_scheduler()가 return하는 순간 참조 카운트가
+# 0이 되어 가비지 컬렉션되고, 그 시점에 fd가 닫히면서 flock도 함께 풀려버린다 -
+# 그러면 "워커 1개만 스케줄러 실행" 가드가 실제로는 전혀 걸리지 않고, gunicorn
+# 워커마다 각자 스케줄러를 띄워 모든 예약 작업이 워커 수만큼 중복 실행된다
+# (2026-08-29 발견 - 마일리지 배치 job 6개 등록 확인 중 실제로 재현됨).
+_scheduler_lock_fp = None
+
 
 def send_class_reminders(app):
     """수업 1시간 전 학생·학부모에게 푸시 알림 발송 (30분마다 실행)"""
@@ -307,10 +315,12 @@ def init_scheduler(app):
 
     # 파일 락으로 첫 번째 워커에서만 스케줄러 실행
     import fcntl
+    global _scheduler_lock_fp
     lock_path = '/tmp/momoai_scheduler.lock'
     try:
         lock_fp = open(lock_path, 'w')
         fcntl.flock(lock_fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _scheduler_lock_fp = lock_fp  # 모듈 전역에 보관 - 프로세스가 살아있는 한 fd를 열어 둬야 잠금이 유지된다
     except (IOError, OSError):
         logger.info('[Scheduler] 다른 워커가 이미 실행 중 — 스킵')
         return
