@@ -45,6 +45,16 @@ POINT_RULES = {
         'daily_cap': None,
         'monthly_cap': None,
     },
+    'RW02': {
+        'name': '기본과제글 제출',
+        'points': 100,
+        'points_min': None,
+        'points_max': None,
+        'allowed_source_types': ['essay'],
+        'confirm_delay_hours': 0,
+        'daily_cap': None,
+        'monthly_cap': None,
+    },
     'EX01': {
         'name': '우수답안 선정',
         'points': 1000,
@@ -135,6 +145,16 @@ POINT_RULES = {
         'daily_cap': None,
         'monthly_cap': 500,
     },
+}
+
+# 과제 유형(Essay.essay_type) -> 첨삭 확정 시 지급할 포인트 코드
+# (2026-08-29 결정사항 - 과제 업로드 시 유형 선택 기능). 'etc'는 지급 대상이
+# 아니므로 None. finalize_essay()/manual_correction()이 이 표만 참조하면
+# 되게 해, 새 유형이 늘어나도 여기 한 곳만 고치면 된다.
+ESSAY_TYPE_POINT_CODE = {
+    'rewriting': 'RW01',
+    'basic': 'RW02',
+    'etc': None,
 }
 
 # 정책 8.3 회원 등급 (누적 포인트 기준, 오름차순)

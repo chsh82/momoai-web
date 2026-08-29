@@ -232,6 +232,28 @@
             </ul>
         </div>
 
+        {% if not essay.is_finalized %}
+        <!-- 확정 시 지급될 마일리지 - 유형이 잘못 선택된 채로 확정되면 되돌리기 어려워
+             (source_id 유니크 제약 때문에 취소 후 다른 코드로 재지급 불가) 확정
+             직전에 반드시 눈에 띄게 보여준다(2026-08-29 결정사항). -->
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-4 mb-6">
+            <h4 class="font-bold text-amber-900 mb-1">⚠️ 완료 처리 시 지급될 마일리지</h4>
+            <p class="text-sm text-amber-800">
+                현재 과제 유형: <strong>{{ essay_type_label }}</strong>
+                {% if finalize_points > 0 %}
+                → <strong>{{ finalize_points }}점</strong> 지급 예정
+                {% else %}
+                → 지급되는 점수 없음(기타 유형)
+                {% endif %}
+            </p>
+            <p class="text-xs text-amber-700 mt-1">
+                유형이 다르면 <a href="{{ url_for('essays.view_submission', essay_id=essay.essay_id) }}"
+                   class="underline font-medium">원문 보기 화면</a>에서 지금 바로 수정하세요.
+                완료 처리 후에는 유형과 점수를 되돌리려면 관리자가 수동으로 조정해야 합니다.
+            </p>
+        </div>
+        {% endif %}
+
         <!-- 버튼 -->
         <div class="flex gap-3">
             <button type="submit" name="action" value="save"
@@ -239,7 +261,7 @@
                 💾 저장 (검토 중)
             </button>
             <button type="submit" name="action" value="finalize"
-                    onclick="return confirm('저장 후 바로 완료 처리하시겠습니까? 학생이 첨삭 결과를 볼 수 있게 됩니다.')"
+                    onclick="return confirm('과제 유형: {{ essay_type_label }} / 지급 예정 점수: {{ finalize_points }}점\n\n이대로 완료 처리하시겠습니까? 학생이 첨삭 결과를 볼 수 있게 되고, 이후에는 유형을 변경할 수 없습니다.')"
                     class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200">
                 ✅ 저장 후 바로 완료
             </button>

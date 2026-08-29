@@ -1007,16 +1007,19 @@ def manual_correction(essay_id):
 
             try:
                 from app.services.mileage_service import award_points
-                event = award_points(
-                    student_id=essay.student_id, activity_code='RW01',
-                    source_type='essay', source_id=str(essay.essay_id),
-                    occurred_at=essay.finalized_at,
-                )
-                if event:
-                    from app.services.badge_service import evaluate_badges
-                    evaluate_badges(essay.student_id, trigger_codes=['RW01'])
+                from app.services.mileage_rules import ESSAY_TYPE_POINT_CODE
+                activity_code = ESSAY_TYPE_POINT_CODE.get(essay.essay_type)
+                if activity_code:
+                    event = award_points(
+                        student_id=essay.student_id, activity_code=activity_code,
+                        source_type='essay', source_id=str(essay.essay_id),
+                        occurred_at=essay.finalized_at,
+                    )
+                    if event:
+                        from app.services.badge_service import evaluate_badges
+                        evaluate_badges(essay.student_id, trigger_codes=[activity_code])
             except Exception:
-                current_app.logger.exception('RW01 마일리지 적립 실패 (essay_id=%s)', essay.essay_id)
+                current_app.logger.exception('마일리지 적립 실패 (essay_id=%s)', essay.essay_id)
 
         # 첨부파일 저장
         if valid_files:
@@ -1069,13 +1072,20 @@ def manual_correction(essay_id):
         from app.services.mileage_service import get_ex01_selection_status
         ex01_status = get_ex01_selection_status(current_user.user_id, 'essay', essay.essay_id)
 
+    from app.models.essay import ESSAY_TYPES
+    from app.services.mileage_rules import ESSAY_TYPE_POINT_CODE, POINT_RULES
+    finalize_activity_code = ESSAY_TYPE_POINT_CODE.get(essay.essay_type)
+    finalize_points = POINT_RULES[finalize_activity_code]['points'] if finalize_activity_code else 0
+
     return render_template('essays/manual_correction.html',
                            essay=essay,
                            student=essay.student,
                            existing_content=existing_content,
                            existing_score=existing_score,
                            existing_grade=existing_grade,
-                           ex01_status=ex01_status)
+                           ex01_status=ex01_status,
+                           essay_type_label=ESSAY_TYPES.get(essay.essay_type, essay.essay_type),
+                           finalize_points=finalize_points)
 
 
 @essays_bp.route('/<essay_id>/select-excellent', methods=['POST'])
