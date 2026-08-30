@@ -3259,30 +3259,26 @@ def pilsa_note():
     return render_template('teacher/pilsa_note.html')
 
 
-@student_bp.route('/mileage/ranking')
-@login_required
-@requires_role('student', 'admin', 'parent')
-def mileage_ranking():
-    """월간 랭킹 (정책 제7조) - 학년 그룹별 탭, 잠정/확정 구분.
-
-    point_events는 직접 쿼리하지 않고 ranking_service를 통해서만 조회한다
-    (4단계 지시서 "하지 말 것" 준수).
+def _resolve_mileage_student():
+    """마일리지 관련 화면(랭킹/뱃지/내역)에서 role별 "보고 있는 학생"을 결정한다.
 
     role별 "본인 학생" 결정 방식이 다르다:
       - student: 로그인 계정에 연결된 Student
       - parent: 쿼리스트링 student_id로 지정한 자녀 - ParentStudent 연결 확인 필수
                 (연결되지 않은 학생 id를 넣으면 차단해야 한다, 4-2 추가 지시 2항)
       - admin: 테스트/확인용으로 아무 학생 1명(첫 번째)
-    """
-    from app.services import ranking_service
-    from app.services.mileage_rules import get_level_group, RANKING_LEVEL_GROUPS
 
+    Returns:
+        tuple[Student|None, Response|None]: 정상이면 (student, None).
+        실패하면 (None, redirect 응답) - 호출부는 두 번째 값이 있으면 그대로 반환한다.
+    """
     if current_user.role == 'student':
         student = Student.query.filter_by(user_id=current_user.user_id).first() or \
                   Student.query.filter_by(email=current_user.email).first()
         if not student:
             flash('학생 정보를 찾을 수 없습니다.', 'error')
-            return redirect(url_for('student.index'))
+            return None, redirect(url_for('student.index'))
+        return student, None
     elif current_user.role == 'parent':
         from app.models import ParentStudent
         student_id_param = request.args.get('student_id', '').strip()
@@ -3291,13 +3287,43 @@ def mileage_ranking():
         ).first() if student_id_param else None
         if not relation:
             flash('접근 권한이 없습니다.', 'error')
-            return redirect(url_for('parent.children'))
-        student = Student.query.get_or_404(student_id_param)
+            return None, redirect(url_for('parent.children'))
+        return Student.query.get_or_404(student_id_param), None
     else:
         student = Student.query.first()
         if not student:
             flash('등록된 학생이 없습니다.', 'error')
-            return redirect(url_for('student.index'))
+            return None, redirect(url_for('student.index'))
+        return student, None
+
+
+def _mileage_back_url(student):
+    """마일리지 서브 화면(랭킹/뱃지/내역)에서 대시보드로 돌아가는 링크."""
+    if current_user.role == 'parent':
+        return url_for('parent.child_mileage', student_id=student.student_id)
+    return url_for('profile.index') + '#mileage'
+
+
+def _mileage_view_student_id(student):
+    """마일리지 서브 화면 링크에 붙일 student_id - 학부모가 아니면 None(자기 자신이라 생략)."""
+    return student.student_id if current_user.role == 'parent' else None
+
+
+@student_bp.route('/mileage/ranking')
+@login_required
+@requires_role('student', 'admin', 'parent')
+def mileage_ranking():
+    """월간 랭킹 (정책 제7조) - 학년 그룹별 탭, 잠정/확정 구분.
+
+    point_events는 직접 쿼리하지 않고 ranking_service를 통해서만 조회한다
+    (4단계 지시서 "하지 말 것" 준수).
+    """
+    from app.services import ranking_service
+    from app.services.mileage_rules import get_level_group, RANKING_LEVEL_GROUPS
+
+    student, error = _resolve_mileage_student()
+    if error:
+        return error
 
     seasons = ranking_service.recent_seasons(12)
     current_season = seasons[0]
@@ -3319,9 +3345,6 @@ def mileage_ranking():
     is_final = rows[0]['is_final'] if rows else None
 
     self_label = '나' if current_user.role == 'student' else student.name
-    back_url = url_for('parent.child_mileage', student_id=student.student_id) if current_user.role == 'parent' \
-        else url_for('profile.index') + '#mileage'
-    view_student_id = student.student_id if current_user.role == 'parent' else None
 
     return render_template('student/mileage_ranking.html',
                          seasons=seasons,
@@ -3337,5 +3360,49 @@ def mileage_ranking():
                          my_row_in_top=my_row_in_top,
                          my_student_id=student.student_id,
                          self_label=self_label,
-                         back_url=back_url,
-                         view_student_id=view_student_id)
+                         back_url=_mileage_back_url(student),
+                         view_student_id=_mileage_view_student_id(student))
+
+
+@student_bp.route('/mileage/badges')
+@login_required
+@requires_role('student', 'admin', 'parent')
+def mileage_badges():
+    """전체 뱃지 화면 (개발지시서 16 4항) - 마이페이지 뱃지 영역 클릭 시 이동.
+
+    3×3 수집판 + 최종 뱃지를 미획득 조건·진행도, 획득 일자와 함께 보여준다.
+    데이터는 마이페이지와 동일하게 mileage_view_service 하나로 조립한다.
+    """
+    from app.services.mileage_view_service import build_mileage_context
+
+    student, error = _resolve_mileage_student()
+    if error:
+        return error
+
+    mileage = build_mileage_context(student)
+    return render_template('student/mileage_badges.html',
+                         student=student,
+                         mileage=mileage,
+                         back_url=_mileage_back_url(student),
+                         view_student_id=_mileage_view_student_id(student))
+
+
+@student_bp.route('/mileage/history')
+@login_required
+@requires_role('student', 'admin', 'parent')
+def mileage_history():
+    """전체 적립 내역 화면 (개발지시서 16 5항) - 대시보드는 최근 5건만 보여주고
+    여기서 기존 페이징을 그대로 유지한다."""
+    from app.services.mileage_view_service import build_mileage_context
+
+    student, error = _resolve_mileage_student()
+    if error:
+        return error
+
+    page = request.args.get('page', 1, type=int)
+    mileage = build_mileage_context(student, page=page)
+    return render_template('student/mileage_history.html',
+                         student=student,
+                         mileage=mileage,
+                         back_url=_mileage_back_url(student),
+                         view_student_id=_mileage_view_student_id(student))

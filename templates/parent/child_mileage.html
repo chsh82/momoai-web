@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% from 'macros/badges.html' import mileage_tier_badge %}
+{% from 'macros/mileage.html' import mileage_dashboard %}
 
-{% block title %}{{ student.name }} 마일리지 - MOMOAI v4.0{% endblock %}
+{% block title %}{{ student.name }} 모모 마일리지 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
@@ -20,187 +20,17 @@
            class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
             ← {{ student.name }} 정보로
         </a>
-        <div class="flex items-center justify-between">
-            <h2 class="text-2xl font-bold text-gray-800">🏅 {{ student.name }} 학생 마일리지</h2>
-            <a href="{{ url_for('student.mileage_ranking', student_id=student.student_id) }}"
-               class="text-sm font-medium text-blue-600 hover:text-blue-800">월간 랭킹 보기 →</a>
-        </div>
         {% if not can_edit %}
         <p class="text-xs text-gray-500 mt-1">조회 권한만 있어 공개 설정은 변경할 수 없습니다.</p>
         {% endif %}
     </div>
 
     <div class="space-y-6">
-        <!-- 등급 카드 -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        {{ mileage_tier_badge(mileage.tier) }}
-                        {% if mileage.tier.stars is not none %}
-                        <span class="text-yellow-500 text-lg tracking-tight" title="다음 등급까지 진행도">
-                            {% for i in range(4) %}{{ '★' if i < mileage.tier.stars else '☆' }}{% endfor %}
-                        </span>
-                        {% endif %}
-                    </div>
-                    <div class="text-3xl font-bold text-gray-800">{{ "{:,}".format(mileage.total_points) }}점</div>
-                    {% if mileage.pending_points > 0 %}
-                    <div class="text-sm text-amber-600 font-medium mt-1">
-                        ⏳ 확정 대기 {{ "{:,}".format(mileage.pending_points) }}점 포함 (아직 취소될 수 있어요)
-                    </div>
-                    {% endif %}
-                    {% if mileage.tier.next_at is not none %}
-                    <div class="mt-3">
-                        <div class="w-full bg-gray-200 rounded-full h-3">
-                            <div class="bg-blue-600 h-3 rounded-full" style="width: {{ (mileage.tier.progress * 100) | round(1) }}%"></div>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">다음 등급까지 {{ "{:,}".format(mileage.tier.next_at - mileage.total_points) }}점 남음</p>
-                    </div>
-                    {% else %}
-                    <p class="text-xs text-gray-500 mt-3">최고 등급입니다.</p>
-                    {% endif %}
-                </div>
-                <div class="border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6">
-                    <p class="text-sm text-gray-600 mb-1">이번 달({{ mileage.season }}) 점수</p>
-                    <div class="text-2xl font-bold text-gray-800">{{ "{:,}".format(mileage.season_points) }}점</div>
-                    <p class="text-sm text-gray-600 mt-3 mb-1">이번 달 잠정 순위</p>
-                    {% if mileage.my_rank %}
-                    <div class="text-lg font-bold text-blue-600">{{ mileage.my_rank }}위 <span class="text-xs font-normal text-gray-500">(집계 중)</span></div>
-                    {% else %}
-                    <p class="text-sm text-gray-500">아직 순위 집계 전이에요.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        {% if mileage.total_points == 0 %}
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h4 class="font-bold text-blue-900 mb-3">📖 이렇게 하면 점수를 받아요</h4>
-            <ul class="space-y-1.5 text-sm text-blue-800">
-                {% for code, rule in mileage.point_rules.items() %}
-                <li class="flex items-center justify-between">
-                    <span>{{ rule.name }}</span>
-                    <span class="font-medium">
-                        {% if rule.points is not none %}+{{ rule.points }}점{% else %}+{{ rule.points_min }}~{{ rule.points_max }}점{% endif %}
-                    </span>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-
-        <!-- 뱃지 수집판 -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h4 class="text-lg font-bold text-gray-800 mb-4">뱃지 수집판</h4>
-
-            {% if mileage.final_badge %}
-            <div class="mb-4 p-4 rounded-lg text-center {% if mileage.final_badge.owned %}bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400{% else %}bg-gray-50 border border-gray-200{% endif %}">
-                <div class="text-3xl mb-1 {% if not mileage.final_badge.owned %}opacity-30{% endif %}">{{ mileage.final_badge.icon_emoji }}</div>
-                <div class="font-bold {% if mileage.final_badge.owned %}text-amber-800{% else %}text-gray-500{% endif %}">{{ mileage.final_badge.name }}</div>
-                <div class="text-xs {% if mileage.final_badge.owned %}text-amber-700{% else %}text-gray-500{% endif %} mt-0.5">{{ mileage.final_badge.progress_label }}</div>
-            </div>
-            {% endif %}
-
-            <div class="grid grid-cols-3 gap-2 sm:gap-3">
-                {% for badge in mileage.badge_board %}
-                <div class="aspect-square flex flex-col items-center justify-center text-center p-2 rounded-lg border
-                            {% if badge.owned %}bg-green-50 border-green-300{% else %}bg-gray-50 border-gray-200{% endif %}"
-                     title="{{ badge.progress_label }}">
-                    <div class="text-2xl sm:text-3xl {% if not badge.owned %}opacity-30 grayscale{% endif %}">{{ badge.icon_emoji }}</div>
-                    <div class="text-[11px] sm:text-xs font-medium mt-1 leading-tight {% if badge.owned %}text-green-800{% else %}text-gray-500{% endif %}">
-                        {{ badge.name }}{% if badge.is_repeatable and badge.earned_count > 1 %} ×{{ badge.earned_count }}{% endif %}
-                    </div>
-                    {% if not badge.owned %}
-                    <div class="text-[10px] text-gray-400 mt-0.5 leading-tight">{{ badge.progress_label }}</div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- 적립 내역 -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h4 class="text-lg font-bold text-gray-800 mb-4">적립 내역</h4>
-            {% if mileage.history %}
-            <div class="space-y-2">
-                {% for ev in mileage.history %}
-                <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-medium {% if ev.status == 'cancelled' %}text-gray-400 line-through{% else %}text-gray-800{% endif %}">
-                                {{ mileage.point_rules.get(ev.activity_code).name if mileage.point_rules.get(ev.activity_code) else ev.activity_code }}
-                            </span>
-                            {% if ev.status == 'confirmed' %}
-                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-100 text-green-700">확정</span>
-                            {% elif ev.status == 'pending' %}
-                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 text-amber-700">확정 대기</span>
-                            {% else %}
-                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-200 text-gray-600">취소</span>
-                            {% endif %}
-                        </div>
-                        <div class="text-xs text-gray-500 mt-0.5">{{ ev.created_at | kst('%Y-%m-%d %H:%M') }}</div>
-                        {% if ev.status == 'cancelled' and ev.cancel_reason %}
-                        <div class="text-xs text-red-600 mt-0.5">취소 사유: {{ ev.cancel_reason }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="text-lg font-bold {% if ev.points < 0 %}text-gray-400{% elif ev.status == 'pending' %}text-amber-600{% else %}text-blue-600{% endif %}">
-                        {{ '%+d' | format(ev.points) }}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            {% if mileage.history_total_pages > 1 %}
-            <div class="flex items-center justify-center gap-2 mt-4">
-                {% if mileage.history_page > 1 %}
-                <a href="{{ url_for('parent.child_mileage', student_id=student.student_id, mpage=mileage.history_page - 1) }}"
-                   class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">← 이전</a>
-                {% endif %}
-                <span class="text-sm text-gray-500">{{ mileage.history_page }} / {{ mileage.history_total_pages }}</span>
-                {% if mileage.history_page < mileage.history_total_pages %}
-                <a href="{{ url_for('parent.child_mileage', student_id=student.student_id, mpage=mileage.history_page + 1) }}"
-                   class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">더보기 →</a>
-                {% endif %}
-            </div>
-            {% endif %}
-            {% else %}
-            <p class="text-sm text-gray-500 text-center py-6">아직 적립 내역이 없어요.</p>
-            {% endif %}
-        </div>
-
-        <!-- 공개 설정 -->
-        <div id="mileage-privacy" class="bg-white rounded-lg shadow-lg p-6">
-            <h4 class="text-lg font-bold text-gray-800 mb-1">공개 설정</h4>
-            <p class="text-xs text-gray-500 mb-4">동의하지 않아도 마일리지 적립·뱃지 획득 등 모든 학습 기능을 정상적으로 이용할 수 있으며 어떠한 불이익도 없습니다.</p>
-
-            {% if can_edit %}
-            <div class="space-y-3">
-                {% for ctype, label in [('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span class="text-sm text-gray-700">{{ label }}</span>
-                    <form method="POST" action="{{ url_for('parent.child_mileage_consent', student_id=student.student_id, consent_type=ctype) }}">
-                        <input type="hidden" name="is_agreed" value="{{ '0' if mileage.consent_status[ctype] else '1' }}">
-                        <button type="submit"
-                                class="px-3 py-1 text-xs font-medium rounded-full {% if mileage.consent_status[ctype] %}bg-green-100 text-green-700{% else %}bg-gray-200 text-gray-600{% endif %}">
-                            {{ '동의함' if mileage.consent_status[ctype] else '미동의' }}
-                        </button>
-                    </form>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="space-y-2">
-                {% for ctype, label in [('B', '우수답안의 서비스 내 게시'), ('C', '우수답안의 홍보·교육자료 활용')] %}
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span class="text-sm text-gray-700">{{ label }}</span>
-                    <span class="px-3 py-1 text-xs font-medium rounded-full {% if mileage.consent_status[ctype] %}bg-green-100 text-green-700{% else %}bg-gray-200 text-gray-600{% endif %}">
-                        {{ '동의함' if mileage.consent_status[ctype] else '미동의' }}
-                    </span>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
+        {{ mileage_dashboard(mileage, view_student_id=student.student_id,
+                             heading='🏅 ' ~ student.name ~ '의 모모 마일리지',
+                             consent_endpoint='parent.child_mileage_consent',
+                             consent_kwargs={'student_id': student.student_id},
+                             consent_mode='edit' if can_edit else 'readonly') }}
     </div>
 </div>
 {% endblock %}

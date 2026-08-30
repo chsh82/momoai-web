@@ -247,6 +247,19 @@ BADGE_EMOJI_FALLBACK = {
 }
 
 
+# 마이페이지 대시보드 "이번 달 활동 요약"에 표시할 활동 (개발지시서 16 3항).
+# EX01/QS02(특별 선정)·AT02(분기 단위)·EV01(재량 지급)·QZ02(만점 보너스)는
+# "이번 달에 무엇을 했는지" 요약과 성격이 안 맞아 제외한다.
+SEASON_ACTIVITY_SUMMARY = [
+    {'activity_code': 'RW01', 'label': '리라이팅', 'unit': '편'},
+    {'activity_code': 'RW02', 'label': '기본과제글', 'unit': '편'},
+    {'activity_code': 'QZ01', 'label': '퀴즈', 'unit': '회'},
+    {'activity_code': 'QS01', 'label': '질문', 'unit': '건'},
+    {'activity_code': 'CM01', 'label': '댓글', 'unit': '건'},
+    {'activity_code': 'AT01', 'label': '출석', 'unit': '주'},
+]
+
+
 def get_level_group(grade):
     """학생의 grade 값으로 랭킹 그룹 코드를 반환한다. 매칭되는 밴드가 없으면 None."""
     for code, info in RANKING_LEVEL_GROUPS.items():

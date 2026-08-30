@@ -354,7 +354,8 @@ def get_badge_board(student_id):
     Returns:
         list[dict]: sort_order 순. 각 항목:
             {badge_code, name, description, category, icon, is_final,
-             is_repeatable, owned, earned_count, progress(0.0~1.0), progress_label}
+             is_repeatable, owned, earned_count, first_earned_at,
+             progress(0.0~1.0), progress_label}
     """
     student = Student.query.get(student_id)
     badges = Badge.query.filter_by(is_active=True).order_by(Badge.sort_order).all()
@@ -384,6 +385,7 @@ def get_badge_board(student_id):
             'is_repeatable': badge.is_repeatable,
             'owned': sb is not None,
             'earned_count': sb.earned_count if sb else 0,
+            'first_earned_at': sb.first_earned_at if sb else None,
             'progress': progress,
             'progress_label': label,
         })

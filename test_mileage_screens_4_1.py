@@ -110,7 +110,10 @@ check("응답 200", resp.status_code == 200)
 check("0점 안내 문구 노출", '이렇게 하면 점수를 받아요' in html_a)
 check("적립 규칙 이름(리라이팅 제출) 노출", '리라이팅 제출' in html_a)
 check("적립 내역 빈 안내 노출", '아직 적립 내역이 없어요' in html_a)
-check("뱃지 수집판 잠금 상태 노출(진행도 문구)", '서비스 내 최초 과제(첨삭) 제출' in html_a)
+check("뱃지 0개 안내 노출", '아직 획득한 뱃지가 없어요' in html_a)
+check("가장 얻기 쉬운 미획득 뱃지 안내 노출(진행도 문구)", '서비스 내 최초 과제(첨삭) 제출' in html_a)
+check("뱃지 개수 표시(10개 중 0개)", '10개 중 0개' in html_a)
+check("이번 달 활동 요약 0건 항목도 노출(회색 처리 대상)", '리라이팅' in html_a and '출석' in html_a)
 
 resp_r = client.get('/student/mileage/ranking')
 html_ar = resp_r.data.decode('utf-8')
@@ -163,8 +166,17 @@ check("취소 배지 노출", '>취소<' in html_b)
 check("취소 사유 텍스트 노출", '중복 제출 확인되어 취소' in html_b)
 check("취소선(line-through) 스타일 적용", 'line-through' in html_b)
 check("보유 뱃지 3개(BG01~03) 표시", '첫 문장' in html_b and '첫 물음표' in html_b and '첫 고쳐쓰기' in html_b)
-check("뱃지 획득 시 컬러(초록) 스타일 적용", 'bg-green-50 border-green-300' in html_b)
-check("최종 뱃지(BG10) 별도 영역 노출", '책장의 주인' in html_b)
+check("뱃지 개수 표시(10개 중 3개)", '10개 중 3개' in html_b)
+check("뱃지 영역이 전체 뱃지 화면으로 링크됨", '/student/mileage/badges' in html_b)
+check("적립 내역 '전체 보기' 링크 노출", '/student/mileage/history' in html_b)
+
+# 뱃지 색상·최종 뱃지 표시는 이제 마이페이지가 아니라 전체 뱃지 화면(신규)에 있다.
+resp_b_badges = client.get('/student/mileage/badges')
+html_b_badges = resp_b_badges.data.decode('utf-8')
+check("전체 뱃지 화면 응답 200", resp_b_badges.status_code == 200)
+check("전체 뱃지 화면에서 뱃지 획득 시 컬러(초록) 스타일 적용", 'bg-green-50 border-green-300' in html_b_badges)
+check("전체 뱃지 화면에 최종 뱃지(BG10) 별도 영역 노출", '책장의 주인' in html_b_badges)
+check("전체 뱃지 화면이 3열 고정(grid-cols-3, 좁은 화면에서도 유지)", 'grid grid-cols-3' in html_b_badges)
 
 print("\n[C] 실명 전환 확인 - 본인 시점('나' 강조) vs 타인 시점(실명 노출)")
 login_as(user_c_id)
@@ -209,9 +221,9 @@ with app.app_context():
     status_e2 = msvc.get_consent_status(student_e_id)
     check("만 14세 미만은 본인 동의가 차단됨", status_e2['B'] is False)
 
-print("\n[E] 모바일(375px) 레이아웃 구조 확인 (CSS 클래스 정적 검사)")
-check("뱃지 수집판이 항상 3열 고정(grid-cols-3, 좁은 화면에서도 유지)", 'grid grid-cols-3' in html_b)
+print("\n[E] 모바일(375px) 레이아웃 구조 확인 (CSS 클래스 정적 검사 - grid-cols-3은 [B]에서 전체 뱃지 화면 기준으로 확인함)")
 check("랭킹표가 <table> 대신 세로 카드 목록(오버플로 없음)", '<table' not in html_ar and '<table' not in content_c_other)
+check("마이페이지 뱃지 요약은 가로 스크롤 목록(overflow-x-auto)", 'overflow-x-auto' in html_b)
 
 print("\n정리: 테스트 데이터 삭제")
 with app.app_context():

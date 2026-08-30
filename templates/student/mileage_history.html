@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from 'macros/mileage.html' import mileage_history_row %}
+
+{% block title %}적립 내역 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🏅 적립 내역{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-4">
+        <a href="{{ back_url }}" class="text-sm text-blue-600 hover:text-blue-800">← 돌아가기</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        {% if mileage.history %}
+        <div class="space-y-2">
+            {% for ev in mileage.history %}
+            {{ mileage_history_row(ev, mileage.point_rules) }}
+            {% endfor %}
+        </div>
+
+        {% if mileage.history_total_pages > 1 %}
+        <div class="flex items-center justify-center gap-2 mt-4">
+            {% if mileage.history_page > 1 %}
+            <a href="{{ url_for('student.mileage_history', page=mileage.history_page - 1, student_id=view_student_id) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">← 이전</a>
+            {% endif %}
+            <span class="text-sm text-gray-500">{{ mileage.history_page }} / {{ mileage.history_total_pages }}</span>
+            {% if mileage.history_page < mileage.history_total_pages %}
+            <a href="{{ url_for('student.mileage_history', page=mileage.history_page + 1, student_id=view_student_id) }}"
+               class="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50">더보기 →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="text-sm text-gray-500 text-center py-6">아직 적립 내역이 없어요.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

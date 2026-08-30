@@ -313,6 +313,25 @@ def get_season_points(student_id, season=None):
     return int(total)
 
 
+def get_season_activity_summary(student_id, season=None):
+    """이번 달 활동별 건수·점수 집계 (마이페이지 대시보드 "활동 요약"용).
+
+    get_season_points()와 같은 기준으로 취소분만 제외한다(확정+대기 포함).
+    집계 대상 활동 코드는 mileage_rules.SEASON_ACTIVITY_SUMMARY 참고.
+    """
+    season = season or get_season()
+    rows = db.session.query(
+        PointEvent.activity_code,
+        func.count(PointEvent.event_id),
+        func.coalesce(func.sum(PointEvent.points), 0),
+    ).filter(
+        PointEvent.student_id == student_id,
+        PointEvent.season == season,
+        PointEvent.status != 'cancelled',
+    ).group_by(PointEvent.activity_code).all()
+    return {code: {'count': count, 'points': int(points)} for code, count, points in rows}
+
+
 def get_point_history(student_id, limit=50, offset=0):
     """최근 순 적립·취소 이력."""
     return PointEvent.query.filter_by(student_id=student_id) \
