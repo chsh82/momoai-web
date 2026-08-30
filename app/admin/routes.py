@@ -8274,6 +8274,10 @@ def mileage_grant(student_id):
             granted_by=current_user.user_id, memo=reason,
         )
     except ValueError as e:
+        current_app.logger.warning(
+            'EV01 재량 지급 실패 - student_id=%s granted_by=%s points=%s error=%s',
+            student_id, current_user.user_id, points_raw, e,
+        )
         flash(str(e), 'error')
         return redirect(url_for('admin.mileage_student_detail', student_id=student_id))
 

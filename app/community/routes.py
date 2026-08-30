@@ -212,19 +212,25 @@ def select_question(post_id):
         flash('작성자의 학생 계정 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('community.detail', post_id=post_id))
 
-    event = award_points(
-        student_id=student.student_id, activity_code='QS02',
-        source_type='post', source_id=str(post.post_id),
-        granted_by=current_user.user_id,
-    )
-    if event:
-        from app.services.badge_service import evaluate_badges
-        evaluate_badges(student.student_id, trigger_codes=['QS02'])
-        db.session.commit()
-        flash('우수질문으로 선정했습니다. (+500점)', 'success')
-    else:
+    try:
+        event = award_points(
+            student_id=student.student_id, activity_code='QS02',
+            source_type='post', source_id=str(post.post_id),
+            granted_by=current_user.user_id,
+        )
+        if event:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(student.student_id, trigger_codes=['QS02'])
+            db.session.commit()
+            flash('우수질문으로 선정했습니다. (+500점)', 'success')
+        else:
+            db.session.rollback()
+            flash('이미 우수질문으로 선정된 게시글입니다.', 'error')
+    except Exception:
         db.session.rollback()
-        flash('이미 우수질문으로 선정된 게시글입니다.', 'error')
+        current_app.logger.exception('QS02 우수질문 선정 실패 (post_id=%s student_id=%s)',
+                                     post.post_id, student.student_id)
+        flash('선정 처리 중 오류가 발생했습니다. 다시 시도해주세요.', 'error')
 
     return redirect(url_for('community.detail', post_id=post_id))
 
@@ -255,19 +261,25 @@ def select_excellent(post_id):
         flash(reason, 'error')
         return redirect(url_for('community.detail', post_id=post_id))
 
-    event = award_points(
-        student_id=student.student_id, activity_code='EX01',
-        source_type='post', source_id=str(post.post_id),
-        granted_by=current_user.user_id,
-    )
-    if event:
-        from app.services.badge_service import evaluate_badges
-        evaluate_badges(student.student_id, trigger_codes=['EX01'])
-        db.session.commit()
-        flash('우수답안으로 선정했습니다. (+1,000점)', 'success')
-    else:
+    try:
+        event = award_points(
+            student_id=student.student_id, activity_code='EX01',
+            source_type='post', source_id=str(post.post_id),
+            granted_by=current_user.user_id,
+        )
+        if event:
+            from app.services.badge_service import evaluate_badges
+            evaluate_badges(student.student_id, trigger_codes=['EX01'])
+            db.session.commit()
+            flash('우수답안으로 선정했습니다. (+1,000점)', 'success')
+        else:
+            db.session.rollback()
+            flash('선정에 실패했습니다.', 'error')
+    except Exception:
         db.session.rollback()
-        flash('선정에 실패했습니다.', 'error')
+        current_app.logger.exception('EX01 우수답안 선정 실패 (post_id=%s student_id=%s)',
+                                     post.post_id, student.student_id)
+        flash('선정 처리 중 오류가 발생했습니다. 다시 시도해주세요.', 'error')
 
     return redirect(url_for('community.detail', post_id=post_id))
 

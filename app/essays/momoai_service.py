@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """MOMOAI 첨삭 서비스 (SQLAlchemy 연동)"""
 import anthropic
+import logging
 import threading
 import time
 from pathlib import Path
@@ -10,6 +11,8 @@ from flask import current_app
 
 from app.models import db, Essay, EssayVersion, EssayResult, EssayScore, EssayNote
 from app.essays.score_parser import get_parser
+
+logger = logging.getLogger(__name__)
 
 # 동시 API 호출 제한 (최대 2개 동시 처리, 나머지는 큐 대기)
 _api_semaphore = threading.Semaphore(2)
@@ -124,9 +127,7 @@ v3.3.0 필수 포함 사항:
             teacher_name, is_revision_of_completed
         )
 
-        print(f"\n{'='*60}")
-        print(f"[첨삭 대기] {student_name} 학생 - {grade} (슬롯 획득 시도)")
-        print(f"{'='*60}\n")
+        logger.debug('[첨삭 대기] essay_id=%s grade=%s (슬롯 획득 시도)', essay_id, grade)
 
         with _api_semaphore:  # 동시 2개 제한 — 나머지는 여기서 대기
             return self._call_api_with_retry(
@@ -144,12 +145,10 @@ v3.3.0 필수 포함 사항:
 
         for attempt in range(max_retries + 1):
             try:
-                print(f"\n{'='*60}")
-                print(f"[첨삭 시작] {student_name} 학생 - {grade}"
-                      + (f" (재시도 {attempt}/{max_retries})" if attempt > 0 else ""))
-                print(f"System prompt 길이: {len(self.system_prompt):,} chars")
-                print(f"User prompt 길이: {len(user_prompt):,} chars")
-                print(f"{'='*60}\n")
+                logger.debug(
+                    '[첨삭 시작] essay_id=%s grade=%s attempt=%d/%d system_prompt_len=%d user_prompt_len=%d',
+                    essay_id, grade, attempt, max_retries, len(self.system_prompt), len(user_prompt),
+                )
 
                 start_time = time.time()
 
@@ -321,8 +320,7 @@ v3.3.0 필수 포함 사항:
 
         for attempt in range(max_retries + 1):
             try:
-                print(f"\n[스탠다드 단일호출] {student_name} 학생 시작"
-                      + (f" (재시도 {attempt})" if attempt > 0 else ""))
+                logger.debug('[스탠다드 단일호출] essay_id=%s 시작 (재시도 %d)', essay_id, attempt)
                 start_time = time.time()
 
                 response = self.client.messages.create(
@@ -499,8 +497,7 @@ v3.3.0 필수 포함 사항:
 
         for attempt in range(max_retries + 1):
             try:
-                print(f"\n[초등 단일호출] {student_name} 학생 시작"
-                      + (f" (재시도 {attempt})" if attempt > 0 else ""))
+                logger.debug('[초등 단일호출] essay_id=%s 시작 (재시도 %d)', essay_id, attempt)
                 start_time = time.time()
 
                 response = self.client.messages.create(
@@ -943,8 +940,8 @@ v3.3.0 필수 포함 사항:
             print(f"✅ 점수 파싱 완료: 총 {len(scores_list)}개 지표 저장")
             return True
 
-        except Exception as e:
-            print(f"❌ 점수 저장 중 오류: {e}")
+        except Exception:
+            logger.exception('점수 저장 중 오류 - essay_id=%s version_id=%s', essay_id, version_id)
             db.session.rollback()
             return False
 

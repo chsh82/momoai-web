@@ -113,16 +113,21 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', '')
 
+    # 애플리케이션 로깅 - 환경별로 DevelopmentConfig/ProductionConfig에서 override
+    LOG_LEVEL = 'INFO'
+
 
 class DevelopmentConfig(Config):
     """개발 환경 설정"""
     DEBUG = True
     SQLALCHEMY_ECHO = True  # SQL 쿼리 로깅
+    LOG_LEVEL = 'DEBUG'
 
 
 class ProductionConfig(Config):
     """프로덕션 환경 설정"""
     DEBUG = False
+    LOG_LEVEL = 'INFO'
 
 
 config = {

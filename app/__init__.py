@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """Flask 애플리케이션 팩토리"""
+import logging
+import sys
+
 from flask import Flask, send_file, redirect, url_for, render_template
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_required, current_user
@@ -17,6 +20,30 @@ login_manager = LoginManager()
 compress = Compress()
 
 
+def configure_logging(app):
+    """표준출력(StreamHandler)만 붙인다 - journalctl/gunicorn 로그로 조회.
+
+    파일 핸들러는 일부러 안 붙인다(2026-08-30 결정사항) - gunicorn이 이미
+    멀티 워커로 뜨는데, RotatingFileHandler는 여러 프로세스가 동시에 같은
+    파일을 회전시키려 할 때 안전하지 않다. journalctl과 gunicorn 자체
+    access/error 로그가 이미 있어 경로를 굳이 늘리지 않는다. 나중에 파일
+    로그가 꼭 필요해지면 WatchedFileHandler + 외부 logrotate 조합으로
+    별도 검토한다.
+
+    root logger에 붙여야 `logging.getLogger(__name__)`으로 어디서든 만든
+    모듈별 로거(scheduler.py, badge_service.py 등)가 전부 이 핸들러를
+    타고 나간다 - app.logger에만 붙이면 그 모듈 로거들은 잡히지 않는다.
+    """
+    root_logger = logging.getLogger()
+    if root_logger.handlers:
+        return  # 이미 설정됨(예: 같은 프로세스에서 create_app 재호출) - 중복 추가 방지
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(name)s | %(message)s'))
+    root_logger.addHandler(handler)
+    root_logger.setLevel(app.config.get('LOG_LEVEL', 'INFO'))
+
+
 def create_app(config_name='default'):
     """Flask 애플리케이션 생성"""
     # 프로젝트 루트를 template/static 폴더로 설정
@@ -28,6 +55,7 @@ def create_app(config_name='default'):
                 template_folder=template_dir,
                 static_folder=static_dir)
     app.config.from_object(config[config_name])
+    configure_logging(app)
 
     # Flask-Compress 설정 (Gzip 압축)
     app.config['COMPRESS_MIMETYPES'] = [
@@ -510,8 +538,7 @@ def create_app(config_name='default'):
     try:
         from app.utils.scheduler import init_scheduler
         init_scheduler(app)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f'[Scheduler] 시작 실패: {e}')
+    except Exception:
+        logging.getLogger(__name__).exception('[Scheduler] 시작 실패')
 
     return app

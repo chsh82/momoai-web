@@ -97,51 +97,75 @@ def run_weekly_attendance_batch(monday=None, dry_run=False):
     sunday = monday + timedelta(days=6)
     iso_year, iso_week, _ = monday.isocalendar()
 
+    logger.info(
+        '[MileageWeekly] 배치 시작 - 대상 주=%s~%s dry_run=%s',
+        monday, sunday, dry_run,
+    )
+    job_start = datetime.utcnow()
+
     by_student = _scheduled_sessions_by_student(monday, sunday)
 
     results = []
+    processed = awarded = failed = 0
     for student_id, session_ids in by_student.items():
         if not session_ids:
             continue
+        processed += 1
 
-        attended_rows = db.session.query(Attendance.session_id).filter(
-            Attendance.student_id == student_id,
-            Attendance.session_id.in_(session_ids),
-            Attendance.status.in_(ATTENDANCE_ATTENDED_STATUSES),
-        ).all()
-        attended_ids = {r[0] for r in attended_rows}
-        full_attendance = session_ids.issubset(attended_ids)
+        try:
+            attended_rows = db.session.query(Attendance.session_id).filter(
+                Attendance.student_id == student_id,
+                Attendance.session_id.in_(session_ids),
+                Attendance.status.in_(ATTENDANCE_ATTENDED_STATUSES),
+            ).all()
+            attended_ids = {r[0] for r in attended_rows}
+            full_attendance = session_ids.issubset(attended_ids)
 
-        source_id = f"{student_id}-{iso_year}-W{iso_week:02d}"
-        entry = {
-            'student_id': student_id,
-            'week': f"{iso_year}-W{iso_week:02d}",
-            'range': f"{monday.isoformat()} ~ {sunday.isoformat()}",
-            'scheduled_count': len(session_ids),
-            'attended_count': len(attended_ids),
-            'full_attendance': full_attendance,
-            'source_id': source_id,
-        }
+            source_id = f"{student_id}-{iso_year}-W{iso_week:02d}"
+            entry = {
+                'student_id': student_id,
+                'week': f"{iso_year}-W{iso_week:02d}",
+                'range': f"{monday.isoformat()} ~ {sunday.isoformat()}",
+                'scheduled_count': len(session_ids),
+                'attended_count': len(attended_ids),
+                'full_attendance': full_attendance,
+                'source_id': source_id,
+            }
 
-        if not full_attendance:
-            entry['action'] = 'not_eligible(결석 있음)'
-        elif dry_run:
-            dup = PointEvent.query.filter_by(
-                student_id=student_id, activity_code='AT01',
-                source_type='attendance_week', source_id=source_id, entry_type='award',
-            ).first()
-            entry['action'] = 'skip(이미 지급됨)' if dup else 'would_award(100점)'
-        else:
-            event = award_points(
-                student_id=student_id, activity_code='AT01',
-                source_type='attendance_week', source_id=source_id,
-            )
-            entry['action'] = 'awarded(100점)' if event else 'skip(중복 또는 상한)'
-            if event:
-                _evaluate_badges_safe(student_id, ['AT01'])
+            if not full_attendance:
+                entry['action'] = 'not_eligible(결석 있음)'
+            elif dry_run:
+                dup = PointEvent.query.filter_by(
+                    student_id=student_id, activity_code='AT01',
+                    source_type='attendance_week', source_id=source_id, entry_type='award',
+                ).first()
+                entry['action'] = 'skip(이미 지급됨)' if dup else 'would_award(100점)'
+                if not dup:
+                    awarded += 1
+            else:
+                event = award_points(
+                    student_id=student_id, activity_code='AT01',
+                    source_type='attendance_week', source_id=source_id,
+                )
+                entry['action'] = 'awarded(100점)' if event else 'skip(중복 또는 상한)'
+                if event:
+                    awarded += 1
+                    _evaluate_badges_safe(student_id, ['AT01'])
 
-        results.append(entry)
+            results.append(entry)
 
+        except Exception:
+            failed += 1
+            db.session.rollback()
+            logger.exception('[MileageWeekly] 학생 처리 실패 - student_id=%s', student_id)
+            continue
+
+    elapsed = (datetime.utcnow() - job_start).total_seconds()
+    summary_log = logger.warning if failed else logger.info
+    summary_log(
+        '[MileageWeekly] 배치 종료 - 처리 %d명, 지급 %d명, 실패 %d명, 소요 %.1f초',
+        processed, awarded, failed, elapsed,
+    )
     return results
 
 
@@ -304,55 +328,85 @@ def run_quarterly_completion_batch(year=None, period_number=None, dry_run=False)
             continue  # 분기 도중 등록 -> 전 회차 이수 불가, 대상 제외
         by_student[e.student_id].add(e.course_id)
 
+    logger.info(
+        '[MileageQuarterly] 배치 시작 - 대상 분기=%sQ%s (%s~%s) dry_run=%s',
+        period.year, period.period_number, q_start, q_end, dry_run,
+    )
+    job_start = datetime.utcnow()
+
     results = []
+    processed = awarded = failed = 0
     for student_id, course_ids in by_student.items():
-        total_sessions, total_absent = _regular_attendance_stats(student_id, course_ids, q_start, q_end)
+        try:
+            total_sessions, total_absent = _regular_attendance_stats(student_id, course_ids, q_start, q_end)
 
-        if total_sessions == 0:
-            continue  # 이 분기에 정규 수업이 아예 없었던 학생 - 판정 대상 아님
+            if total_sessions == 0:
+                continue  # 이 분기에 정규 수업이 아예 없었던 학생 - 판정 대상 아님
+            processed += 1
 
-        makeup_count = _makeup_attended_count(student_id, q_start, q_end)
-        covered = min(makeup_count, total_absent)
-        effective_absent = total_absent - covered
+            makeup_count = _makeup_attended_count(student_id, q_start, q_end)
+            covered = min(makeup_count, total_absent)
+            effective_absent = total_absent - covered
 
-        source_id = f"{student_id}-{period.year}Q{period.period_number}"
-        entry = {
-            'student_id': student_id,
-            'quarter': f"{period.year}Q{period.period_number}",
-            'range': f"{q_start.isoformat()} ~ {q_end.isoformat()}",
-            'total_sessions': total_sessions,
-            'absent_count': total_absent,
-            'makeup_attended_count': makeup_count,
-            'effective_absent': effective_absent,
-            'source_id': source_id,
-        }
+            source_id = f"{student_id}-{period.year}Q{period.period_number}"
+            entry = {
+                'student_id': student_id,
+                'quarter': f"{period.year}Q{period.period_number}",
+                'range': f"{q_start.isoformat()} ~ {q_end.isoformat()}",
+                'total_sessions': total_sessions,
+                'absent_count': total_absent,
+                'makeup_attended_count': makeup_count,
+                'effective_absent': effective_absent,
+                'source_id': source_id,
+            }
 
-        if effective_absent > 0:
-            entry['action'] = f'not_eligible(미보강 결석 {effective_absent}건)'
-        elif dry_run:
-            dup = PointEvent.query.filter_by(
-                student_id=student_id, activity_code='AT02',
-                source_type='attendance_quarter', source_id=source_id, entry_type='award',
-            ).first()
-            entry['action'] = 'skip(이미 지급됨)' if dup else 'would_award(1000점)'
-        else:
-            event = award_points(
-                student_id=student_id, activity_code='AT02',
-                source_type='attendance_quarter', source_id=source_id,
-            )
-            entry['action'] = 'awarded(1000점)' if event else 'skip(중복 또는 상한)'
-            if event:
-                _evaluate_badges_safe(student_id, ['AT02'])
+            if effective_absent > 0:
+                entry['action'] = f'not_eligible(미보강 결석 {effective_absent}건)'
+            elif dry_run:
+                dup = PointEvent.query.filter_by(
+                    student_id=student_id, activity_code='AT02',
+                    source_type='attendance_quarter', source_id=source_id, entry_type='award',
+                ).first()
+                entry['action'] = 'skip(이미 지급됨)' if dup else 'would_award(1000점)'
+                if not dup:
+                    awarded += 1
+            else:
+                event = award_points(
+                    student_id=student_id, activity_code='AT02',
+                    source_type='attendance_quarter', source_id=source_id,
+                )
+                entry['action'] = 'awarded(1000점)' if event else 'skip(중복 또는 상한)'
+                if event:
+                    awarded += 1
+                    _evaluate_badges_safe(student_id, ['AT02'])
 
-        results.append(entry)
+            results.append(entry)
 
+        except Exception:
+            failed += 1
+            db.session.rollback()
+            logger.exception('[MileageQuarterly] 학생 처리 실패 - student_id=%s', student_id)
+            continue
+
+    elapsed = (datetime.utcnow() - job_start).total_seconds()
+    summary_log = logger.warning if failed else logger.info
+    summary_log(
+        '[MileageQuarterly] 배치 종료 - 처리 %d명, 지급 %d명, 실패 %d명, 소요 %.1f초',
+        processed, awarded, failed, elapsed,
+    )
     return results
 
 
 def _evaluate_badges_safe(student_id, trigger_codes):
-    """배치 안에서 뱃지 판정이 실패해도 배치 자체는 계속 진행되게 한다."""
+    """배치 안에서 뱃지 판정이 실패해도 배치 자체는 계속 진행되게 한다.
+
+    rollback을 안 하면 flush 도중 실패한 세션이 "이전 예외로 인해 트랜잭션이
+    롤백됨" 상태로 남아, 다음 학생 처리의 첫 쿼리부터 전부 함께 실패한다
+    (2026-08-30 발견 - 학생 단위 격리를 점수 지급에도 적용하며 함께 확인).
+    """
     try:
         from app.services.badge_service import evaluate_badges
         evaluate_badges(student_id, trigger_codes=trigger_codes)
     except Exception:
+        db.session.rollback()
         logger.exception('배치 내 뱃지 판정 실패 (student_id=%s)', student_id)

@@ -1108,18 +1108,24 @@ def select_excellent(essay_id):
         flash(reason, 'error')
         return redirect(url_for('essays.manual_correction', essay_id=essay_id))
 
-    event = award_points(
-        student_id=essay.student_id, activity_code='EX01',
-        source_type='essay', source_id=str(essay.essay_id),
-        granted_by=current_user.user_id,
-    )
-    if event:
-        evaluate_badges(essay.student_id, trigger_codes=['EX01'])
-        db.session.commit()
-        flash(f'{essay.student.name} 학생의 답안을 우수답안으로 선정했습니다. (+1,000점)', 'success')
-    else:
+    try:
+        event = award_points(
+            student_id=essay.student_id, activity_code='EX01',
+            source_type='essay', source_id=str(essay.essay_id),
+            granted_by=current_user.user_id,
+        )
+        if event:
+            evaluate_badges(essay.student_id, trigger_codes=['EX01'])
+            db.session.commit()
+            flash(f'{essay.student.name} 학생의 답안을 우수답안으로 선정했습니다. (+1,000점)', 'success')
+        else:
+            db.session.rollback()
+            flash('선정에 실패했습니다. 이미 선정된 항목이거나 주간 상한을 초과했습니다.', 'error')
+    except Exception:
         db.session.rollback()
-        flash('선정에 실패했습니다. 이미 선정된 항목이거나 주간 상한을 초과했습니다.', 'error')
+        current_app.logger.exception('EX01 우수답안 선정 실패 (essay_id=%s student_id=%s)',
+                                     essay.essay_id, essay.student_id)
+        flash('선정 처리 중 오류가 발생했습니다. 다시 시도해주세요.', 'error')
 
     return redirect(url_for('essays.manual_correction', essay_id=essay_id))
 

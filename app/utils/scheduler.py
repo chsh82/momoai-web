@@ -21,6 +21,8 @@ def send_class_reminders(app):
     """수업 1시간 전 학생·학부모에게 푸시 알림 발송 (30분마다 실행)"""
     from datetime import datetime, timedelta
     with app.app_context():
+        logger.info('[Reminder] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db, ParentStudent
             from app.models.course import CourseSession, CourseEnrollment
@@ -85,17 +87,19 @@ def send_class_reminders(app):
                 db.session.add(ReminderLog(session_id=session.session_id))
 
             db.session.commit()
-            if sessions:
-                logger.info(f'[Reminder] {len(sessions)}개 세션 알림 발송 완료')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[Reminder] job 종료 - %d개 세션 알림 발송, 소요 %.1f초', len(sessions), elapsed)
 
-        except Exception as e:
-            logger.error(f'[Reminder] 오류: {e}')
+        except Exception:
+            logger.exception('[Reminder] 오류')
 
 
 def generate_weekly_sessions(app):
     """매주 일요일 자정: 다음 7일치 세션 생성"""
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta
     with app.app_context():
+        logger.info('[WeeklySession] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db
             from app.models.course import Course
@@ -118,17 +122,21 @@ def generate_weekly_sessions(app):
                 created = extend_sessions_for_course(course, from_date, to_date)
                 total_created += len(created)
             db.session.commit()
-            if total_created:
-                logger.info(f'[WeeklySession] {total_created}개 세션 생성 완료')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[WeeklySession] job 종료 - 대상 강좌 %d개, %d개 세션 생성, 소요 %.1f초',
+                       len(active_courses), total_created, elapsed)
 
-        except Exception as e:
-            logger.error(f'[WeeklySession] 오류: {e}')
+        except Exception:
+            logger.exception('[WeeklySession] 오류')
 
 
 def apply_enrollment_schedules(app):
     """자정마다 실행: 오늘 날짜로 예약된 입반/전반을 자동 처리"""
-    from datetime import date
+    from datetime import date, datetime
     with app.app_context():
+        logger.info('[EnrollSchedule] job 시작')
+        job_start = datetime.utcnow()
+        applied, failed = 0, 0
         try:
             from app.models import db
             from app.models.enrollment_schedule import EnrollmentSchedule
@@ -189,7 +197,6 @@ def apply_enrollment_schedules(app):
                             course, student, sched.scheduled_date, sched.schedule_id
                         )
 
-                    from datetime import datetime
                     sched.status = 'applied'
                     sched.applied_at = datetime.utcnow()
 
@@ -211,101 +218,136 @@ def apply_enrollment_schedules(app):
                         sched.teacher_notified = True
                         sched.teacher_notified_at = datetime.utcnow()
 
-                    logger.info(f'[EnrollSchedule] {sched.schedule_type} 적용: {student.name} → {course.course_name}')
+                    logger.info(
+                        '[EnrollSchedule] %s 적용 - schedule_id=%s student_id=%s course_id=%s',
+                        sched.schedule_type, sched.schedule_id, sched.student_id, sched.course_id,
+                    )
+                    applied += 1
 
-                except Exception as e:
-                    logger.error(f'[EnrollSchedule] 개별 처리 오류 {sched.schedule_id}: {e}')
+                except Exception:
+                    failed += 1
+                    logger.exception('[EnrollSchedule] 개별 처리 실패 - schedule_id=%s', sched.schedule_id)
 
             db.session.commit()
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            summary = logger.warning if failed else logger.info
+            summary('[EnrollSchedule] job 종료 - 처리 %d건, 적용 %d건, 실패 %d건, 소요 %.1f초',
+                    len(schedules), applied, failed, elapsed)
 
-        except Exception as e:
-            logger.error(f'[EnrollSchedule] 전체 오류: {e}')
+        except Exception:
+            logger.exception('[EnrollSchedule] 전체 오류')
 
 
 def mileage_confirm_job(app):
     """1시간 간격: 질문·댓글의 24시간 대기 포인트를 확정 상태로 전환"""
+    from datetime import datetime
     with app.app_context():
+        logger.info('[MileageConfirm] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db
             from app.services.mileage_service import confirm_pending_points
             count = confirm_pending_points()
             db.session.commit()
-            if count:
-                logger.info(f'[MileageConfirm] {count}건 확정')
-        except Exception as e:
-            logger.error(f'[MileageConfirm] 오류: {e}')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[MileageConfirm] job 종료 - %d건 확정, 소요 %.1f초', count, elapsed)
+        except Exception:
+            logger.exception('[MileageConfirm] 오류')
 
 
 def mileage_weekly_job(app):
     """매주 월요일 00:10: 직전 주 AT01(주간 출석) 집계"""
+    from datetime import datetime
     with app.app_context():
+        logger.info('[MileageWeekly] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db
             from app.services.mileage_batch_service import run_weekly_attendance_batch
             results = run_weekly_attendance_batch()
             db.session.commit()
             awarded = sum(1 for r in results if r['action'].startswith('awarded'))
-            logger.info(f'[MileageWeekly] {len(results)}명 검토, {awarded}명 지급')
-        except Exception as e:
-            logger.error(f'[MileageWeekly] 오류: {e}')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[MileageWeekly] job 종료 - %d명 검토, %d명 지급, 소요 %.1f초',
+                       len(results), awarded, elapsed)
+        except Exception:
+            logger.exception('[MileageWeekly] 오류')
 
 
 def mileage_quarterly_job(app):
     """3/6/9/12월 1일 00:20: 직전 분기 AT02(분기 완주) 판정 (PaymentPeriod 기준 분기)"""
+    from datetime import datetime
     with app.app_context():
+        logger.info('[MileageQuarterly] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db
             from app.services.mileage_batch_service import run_quarterly_completion_batch
             results = run_quarterly_completion_batch()
             db.session.commit()
             awarded = sum(1 for r in results if r['action'].startswith('awarded'))
-            logger.info(f'[MileageQuarterly] {len(results)}명 검토, {awarded}명 지급')
-            for r in results:
-                logger.info(f'[MileageQuarterly] {r}')
-        except Exception as e:
-            logger.error(f'[MileageQuarterly] 오류: {e}')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[MileageQuarterly] job 종료 - %d명 검토, %d명 지급, 소요 %.1f초',
+                       len(results), awarded, elapsed)
+        except Exception:
+            logger.exception('[MileageQuarterly] 오류')
 
 
 def ranking_monthly_provisional_job(app):
     """매월 1일 00:30: 전월 시즌 잠정 순위 집계·저장 (is_final=False)"""
+    from datetime import datetime
     with app.app_context():
+        logger.info('[RankingMonthly] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db
             from app.services.ranking_service import build_ranking, previous_season
             season = previous_season()
             results = build_ranking(season, finalize=True, is_final=False)
             db.session.commit()
-            logger.info(f'[RankingMonthly] {season} 잠정 순위 저장 - {len(results)}명')
-        except Exception as e:
-            logger.error(f'[RankingMonthly] 오류: {e}')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[RankingMonthly] job 종료 - %s 잠정 순위 저장 %d명, 소요 %.1f초',
+                       season, len(results), elapsed)
+        except Exception:
+            logger.exception('[RankingMonthly] 오류')
 
 
 def ranking_monthly_final_job(app):
     """매월 3일 00:30: 전월 시즌 순위 확정 (is_final=True)"""
+    from datetime import datetime
     with app.app_context():
+        logger.info('[RankingFinal] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.models import db
             from app.services.ranking_service import build_ranking, previous_season
             season = previous_season()
             results = build_ranking(season, finalize=True, is_final=True)
             db.session.commit()
-            logger.info(f'[RankingFinal] {season} 순위 확정 - {len(results)}명')
-        except Exception as e:
-            logger.error(f'[RankingFinal] 오류: {e}')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[RankingFinal] job 종료 - %s 순위 확정 %d명, 소요 %.1f초',
+                       season, len(results), elapsed)
+        except Exception:
+            logger.exception('[RankingFinal] 오류')
 
 
 def badge_sweep_job(app):
     """매일 03:00: 전체 학생 뱃지 조건 재검사 (누락 보정용)"""
+    from datetime import datetime
     with app.app_context():
+        logger.info('[BadgeSweep] job 시작')
+        job_start = datetime.utcnow()
         try:
             from app.services.badge_service import run_badge_sweep
             from app.models import db
             results = run_badge_sweep()
             db.session.commit()
             total_granted = sum(len(r['granted']) for r in results)
-            logger.info(f'[BadgeSweep] {len(results)}명에게 총 {total_granted}건 부여')
-        except Exception as e:
-            logger.error(f'[BadgeSweep] 오류: {e}')
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[BadgeSweep] job 종료 - %d명에게 총 %d건 부여, 소요 %.1f초',
+                       len(results), total_granted, elapsed)
+        except Exception:
+            logger.exception('[BadgeSweep] 오류')
 
 
 def init_scheduler(app):
@@ -394,5 +436,5 @@ def init_scheduler(app):
     )
 
     scheduler.start()
-    logger.info('[Scheduler] APScheduler 시작됨 (수업 알림 30분 간격 + 입반/전반 자정 자동처리 + '
-               '주간 세션 생성 + 마일리지 배치 6종)')
+    job_ids = [job.id for job in scheduler.get_jobs()]
+    logger.info('[Scheduler] APScheduler 시작됨 - job %d개 등록: %s', len(job_ids), ', '.join(job_ids))
