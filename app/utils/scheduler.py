@@ -302,7 +302,12 @@ def ranking_monthly_provisional_job(app):
         try:
             from app.models import db
             from app.services.ranking_service import build_ranking, previous_season
+            from app.services.mileage_rules import RANKING_FIRST_SEASON
             season = previous_season()
+            if season < RANKING_FIRST_SEASON:
+                logger.info('[RankingMonthly] %s는 집계 시작 시즌(%s) 이전이라 건너뜀',
+                           season, RANKING_FIRST_SEASON)
+                return
             results = build_ranking(season, finalize=True, is_final=False)
             db.session.commit()
             elapsed = (datetime.utcnow() - job_start).total_seconds()
@@ -321,7 +326,12 @@ def ranking_monthly_final_job(app):
         try:
             from app.models import db
             from app.services.ranking_service import build_ranking, previous_season
+            from app.services.mileage_rules import RANKING_FIRST_SEASON
             season = previous_season()
+            if season < RANKING_FIRST_SEASON:
+                logger.info('[RankingFinal] %s는 집계 시작 시즌(%s) 이전이라 건너뜀',
+                           season, RANKING_FIRST_SEASON)
+                return
             results = build_ranking(season, finalize=True, is_final=True)
             db.session.commit()
             elapsed = (datetime.utcnow() - job_start).total_seconds()

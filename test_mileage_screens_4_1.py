@@ -122,11 +122,20 @@ check("데이터 없음 안내 노출(아직 아무도 없는 학년 그룹)", '
 check("랭킹 빈 화면에서도 안내 링크 노출", '무엇을 하면 점수를 받는지' in html_ar)
 
 # --- [B]/[C] 준비 ---
+# 랭킹 관련 적립은 RANKING_FIRST_SEASON(2026-09) 이후 시즌으로 명시해야
+# build_ranking()이 결과를 만든다 - occurred_at 생략 시 오늘 날짜(8월)로
+# 찍히는데, 8월 시즌은 게이트로 항상 빈 결과라 이 스크립트를 8/31 전에
+# 돌리면 랭킹 관련 검사가 전부 깨진다(2026-08-30 결정사항).
+RANKING_SAFE_DT = datetime(2026, 9, 1, 12, 0, 0)
+
 with app.app_context():
     user_b_id, student_b_id = make_student('테스트철', grade='초3', nickname='책읽는철')
-    ev_confirmed = msvc.award_points(student_b_id, 'RW01', 'essay', f'essay-{uuid.uuid4().hex[:8]}')
-    ev_pending = msvc.award_points(student_b_id, 'QS01', 'post', f'post-{uuid.uuid4().hex[:8]}')
-    ev_to_cancel = msvc.award_points(student_b_id, 'RW01', 'essay', f'essay-{uuid.uuid4().hex[:8]}')
+    ev_confirmed = msvc.award_points(student_b_id, 'RW01', 'essay', f'essay-{uuid.uuid4().hex[:8]}',
+                                     occurred_at=RANKING_SAFE_DT)
+    ev_pending = msvc.award_points(student_b_id, 'QS01', 'post', f'post-{uuid.uuid4().hex[:8]}',
+                                   occurred_at=RANKING_SAFE_DT)
+    ev_to_cancel = msvc.award_points(student_b_id, 'RW01', 'essay', f'essay-{uuid.uuid4().hex[:8]}',
+                                     occurred_at=RANKING_SAFE_DT)
     db.session.flush()
     msvc.cancel_points('essay', ev_to_cancel.source_id, '중복 제출 확인되어 취소')
     for code in ('BG01', 'BG02', 'BG03'):
@@ -139,13 +148,14 @@ with app.app_context():
     check("get_total_points는 확정+대기 합산(취소분 제외)", total_b == 500 + 100)
 
     user_c_id, student_c_id = make_student('테스트순', grade='초3', nickname='익명이될철')
-    msvc.award_points(student_c_id, 'AT02', 'attendance_quarter', f'q-{uuid.uuid4().hex[:8]}', points=1000)
+    msvc.award_points(student_c_id, 'AT02', 'attendance_quarter', f'q-{uuid.uuid4().hex[:8]}', points=1000,
+                      occurred_at=RANKING_SAFE_DT)
     db.session.commit()
     # 공개 동의(A) 여부와 무관하게 실명이 노출돼야 한다(2026-08-30 결정사항으로
     # A항목 기반 익명 처리 폐지) - 동의 기록을 아예 안 만든 상태로 확인한다.
 
     from app.services import ranking_service
-    season = msvc.get_season()
+    season = msvc.get_season(RANKING_SAFE_DT)
     student_c_grade = db.session.get(Student, student_c_id).grade
     live = ranking_service.build_ranking(season, finalize=False)
     row_c = next((r for r in live if r['student_id'] == student_c_id), None)

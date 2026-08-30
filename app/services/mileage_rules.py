@@ -39,6 +39,15 @@ MILEAGE_START_DATE = date(2026, 8, 31)
 # 없이 이 상수 하나로 UTC 컬럼과 바로 비교할 수 있다.
 MILEAGE_START_DATETIME_UTC = datetime.combine(MILEAGE_START_DATE, datetime.min.time()) - timedelta(hours=9)
 
+# 월간 랭킹 집계를 시작할 첫 시즌('YYYY-MM', KST) - MILEAGE_START_DATE와
+# 별개의 상수다(2026-08-30 결정사항). MILEAGE_START_DATE는 "언제부터
+# 포인트를 주는지"이고, 이 상수는 "언제부터 그 포인트로 순위를 공개하는지"라
+# 성격이 다르다. 적립 시작일이 8/31로 앞당겨지면서 8월 시즌은 하루치
+# 활동만으로 구성돼 순위가 왜곡되므로, 8월 시즌은 절대 생성/공개하지 않고
+# 9월 시즌부터 집계한다. ranking_service.build_ranking()/recent_seasons()가
+# 이 상수 하나만 참조한다.
+RANKING_FIRST_SEASON = '2026-09'
+
 POINT_RULES = {
     'RW01': {
         'name': '리라이팅 제출',

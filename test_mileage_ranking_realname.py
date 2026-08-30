@@ -105,14 +105,17 @@ with app.app_context():
                                   doc_version='v1.0'))
     db.session.commit()
 
-    now = datetime.utcnow()
+    # RANKING_FIRST_SEASON(2026-09) 이후 시즌이어야 build_ranking()이 결과를
+    # 만든다 - datetime.utcnow()(오늘=8월)를 쓰면 게이트에 막혀 전부 빈
+    # 결과가 된다(2026-08-30 결정사항).
+    now = datetime(2026, 9, 1, 12, 0, 0)
     ev1 = msvc.award_points(student_x_id, 'RW01', 'essay', f'realname-{uuid.uuid4().hex[:8]}',
                             occurred_at=now)
     ev2 = msvc.award_points(student_y_id, 'QZ01', 'quiz_session', f'realname-{uuid.uuid4().hex[:8]}',
                             occurred_at=now)
     db.session.commit()
 
-    season = msvc.get_season()
+    season = msvc.get_season(now)
 
 print("\n[1] 모든 학생이 이름+학년으로 표시되는가 (ranking_service 직접 호출)")
 with app.app_context():

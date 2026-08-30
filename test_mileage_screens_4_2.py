@@ -132,14 +132,17 @@ with app.app_context():
     # 직접 DB에 넣음) - A항목과 무관하게 실명+학년으로 표시되는지 확인
     # (2026-08-30 결정사항으로 A 기반 익명 처리 폐지, nickname도 더는 참조 안 함)
     nickname_test_id = make_student('테스트닉네임없음')
-    msvc.award_points(nickname_test_id, 'RW01', 'essay', f'nick-{uuid.uuid4().hex[:8]}')
+    # 랭킹은 RANKING_FIRST_SEASON(2026-09) 이후 시즌만 집계하므로, occurred_at을
+    # 명시하지 않으면(오늘 날짜=8월) 항상 빈 결과가 나온다(2026-08-30 결정사항).
+    msvc.award_points(nickname_test_id, 'RW01', 'essay', f'nick-{uuid.uuid4().hex[:8]}',
+                      occurred_at=datetime(2026, 9, 1, 12, 0, 0))
     db.session.add(MileageConsent(student_id=nickname_test_id, consent_type='A', is_agreed=True,
                                   agreed_by_user_id=nickname_test_id, agreed_by_relation='self',
                                   doc_version='v1.0'))
     db.session.commit()
 
     from app.services import ranking_service
-    season = msvc.get_season()
+    season = msvc.get_season(datetime(2026, 9, 1, 12, 0, 0))
     student_grade = db.session.get(Student, nickname_test_id).grade
     live = ranking_service.build_ranking(season, finalize=False)
     row = next((r for r in live if r['student_id'] == nickname_test_id), None)

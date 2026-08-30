@@ -242,7 +242,9 @@ with app.app_context():
         # 3. 월간 랭킹
         # ============================================================
         print("\n[3] 월간 랭킹 - 밴드 그룹핑 + 동점 처리 + 실명 표시(2026-08-30 익명 처리 폐지)")
-        season = '2026-08'
+        # RANKING_FIRST_SEASON(2026-09) 이후 시즌이어야 build_ranking()이 결과를
+        # 만든다 - 8월 시즌은 하루치 활동만으로 구성돼 항상 빈 결과다(2026-08-30 결정사항).
+        season = '2026-09'
         studentE = make_student(teacher.user_id, '_batch_studentE', '고1')  # 다른 밴드
 
         # studentA, studentB 둘 다 이번엔 같은 시즌에 동일 점수를 만들고 EX01 건수로 동점 처리

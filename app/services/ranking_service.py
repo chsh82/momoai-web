@@ -9,6 +9,7 @@
 기반 익명 처리를 폐지). mileage_consents A항목은 더 이상 조회하지 않는다 -
 테이블과 기존 데이터, B·C항목(우수답안 게시·홍보물 활용) 동의는 그대로 둔다.
 """
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -17,7 +18,9 @@ from sqlalchemy import func
 from app.models import db
 from app.models.student import Student
 from app.models.mileage import PointEvent, MonthlyRanking, StudentBadge
-from app.services.mileage_rules import get_level_group
+from app.services.mileage_rules import get_level_group, RANKING_FIRST_SEASON
+
+logger = logging.getLogger(__name__)
 
 
 def previous_season(now=None):
@@ -30,18 +33,28 @@ def previous_season(now=None):
 
 
 def recent_seasons(n=12, now=None):
-    """최근 n개월의 'YYYY-MM' 목록(이번 달 포함, 최신순). 랭킹 페이지 월 선택용."""
+    """최근 n개월의 'YYYY-MM' 목록(이번 달 포함, 최신순). 랭킹 페이지 월 선택용.
+
+    RANKING_FIRST_SEASON보다 이른 시즌은 제외한다(2026-08-30 결정사항 -
+    8월 시즌은 하루치 활동만으로 구성돼 순위를 공개하지 않는다). 현재 달
+    자체가 RANKING_FIRST_SEASON보다 이르면(8/31 시작 전 랭킹 페이지에
+    접속하는 경우) 목록이 통째로 비어 seasons[0] 호출부가 죽으므로,
+    그럴 땐 RANKING_FIRST_SEASON 하나는 항상 포함해 반환한다.
+    """
     now = now or datetime.utcnow()
     kst_today = (now + timedelta(hours=9)).date()
     seasons = []
     year, month = kst_today.year, kst_today.month
     for _ in range(n):
-        seasons.append(f'{year:04d}-{month:02d}')
+        season = f'{year:04d}-{month:02d}'
+        if season < RANKING_FIRST_SEASON:
+            break
+        seasons.append(season)
         month -= 1
         if month == 0:
             month = 12
             year -= 1
-    return seasons
+    return seasons or [RANKING_FIRST_SEASON]
 
 
 def _badge_count_by_student(student_ids):
@@ -126,7 +139,16 @@ def build_ranking(season, finalize=False, is_final=False):
     Returns:
         list[dict]: level_group/rank 순으로 정렬된 결과. 학년 밴드에 매칭되지
                    않는 학생(데이터 이상)은 결과에서 제외되고 로그로만 남는다.
+                   season이 RANKING_FIRST_SEASON보다 이르면 아무것도 만들지
+                   않고 빈 리스트를 반환한다(2026-08-30 결정사항).
     """
+    if season < RANKING_FIRST_SEASON:
+        logger.info(
+            '[Ranking] %s는 집계 시작 시즌(%s) 이전이라 건너뜀 (finalize=%s)',
+            season, RANKING_FIRST_SEASON, finalize,
+        )
+        return []
+
     student_points = _season_points_by_student(season)
     if not student_points:
         return []
@@ -145,8 +167,7 @@ def build_ranking(season, finalize=False, is_final=False):
             continue
         group = get_level_group(student.grade)
         if group is None:
-            import logging
-            logging.getLogger(__name__).warning(
+            logger.warning(
                 '랭킹 밴드 매칭 실패 - student_id=%s grade=%r (RANKING_LEVEL_GROUPS 확인 필요)',
                 student_id, student.grade,
             )
