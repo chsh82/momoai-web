@@ -19,6 +19,8 @@ migrate = Migrate()
 login_manager = LoginManager()
 compress = Compress()
 
+logger = logging.getLogger(__name__)
+
 
 def configure_logging(app):
     """표준출력(StreamHandler)만 붙인다 - journalctl/gunicorn 로그로 조회.
@@ -56,6 +58,11 @@ def create_app(config_name='default'):
                 static_folder=static_dir)
     app.config.from_object(config[config_name])
     configure_logging(app)
+    logger.info(
+        '[Startup] config=%s (class=%s) DEBUG=%s SQLALCHEMY_ECHO=%s',
+        config_name, config[config_name].__name__,
+        app.config.get('DEBUG'), app.config.get('SQLALCHEMY_ECHO'),
+    )
 
     # Flask-Compress 설정 (Gzip 압축)
     app.config['COMPRESS_MIMETYPES'] = [

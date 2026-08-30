@@ -11,8 +11,8 @@ from config import Config
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# 환경 변수에서 설정 가져오기 (기본값: development)
-config_name = os.environ.get('FLASK_ENV', 'development')
+# 환경 변수에서 설정 가져오기 (FLASK_ENV 누락 시 안전한 쪽인 production으로 폴백)
+config_name = os.environ.get('FLASK_ENV', 'production')
 app = create_app(config_name)
 
 if __name__ == '__main__':
