@@ -127,6 +127,7 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """프로덕션 환경 설정"""
     DEBUG = False
+    SQLALCHEMY_ECHO = False  # 명시적으로 끔 - DevelopmentConfig의 True를 상속하지 않는다는 의도를 남긴다
     LOG_LEVEL = 'INFO'
 
 

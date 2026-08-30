@@ -1,5 +1,11 @@
 # MOMOAI v4.1.0 - Gunicorn 설정
 # gunicorn -c gunicorn_config.py "app:create_app('production')"
+#
+# 주의(2026-08-30): 실제 systemd 유닛(momoai.service)은 이 파일을 참조하지
+# 않고 gunicorn CLI 플래그(--bind --workers --timeout --log-level)를 직접
+# 지정해서 실행한다. 즉 이 파일은 현재 프로덕션에 적용되지 않는 문서 성격의
+# 설정이다. 실제로 이 파일로 전환하려면 systemd 유닛의 ExecStart를
+# "gunicorn -c gunicorn_config.py \"app:create_app('production')\"" 로 바꿔야 한다.
 
 import multiprocessing
 import os
@@ -17,11 +23,13 @@ max_requests_jitter = 50  # 재시작 시점 분산
 timeout = 300  # 요청 타임아웃 (초) — Gemini OCR/Claude 첨삭 등 장시간 처리 대응
 keepalive = 5  # Keep-Alive 연결 유지 시간
 
-# 로깅
-accesslog = "/var/log/momoai/access.log"
-errorlog = "/var/log/momoai/error.log"
+# 로깅 - 이 파일이 실제로 쓰이지 않아 아래 경로는 한 번도 생성된 적이 없다.
+# 실제 운영 로그는 journalctl -u momoai로 조회한다(app/__init__.py의
+# configure_logging 참고). 이 파일을 다시 쓰게 되면 그때 경로를 재검토할 것.
+# accesslog = "/var/log/momoai/access.log"
+# errorlog = "/var/log/momoai/error.log"
 loglevel = "info"  # debug, info, warning, error, critical
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+# access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
 # 프로세스 이름
 proc_name = "momoai"
