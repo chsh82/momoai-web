@@ -28,11 +28,11 @@ EX01("강사당 주 3명")은 학생이 아니라 지급자(강사) 기준 상�
 from datetime import date, datetime, timedelta
 
 # 마일리지 적립 시작일(KST 기준). 이보다 이전 활동에는 포인트를 부여하지
-# 않는다(2026-08-29 결정사항) - mileage_service.award_points()의 게이트와
-# mileage_batch_service.run_weekly_attendance_batch()의 주간 배치 게이트가
-# 이 상수 하나만 참조한다. 나중에 게이트를 걷어낼 때 이 상수와 두 참조
-# 지점만 지우면 된다(app/services/mileage_service.py, app/services/mileage_batch_service.py).
-MILEAGE_START_DATE = date(2026, 9, 1)
+# 않는다(2026-08-29 결정사항, 2026-08-30 8/31로 앞당김) - mileage_service.award_points()의
+# 게이트와 mileage_batch_service.run_weekly_attendance_batch()의 주간 배치
+# 게이트가 이 상수 하나만 참조한다. 나중에 게이트를 걷어낼 때 이 상수와 두
+# 참조 지점만 지우면 된다(app/services/mileage_service.py, app/services/mileage_batch_service.py).
+MILEAGE_START_DATE = date(2026, 8, 31)
 # MILEAGE_START_DATE(KST 자정)에 해당하는 UTC 시각. BG07처럼 point_events가
 # 아니라 다른 테이블(post_likes/comments)의 created_at(naive UTC)을 직접
 # 비교해야 하는 게이트에서 쓴다 - award_points()처럼 매번 KST로 변환할 필요
