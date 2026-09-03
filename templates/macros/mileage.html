@@ -47,6 +47,26 @@
 </div>
 {% endmacro %}
 
+{% macro mileage_summary_compact(mileage) %}
+{#- 마이페이지 상단용 약식 위젯 - 총점/등급, 뱃지 개수만 보여주고 카드 전체가
+   프로필의 마일리지 영역으로 연결된다. 자세한 내용은 프로필에서 본다. -#}
+<a href="{{ url_for('profile.index') }}#mileage"
+   class="flex-1 lg:flex-none flex items-center gap-4 bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+    <div>
+        <div class="flex items-center gap-2 mb-1">
+            {{ mileage_tier_badge(mileage.tier) }}
+        </div>
+        <div class="text-xl font-bold text-gray-800">{{ "{:,}".format(mileage.total_points) }}점</div>
+    </div>
+    <div class="border-l border-gray-200 pl-4">
+        <div class="text-xs text-gray-500 mb-1">뱃지</div>
+        <div class="text-xl font-bold text-gray-800">
+            {{ mileage.owned_badges|length }}<span class="text-sm text-gray-400 font-normal">/{{ mileage.badge_total_count }}</span>
+        </div>
+    </div>
+</a>
+{% endmacro %}
+
 {% macro mileage_dashboard(mileage, view_student_id=none, heading='🏅 모모 마일리지', consent_endpoint='profile.update_mileage_consent', consent_kwargs={}, consent_mode='edit') %}
 <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
     <h3 class="text-2xl font-bold text-gray-800">{{ heading }}</h3>

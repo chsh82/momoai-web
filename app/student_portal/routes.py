@@ -48,6 +48,10 @@ def index():
             flash('등록된 학생이 없습니다.', 'error')
             return redirect(url_for('student.index'))
 
+    # 마이페이지 상단 약식 마일리지/뱃지 위젯용
+    from app.services.mileage_view_service import build_mileage_context
+    mileage = build_mileage_context(student)
+
     # 수강 중인 수업 목록 (종료된 수업 제외)
     enrollments = CourseEnrollment.query.filter_by(
         student_id=student.student_id,
@@ -196,6 +200,7 @@ def index():
 
     return render_template('student/index.html',
                          student=student,
+                         mileage=mileage,
                          enrollments=enrollments,
                          recent_essays=recent_essays,
                          unread_count=len(unread_announcements),
