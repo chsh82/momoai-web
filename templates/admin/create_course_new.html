@@ -212,12 +212,12 @@
                     <p class="text-xs text-blue-600 mt-1">* 자동 생성된 수업명을 직접 수정하여 저장할 수 있습니다</p>
 
                     <!-- 특별 제목 [] 추가 -->
-                    <div class="mt-3 flex gap-2 items-center">
+                    <div class="mt-3 flex flex-col sm:flex-row gap-2 sm:items-center">
                         <input type="text" id="specialTitleInput"
-                               class="flex-1 px-3 py-1.5 text-sm bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                               class="w-full sm:flex-1 px-3 py-1.5 text-sm bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                                placeholder="특별 제목 입력 (예: 영어, 수학심화 ...)">
                         <button type="button" onclick="insertBracketTitle()"
-                                class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                class="w-full sm:w-auto shrink-0 whitespace-nowrap px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
                             [ ] 추가
                         </button>
                     </div>

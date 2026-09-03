@@ -14,9 +14,9 @@
            class="text-blue-600 hover:text-blue-800 font-medium mb-2 inline-block">
             ← 수업 목록으로
         </a>
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-                <div class="flex items-center gap-3 mb-2">
+                <div class="flex flex-wrap items-center gap-3 mb-2">
                     <h2 class="text-3xl font-bold text-gray-800">{{ course.course_name }}</h2>
                     {{ tier_badge(course.tier, size='sm') }}
                     <span class="px-3 py-1 text-sm font-medium rounded
