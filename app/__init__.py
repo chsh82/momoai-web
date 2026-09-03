@@ -141,6 +141,20 @@ def create_app(config_name='default'):
     from flask_wtf.csrf import generate_csrf
     app.jinja_env.globals.update(now=datetime.now, csrf_token=generate_csrf)
 
+    # 정적 파일 캐시 무효화 - /static/은 nginx가 immutable, max-age=30일로
+    # 서빙해서(빠른 로딩용) 배포 후에도 브라우저가 예전 CSS/JS를 계속 씀.
+    # 쿼리스트링에 파일 mtime을 붙이면 내용이 바뀔 때마다 URL이 달라져
+    # 브라우저가 자동으로 새로 받아온다 - 버전 번호를 수동으로 관리할 필요 없음.
+    @app.template_global('static_v')
+    def static_versioned(filename):
+        import os
+        file_path = os.path.join(app.static_folder, filename)
+        try:
+            version = int(os.path.getmtime(file_path))
+        except OSError:
+            version = 0
+        return f"{url_for('static', filename=filename)}?v={version}"
+
     # Lazy Loading 이미지 태그 헬퍼
     @app.template_global('lazy_img')
     def lazy_img_tag(src, alt='', css_class='', width=None, height=None):

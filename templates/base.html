@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
 
     <!-- Critical CSS: 동기 로딩 (블로킹 OK - 빠른 파일) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.min.css') }}">
+    <link rel="stylesheet" href="{{ static_v('css/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ static_v('css/style.min.css') }}">
 
     <!-- Google Fonts: 동기 로딩 with font-display:swap -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
