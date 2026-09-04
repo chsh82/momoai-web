@@ -103,12 +103,30 @@ class ScoreParser:
             # 4. 통합지표 점수 추출
             integrated_scores = self._extract_integrated_scores(soup)
 
-            # 5. 총점 추출 실패 시 사고유형/통합지표 평균으로 역산
-            # (parse_elementary_html과 동일 공식) - HTML의 "최종점수" 표기가
-            # 없거나 클래스명이 달라 _extract_total_score가 실패해도, 18개
-            # 세부 지표는 별도 경로(SVG 파싱)로 대개 정상 추출되므로 이걸로
-            # 총점을 대신 계산한다(2026-09-04 - completed 첨삭의 53%가 세부
-            # 지표는 있는데 총점만 비는 문제를 발견해 추가).
+            # 4-1. 위 4개가 전부 비면 축약형 템플릿(cc/ct/il/iv/ss 등,
+            # parse_elementary_html용으로 만든 것과 동일한 클래스 체계)일
+            # 가능성이 높다 - correction_model='standard'/'harkness'로
+            # 들어와도 AI가 실제로는 이 축약형 HTML을 생성하는 경우가 있음을
+            # 발견함(2026-09-04). 이 경우 parse_html의 풀네임 클래스 기반
+            # 추출기는 총점은 물론 세부지표 18개까지 통째로 못 찾는다 -
+            # parse_elementary_html의 축약형 추출 로직으로 재시도한다.
+            if total_score is None and not thinking_scores and not integrated_scores:
+                elem_result = self.parse_elementary_html(html_content)
+                if elem_result.get('success') and (
+                    elem_result.get('total_score') is not None
+                    or elem_result.get('thinking_types')
+                    or elem_result.get('integrated_indicators')
+                ):
+                    return {
+                        'success': True,
+                        'total_score': elem_result.get('total_score'),
+                        'final_grade': elem_result.get('final_grade') or final_grade,
+                        'thinking_types': elem_result.get('thinking_types', {}),
+                        'integrated_indicators': elem_result.get('integrated_indicators', {})
+                    }
+
+            # 5. (풀네임 템플릿인데) 총점 추출만 실패한 경우 사고유형/통합지표
+            # 평균으로 역산(parse_elementary_html과 동일 공식)
             if total_score is None and (thinking_scores or integrated_scores):
                 t_vals = list(thinking_scores.values())
                 i_vals = list(integrated_scores.values())
