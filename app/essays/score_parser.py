@@ -103,6 +103,20 @@ class ScoreParser:
             # 4. 통합지표 점수 추출
             integrated_scores = self._extract_integrated_scores(soup)
 
+            # 5. 총점 추출 실패 시 사고유형/통합지표 평균으로 역산
+            # (parse_elementary_html과 동일 공식) - HTML의 "최종점수" 표기가
+            # 없거나 클래스명이 달라 _extract_total_score가 실패해도, 18개
+            # 세부 지표는 별도 경로(SVG 파싱)로 대개 정상 추출되므로 이걸로
+            # 총점을 대신 계산한다(2026-09-04 - completed 첨삭의 53%가 세부
+            # 지표는 있는데 총점만 비는 문제를 발견해 추가).
+            if total_score is None and (thinking_scores or integrated_scores):
+                t_vals = list(thinking_scores.values())
+                i_vals = list(integrated_scores.values())
+                t_mean = sum(t_vals) / len(t_vals) if t_vals else 0.0
+                i_mean = sum(i_vals) / len(i_vals) if i_vals else 0.0
+                if t_vals or i_vals:
+                    total_score = round(0.50 * (t_mean * 10) + 0.50 * (i_mean * 10), 1)
+
             return {
                 'success': True,
                 'total_score': total_score,
