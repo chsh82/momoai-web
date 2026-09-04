@@ -264,8 +264,8 @@
                         <p class="text-sm font-medium text-gray-700 mb-2">세부 항목</p>
                         {% for score in essay.scores %}
                         <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600">{{ score.score_name }}</span>
-                            <span class="text-sm font-bold text-gray-800">{{ score.score_value }}점</span>
+                            <span class="text-sm text-gray-600">{{ score.indicator_name }}</span>
+                            <span class="text-sm font-bold text-gray-800">{{ score.score }}점</span>
                         </div>
                         {% endfor %}
                     </div>
