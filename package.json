@@ -8,6 +8,7 @@
     "build:style": "postcss static/css/style.css -o static/css/style.min.css --no-map",
     "build:css": "npm run build:tailwind && npm run build:style",
     "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.min.css --watch",
+    "capture:manual": "node scripts/capture-parent-manual.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -25,6 +26,8 @@
   "devDependencies": {
     "autoprefixer": "^10.4.24",
     "cssnano": "^7.1.2",
+    "dotenv": "^17.4.2",
+    "playwright": "^1.63.0",
     "postcss": "^8.5.6",
     "postcss-cli": "^11.0.1",
     "tailwindcss": "^3.4.1"
