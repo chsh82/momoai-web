@@ -393,24 +393,46 @@ v3.3.0 필수 포함 사항:
 
     def analyze_essay_standard(self, student_name: str, grade: str, essay_text: str,
                                 notes: Optional[str] = None,
+                                revision_note: Optional[str] = None,
+                                is_revision_of_completed: bool = False,
                                 teacher_name: Optional[str] = None,
                                 user_id: Optional[str] = None,
                                 essay_id: Optional[str] = None) -> str:
         """
         스탠다드 모델 v3.5.0: 단일 API 호출 (max_tokens=32000)
 
+        Args:
+            essay_text: 완료된 첨삭 재수정(is_revision_of_completed=True)이면 이전
+                첨삭본 HTML, 그 외에는 학생 원문
+            revision_note: 강사가 재생성 시 입력한 수정 요청 (재생성이 아니면 None)
+            is_revision_of_completed: 완료된 첨삭을 재수정하는 경우 True -
+                이 경우 essay_text를 "학생 원문"이 아니라 "이전 첨삭본"으로 표시해야
+                모델이 이미 첨삭된 결과를 다시 원문 취급해 처음부터 분석하는 걸 막는다.
+
         Returns:
             완성 HTML 문서
         """
         standard_system = self._load_standard_document()
 
-        user_content = (
-            f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
-            f"[학생 원문]\n{essay_text}"
-        )
-        if notes:
-            user_content += f"\n\n[교사 지시]\n{notes}"
-        user_content += "\n\n전체 리포트를 생성하세요."
+        if is_revision_of_completed:
+            user_content = (
+                f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
+                f"[이전 첨삭본]\n{essay_text}\n\n"
+                f"[수정 요청 사항]\n{revision_note}\n\n"
+                "위 첨삭본을 기반으로 수정 요청 사항을 반영한 개선된 리포트를 생성하세요. "
+                "수정 요청과 직접 관련 없는 문장·표현·구성은 이전 첨삭본 그대로 유지하고, "
+                "지적된 부분만 최소한으로 고치세요."
+            )
+        else:
+            user_content = (
+                f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
+                f"[학생 원문]\n{essay_text}"
+            )
+            if notes:
+                user_content += f"\n\n[교사 지시]\n{notes}"
+            if revision_note:
+                user_content += f"\n\n[수정 요청 사항]\n{revision_note}"
+            user_content += "\n\n전체 리포트를 생성하세요."
 
         with _api_semaphore:
             resp = self._call_standard_single(
@@ -824,6 +846,8 @@ v3.3.0 필수 포함 사항:
                         grade=essay.grade,
                         essay_text=essay_text,
                         notes=notes,
+                        revision_note=revision_note,
+                        is_revision_of_completed=is_revision_of_completed,
                         teacher_name=teacher_name,
                         user_id=essay.user_id,
                         essay_id=essay.essay_id,
