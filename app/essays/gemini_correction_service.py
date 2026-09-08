@@ -19,7 +19,7 @@ _gemini_semaphore = threading.Semaphore(2)
 class GeminiCorrectionService:
     """Gemini 기반 첨삭 서비스 (Claude API 대체용)"""
 
-    MODEL_NAME = 'gemini-2.0-flash'
+    MODEL_NAME = 'gemini-3.6-flash'
 
     def __init__(self, api_key: Optional[str] = None):
         from config import Config

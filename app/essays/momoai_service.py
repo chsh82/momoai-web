@@ -154,9 +154,10 @@ v3.3.0 필수 포함 사항:
 
                 # Prompt Caching 적용: system prompt를 5분간 캐싱
                 response = self.client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model="claude-sonnet-5",
                     max_tokens=64000,
                     timeout=600.0,
+                    thinking={"type": "disabled"},
                     system=[
                         {
                             "type": "text",
@@ -212,7 +213,7 @@ v3.3.0 필수 포함 사항:
                     log = ApiUsageLog(
                         user_id=user_id,
                         api_type='claude',
-                        model_name='claude-sonnet-4-6',
+                        model_name='claude-sonnet-5',
                         usage_type=usage_type,
                         essay_id=essay_id,
                         input_tokens=input_tok,
@@ -324,9 +325,10 @@ v3.3.0 필수 포함 사항:
                 start_time = time.time()
 
                 response = self.client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model="claude-sonnet-5",
                     max_tokens=32000,
                     timeout=600.0,
+                    thinking={"type": "disabled"},
                     system=[
                         {
                             "type": "text",
@@ -362,7 +364,7 @@ v3.3.0 필수 포함 사항:
                     log = ApiUsageLog(
                         user_id=user_id,
                         api_type='claude',
-                        model_name='claude-sonnet-4-6',
+                        model_name='claude-sonnet-5',
                         usage_type='standard',
                         essay_id=essay_id,
                         input_tokens=input_tok,
@@ -501,9 +503,10 @@ v3.3.0 필수 포함 사항:
                 start_time = time.time()
 
                 response = self.client.messages.create(
-                    model="claude-sonnet-4-6",
+                    model="claude-sonnet-5",
                     max_tokens=32000,
                     timeout=300.0,
+                    thinking={"type": "disabled"},
                     system=[
                         {
                             "type": "text",
@@ -539,7 +542,7 @@ v3.3.0 필수 포함 사항:
                     log = ApiUsageLog(
                         user_id=user_id,
                         api_type='claude',
-                        model_name='claude-sonnet-4-6',
+                        model_name='claude-sonnet-5',
                         usage_type='elementary',
                         essay_id=essay_id,
                         input_tokens=input_tok,
