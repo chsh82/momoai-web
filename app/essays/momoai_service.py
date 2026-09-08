@@ -58,6 +58,7 @@ class MOMOAIService:
 {revision_note}
 
 위 첨삭본을 기반으로 수정 요청 사항을 반영하여 개선된 첨삭본을 생성해주세요.
+수정 요청과 직접 관련 없는 문장·표현·구성은 이전 첨삭본 그대로 유지하고, 지적된 부분만 최소한으로 고쳐주세요.
 MOMOAI v3.3.0 규칙을 준수하고, 반드시 HTML 완전 템플릿 형식으로 출력해주세요.
 """
         else:
@@ -454,24 +455,46 @@ v3.3.0 필수 포함 사항:
 
     def analyze_essay_elementary(self, student_name: str, grade: str, essay_text: str,
                                   notes: Optional[str] = None,
+                                  revision_note: Optional[str] = None,
+                                  is_revision_of_completed: bool = False,
                                   teacher_name: Optional[str] = None,
                                   user_id: Optional[str] = None,
                                   essay_id: Optional[str] = None) -> str:
         """
         초등 모델 v3.5.0: 1회 API 호출 후 CSS 래핑 (max_tokens=32000)
 
+        Args:
+            essay_text: 완료된 첨삭 재수정(is_revision_of_completed=True)이면 이전
+                첨삭본 HTML, 그 외에는 학생 원문
+            revision_note: 강사가 재생성 시 입력한 수정 요청 (재생성이 아니면 None)
+            is_revision_of_completed: 완료된 첨삭을 재수정하는 경우 True -
+                이 경우 essay_text를 "학생 원문"이 아니라 "이전 첨삭본"으로 표시해야
+                모델이 이미 첨삭된 결과를 다시 원문 취급해 처음부터 분석하는 걸 막는다.
+
         Returns:
             완성 HTML 문서
         """
         elem_system = self._load_elem_document()
 
-        user_content = (
-            f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
-            f"[학생 원문]\n{essay_text}"
-        )
-        if notes:
-            user_content += f"\n\n[교사 지시]\n{notes}"
-        user_content += "\n\n리포트를 생성하세요."
+        if is_revision_of_completed:
+            user_content = (
+                f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
+                f"[이전 첨삭본]\n{essay_text}\n\n"
+                f"[수정 요청 사항]\n{revision_note}\n\n"
+                "위 첨삭본을 기반으로 수정 요청 사항을 반영한 개선된 리포트를 생성하세요. "
+                "수정 요청과 직접 관련 없는 문장·표현·구성은 이전 첨삭본 그대로 유지하고, "
+                "지적된 부분만 최소한으로 고치세요."
+            )
+        else:
+            user_content = (
+                f"[학생 정보]\n- 이름: {student_name}\n- 학년: {grade}\n\n"
+                f"[학생 원문]\n{essay_text}"
+            )
+            if notes:
+                user_content += f"\n\n[교사 지시]\n{notes}"
+            if revision_note:
+                user_content += f"\n\n[수정 요청 사항]\n{revision_note}"
+            user_content += "\n\n리포트를 생성하세요."
 
         with _api_semaphore:
             resp = self._call_elem_single(
@@ -803,67 +826,61 @@ v3.3.0 필수 포함 사항:
         try:
             model = getattr(essay, 'correction_model', 'standard') or 'standard'
 
-            # 초등 모델은 항상 원문 기반으로 재생성 (HTML 입력 불가)
-            if model == 'elementary':
-                notes_parts = []
+            # 완료된 첨삭의 경우 이전 버전의 HTML 내용을 기반으로 수정 -
+            # 세 모델(standard/elementary/harkness) 전부 동일한 규칙을 쓴다.
+            # 이전 첨삭본을 "학생 원문"이 아니라 "이전 첨삭본"으로 명시해야
+            # 모델이 이미 첨삭된 결과를 다시 원문 취급해 처음부터 재분석하는 걸 막는다.
+            if is_finalized and essay.latest_version:
+                essay_text = essay.latest_version.html_content
+                notes = None
+                is_revision_of_completed = True
+            else:
+                # 미완료 첨삭은 원문 기반
+                essay_text = essay.original_text
+                notes = None
                 if essay.notes:
-                    notes_parts.append('\n'.join([note.content for note in essay.notes]))
+                    notes = '\n'.join([note.content for note in essay.notes])
                 if getattr(essay, 'teacher_guide', None):
-                    notes_parts.append(f'[강사 가이드]\n{essay.teacher_guide}')
-                if revision_note:
-                    notes_parts.append(f'[수정 요청]\n{revision_note}')
-                notes_combined = '\n\n'.join(notes_parts) if notes_parts else None
+                    teacher_guide_text = f'[강사 가이드]\n{essay.teacher_guide}'
+                    notes = (notes + '\n\n' + teacher_guide_text) if notes else teacher_guide_text
+                is_revision_of_completed = False
 
+            if model == 'elementary':
                 html_content = self.analyze_essay_elementary(
                     student_name=student_name,
                     grade=essay.grade,
-                    essay_text=essay.original_text,
-                    notes=notes_combined,
+                    essay_text=essay_text,
+                    notes=notes,
+                    revision_note=revision_note,
+                    is_revision_of_completed=is_revision_of_completed,
                     teacher_name=teacher_name,
                     user_id=essay.user_id,
                     essay_id=essay.essay_id,
                 )
-            else:
-                # 완료된 첨삭의 경우 이전 버전의 HTML 내용을 기반으로 수정
-                if is_finalized and essay.latest_version:
-                    essay_text = essay.latest_version.html_content
-                    notes = None
-                    is_revision_of_completed = True
-                else:
-                    # 미완료 첨삭은 원문 기반
-                    essay_text = essay.original_text
-                    notes = None
-                    if essay.notes:
-                        notes = '\n'.join([note.content for note in essay.notes])
-                    if getattr(essay, 'teacher_guide', None):
-                        teacher_guide_text = f'[강사 가이드]\n{essay.teacher_guide}'
-                        notes = (notes + '\n\n' + teacher_guide_text) if notes else teacher_guide_text
-                    is_revision_of_completed = False
-
-                if model == 'standard':
-                    html_content = self.analyze_essay_standard(
-                        student_name=student_name,
-                        grade=essay.grade,
-                        essay_text=essay_text,
-                        notes=notes,
-                        revision_note=revision_note,
-                        is_revision_of_completed=is_revision_of_completed,
-                        teacher_name=teacher_name,
-                        user_id=essay.user_id,
-                        essay_id=essay.essay_id,
-                    )
-                else:  # harkness
-                    html_content = self.analyze_essay(
-                        student_name=student_name,
-                        grade=essay.grade,
-                        essay_text=essay_text,
-                        notes=notes,
-                        revision_note=revision_note,
-                        teacher_name=teacher_name,
-                        is_revision_of_completed=is_revision_of_completed,
-                        user_id=essay.user_id,
-                        essay_id=essay.essay_id,
-                        usage_type='regeneration',
+            elif model == 'standard':
+                html_content = self.analyze_essay_standard(
+                    student_name=student_name,
+                    grade=essay.grade,
+                    essay_text=essay_text,
+                    notes=notes,
+                    revision_note=revision_note,
+                    is_revision_of_completed=is_revision_of_completed,
+                    teacher_name=teacher_name,
+                    user_id=essay.user_id,
+                    essay_id=essay.essay_id,
+                )
+            else:  # harkness
+                html_content = self.analyze_essay(
+                    student_name=student_name,
+                    grade=essay.grade,
+                    essay_text=essay_text,
+                    notes=notes,
+                    revision_note=revision_note,
+                    teacher_name=teacher_name,
+                    is_revision_of_completed=is_revision_of_completed,
+                    user_id=essay.user_id,
+                    essay_id=essay.essay_id,
+                    usage_type='regeneration',
                     )
 
             # HTML 저장
