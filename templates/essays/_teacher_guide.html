@@ -22,9 +22,39 @@
     </div>
     <div class="p-4">
         <textarea name="teacher_guide" id="teacherGuide" rows="4"
+                  {% if guide_form_id %}form="{{ guide_form_id }}"{% endif %}
                   placeholder="예) 이 학생은 논거의 구체성이 부족합니다. 특히 통계나 사례 제시를 강조해주세요. 문장 호응 관계도 집중적으로 첨삭 부탁드립니다."
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
         <p class="text-xs text-gray-400 mt-1">입력한 내용은 <strong>[강사 가이드]</strong> 섹션으로 AI 첨삭 프롬프트에 포함됩니다.</p>
+
+        <!-- 강사 가이드 첨부파일 (이미지/PDF/DOCX) - AI가 함께 참고 -->
+        <div class="mt-3 pt-3 border-t border-gray-100">
+            <label class="block text-xs font-medium text-gray-600 mb-1">
+                📎 참고자료 첨부 <span class="text-gray-400 font-normal">(선택 · 이미지, PDF, DOCX · 최대 3개, 이미지 5MB/문서 15MB)</span>
+            </label>
+            <input type="file" name="guide_attachments" id="guideAttachments" multiple
+                   {% if guide_form_id %}form="{{ guide_form_id }}"{% endif %}
+                   accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.docx,image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                   onchange="guideRenderSelectedFiles(this)"
+                   class="w-full text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <div id="guideSelectedFiles" class="mt-1 text-xs text-gray-500"></div>
+            <p class="text-xs text-gray-400 mt-1">첨부한 자료는 AI 첨삭 프롬프트에 함께 전달됩니다(학생·학부모에게는 노출되지 않음). 채점 기준표, 모범 답안, 문제지 이미지 등을 올려보세요.</p>
+
+            {% if essay is defined and essay and essay.guide_attachments %}
+            <div class="mt-2 space-y-1">
+                {% for att in essay.guide_attachments %}
+                <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs">
+                    <span class="text-gray-700 truncate">
+                        {% if att.file_type == 'image' %}🖼️{% elif att.file_type == 'pdf' %}📄{% else %}📝{% endif %}
+                        {{ att.original_filename }}
+                    </span>
+                    <button type="button" onclick="guideDeleteAttachment('{{ att.attachment_id }}', this)"
+                            class="text-red-500 hover:text-red-700 ml-2 flex-shrink-0">삭제</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -63,6 +93,38 @@
 </div>
 
 <script>
+// ===== 강사 가이드 첨부파일 =====
+function guideRenderSelectedFiles(input) {
+    const box = document.getElementById('guideSelectedFiles');
+    const files = Array.from(input.files || []);
+    if (files.length === 0) { box.textContent = ''; return; }
+    if (files.length > 3) {
+        alert('첨부파일은 최대 3개까지 선택할 수 있습니다.');
+        input.value = '';
+        box.textContent = '';
+        return;
+    }
+    box.textContent = '선택됨: ' + files.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(1)}MB)`).join(', ');
+}
+
+async function guideDeleteAttachment(attachmentId, btn) {
+    if (!confirm('이 첨부파일을 삭제하시겠습니까?')) return;
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/essays/guide-attachment/${attachmentId}`, {method: 'DELETE'});
+        const data = await res.json();
+        if (data.success) {
+            btn.closest('div').remove();
+        } else {
+            alert(data.message || '삭제 실패');
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('오류가 발생했습니다.');
+        btn.disabled = false;
+    }
+}
+
 // ===== 강사 가이드 템플릿 관리 =====
 async function guideLoadTemplates() {
     try {

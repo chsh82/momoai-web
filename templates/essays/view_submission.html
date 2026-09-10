@@ -526,6 +526,7 @@
 
         <!-- 강사 가이드 (AI 첨삭 가능 상태일 때만 표시) -->
         {% if essay.status in ['draft', 'processing', 'failed'] %}
+        {% set guide_form_id = 'startCorrectionForm' %}
         {% include 'essays/_teacher_guide.html' %}
         {% endif %}
 
@@ -599,6 +600,7 @@
             <!-- 첨삭 시작/결과 버튼 -->
             {% if essay.status == 'draft' %}
             <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                  id="startCorrectionForm" enctype="multipart/form-data"
                   class="{% if not attachments %}col-span-2{% endif %}"
                   onsubmit="return confirmAndStartCorrection(event, '이 학생의 글을 첨삭하시겠습니까? (약 10~30초 소요)')">
                 <input type="hidden" name="correction_model" class="correction-model-input" value="standard">
@@ -610,6 +612,7 @@
             </form>
             {% elif essay.status == 'processing' %}
             <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                  id="startCorrectionForm" enctype="multipart/form-data"
                   class="{% if not attachments %}col-span-2{% endif %}"
                   onsubmit="return confirmAndStartCorrection(event, '첨삭이 중단된 것 같습니다. 다시 시작하시겠습니까?')">
                 <input type="hidden" name="correction_model" class="correction-model-input" value="standard">
@@ -621,6 +624,7 @@
             </form>
             {% elif essay.status == 'failed' %}
             <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
+                  id="startCorrectionForm" enctype="multipart/form-data"
                   class="{% if not attachments %}col-span-2{% endif %}"
                   onsubmit="return confirmAndStartCorrection(event, '첨삭에 실패했습니다. 다시 시도하시겠습니까?')">
                 <input type="hidden" name="correction_model" class="correction-model-input" value="standard">

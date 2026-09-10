@@ -127,28 +127,51 @@ v5.0.0 필수 포함 사항:
             student_name, grade, essay_text, notes, revision_note,
             teacher_name, is_revision_of_completed
         )
+        user_content = self._with_guide_attachments(essay_id, user_prompt)
 
         logger.debug('[첨삭 대기] essay_id=%s grade=%s (슬롯 획득 시도)', essay_id, grade)
 
         with _api_semaphore:  # 동시 2개 제한 — 나머지는 여기서 대기
             return self._call_api_with_retry(
-                student_name, grade, user_prompt,
+                student_name, grade, user_content,
                 user_id=user_id,
                 essay_id=essay_id,
                 usage_type=usage_type,
             )
 
-    def _call_api_with_retry(self, student_name: str, grade: str, user_prompt: str,
+    def _with_guide_attachments(self, essay_id, text_content: str):
+        """essay_id가 있으면 강사 가이드 첨부파일(이미지/PDF/DOCX)을 반영한
+        Claude 메시지 content(문자열 또는 블록 리스트)를 만든다."""
+        if not essay_id:
+            return text_content
+        try:
+            from app.models import Essay as _Essay
+            from app.essays.guide_attachments import build_guide_message_content
+            essay_obj = _Essay.query.get(essay_id)
+            if not essay_obj:
+                return text_content
+            return build_guide_message_content(essay_obj, text_content)
+        except Exception:
+            logger.exception('강사 가이드 첨부파일 반영 실패 (essay_id=%s) - 텍스트만 사용', essay_id)
+            return text_content
+
+    def _call_api_with_retry(self, student_name: str, grade: str, user_prompt,
                               user_id=None, essay_id=None, usage_type='correction') -> str:
-        """Rate Limit 에러 시 최대 3회 재시도 (30초 간격)"""
+        """Rate Limit 에러 시 최대 3회 재시도 (30초 간격).
+
+        user_prompt: 문자열(기존) 또는 [image/document 블록.., text 블록] 리스트
+        (강사 가이드 첨부파일이 있는 경우 - guide_attachments.build_guide_message_content 참고)
+        """
         max_retries = 3
         retry_delays = [30, 60, 120]  # 초
+        user_prompt_len = len(user_prompt) if isinstance(user_prompt, str) else \
+            sum(len(b.get('text', '')) for b in user_prompt if isinstance(b, dict))
 
         for attempt in range(max_retries + 1):
             try:
                 logger.debug(
                     '[첨삭 시작] essay_id=%s grade=%s attempt=%d/%d system_prompt_len=%d user_prompt_len=%d',
-                    essay_id, grade, attempt, max_retries, len(self.system_prompt), len(user_prompt),
+                    essay_id, grade, attempt, max_retries, len(self.system_prompt), user_prompt_len,
                 )
 
                 start_time = time.time()
@@ -435,6 +458,8 @@ v5.0.0 필수 포함 사항:
                 user_content += f"\n\n[수정 요청 사항]\n{revision_note}"
             user_content += "\n\n전체 리포트를 생성하세요."
 
+        user_content = self._with_guide_attachments(essay_id, user_content)
+
         with _api_semaphore:
             resp = self._call_standard_single(
                 standard_system,
@@ -495,6 +520,8 @@ v5.0.0 필수 포함 사항:
             if revision_note:
                 user_content += f"\n\n[수정 요청 사항]\n{revision_note}"
             user_content += "\n\n리포트를 생성하세요."
+
+        user_content = self._with_guide_attachments(essay_id, user_content)
 
         with _api_semaphore:
             resp = self._call_elem_single(

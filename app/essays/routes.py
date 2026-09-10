@@ -15,6 +15,7 @@ from app.essays.forms import NewEssayForm, RevisionRequestForm
 from app.essays.momoai_service import MOMOAIService
 from app.essays.ocr_service import OCRService
 from app.essays.gemini_ocr_service import GeminiOCRService
+from app.essays.guide_attachments import save_guide_attachments, GuideAttachmentError
 from app.models import db, Student, Essay, EssayVersion, Notification, OCRHistory
 from app.models.book import EssayBook
 from config import Config
@@ -380,6 +381,12 @@ def new():
         essay.essay_type = essay_type_input
         db.session.commit()
 
+        # 강사 가이드 첨부파일 (이미지/PDF/DOCX) - AI 첨삭 프롬프트에 함께 전달됨
+        try:
+            save_guide_attachments(essay, request.files.getlist('guide_attachments'))
+        except GuideAttachmentError as e:
+            flash(f'강사 가이드 첨부파일 저장 실패: {e} (첨삭은 첨부 없이 계속 진행됩니다)', 'warning')
+
         try:
             from app.services.badge_service import evaluate_badges
             evaluate_badges(essay.student_id, trigger_codes=['essay'])
@@ -593,6 +600,12 @@ def quick():
         essay.teacher_guide = request.form.get('teacher_guide', '').strip() or None
         essay.essay_type = essay_type_input
         db.session.commit()
+
+        # 강사 가이드 첨부파일 (이미지/PDF/DOCX) - AI 첨삭 프롬프트에 함께 전달됨
+        try:
+            save_guide_attachments(essay, request.files.getlist('guide_attachments'))
+        except GuideAttachmentError as e:
+            flash(f'강사 가이드 첨부파일 저장 실패: {e} (첨삭은 첨부 없이 계속 진행됩니다)', 'warning')
 
         try:
             from app.services.badge_service import evaluate_badges
@@ -1239,6 +1252,12 @@ def start_correction(essay_id):
     # 백그라운드 스레드로 처리 시작
     essay.status = 'processing'
     db.session.commit()
+
+    # 강사 가이드 첨부파일 (이미지/PDF/DOCX) - AI 첨삭 프롬프트에 함께 전달됨
+    try:
+        save_guide_attachments(essay, request.files.getlist('guide_attachments'))
+    except GuideAttachmentError as e:
+        flash(f'강사 가이드 첨부파일 저장 실패: {e} (첨삭은 첨부 없이 계속 진행됩니다)', 'warning')
 
     student_name = essay.student.name
     teacher_name = current_user.name
@@ -2191,3 +2210,22 @@ def delete_prompt_template(tpl_id):
     return jsonify({'success': True})
 
 
+@essays_bp.route('/guide-attachment/<attachment_id>', methods=['DELETE'])
+@login_required
+def delete_guide_attachment(attachment_id):
+    """강사 가이드 첨부파일(AI 참고자료) 삭제 - 강사/관리자만"""
+    from app.models.essay import EssayGuideAttachment
+    attachment = EssayGuideAttachment.query.get_or_404(attachment_id)
+    if current_user.role not in ('teacher', 'admin') or not _can_access_essay(attachment.essay):
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+
+    full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], attachment.file_path)
+    try:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+    except OSError:
+        current_app.logger.exception('강사 가이드 첨부파일 삭제 실패: %s', full_path)
+
+    db.session.delete(attachment)
+    db.session.commit()
+    return jsonify({'success': True})

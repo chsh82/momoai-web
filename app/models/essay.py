@@ -189,3 +189,38 @@ class CorrectionAttachment(db.Model):
         if not self.attachment_id:
             import uuid
             self.attachment_id = str(uuid.uuid4())
+
+
+class EssayGuideAttachment(db.Model):
+    """강사 가이드 첨부파일 - 첨삭 요청(프롬프트) 시 AI에게 함께 전달되는 참고자료.
+
+    CorrectionAttachment(강사가 수동 첨삭 결과로 올리는 파일)와는 목적이 다르다 -
+    이건 AI 첨삭 생성 전에 강사가 참고시키고 싶은 자료(예: 채점 기준표, 모범 답안
+    이미지/PDF)이며, 학생/학부모에게는 노출하지 않는다.
+    """
+    __tablename__ = 'essay_guide_attachments'
+
+    attachment_id = db.Column(db.String(36), primary_key=True)
+    essay_id = db.Column(db.String(36), db.ForeignKey('essays.essay_id', ondelete='CASCADE'),
+                         nullable=False, index=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False)  # 'image' / 'pdf' / 'docx'
+    media_type = db.Column(db.String(100), nullable=True)  # image/png, image/jpeg, application/pdf 등
+    file_size = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    essay = db.relationship('Essay', backref=db.backref(
+        'guide_attachments', cascade='all, delete-orphan',
+        order_by='EssayGuideAttachment.created_at'))
+
+    def __repr__(self):
+        return f'<EssayGuideAttachment {self.original_filename}>'
+
+    def __init__(self, **kwargs):
+        super(EssayGuideAttachment, self).__init__(**kwargs)
+        if not self.attachment_id:
+            import uuid
+            self.attachment_id = str(uuid.uuid4())
