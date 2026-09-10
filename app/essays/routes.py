@@ -658,6 +658,48 @@ def processing(essay_id):
                          student=essay.student)
 
 
+@essays_bp.route('/<essay_id>/report-frame')
+@login_required
+def report_frame(essay_id):
+    """첨삭 리포트 HTML을 iframe 전용으로 반환.
+
+    AI가 생성하는 리포트는 완전한 <html><head><style>...</style></head><body>
+    문서다. 예전처럼 페이지 본문(예: result.html)에 {{ html_content|safe }}로
+    그대로 삽입하면, 리포트가 가진 body/전역 선택자 CSS(font-size:11px 등)가
+    부모 페이지 전체(사이드바 메뉴 글자 크기 포함)에 새어나간다 - 2026-09-10
+    강사가 "첨삭 후 사이드바 글자가 작아진다"고 신고해서 발견함. iframe으로
+    분리하면 리포트의 <style>이 iframe 문서 안에만 적용되어 이 문제가 없다.
+    """
+    essay = Essay.query.get_or_404(essay_id)
+    if not _can_access_essay(essay):
+        return '접근 권한이 없습니다.', 403
+
+    version_number = request.args.get('version', type=int)
+    if version_number:
+        version = EssayVersion.query.filter_by(
+            essay_id=essay.essay_id, version_number=version_number
+        ).first_or_404()
+    else:
+        version = essay.latest_version
+        if not version:
+            return '첨삭 결과를 찾을 수 없습니다.', 404
+
+    html_content = None
+    if version.html_path:
+        try:
+            with open(version.html_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except Exception:
+            pass
+    if not html_content and version.html_content:
+        html_content = version.html_content
+    if not html_content:
+        return 'HTML을 불러올 수 없습니다.', 404
+
+    from flask import Response
+    return Response(html_content, mimetype='text/html')
+
+
 @essays_bp.route('/result/<essay_id>')
 @login_required
 def result(essay_id):

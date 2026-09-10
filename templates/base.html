@@ -1540,6 +1540,17 @@
         });
     });
 
+    // 첨삭 리포트 iframe 높이 자동 조절 (같은 출처라 contentWindow 접근 가능)
+    function momoaiResizeReportFrame(iframe) {
+        try {
+            const doc = iframe.contentWindow.document;
+            const height = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+            iframe.style.height = (height + 20) + 'px';
+        } catch (e) {
+            // 접근 실패 시 최소 높이 유지
+        }
+    }
+
     // 알림 뱃지 업데이트
     function updateNotificationBadge() {
         fetch('/notifications/api/unread-count')

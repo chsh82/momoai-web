@@ -64,8 +64,11 @@
     {% endif %}
 
     <!-- Essay Result (HTML Content) -->
-    <div class="bg-white rounded-lg shadow-lg p-8">
-        {{ html_content|safe }}
+    <div class="bg-white rounded-lg shadow-lg p-2 sm:p-4">
+        <iframe id="reportFrame"
+                src="{{ url_for('essays.report_frame', essay_id=essay.essay_id, version=version.version_number) }}"
+                class="w-full border-0" style="min-height: 600px;"
+                onload="momoaiResizeReportFrame(this)"></iframe>
     </div>
 
     <!-- Actions -->
