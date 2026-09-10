@@ -1465,15 +1465,15 @@
     {% if current_user.is_authenticated %}
     <!-- 팝업 공지사항 모달 -->
     <div id="announcementPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[1100] flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div id="announcementCard" class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div class="p-6">
-                <div class="flex items-start justify-between mb-4">
+                <div id="popupHeaderBar" class="flex items-start justify-between mb-4">
                     <div class="flex items-center gap-2">
-                        <span class="text-3xl">📢</span>
+                        <span id="popupIcon" class="text-3xl">📢</span>
                         <h3 id="popupTitle" class="text-2xl font-bold text-gray-800"></h3>
                         <span id="popupBadge" class="px-2 py-1 text-xs font-medium rounded"></span>
                     </div>
-                    <button onclick="closeAnnouncementPopup()" class="text-gray-400 hover:text-gray-600">
+                    <button onclick="closeAnnouncementPopup()" id="popupCloseBtn" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -1615,15 +1615,45 @@
             badgeClass = 'bg-purple-100 text-purple-800';
             badgeText = '행사';
         } else if (announcement.announcement_type === 'system') {
-            badgeClass = 'bg-gray-100 text-gray-800';
-            badgeText = '시스템';
+            badgeClass = 'bg-white text-indigo-700';
+            badgeText = '시스템 업데이트';
         }
 
         badge.className = 'px-2 py-1 text-xs font-medium rounded ' + badgeClass;
         badge.textContent = badgeText;
 
+        // 팝업 위치·색상 적용 (출결 확인 팝업 등 다른 모달과 구분되도록
+        // system 타입은 화면 중앙 어두운 오버레이 대신 우상단 토스트로 표시)
+        applyPopupStyle(announcement.announcement_type);
+
         // 모달 표시
         document.getElementById('announcementPopup').classList.remove('hidden');
+    }
+
+    function applyPopupStyle(type) {
+        const container = document.getElementById('announcementPopup');
+        const card = document.getElementById('announcementCard');
+        const headerBar = document.getElementById('popupHeaderBar');
+        const title = document.getElementById('popupTitle');
+        const closeBtn = document.getElementById('popupCloseBtn');
+        const icon = document.getElementById('popupIcon');
+
+        if (type === 'system') {
+            // 우상단 토스트형, 인디고 헤더 - 화면 중앙에 뜨는 출결 확인(빨강) 팝업과 위치·색 모두 구분
+            container.className = 'fixed top-24 right-6 hidden z-[1150] flex justify-end';
+            card.className = 'bg-white rounded-lg shadow-2xl w-96 max-h-[75vh] overflow-y-auto';
+            headerBar.className = 'flex items-start justify-between mb-4 -mx-6 -mt-6 px-6 py-4 rounded-t-lg bg-indigo-600 text-white';
+            title.className = 'text-lg font-bold text-white';
+            closeBtn.className = 'text-white opacity-80 hover:opacity-100';
+            icon.textContent = '🚀';
+        } else {
+            container.className = 'fixed inset-0 bg-black bg-opacity-50 hidden z-[1100] flex items-center justify-center';
+            card.className = 'bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto';
+            headerBar.className = 'flex items-start justify-between mb-4';
+            title.className = 'text-2xl font-bold text-gray-800';
+            closeBtn.className = 'text-gray-400 hover:text-gray-600';
+            icon.textContent = '📢';
+        }
     }
 
     function closeAnnouncementPopup() {
