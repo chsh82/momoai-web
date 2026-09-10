@@ -59,7 +59,7 @@ class MOMOAIService:
 
 위 첨삭본을 기반으로 수정 요청 사항을 반영하여 개선된 첨삭본을 생성해주세요.
 수정 요청과 직접 관련 없는 문장·표현·구성은 이전 첨삭본 그대로 유지하고, 지적된 부분만 최소한으로 고쳐주세요.
-MOMOAI v3.3.0 규칙을 준수하고, 반드시 HTML 완전 템플릿 형식으로 출력해주세요.
+MOMOAI v5.0.0 규칙을 준수하고, 반드시 HTML 완전 템플릿 형식으로 출력해주세요.
 """
         else:
             prompt = f"""학생 정보:
@@ -77,13 +77,13 @@ MOMOAI v3.3.0 규칙을 준수하고, 반드시 HTML 완전 템플릿 형식으�
                 prompt += f"\n수정 요청 사항:\n{revision_note}\n"
 
             prompt += """
-위 논술문을 MOMOAI v3.3.0 규칙에 따라 첨삭해주세요.
+위 논술문을 MOMOAI v5.0.0 규칙에 따라 첨삭해주세요.
 반드시 HTML 완전 템플릿 형식으로 출력하고, 모든 규칙을 준수해주세요.
 
-v3.3.0 필수 포함 사항:
+v5.0.0 필수 포함 사항:
 1. 윤문 완성본 (원문 대비 1.3~2배 분량, 통계+사례 필수)
 2. 💭 생각해볼 쟁점 세 가지 (내용첨삭과 비중복되는 심화 질문)
-3. 교사 종합 제언
+3. 교사 총평
 4. 푸터까지 완전한 HTML 문서
 
 특히 "생각해볼 쟁점 세 가지" 섹션은 필수입니다. 내용 첨삭에서 지적한 문제가 아닌, 글을 넘어서는 심화 토론 주제 3가지를 제시해주세요.
@@ -192,7 +192,7 @@ v3.3.0 필수 포함 사항:
                         '<div style="background:#fff3cd;border:2px solid #ffc107;padding:16px;'
                         'margin:20px;border-radius:8px;font-family:sans-serif;">'
                         '<strong>⚠️ 응답 길이 초과</strong><br>'
-                        '논술문이 너무 길어 일부 섹션(윤문 완성본, 교사 종합 제언 등)이 누락되었을 수 있습니다. '
+                        '논술문이 너무 길어 일부 섹션(윤문 완성본, 교사 총평 등)이 누락되었을 수 있습니다. '
                         '관리자에게 문의해 주세요.</div>'
                     )
                     html_content = response.content[0].text
@@ -400,7 +400,7 @@ v3.3.0 필수 포함 사항:
                                 user_id: Optional[str] = None,
                                 essay_id: Optional[str] = None) -> str:
         """
-        스탠다드 모델 v3.5.0: 단일 API 호출 (max_tokens=32000)
+        스탠다드 모델 v5.0.0: 단일 API 호출 (max_tokens=32000)
 
         Args:
             essay_text: 완료된 첨삭 재수정(is_revision_of_completed=True)이면 이전
@@ -461,7 +461,7 @@ v3.3.0 필수 포함 사항:
                                   user_id: Optional[str] = None,
                                   essay_id: Optional[str] = None) -> str:
         """
-        초등 모델 v3.5.0: 1회 API 호출 후 CSS 래핑 (max_tokens=32000)
+        초등 모델 v5.0.0: 1회 API 호출 후 CSS 래핑 (max_tokens=32000)
 
         Args:
             essay_text: 완료된 첨삭 재수정(is_revision_of_completed=True)이면 이전
