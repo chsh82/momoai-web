@@ -2179,6 +2179,30 @@ def send_kakao_message(phone, message):
 
 # ==================== 공지사항 관리 ====================
 
+def _kst_form_to_utc(dt):
+    """AnnouncementForm의 datetime-local 입력(관리자가 입력한 한국시간, naive)을
+    DB 저장용 UTC(naive)로 변환한다.
+
+    publish_start/end는 templates/admin/announcement_detail.html에서 `kst` 필터
+    (UTC → KST, +9h)로 표시되므로, is_active()의 datetime.utcnow() 비교와
+    상세 화면 표시가 둘 다 맞으려면 저장 시점에 반드시 UTC로 변환해야 한다.
+    이 변환 없이 폼 값을 그대로 저장하면 실제보다 9시간 늦게 게시가
+    시작/종료되는 문제가 생긴다(2026-09-10 발견).
+    """
+    if dt is None:
+        return None
+    from datetime import timedelta
+    return dt - timedelta(hours=9)
+
+
+def _utc_to_kst_form(dt):
+    """DB에 저장된 UTC 값을 AnnouncementForm 표시용 한국시간으로 변환(위 함수의 역변환)."""
+    if dt is None:
+        return None
+    from datetime import timedelta
+    return dt + timedelta(hours=9)
+
+
 @admin_bp.route('/announcements')
 @login_required
 @requires_permission_level(3)  # 스태프 이상
@@ -2220,8 +2244,8 @@ def create_announcement():
             target_tiers=target_tiers_str,
             is_pinned=form.is_pinned.data,
             is_popup=form.is_popup.data,
-            publish_start=form.publish_start.data,
-            publish_end=form.publish_end.data,
+            publish_start=_kst_form_to_utc(form.publish_start.data),
+            publish_end=_kst_form_to_utc(form.publish_end.data),
             is_published=True
         )
 
@@ -2282,6 +2306,12 @@ def edit_announcement(announcement_id):
         if announcement.target_tiers:
             form.target_tiers.data = announcement.target_tiers_list
 
+        # publish_start/end는 DB에 UTC로 저장돼 있으므로 폼(datetime-local, 한국시간
+        # 입력 가정)에는 KST로 되돌려 채워야 관리자가 수정 화면에서 원래 의도한
+        # 시각을 그대로 본다.
+        form.publish_start.data = _utc_to_kst_form(announcement.publish_start)
+        form.publish_end.data = _utc_to_kst_form(announcement.publish_end)
+
     if form.validate_on_submit():
         # target_roles 처리
         target_roles_data = form.target_roles.data
@@ -2300,8 +2330,8 @@ def edit_announcement(announcement_id):
         announcement.target_tiers = target_tiers_str
         announcement.is_pinned = form.is_pinned.data
         announcement.is_popup = form.is_popup.data
-        announcement.publish_start = form.publish_start.data
-        announcement.publish_end = form.publish_end.data
+        announcement.publish_start = _kst_form_to_utc(form.publish_start.data)
+        announcement.publish_end = _kst_form_to_utc(form.publish_end.data)
 
         db.session.commit()
 
