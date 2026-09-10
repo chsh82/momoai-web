@@ -168,8 +168,11 @@
                         </a>
                     </div>
                 </div>
-                <div class="p-8">
-                    {{ html_content|safe }}
+                <div class="p-2 sm:p-4">
+                    <iframe id="reportFrame"
+                            src="{{ url_for('essays.report_frame', essay_id=essay.essay_id) }}"
+                            class="w-full border-0" style="min-height: 600px;"
+                            onload="momoaiResizeReportFrame(this)"></iframe>
                 </div>
             </div>
             <div class="mt-3 text-center text-sm text-gray-600">

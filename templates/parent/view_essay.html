@@ -109,8 +109,11 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-xl font-bold text-gray-800">✍️ 첨삭 결과</h3>
                 </div>
-                <div class="p-8">
-                    {{ html_content|safe }}
+                <div class="p-2 sm:p-4">
+                    <iframe id="reportFrame"
+                            src="{{ url_for('essays.report_frame', essay_id=essay.essay_id) }}"
+                            class="w-full border-0" style="min-height: 600px;"
+                            onload="momoaiResizeReportFrame(this)"></iframe>
                 </div>
             </div>
             {% elif essay.is_finalized and not essay.correction_attachments %}

@@ -669,9 +669,31 @@ def report_frame(essay_id):
     부모 페이지 전체(사이드바 메뉴 글자 크기 포함)에 새어나간다 - 2026-09-10
     강사가 "첨삭 후 사이드바 글자가 작아진다"고 신고해서 발견함. iframe으로
     분리하면 리포트의 <style>이 iframe 문서 안에만 적용되어 이 문제가 없다.
+
+    teacher/admin은 _can_access_essay로, parent/student는 각자의 포털 라우트
+    (parent_portal.view_essay, student_portal.view_essay)와 동일한 조건으로
+    권한을 확인한다 - 특히 parent/student는 essay.is_finalized(및 student는
+    status 조건)까지 만족해야 하며, 이 게이트를 빠뜨리면 강사가 아직 검토
+    중인 미완료 첨삭을 학생/학부모가 이 URL로 직접 열람할 수 있게 된다.
     """
     essay = Essay.query.get_or_404(essay_id)
-    if not _can_access_essay(essay):
+
+    allowed = _can_access_essay(essay)
+
+    if not allowed and current_user.role == 'parent':
+        from app.models import ParentStudent
+        relation = ParentStudent.query.filter_by(
+            parent_id=current_user.user_id, student_id=essay.student_id, is_active=True
+        ).first()
+        allowed = bool(relation) and essay.is_finalized
+
+    if not allowed and current_user.role == 'student':
+        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
+                  Student.query.filter_by(email=current_user.email).first()
+        allowed = bool(student) and essay.student_id == student.student_id and \
+            essay.status in ('reviewing', 'completed') and essay.is_finalized
+
+    if not allowed:
         return '접근 권한이 없습니다.', 403
 
     version_number = request.args.get('version', type=int)
