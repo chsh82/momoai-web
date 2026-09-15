@@ -26,7 +26,7 @@ class PointEvent(db.Model):
     points = db.Column(db.Integer, nullable=False)  # 적립은 양수, 취소는 음수
     status = db.Column(db.String(10), nullable=False, default='pending')  # pending / confirmed / cancelled
     source_type = db.Column(db.String(30), nullable=False)
-    # essay, post, comment, quiz_session, attendance_week, attendance_quarter, manual
+    # essay, post, comment, quiz_session, attendance_week, attendance_quarter, tutorial_course, manual
     source_id = db.Column(db.String(64), nullable=False)  # 대상 레코드 ID (문자열로 통일 저장)
     season = db.Column(db.String(7), nullable=False)  # '2026-09' (KST 기준)
     occurred_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # 활동 발생 시각(UTC)

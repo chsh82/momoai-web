@@ -99,6 +99,16 @@ POINT_RULES = {
         'daily_cap': None,
         'monthly_cap': None,
     },
+    'TU01': {
+        'name': '튜토리얼 코스 완료',
+        'points': 100,
+        'points_min': None,
+        'points_max': None,
+        'allowed_source_types': ['tutorial_course'],
+        'confirm_delay_hours': 0,
+        'daily_cap': None,
+        'monthly_cap': None,
+    },
     'QS01': {
         'name': '질문 등록',
         'points': 100,
