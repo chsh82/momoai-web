@@ -279,3 +279,56 @@ def save_session():
     if updated:
         response['message'] = f'{class_date.month}월 {class_date.day}일 회차를 갱신했습니다.'
     return jsonify(response)
+
+
+@feedback_bp.route('/api/sessions/report', methods=['POST'])
+def save_report():
+    """수업 보고문(반 전체 1건)을 이미 저장된 회차에 붙인다(4단계).
+
+    문자(SmsMessage) 저장과 별개의 작은 엔드포인트로 뒀다 - /api/sessions는
+    students가 비면 400으로 거절하는데, 보고문만 따로 생성·저장하는
+    흐름(문자를 먼저 저장해 둔 뒤 나중에 보고문만 붙이는 경우)에서는
+    student 목록을 다시 보낼 이유가 없다. 회차가 아직 없으면 "먼저 이
+    수업을 저장하세요"로 명확히 안내한다.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({'error': '로그인이 필요합니다'}), 401
+    if current_user.role not in ('teacher', 'admin'):
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    data = request.get_json(silent=True) or {}
+    course_id = data.get('course_id')
+    class_date_raw = data.get('class_date')
+    report_body = data.get('report_body')
+
+    if not course_id or not class_date_raw:
+        return jsonify({'error': '요청이 올바르지 않습니다'}), 400
+    if not isinstance(report_body, str) or not report_body.strip():
+        return jsonify({'error': '저장할 보고문이 없습니다'}), 400
+
+    try:
+        class_date = date.fromisoformat(str(class_date_raw))
+    except ValueError:
+        return jsonify({'error': '수업일 형식이 올바르지 않습니다'}), 400
+
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': '반을 찾을 수 없습니다'}), 400
+    if current_user.role == 'teacher' and course.teacher_id != current_user.user_id:
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    sms_session = SmsSession.query.filter_by(course_id=course_id, class_date=class_date).first()
+    if not sms_session:
+        return jsonify({'error': '먼저 이 수업을 저장하세요'}), 400
+
+    try:
+        sms_session.report_body = report_body
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            '[feedback.save_report] 보고문 저장 실패 (session_id=%s, teacher_id=%s)',
+            sms_session.sms_session_id, current_user.user_id)
+        return jsonify({'error': '저장에 실패했습니다'}), 500
+
+    return jsonify({'session_id': sms_session.sms_session_id, 'saved': True})

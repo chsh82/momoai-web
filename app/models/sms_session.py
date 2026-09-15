@@ -26,6 +26,7 @@ class SmsSession(db.Model):
     week = db.Column(db.String(50), nullable=True)
     raw_summary = db.Column(db.Text, nullable=True)
     name_map = db.Column(db.JSON, nullable=True)  # [{"raw":"김지우","to":"김지후"}, ...]
+    report_body = db.Column(db.Text, nullable=True)  # 반 전체 1건 수업 보고문 (4단계, 선택 저장)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
