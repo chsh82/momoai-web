@@ -1,0 +1,237 @@
+/* 글쓰기 튜토리얼 전용 스타일 - 전달된 샘플 HTML의 <style> 내용을 옮긴 것.
+   base.html(Tailwind)과 클래스명이 겹치지 않아 접두사 없이 그대로 썼지만,
+   *, body 같은 전역 선택자는 사이드바까지 깨뜨리므로 전부 .tut-page 아래로
+   스코프했다(1단계 조사에서 확인한 feedback 페이지와 같은 문제를 미리 피함).
+
+   주의: 원본 샘플 CSS에 .card{} 선택자 자체가 빠져 있고(box-shadow/border
+   선언 두 줄만 붕 떠 있었음) 카드에 배경·둥근 모서리·여백이 전혀 안 먹는
+   버그가 있었다. 아래 .tut-page .card{}는 그 원본 버그를 고쳐 넣은 것 -
+   떠 있던 box-shadow/border 선언은 그대로 살리고, 다른 박스형 컴포넌트
+   (.course/.q)와 같은 값으로 background/border-radius/padding/margin을
+   채웠다. */
+.tut-page{
+  --cream:#FFF8EC; --paper:#FFFDF7;
+  --navy:#2F4A7A; --navy-soft:#5C6B8C;
+  --coral:#E1705C; --coral-pale:#FBE7E1; --coral-deep:#C8543F;
+  --sky:#5C93C4; --sky-pale:#E4EFF7;
+  --leaf:#4FA37A; --leaf-pale:#E4F2EA;
+  --gold:#E0A64B;
+  --wrong:#D84A3A; --wrong-pale:#FBE3DF;
+  --right:#2E9163; --right-pale:#E1F1E8;
+  --ink:#26324A; --muted:#8A8577;
+  --rule:#EFE7D6;
+  --cell:clamp(24px,7.6vw,40px);
+  --shadow:0 6px 0 rgba(47,74,122,.10);
+
+  font-family:'Noto Sans KR',sans-serif;
+  background:var(--cream); color:var(--ink);
+  line-height:1.75; font-size:16px;
+  -webkit-text-size-adjust:100%;
+}
+.tut-page *{box-sizing:border-box}
+.tut-page .wrap{max-width:520px;margin:0 auto;position:relative}
+.tut-page h1,.tut-page h2,.tut-page h3,.tut-page .jua{font-family:'Jua',sans-serif;font-weight:400;letter-spacing:.2px}
+.tut-page b{font-weight:700;color:var(--navy)}
+.tut-page em{font-style:normal;background:linear-gradient(transparent 62%,var(--coral-pale) 62%);font-weight:500}
+
+/* ---------- screens ---------- */
+.tut-page .screen{display:none;padding:20px 18px 60px}
+.tut-page .screen.on{display:block;animation:tut-pop .32s ease}
+@keyframes tut-pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.tut-page .screen.on{animation:none}}
+
+/* ---------- topbar ---------- */
+.tut-page .top{position:sticky;top:0;z-index:20;background:var(--cream);
+  display:flex;align-items:center;gap:10px;padding:14px 18px 10px}
+.tut-page .top .back{border:none;background:var(--paper);width:40px;height:40px;border-radius:14px;
+  box-shadow:var(--shadow);font-size:18px;color:var(--navy);cursor:pointer}
+.tut-page .top .back:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(47,74,122,.10)}
+.tut-page .top .crumb{font-family:'Jua';color:var(--navy);font-size:17px;flex:1}
+.tut-page .top .of{color:var(--muted);font-size:14px;font-weight:500}
+
+/* progress dots */
+.tut-page .dots{display:flex;gap:7px;padding:0 18px 6px}
+.tut-page .dots i{width:100%;height:7px;border-radius:99px;background:var(--rule);flex:1}
+.tut-page .dots i.done{background:var(--coral)}
+.tut-page .dots i.now{background:var(--coral);box-shadow:0 0 0 3px var(--coral-pale)}
+
+/* ---------- HOME ---------- */
+.tut-page .hero{background:var(--navy);color:#fff;border-radius:26px;padding:24px 22px 26px;
+  position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.tut-page .hero .badge{position:absolute;top:16px;right:16px;background:var(--gold);color:#3a2c0c;
+  font-family:'Jua';font-size:13px;padding:5px 12px;border-radius:99px}
+.tut-page .hero h1{font-size:27px;margin:0 0 6px;color:#fff}
+.tut-page .hero p{margin:0;color:#D5DEEE;font-size:14.5px}
+.tut-page .hero .cells{display:flex;gap:5px;margin-top:16px}
+.tut-page .hero .cells span{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);
+  border:1.5px solid rgba(255,255,255,.28);display:grid;place-items:center;
+  font-family:'Jua';color:#fff;font-size:16px}
+
+.tut-page .eyes{margin:18px 2px 4px;border:2px dashed var(--rule);border-radius:20px;
+  background:var(--paper);padding:6px 4px}
+.tut-page .eyes summary{list-style:none;cursor:pointer;padding:12px 16px;font-family:'Jua';
+  color:var(--navy);display:flex;align-items:center;gap:8px}
+.tut-page .eyes summary::-webkit-details-marker{display:none}
+.tut-page .eyes summary::after{content:'▾';margin-left:auto;color:var(--muted)}
+.tut-page .eyes[open] summary::after{content:'▴'}
+.tut-page .eye{display:flex;gap:12px;padding:8px 16px}
+.tut-page .eye .n{flex:none;width:30px;height:30px;border-radius:99px;display:grid;place-items:center;
+  font-family:'Jua';color:#fff;font-size:15px}
+.tut-page .eye.a .n{background:var(--coral)} .tut-page .eye.b .n{background:var(--sky)} .tut-page .eye.c .n{background:var(--leaf)}
+.tut-page .eye .t{font-size:14px;color:var(--navy-soft)}
+.tut-page .eye .t b{display:block;font-family:'Jua';color:var(--navy);font-weight:400;font-size:15px}
+
+.tut-page .sec-label{font-family:'Jua';color:var(--navy);margin:24px 4px 12px;font-size:16px;
+  display:flex;align-items:center;gap:8px}
+.tut-page .course{display:block;width:100%;text-align:left;border:none;cursor:pointer;
+  background:var(--paper);border-radius:22px;padding:18px 18px;margin-bottom:14px;
+  box-shadow:var(--shadow);position:relative;text-decoration:none}
+.tut-page .course:active{transform:translateY(2px);box-shadow:0 3px 0 rgba(47,74,122,.10)}
+.tut-page .course .chip{font-family:'Jua';font-size:12.5px;color:#fff;padding:3px 11px;border-radius:99px;display:inline-block}
+.tut-page .course.c1 .chip{background:var(--coral)} .tut-page .course.c2 .chip{background:var(--sky)} .tut-page .course.c3 .chip{background:var(--leaf)}
+.tut-page .course h3{margin:9px 0 3px;font-size:19px;color:var(--navy)}
+.tut-page .course .sub{font-size:13.5px;color:var(--muted);margin-bottom:12px}
+.tut-page .bar{height:11px;border-radius:99px;background:var(--rule);overflow:hidden}
+.tut-page .bar i{display:block;height:100%;border-radius:99px;background:var(--coral);width:0;transition:width .5s}
+.tut-page .course .meta{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--navy-soft);font-weight:500}
+.tut-page .course.locked{opacity:.62;cursor:default}
+.tut-page .course.locked .chip{background:var(--muted)}
+.tut-page .tools{display:flex;gap:12px;margin-top:6px}
+.tut-page .tool{flex:1;border:2px solid var(--rule);background:var(--paper);border-radius:18px;padding:14px;
+  text-align:center;font-family:'Jua';color:var(--navy);font-size:14px;cursor:pointer}
+.tut-page .tool .ico{font-size:22px;display:block;margin-bottom:4px}
+
+/* ---------- LESSON CARDS ---------- */
+.tut-page .stage{font-family:'Jua';color:#fff;background:var(--coral);display:inline-flex;align-items:center;
+  gap:7px;padding:6px 15px;border-radius:99px;font-size:14px;margin:4px 0 14px}
+.tut-page .stage.quiz{background:var(--sky)}
+.tut-page .reread{border:none;background:var(--sky-pale);color:var(--sky);font-family:'Jua';font-size:13px;
+  padding:2px 10px;border-radius:99px;cursor:pointer;vertical-align:middle}
+.tut-page .to-quiz{margin-top:26px;background:var(--navy);border-radius:24px;padding:22px 20px;text-align:center;
+  box-shadow:var(--shadow)}
+.tut-page .to-quiz-msg{color:#D5DEEE;font-size:15px;margin-bottom:16px;line-height:1.6}
+.tut-page .to-quiz-msg b{color:var(--gold)}
+.tut-page .to-quiz .big{box-shadow:0 4px 0 var(--coral-deep)}
+.tut-page .card{background:var(--paper);border-radius:22px;padding:20px 18px;margin-bottom:16px;
+  box-shadow:var(--shadow);border:1px solid var(--rule)}
+.tut-page .card .cn{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.tut-page .card .cn .b{flex:none;width:34px;height:34px;border-radius:99px;background:var(--coral);color:#fff;
+  display:grid;place-items:center;font-family:'Jua';font-size:16px}
+.tut-page .card .cn h3{margin:0;font-size:18.5px;color:var(--navy)}
+.tut-page .card .cn .star{margin-left:auto;background:var(--gold);color:#3a2c0c;font-family:'Jua';
+  font-size:11.5px;padding:3px 9px;border-radius:99px}
+.tut-page .say{font-size:15.5px;margin:2px 0 4px}
+.tut-page .why{display:flex;gap:9px;background:var(--sky-pale);border-radius:16px;padding:11px 13px;margin:12px 0;
+  font-size:14px;color:#2c4a63}
+.tut-page .why .q{flex:none;font-family:'Jua';color:var(--sky);font-size:15px}
+
+/* 원고지 */
+.tut-page .gpwrap{margin:14px 0 4px}
+.tut-page .gptag{font-size:13px;font-weight:700;margin:0 0 7px;display:inline-flex;align-items:center;gap:6px;
+  padding:4px 11px;border-radius:99px}
+.tut-page .gptag.bad{background:var(--wrong-pale);color:var(--wrong)}
+.tut-page .gptag.good{background:var(--right-pale);color:var(--right)}
+.tut-page .gp{display:inline-block;font-size:0}
+.tut-page .gp-row{display:grid;gap:0;margin:0}
+.tut-page .gp span{width:var(--cell);height:var(--cell);border:1px solid #E7C9A8;margin:-1px 0 0 -1px;
+  display:inline-flex;align-items:center;justify-content:center;position:relative;
+  font-size:calc(var(--cell)*.5);font-family:'Noto Sans KR';background:#fff;vertical-align:top}
+.tut-page .gp.bad span{border-color:#EBBCA6;background:#FFF8F5}
+.tut-page .gp.good span{border-color:#B9DEC8;background:#F6FCF8}
+.tut-page .gp span.two{font-size:calc(var(--cell)*.36);letter-spacing:-1px}
+.tut-page .gp span.bl{align-items:flex-end;justify-content:flex-start;padding:0 0 3px 4px;font-size:calc(var(--cell)*.5)}
+.tut-page .gp span.qo{align-items:flex-start;justify-content:flex-end;padding:2px 4px 0 0}
+.tut-page .gp span.qc{align-items:flex-start;justify-content:flex-start;padding:2px 0 0 4px}
+.tut-page .gp span.hl{background:var(--wrong-pale);color:var(--wrong);font-weight:700}
+.tut-page .gp.good span.hl{background:var(--right-pale);color:var(--right)}
+
+.tut-page .remember{display:flex;gap:9px;background:var(--cream);border:2px dashed var(--coral);border-radius:18px;
+  padding:12px 14px;margin-top:14px;font-size:14px;position:relative}
+.tut-page .remember .momo{flex:none;width:34px;height:34px;border-radius:99px;background:var(--coral);color:#fff;
+  display:grid;place-items:center;font-family:'Jua';font-size:13px}
+.tut-page .remember b{color:var(--coral-deep)}
+
+.tut-page .cardnav{display:flex;align-items:center;gap:12px;margin-top:6px}
+.tut-page .cardnav .count{color:var(--muted);font-size:14px;font-weight:500}
+.tut-page .big{margin-left:auto;border:none;cursor:pointer;font-family:'Jua';color:#fff;background:var(--coral);
+  padding:13px 22px;border-radius:16px;font-size:16px;box-shadow:0 4px 0 var(--coral-deep)}
+.tut-page .big:active{transform:translateY(3px);box-shadow:0 1px 0 var(--coral-deep)}
+.tut-page .big:disabled{background:var(--rule);color:#B7AF9C;box-shadow:0 4px 0 #D8CFBB;cursor:default}
+.tut-page .big.ghost{background:var(--paper);color:var(--navy);border:2px solid var(--rule);box-shadow:var(--shadow)}
+.tut-page .big.ghost:active{box-shadow:0 2px 0 rgba(47,74,122,.10)}
+
+.tut-page .divide{text-align:center;font-family:'Jua';color:var(--coral);margin:26px 0 16px;
+  display:flex;align-items:center;gap:12px;font-size:15px}
+.tut-page .divide::before,.tut-page .divide::after{content:'';height:2px;background:var(--rule);flex:1;border-radius:2px}
+
+/* ---------- QUIZ ---------- */
+.tut-page .q{position:relative;background:var(--paper);border-radius:24px;padding:20px 18px;box-shadow:var(--shadow);border:1px solid var(--rule)}
+.tut-page .q .qhead{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.tut-page .q .qno{font-family:'Jua';color:#fff;background:var(--navy);padding:5px 13px;border-radius:99px;font-size:13.5px}
+.tut-page .q .qtype{font-size:12.5px;color:var(--muted);font-weight:500;margin-left:auto}
+.tut-page .q .qtext{font-size:17px;font-family:'Jua';color:var(--navy);line-height:1.5;margin-bottom:16px}
+.tut-page .opts{display:flex;flex-direction:column;gap:11px}
+.tut-page .opt{display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;
+  border:2.5px solid var(--rule);background:#fff;border-radius:18px;padding:13px 14px;font-size:16px;color:var(--ink);
+  font-family:'Noto Sans KR';transition:border-color .15s,background .15s}
+.tut-page .opt:active{transform:translateY(1px)}
+.tut-page .opt .key{flex:none;width:30px;height:30px;border-radius:99px;background:var(--cream);color:var(--navy);
+  display:grid;place-items:center;font-family:'Jua';font-size:15px}
+.tut-page .opt.right{border-color:var(--right);background:var(--right-pale)}
+.tut-page .opt.right .key{background:var(--right);color:#fff}
+.tut-page .opt.wrong{border-color:var(--wrong);background:var(--wrong-pale)}
+.tut-page .opt.wrong .key{background:var(--wrong);color:#fff}
+.tut-page .opt.dim{opacity:.5}
+.tut-page .opt .gp{margin:2px 0}
+.tut-page .opt:disabled{cursor:default}
+
+/* fill-in */
+.tut-page .fill-target{margin:4px 0 16px}
+.tut-page .fill-target .gp span{cursor:pointer;background:#fff}
+.tut-page .fill-target .gp span.sel{outline:3px solid var(--coral);outline-offset:-3px;z-index:2}
+.tut-page .fill-target .gp span.filled{background:var(--cream);font-weight:500}
+.tut-page .fill-target .gp span.err{background:var(--wrong-pale);color:var(--wrong);font-weight:700}
+.tut-page .fill-target .gp span.ok{background:var(--right-pale);color:var(--right);font-weight:700}
+.tut-page .pieces{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
+.tut-page .piece{border:2px solid var(--navy);background:var(--paper);color:var(--navy);border-radius:12px;
+  min-width:38px;padding:8px 12px;font-family:'Jua';font-size:16px;cursor:pointer}
+.tut-page .piece.used{opacity:.28;pointer-events:none}
+.tut-page .piece.blank{color:var(--muted)}
+.tut-page .fill-hint{font-size:13px;color:var(--muted);margin:-6px 0 12px}
+
+.tut-page .why-box{margin-top:14px;background:var(--cream);border-radius:16px;padding:14px 15px;font-size:14.5px;
+  display:none}
+.tut-page .why-box.on{display:block;animation:tut-pop .28s}
+.tut-page .verdict{font-family:'Jua';display:inline-block;margin-right:6px}
+.tut-page .verdict.y{color:var(--right)} .tut-page .verdict.n{color:var(--coral-deep)}
+
+/* ○/✕ 도장 — 선택지/입력 영역 오른쪽 위에 붙는다 */
+.tut-page .opts,.tut-page .fill-target{position:relative}
+.tut-page .stamp{position:absolute;top:-14px;right:-6px;width:50px;height:50px;pointer-events:none;
+  opacity:0;transform:scale(.4) rotate(-14deg);z-index:5;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.12))}
+.tut-page .stamp.on{animation:tut-stamp .38s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes tut-stamp{to{opacity:1;transform:scale(1) rotate(-8deg)}}
+.tut-page .stamp circle,.tut-page .stamp line{fill:none;stroke-width:6;stroke-linecap:round}
+.tut-page .stamp.y circle{stroke:var(--right)}
+.tut-page .stamp.n line{stroke:var(--wrong)}
+@media (prefers-reduced-motion:reduce){.tut-page .stamp.on{animation:none;opacity:1;transform:scale(1) rotate(-8deg)}}
+
+/* ---------- RESULT ---------- */
+.tut-page .result{text-align:center;background:var(--navy);color:#fff;border-radius:28px;padding:30px 22px;box-shadow:var(--shadow)}
+.tut-page .result .medal{font-size:52px;margin-bottom:4px}
+.tut-page .result h2{color:#fff;font-size:24px;margin:4px 0}
+.tut-page .result .score{font-family:'Jua';font-size:40px;color:var(--gold);margin:6px 0}
+.tut-page .result .mile{display:inline-flex;align-items:center;gap:7px;background:rgba(224,166,75,.18);
+  color:var(--gold);font-family:'Jua';padding:8px 16px;border-radius:99px;margin-top:8px}
+.tut-page .result .mile[hidden]{display:none}
+.tut-page .review{background:var(--paper);border-radius:22px;padding:16px 18px;margin-top:16px;box-shadow:var(--shadow);text-align:left}
+.tut-page .review h4{font-family:'Jua';color:var(--navy);margin:0 0 10px;font-size:15px}
+.tut-page .review .row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:14.5px}
+.tut-page .review .row:last-child{border:none}
+.tut-page .review .row .rn{flex:none;width:26px;height:26px;border-radius:99px;background:var(--coral);color:#fff;
+  display:grid;place-items:center;font-family:'Jua';font-size:12px}
+.tut-page .review .row.good .rn{background:var(--right)}
+.tut-page .result-actions{display:flex;flex-direction:column;gap:11px;margin-top:18px}
+
+.tut-page .foot{text-align:center;color:var(--muted);font-size:11.5px;padding:26px 18px 10px;line-height:1.7}
