@@ -12,7 +12,7 @@ system-spec-v2.md §7.7 보안 점검표).
 강사별/기간별 집계용 admin 대시보드가 이 테이블 기준으로 있어서,
 새 테이블을 또 만들면 그 집계에서 빠지고 중복 스키마만 늘어난다.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import anthropic
 from flask import render_template, request, jsonify, current_app
@@ -22,7 +22,9 @@ from app.feedback import feedback_bp
 from app.utils.decorators import requires_role
 from app.models import db
 from app.models.api_usage_log import ApiUsageLog
-from app.models.course import Course
+from app.models.course import Course, CourseEnrollment
+from app.models.student import Student
+from app.models.sms_session import SmsSession, SmsMessage
 from config import Config
 
 MODEL_NAME = 'claude-sonnet-4-6'
@@ -179,3 +181,101 @@ def generate():
             '[feedback.generate] 사용량 로그 저장 실패 (teacher_id=%s)', current_user.user_id)
 
     return jsonify({'text': text})
+
+
+@feedback_bp.route('/api/sessions', methods=['POST'])
+def save_session():
+    """교사가 화면에서 최종 확정한 수업 문자를 저장(또는 갱신)한다.
+
+    저장 대상은 AI 원본이 아니라 요청 본문의 students[].body(교사가 화면에서
+    최종 수정한 값)다 - 그게 이 함수의 유일한 책임이고, 검증은 프론트에서
+    이미 끝났다고 가정한다. (course_id, class_date) 조합이 이미 있으면
+    기존 회차의 메시지를 지우고 새로 넣는 "갱신"으로 처리한다(중복 회차가
+    쌓이면 월간 집계가 틀어지므로).
+
+    학생 이름·문자 본문은 의도적으로 DB에 저장하지만(학원 업무 기록),
+    이 함수 어디에서도 print/logger에 본문·이름을 남기지 않는다 - 실패
+    로그에도 session_id/course_id/학생 수만 남긴다.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({'error': '로그인이 필요합니다'}), 401
+    if current_user.role not in ('teacher', 'admin'):
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    data = request.get_json(silent=True) or {}
+    course_id = data.get('course_id')
+    class_date_raw = data.get('class_date')
+    students = data.get('students')
+
+    if not course_id or not class_date_raw:
+        return jsonify({'error': '요청이 올바르지 않습니다'}), 400
+    if not isinstance(students, list) or not students:
+        return jsonify({'error': '저장할 문자가 없습니다'}), 400
+
+    try:
+        class_date = date.fromisoformat(str(class_date_raw))
+    except ValueError:
+        return jsonify({'error': '수업일 형식이 올바르지 않습니다'}), 400
+
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': '반을 찾을 수 없습니다'}), 400
+    if current_user.role == 'teacher' and course.teacher_id != current_user.user_id:
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    # 이 반에 실제 재적(active)한 학생만 sid로 허용 - 남의 반 학생 sid를
+    # 끼워 넣는 것을 막는다.
+    enrolled_ids = {
+        e.student_id for e in
+        CourseEnrollment.query.filter_by(course_id=course_id, status='active').all()
+    }
+    for s in students:
+        sid = s.get('sid') if isinstance(s, dict) else None
+        if not sid or sid not in enrolled_ids:
+            return jsonify({'error': '이 반 학생이 아닌 대상이 포함되어 있습니다'}), 400
+        if not isinstance(s.get('body'), str) or not s.get('body', '').strip():
+            return jsonify({'error': '빈 문자가 포함되어 있습니다'}), 400
+
+    try:
+        existing = SmsSession.query.filter_by(course_id=course_id, class_date=class_date).first()
+        updated = existing is not None
+
+        if existing:
+            sms_session = existing
+            # cascade='all, delete-orphan'이 걸린 관계이므로 리스트를 비우면
+            # 기존 SmsMessage가 실제로 삭제된다(유령 레코드 방지).
+            sms_session.messages = []
+            db.session.flush()
+        else:
+            sms_session = SmsSession(course_id=course_id)
+            db.session.add(sms_session)
+
+        sms_session.class_date = class_date
+        sms_session.teacher_id = current_user.user_id
+        sms_session.class_type = data.get('class_type')
+        sms_session.book = data.get('book')
+        sms_session.week = data.get('week')
+        sms_session.raw_summary = data.get('raw_summary')
+        sms_session.name_map = data.get('name_map') or []
+
+        for s in students:
+            student = Student.query.get(s['sid'])
+            sms_session.messages.append(SmsMessage(
+                student_id=s['sid'],
+                student_name=(student.name if student else s.get('name', '')),
+                body=s['body'],
+                msg_type=s.get('msg_type'),
+            ))
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            '[feedback.save_session] 저장 실패 (course_id=%s, class_date=%s, teacher_id=%s)',
+            course_id, class_date_raw, current_user.user_id)
+        return jsonify({'error': '저장에 실패했습니다'}), 500
+
+    response = {'session_id': sms_session.sms_session_id, 'saved': len(students), 'updated': updated}
+    if updated:
+        response['message'] = f'{class_date.month}월 {class_date.day}일 회차를 갱신했습니다.'
+    return jsonify(response)

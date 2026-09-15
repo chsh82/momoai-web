@@ -160,6 +160,12 @@ button.sm{font-size:12px;padding:4px 10px}
       학생 한 명당 한 번씩 따로 만들어서 다른 학생 이야기가 섞이지 않습니다.</div>
   </div></div>
   </div>
+  <div class="card hide" id="saveArea">
+    <div class="cb" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button class="go" style="width:auto;flex:0 0 auto" onclick="saveSession()" id="saveBtn">이 수업 저장</button>
+      <span id="saveStat" style="font-size:12.5px;color:#7d8f97"></span>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -173,20 +179,22 @@ const v=id=>($(id)?($(id).value||"").trim():"");
 const esc=t=>(t||"").replace(/</g,"&lt;");
 let OUT={};
 
-let PRESETS=[{n:"직접 입력", cls:"", type:"하크니스", roster:"", t:"", ids:[]}];
-let PRESET_IDS=[];  // 현재 선택된 반의 [{sid,name}] 원본 - 3단계(저장)에서 씀. 지금은 보관만.
+let PRESETS=[{n:"직접 입력", cls:"", type:"하크니스", roster:"", t:"", ids:[], id:""}];
+let PRESET_IDS=[];    // 현재 선택된 반의 [{sid,name}] 원본 - 저장 시 이름->sid 매칭에 씀.
+let PRESET_COURSE_ID=""; // 현재 선택된 반의 course_id - 저장(POST /api/sessions)에 씀.
 
 async function loadClasses(){
   try{
     const r=await fetch("/api/classes",{credentials:"same-origin"});
     if(!r.ok) throw new Error("반 목록을 불러오지 못했습니다");
     const list=await r.json();
-    PRESETS=[{n:"직접 입력", cls:"", type:"하크니스", roster:"", t:"", ids:[]}]
+    PRESETS=[{n:"직접 입력", cls:"", type:"하크니스", roster:"", t:"", ids:[], id:""}]
       .concat(list.map(c=>({
         n:c.name, cls:c.name, type:c.type,
         roster:c.roster.map(s=>s.name).join(", "),
         t:c.teacher,
-        ids:c.roster
+        ids:c.roster,
+        id:c.id
       })));
   }catch(e){
     console.error(e);
@@ -202,6 +210,7 @@ function initPreset(){
 function fill(){
   const p=PRESETS[+document.getElementById("preset").value];
   PRESET_IDS = (p && p.ids) || [];
+  PRESET_COURSE_ID = (p && p.id) || "";
   if(!p || !p.cls) { typeHint(); return; }
   document.getElementById("cls").value=p.cls;
   document.getElementById("ctype").value=p.type;
@@ -587,18 +596,22 @@ async function retry(name){
 }
 
 /* ---------- 렌더 ---------- */
+function findSid(name){
+  const hit=(PRESET_IDS||[]).find(x=>x.name===name);
+  return hit ? hit.sid : "";
+}
 function render(){
   const names=Object.keys(OUT);
   if(!names.length){ return; }
   $("out").innerHTML=names.map((n,i)=>{
     const o=OUT[n];
-    if(o.loading) return `<div class="msg"><div class="h"><b>${n}</b></div>
+    if(o.loading) return `<div class="msg" data-sid="${esc(findSid(n))}" data-name="${esc(n)}"><div class="h"><b>${n}</b></div>
       <div class="b" style="padding:20px"><span class="spin"></span> 다시 만드는 중…</div></div>`;
-    if(o.error) return `<div class="msg"><div class="h"><b>${n}</b>
+    if(o.error) return `<div class="msg" data-sid="${esc(findSid(n))}" data-name="${esc(n)}"><div class="h"><b>${n}</b>
       <span class="btns"><button class="sm" onclick="retry('${n}')">다시 시도</button></span></div>
       <div class="b"><div class="hint w" style="margin:14px">만들지 못했습니다 — ${esc(o.error)}</div></div></div>`;
     const f=check(o.text,n);
-    return `<div class="msg">
+    return `<div class="msg" data-sid="${esc(findSid(n))}" data-name="${esc(n)}">
       <div class="h"><b>${n}</b><span class="len">${esc(v("cls"))}</span><span class="len" id="len_${i}">${o.text.length}자</span>
         <span class="btns">
           <button class="sm" onclick="cp(${i})">복사</button>
@@ -610,6 +623,9 @@ function render(){
         : '<span class="ok">✓ 다른 학생 이름 없음 · 운영 사안 없음 · 교사 실명 본문 없음 · 평가 표현 없음</span>'}</div>
     </div>`;
   }).join("");
+  const hasText=names.some(n=>OUT[n].text);
+  $("saveArea").classList.toggle("hide", !hasText);
+  if(hasText) $("saveStat").textContent="";
 }
 function upd(i,n){
   const t=$("tx_"+i).value; OUT[n].text=t;
@@ -626,6 +642,66 @@ function cpText(t,m){
 function cp(i){ const n=Object.keys(OUT)[i]; cpText(OUT[n].text, n+" 복사했습니다."); }
 function copyAll(){ cpText(Object.keys(OUT).filter(n=>OUT[n].text)
   .map(n=>`── ${v("cls")} · ${n} ──\n`+OUT[n].text).join("\n\n"), "전체 복사했습니다."); }
+
+/* ---------- 저장 ---------- */
+function msgTypeLabel(){
+  // 요약에서 실제로 어느 틀이 쓰였는지는 AI 응답에서 따로 파싱하지 않으므로,
+  // "자동"일 때는 알 수 없다는 뜻으로 null을 보낸다(억지로 단정하지 않음).
+  const f=v("focus")||"talk";
+  if(f==="talk") return "토론형";
+  if(f==="lecture") return "강의형";
+  return null;
+}
+async function saveSession(){
+  if(!PRESET_COURSE_ID){
+    $("saveStat").innerHTML='<span style="color:#a8503f">이 반은 학생관리 DB와 연결되지 않아 저장할 수 없습니다("직접 입력"이거나 반 목록을 못 불러온 경우입니다).</span>';
+    return;
+  }
+  // DOM에서 직접 읽는다 - textarea를 교사가 고쳤어도 그 최종값이 여기 있다.
+  const cards=[...document.querySelectorAll('#out .msg[data-sid]')];
+  const students=[];
+  const missing=[];
+  cards.forEach(card=>{
+    const ta=card.querySelector('textarea');
+    if(!ta) return; // 에러/로딩 중 카드는 건너뜀
+    const sid=card.dataset.sid, name=card.dataset.name;
+    if(!sid){ missing.push(name); return; }
+    students.push({ sid, name, body: ta.value, msg_type: msgTypeLabel() });
+  });
+  if(missing.length){
+    $("saveStat").innerHTML=`<span style="color:#a8503f">${esc(missing.join(", "))} 학생이 반 명부와 연결되지 않아 저장할 수 없습니다. 반을 다시 선택해 주십시오.</span>`;
+    return;
+  }
+  if(!students.length){
+    $("saveStat").innerHTML='<span style="color:#a8503f">저장할 문자가 없습니다.</span>';
+    return;
+  }
+  $("saveBtn").disabled=true;
+  $("saveStat").innerHTML='<span class="spin"></span> 저장하는 중…';
+  try{
+    const res=await fetch("/api/sessions",{method:"POST",
+      headers:{"Content-Type":"application/json"}, credentials:"same-origin",
+      body:JSON.stringify({
+        course_id: PRESET_COURSE_ID,
+        class_date: v("date"),
+        class_type: v("ctype"),
+        book: v("book"),
+        week: "",
+        raw_summary: v("raw"),
+        name_map: NAMEMAP,
+        students
+      })});
+    const d=await res.json();
+    if(!res.ok || d.error){ throw new Error(d.error || ("저장 실패 "+res.status)); }
+    $("saveStat").innerHTML = d.updated
+      ? `<span style="color:#2f7d76">✓ ${esc(d.message||'갱신됨')} (${d.saved}명)</span>`
+      : `<span style="color:#2f7d76">✓ 저장됨 (${d.saved}명)</span>`;
+  }catch(e){
+    // 저장 실패해도 화면의 문자는 그대로 남는다 - render()를 다시 부르지 않는다.
+    $("saveStat").innerHTML=`<span style="color:#a8503f">저장 실패 — ${esc(String(e.message||e))}</span>`;
+  }
+  $("saveBtn").disabled=false;
+}
 
 function demo(){
   $("book").value="도덕과 입법의 원리 서설 (제러미 벤담) 1주 차";
