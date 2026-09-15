@@ -1,64 +1,79 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>모모의 책장 · 수업 문자 자동 생성</title>
+{% extends "base.html" %}
+
+{% block title %}수업 문자 자동 생성 - MOMOAI{% endblock %}
+
+{% block page_title %}💬 수업 문자 자동 생성{% endblock %}
+{% block page_subtitle %}{% endblock %}
+
+{% block extra_head %}
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--navy:#1b3a4b;--gold:#b8944d;--teal:#2f7d76;--brick:#a8503f;--rule:#d5dbd9;--wash:#f4f6f5}
-body{font-family:"Noto Sans KR","Apple SD Gothic Neo",sans-serif;background:#eef1f0;color:#20303a;
-  font-size:14px;line-height:1.6;word-break:keep-all;padding:18px}
-.wrap{max-width:1100px;margin:0 auto}
-.mast{border-top:4px solid var(--gold);background:var(--navy);color:#fff;padding:16px 20px}
-.mast h1{font-size:21px;font-weight:700;letter-spacing:-.4px}
-.mast p{margin-top:6px;font-size:12.5px;color:#cfdbe2}
-.grid{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:16px}
-.col{flex:1 1 420px;min-width:320px}
-.card{background:#fff;border:1px solid var(--rule);margin-bottom:14px}
-.ch{padding:11px 15px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.ch .n{width:22px;height:22px;background:var(--navy);color:#fff;font-size:12px;text-align:center;line-height:22px;flex:0 0 22px}
-.ch h2{font-size:15.5px;font-weight:700;color:var(--navy);flex:1 1 auto}
-.ch .c{font-size:11.5px;color:#7d8f97;white-space:nowrap}
-.cb{padding:14px 15px}
-label{font-size:12px;color:#7d8f97;display:block;margin-bottom:4px}
-input,textarea,select{font-family:inherit;font-size:13.5px;padding:8px 10px;border:1px solid var(--rule);width:100%;background:#fff}
-textarea{resize:vertical;line-height:1.6}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--navy)}
-.f{margin-bottom:12px}.frow{display:flex;gap:10px;flex-wrap:wrap}.frow>.f{flex:1 1 140px}
-button{font-family:inherit;font-size:13px;padding:7px 14px;border:1px solid var(--rule);background:#fff;cursor:pointer}
-button:hover{border-color:var(--navy)}
-button.go{background:var(--teal);color:#fff;border-color:var(--teal);font-size:15px;padding:11px 26px;font-weight:700;width:100%}
-button.go:hover{background:#26665f}
-button.go:disabled{opacity:.45;cursor:not-allowed}
-button.sm{font-size:12px;padding:4px 10px}
-.hint{font-size:12.5px;color:#5f7079;background:var(--wash);border-left:3px solid var(--navy);padding:9px 12px;margin-bottom:12px}
-.hint.w{border-left-color:var(--brick);background:#fbf3f1;color:#7a3b2e}
-.msg{border:1px solid var(--rule);margin-bottom:14px}
-.msg .h{background:var(--navy);color:#fff;padding:9px 13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.msg .h b{font-size:15px}
-.msg .h .len{font-size:11.5px;color:#b9cbd4}
-.msg .h .btns{margin-left:auto;display:flex;gap:6px}
-.msg .b{padding:0}
-.msg textarea{border:none;padding:14px 16px;font-size:13.5px;line-height:1.85;min-height:230px;background:#fdfbf6}
-.msg .v{padding:8px 13px;border-top:1px solid var(--rule);font-size:11.5px;background:#fafbfb}
-.msg .v .ok{color:var(--teal)}
-.msg .v .bad{color:var(--brick)}
-.stat{font-size:13px;color:var(--teal);margin-top:10px;text-align:center}
-.stat.err{color:var(--brick)}
-.spin{display:inline-block;width:13px;height:13px;border:2px solid #cfd8d5;border-top-color:var(--navy);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:5px}
-@keyframes sp{to{transform:rotate(360deg)}}
-.hide{display:none}
-.nrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
-.nrow:last-child{border-bottom:none}
-.nrow .raw{flex:0 0 130px;font-size:13px}
-.nrow .arw{color:#a0aeb4}
-.nrow select{flex:0 0 130px}
-.nrow .why{flex:1 1 150px;font-size:11.5px;color:#7d8f97;min-width:120px}
-.foot{margin-top:10px;font-size:11.5px;color:#7d8f97;text-align:center;padding:10px}
+/* 1단계에서 독립 demo.html을 그대로 이식했던 페이지 - base.html에 통합하면서
+   전역 선택자(*, body, label, input 등)가 사이드바·다른 화면으로 새어나가지
+   않게 전부 .feedback-page 아래로 스코프했다(5단계 사이드바 메뉴 노출 후
+   발견된 문제 - 클릭하면 앱 셸을 완전히 벗어나던 것 수정). */
+.feedback-page{font-family:"Noto Sans KR","Apple SD Gothic Neo",sans-serif;color:#20303a;
+  font-size:14px;line-height:1.6;word-break:keep-all;
+  --navy:#1b3a4b;--gold:#b8944d;--teal:#2f7d76;--brick:#a8503f;--rule:#d5dbd9;--wash:#f4f6f5}
+.feedback-page *{box-sizing:border-box;margin:0;padding:0}
+.feedback-page .wrap{max-width:1100px;margin:0 auto}
+.feedback-page .mast{border-top:4px solid var(--gold);background:var(--navy);color:#fff;padding:16px 20px}
+.feedback-page .mast h1{font-size:21px;font-weight:700;letter-spacing:-.4px}
+.feedback-page .mast p{margin-top:6px;font-size:12.5px;color:#cfdbe2}
+.feedback-page .grid{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:16px}
+.feedback-page .col{flex:1 1 420px;min-width:320px}
+.feedback-page .card{background:#fff;border:1px solid var(--rule);margin-bottom:14px}
+.feedback-page .ch{padding:11px 15px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.feedback-page .ch .n{width:22px;height:22px;background:var(--navy);color:#fff;font-size:12px;text-align:center;line-height:22px;flex:0 0 22px}
+.feedback-page .ch h2{font-size:15.5px;font-weight:700;color:var(--navy);flex:1 1 auto}
+.feedback-page .ch .c{font-size:11.5px;color:#7d8f97;white-space:nowrap}
+.feedback-page .cb{padding:14px 15px}
+.feedback-page label{font-size:12px;color:#7d8f97;display:block;margin-bottom:4px}
+.feedback-page input,.feedback-page textarea,.feedback-page select{font-family:inherit;font-size:13.5px;padding:8px 10px;border:1px solid var(--rule);width:100%;background:#fff}
+.feedback-page textarea{resize:vertical;line-height:1.6}
+.feedback-page input:focus,.feedback-page textarea:focus,.feedback-page select:focus{outline:none;border-color:var(--navy)}
+.feedback-page .f{margin-bottom:12px}
+.feedback-page .frow{display:flex;gap:10px;flex-wrap:wrap}
+.feedback-page .frow>.f{flex:1 1 140px}
+.feedback-page button{font-family:inherit;font-size:13px;padding:7px 14px;border:1px solid var(--rule);background:#fff;cursor:pointer}
+.feedback-page button:hover{border-color:var(--navy)}
+.feedback-page button.go{background:var(--teal);color:#fff;border-color:var(--teal);font-size:15px;padding:11px 26px;font-weight:700;width:100%}
+.feedback-page button.go:hover{background:#26665f}
+.feedback-page button.go:disabled{opacity:.45;cursor:not-allowed}
+.feedback-page button.sm{font-size:12px;padding:4px 10px}
+.feedback-page .hint{font-size:12.5px;color:#5f7079;background:var(--wash);border-left:3px solid var(--navy);padding:9px 12px;margin-bottom:12px}
+.feedback-page .hint.w{border-left-color:var(--brick);background:#fbf3f1;color:#7a3b2e}
+.feedback-page .msg{border:1px solid var(--rule);margin-bottom:14px}
+.feedback-page .msg .h{background:var(--navy);color:#fff;padding:9px 13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.feedback-page .msg .h b{font-size:15px}
+.feedback-page .msg .h .len{font-size:11.5px;color:#b9cbd4}
+.feedback-page .msg .h .btns{margin-left:auto;display:flex;gap:6px}
+.feedback-page .msg .b{padding:0}
+.feedback-page .msg textarea{border:none;padding:14px 16px;font-size:13.5px;line-height:1.85;min-height:230px;background:#fdfbf6}
+.feedback-page .msg .v{padding:8px 13px;border-top:1px solid var(--rule);font-size:11.5px;background:#fafbfb}
+.feedback-page .msg .v .ok{color:var(--teal)}
+.feedback-page .msg .v .bad{color:var(--brick)}
+.feedback-page .stat{font-size:13px;color:var(--teal);margin-top:10px;text-align:center}
+.feedback-page .stat.err{color:var(--brick)}
+.feedback-page .spin{display:inline-block;width:13px;height:13px;border:2px solid #cfd8d5;border-top-color:var(--navy);border-radius:50%;animation:feedback-spin .7s linear infinite;vertical-align:-2px;margin-right:5px}
+@keyframes feedback-spin{to{transform:rotate(360deg)}}
+.feedback-page .hide{display:none}
+.feedback-page .nrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.feedback-page .nrow:last-child{border-bottom:none}
+.feedback-page .nrow .raw{flex:0 0 130px;font-size:13px}
+.feedback-page .nrow .arw{color:#a0aeb4}
+.feedback-page .nrow select{flex:0 0 130px}
+.feedback-page .nrow .why{flex:1 1 150px;font-size:11.5px;color:#7d8f97;min-width:120px}
+.feedback-page .foot{margin-top:10px;font-size:11.5px;color:#7d8f97;text-align:center;padding:10px}
 </style>
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('admin.index') if current_user.role in ('admin','manager') else url_for('teacher.index') }}"
+     class="text-blue-600 hover:text-blue-800 font-medium">← 메인으로 돌아가기</a>
+</div>
+
+<div class="feedback-page">
 <div class="wrap">
 
 <div class="mast">
@@ -189,7 +204,10 @@ button.sm{font-size:12px;padding:4px 10px}
 
 <div class="foot">모모의 책장 · 수업 문자 자동 생성 · 500~700자 · 학생별 개별 생성</div>
 </div>
+</div>
+{% endblock %}
 
+{% block scripts %}
 {% raw %}
 <script>
 const $=id=>document.getElementById(id);
@@ -941,5 +959,4 @@ function demo(){
 }
 </script>
 {% endraw %}
-</body>
-</html>
+{% endblock %}
