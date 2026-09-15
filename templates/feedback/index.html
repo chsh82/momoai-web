@@ -173,21 +173,35 @@ const v=id=>($(id)?($(id).value||"").trim():"");
 const esc=t=>(t||"").replace(/</g,"&lt;");
 let OUT={};
 
-const PRESETS=[
- {n:"직접 입력", cls:"", type:"하크니스", roster:"", t:""},
- {n:"중1 하크니스 일요반", cls:"중1 하크니스 일요반", type:"하크니스", roster:"박세진, 김지후, 이예림", t:"윤영기"},
- {n:"하크니스 금요반", cls:"하크니스 금요반", type:"하크니스", roster:"김태겸, 김준서, 조은빈, 신하음", t:"윤영기"},
- {n:"하크니스 중2 토요반", cls:"하크니스 중2 토요반", type:"하크니스", roster:"김서윤, 한희주, 이도현, 박민재, 정예린", t:"박소영"},
- {n:"초6 목요 그룹반", cls:"초6 목요 그룹반", type:"그룹", roster:"오시현, 배윤슬, 임하율, 서지호", t:"윤영기"},
- {n:"최이준 1:1", cls:"최이준 1:1", type:"1:1", roster:"최이준", t:"윤영기"}
-];
+let PRESETS=[{n:"직접 입력", cls:"", type:"하크니스", roster:"", t:"", ids:[]}];
+let PRESET_IDS=[];  // 현재 선택된 반의 [{sid,name}] 원본 - 3단계(저장)에서 씀. 지금은 보관만.
+
+async function loadClasses(){
+  try{
+    const r=await fetch("/api/classes",{credentials:"same-origin"});
+    if(!r.ok) throw new Error("반 목록을 불러오지 못했습니다");
+    const list=await r.json();
+    PRESETS=[{n:"직접 입력", cls:"", type:"하크니스", roster:"", t:"", ids:[]}]
+      .concat(list.map(c=>({
+        n:c.name, cls:c.name, type:c.type,
+        roster:c.roster.map(s=>s.name).join(", "),
+        t:c.teacher,
+        ids:c.roster
+      })));
+  }catch(e){
+    console.error(e);
+    alert("반 목록 자동 불러오기에 실패했습니다. '직접 입력'으로 사용할 수 있습니다.");
+  }
+  initPreset(); fill(); pnotes();
+}
 function initPreset(){
   const el=document.getElementById("preset");
   el.innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.n}</option>`).join("");
-  el.value="1";
+  el.value = PRESETS.length>1 ? "1" : "0";
 }
 function fill(){
   const p=PRESETS[+document.getElementById("preset").value];
+  PRESET_IDS = (p && p.ids) || [];
   if(!p || !p.cls) { typeHint(); return; }
   document.getElementById("cls").value=p.cls;
   document.getElementById("ctype").value=p.type;
@@ -248,7 +262,7 @@ function focusHint(){
   const el=document.getElementById("fhint"); if(el) el.textContent=m;
 }
 function cnt(){ $("cnt").textContent=(v("cls")||"반 미지정")+" · "+roster().length+"명"; }
-$("roster").addEventListener("input",()=>{cnt();typeHint();pnotes();}); initPreset(); fill(); pnotes(); focusHint(); byeSel();
+$("roster").addEventListener("input",()=>{cnt();typeHint();pnotes();}); loadClasses(); focusHint(); byeSel();
 
 /* ---------- 프롬프트 ---------- */
 function TALK_BLOCK(n){ const c=callName(n); return `[토론형] ${c}의 발언이 본론이다. 300~420자.

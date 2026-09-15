@@ -22,6 +22,7 @@ from app.feedback import feedback_bp
 from app.utils.decorators import requires_role
 from app.models import db
 from app.models.api_usage_log import ApiUsageLog
+from app.models.course import Course
 from config import Config
 
 MODEL_NAME = 'claude-sonnet-4-6'
@@ -29,6 +30,11 @@ DEFAULT_MAX_TOKENS = 1500
 MAX_PROMPT_LEN = 60_000
 HOURLY_LIMIT_PER_TEACHER = 100
 USAGE_TYPE = 'teacher_feedback'
+
+# essays/routes.py의 하크니스 모델 게이트(_Course.course_type.in_(['하크니스',
+# '시그니처']))와 동일 기준 - "보강(하크니스)" 등 보강 하위유형은 기존 코드도
+# 하크니스로 안 치므로 여기서도 안 넣는다(인원수 기반 그룹/1:1로 자연스럽게 분류됨).
+HARKNESS_COURSE_TYPES = ('하크니스', '시그니처')
 
 
 @feedback_bp.route('/teacher/class-sms')
@@ -44,6 +50,52 @@ def feedback_index():
     그래서 겹치지 않는 /teacher/class-sms로 바꿨다.
     """
     return render_template('feedback/index.html')
+
+
+@feedback_bp.route('/api/classes')
+def api_classes():
+    """로그인한 교사의 반 목록 (하드코딩 PRESETS 대체용).
+
+    teacher 역할은 자기 담당 반만(Course.teacher_id 기준 - app/teacher/
+    routes.py 대시보드 등에서 이미 쓰는 것과 동일한 필터), admin은 전체.
+    JSON API이므로 /api/generate와 동일하게 미로그인/권한없음을 401/403
+    JSON으로 직접 반환한다(@login_required의 302 리디렉션 대신).
+
+    결석 여부와 무관하게 CourseEnrollment.status='active'인 학생 전원을
+    roster에 담는다 - 결석은 별도 Attendance/CourseSession 레코드일 뿐
+    수강(enrollment) 자체를 지우지 않으므로, 이 필터만으로 이미 "결석생
+    포함 전원"이 된다.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({'error': '로그인이 필요합니다'}), 401
+    if current_user.role not in ('teacher', 'admin'):
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    query = Course.query.filter_by(status='active')
+    if current_user.role == 'teacher':
+        query = query.filter_by(teacher_id=current_user.user_id)
+    courses = query.order_by(Course.course_name).all()
+
+    result = []
+    for course in courses:
+        roster = [
+            {'sid': e.student_id, 'name': e.student.name}
+            for e in course.enrollments
+            if e.status == 'active' and e.student
+        ]
+        if course.course_type in HARKNESS_COURSE_TYPES:
+            ctype = '하크니스'
+        else:
+            ctype = '1:1' if len(roster) == 1 else '그룹'
+        result.append({
+            'id': course.course_id,
+            'name': course.course_name,
+            'type': ctype,
+            'teacher': course.teacher.name if course.teacher else '',
+            'roster': roster,
+        })
+
+    return jsonify(result)
 
 
 @feedback_bp.route('/api/generate', methods=['POST'])
