@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모모의 책장 · 수업 문자 자동 생성</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1b3a4b;--gold:#b8944d;--teal:#2f7d76;--brick:#a8503f;--rule:#d5dbd9;--wash:#f4f6f5}
+body{font-family:"Noto Sans KR","Apple SD Gothic Neo",sans-serif;background:#eef1f0;color:#20303a;
+  font-size:14px;line-height:1.6;word-break:keep-all;padding:18px}
+.wrap{max-width:1100px;margin:0 auto}
+.mast{border-top:4px solid var(--gold);background:var(--navy);color:#fff;padding:16px 20px}
+.mast h1{font-size:21px;font-weight:700;letter-spacing:-.4px}
+.mast p{margin-top:6px;font-size:12.5px;color:#cfdbe2}
+.grid{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:16px}
+.col{flex:1 1 420px;min-width:320px}
+.card{background:#fff;border:1px solid var(--rule);margin-bottom:14px}
+.ch{padding:11px 15px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ch .n{width:22px;height:22px;background:var(--navy);color:#fff;font-size:12px;text-align:center;line-height:22px;flex:0 0 22px}
+.ch h2{font-size:15.5px;font-weight:700;color:var(--navy);flex:1 1 auto}
+.ch .c{font-size:11.5px;color:#7d8f97;white-space:nowrap}
+.cb{padding:14px 15px}
+label{font-size:12px;color:#7d8f97;display:block;margin-bottom:4px}
+input,textarea,select{font-family:inherit;font-size:13.5px;padding:8px 10px;border:1px solid var(--rule);width:100%;background:#fff}
+textarea{resize:vertical;line-height:1.6}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--navy)}
+.f{margin-bottom:12px}.frow{display:flex;gap:10px;flex-wrap:wrap}.frow>.f{flex:1 1 140px}
+button{font-family:inherit;font-size:13px;padding:7px 14px;border:1px solid var(--rule);background:#fff;cursor:pointer}
+button:hover{border-color:var(--navy)}
+button.go{background:var(--teal);color:#fff;border-color:var(--teal);font-size:15px;padding:11px 26px;font-weight:700;width:100%}
+button.go:hover{background:#26665f}
+button.go:disabled{opacity:.45;cursor:not-allowed}
+button.sm{font-size:12px;padding:4px 10px}
+.hint{font-size:12.5px;color:#5f7079;background:var(--wash);border-left:3px solid var(--navy);padding:9px 12px;margin-bottom:12px}
+.hint.w{border-left-color:var(--brick);background:#fbf3f1;color:#7a3b2e}
+.msg{border:1px solid var(--rule);margin-bottom:14px}
+.msg .h{background:var(--navy);color:#fff;padding:9px 13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.msg .h b{font-size:15px}
+.msg .h .len{font-size:11.5px;color:#b9cbd4}
+.msg .h .btns{margin-left:auto;display:flex;gap:6px}
+.msg .b{padding:0}
+.msg textarea{border:none;padding:14px 16px;font-size:13.5px;line-height:1.85;min-height:230px;background:#fdfbf6}
+.msg .v{padding:8px 13px;border-top:1px solid var(--rule);font-size:11.5px;background:#fafbfb}
+.msg .v .ok{color:var(--teal)}
+.msg .v .bad{color:var(--brick)}
+.stat{font-size:13px;color:var(--teal);margin-top:10px;text-align:center}
+.stat.err{color:var(--brick)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid #cfd8d5;border-top-color:var(--navy);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hide{display:none}
+.nrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.nrow:last-child{border-bottom:none}
+.nrow .raw{flex:0 0 130px;font-size:13px}
+.nrow .arw{color:#a0aeb4}
+.nrow select{flex:0 0 130px}
+.nrow .why{flex:1 1 150px;font-size:11.5px;color:#7d8f97;min-width:120px}
+.foot{margin-top:10px;font-size:11.5px;color:#7d8f97;text-align:center;padding:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="mast">
+  <h1>수업 문자 자동 생성</h1>
+  <p>줌 요약을 붙여 넣고 버튼을 누르면 학생별 문자가 나옵니다. 500~700자.</p>
+</div>
+
+<div class="grid">
+<div class="col">
+
+  <div class="card">
+    <div class="ch"><div class="n">1</div><h2>기본 정보</h2><div class="c" id="cnt"></div></div>
+    <div class="cb">
+      <div class="f"><label>반 선택 <span style="color:#a0aeb4">— 고르면 명부와 담당 교사가 채워집니다</span></label>
+        <select id="preset" onchange="fill()"></select></div>
+      <div class="frow">
+        <div class="f" style="flex:2 1 190px"><label>반 이름</label>
+          <input type="text" id="cls" value="중1 하크니스 일요반"></div>
+        <div class="f"><label>반 유형</label><select id="ctype" onchange="typeHint()">
+          <option>하크니스</option><option>그룹</option><option>1:1</option></select></div>
+      </div>
+      <div class="f"><label>학생 명부 · 쉼표로 구분 (결석생 포함 전원)</label>
+        <input type="text" id="roster" value="박세진, 김지후, 이예림">
+        <div id="thint" style="font-size:11.5px;color:#7d8f97;margin-top:5px"></div></div>
+      <div class="frow">
+        <div class="f" style="flex:2 1 180px"><label>학원 이름</label>
+          <input type="text" id="school" value="에이프로 아카데미"></div>
+        <div class="f"><label>교사 이름</label><input type="text" id="tname" value="윤영기"></div>
+        <div class="f"><label>호칭</label><select id="role">
+          <option>담당 강사</option><option>연구 팀장</option><option>대체 강사</option><option>보강 담당</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="f"><label>수업일</label><input type="date" id="date" value="2026-09-06"></div>
+        <div class="f"><label>학부모 호칭</label><select id="par">
+          <option>어머님</option><option>아버님</option><option>학부모님</option><option value="">쓰지 않음</option></select></div>
+      </div>
+      <div class="f"><label>도서 · 주차 <span style="color:#a0aeb4">(없으면 비워도 됩니다)</span></label>
+        <input type="text" id="book" placeholder="예) 도덕과 입법의 원리 서설 (제러미 벤담) 1주 차"></div>
+      <div class="frow" style="margin-bottom:0">
+        <div class="f" style="margin-bottom:0"><label>수업 성격</label><select id="focus" onchange="focusHint()">
+          <option value="talk">토론형 · 아이 발언이 본론</option>
+          <option value="lecture">강의형 · 짚어 준 것이 본론</option>
+          <option value="auto">자동 · 발언 유무로 판단</option></select></div>
+        <div class="f" style="margin-bottom:0"><label>전체 분량</label><select id="len">
+          <option value="500~700자">보통 · 500~700자</option>
+          <option value="700~900자">자세히 · 700~900자</option>
+          <option value="350~500자">짧게 · 350~500자</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><div class="n">2</div><h2>줌 요약 붙여넣기</h2><div class="c">정리 안 해도 됩니다</div></div>
+    <div class="cb">
+      <div class="hint">마크다운 헤더, 줌 링크, 참석자 목록이 붙어 있어도 그대로 넣으십시오.
+        <b>이름이 틀리게 적혀 있어도</b> 명부와 대조해 바로잡습니다.</div>
+      <textarea id="raw" rows="15" placeholder="줌 AI 요약을 통째로 붙여 넣으십시오."></textarea>
+      <div class="f" style="margin:12px 0 0"><label>덧붙일 말 <span style="color:#a0aeb4">(선택 · 다음 주 예고, 과제 마감 등)</span></label>
+        <input type="text" id="extra" placeholder="예) 과제는 9월 11일 금요일 자정까지"></div>
+      <div class="f"><label>수업 중 특이사항 <span style="color:#a0aeb4">(선택 · 접속 문제, 지각, 어려워한 대목 등)</span></label>
+        <input type="text" id="note" placeholder="예) 영상이 계속 끊겨 후반에 자리를 옮긴 뒤 안정됨"></div>
+      <div id="fhint" style="font-size:11.5px;color:#7d8f97;margin:-4px 0 12px"></div>
+      <div class="f"><label>학생별로 보탤 말 <span style="color:#a0aeb4">(선택 · 요약에 없는 것을 직접 적으십시오)</span></label>
+        <div id="pnotes"></div></div>
+      <div class="f" style="margin-bottom:0"><label>맺음 인사</label>
+        <select id="bye" onchange="byeSel()">
+          <option>감사합니다.</option>
+          <option>궁금하신 점 있으시면 언제든 말씀해 주세요. 감사합니다.</option>
+          <option>한 주도 건강하게 보내시길 바랍니다. 감사합니다.</option>
+          <option>더 궁금하신 점은 언제든 연락 주십시오. 감사합니다.</option>
+          <option value="__">직접 입력</option>
+        </select>
+        <input type="text" id="bye2" class="hide" style="margin-top:6px" placeholder="맺음 인사를 적으십시오"
+          oninput="document.getElementById('byeout').textContent=this.value"></div>
+    </div>
+    <div class="cb" style="border-top:1px solid var(--rule)">
+      <button class="go" id="btn" onclick="run()">문자 만들기</button>
+      <div class="stat" id="stat"><button class="sm" onclick="demo()">9월 6일 예시 넣기</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="col">
+  <div class="card hide" id="namecard">
+    <div class="ch"><div class="n">✓</div><h2>이름 대조</h2><div class="c" id="namec"></div></div>
+    <div class="cb">
+      <div class="hint">줌 요약에 나온 이름을 명부와 대조한 결과입니다.
+        <b>틀린 곳은 여기서 바로잡으시면</b> 그대로 문자에 반영됩니다.</div>
+      <div id="nametbl"></div>
+    </div>
+    <div class="cb" style="border-top:1px solid var(--rule);padding-top:12px">
+      <button class="go" onclick="makeMsgs()">이 대조표로 문자 만들기</button>
+    </div>
+  </div>
+  <div id="out">
+  <div class="card"><div class="cb">
+    <div class="hint">왼쪽에 줌 요약을 넣고 <b>문자 만들기</b>를 누르십시오.<br><br>
+      먼저 <b>이름 대조표</b>를 보여 드립니다. 확인하신 뒤 문자가 만들어집니다.<br>
+      학생 한 명당 한 번씩 따로 만들어서 다른 학생 이야기가 섞이지 않습니다.</div>
+  </div></div>
+  </div>
+</div>
+</div>
+
+<div class="foot">모모의 책장 · 수업 문자 자동 생성 · 500~700자 · 학생별 개별 생성</div>
+</div>
+
+{% raw %}
+<script>
+const $=id=>document.getElementById(id);
+const v=id=>($(id)?($(id).value||"").trim():"");
+const esc=t=>(t||"").replace(/</g,"&lt;");
+let OUT={};
+
+const PRESETS=[
+ {n:"직접 입력", cls:"", type:"하크니스", roster:"", t:""},
+ {n:"중1 하크니스 일요반", cls:"중1 하크니스 일요반", type:"하크니스", roster:"박세진, 김지후, 이예림", t:"윤영기"},
+ {n:"하크니스 금요반", cls:"하크니스 금요반", type:"하크니스", roster:"김태겸, 김준서, 조은빈, 신하음", t:"윤영기"},
+ {n:"하크니스 중2 토요반", cls:"하크니스 중2 토요반", type:"하크니스", roster:"김서윤, 한희주, 이도현, 박민재, 정예린", t:"박소영"},
+ {n:"초6 목요 그룹반", cls:"초6 목요 그룹반", type:"그룹", roster:"오시현, 배윤슬, 임하율, 서지호", t:"윤영기"},
+ {n:"최이준 1:1", cls:"최이준 1:1", type:"1:1", roster:"최이준", t:"윤영기"}
+];
+function initPreset(){
+  const el=document.getElementById("preset");
+  el.innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.n}</option>`).join("");
+  el.value="1";
+}
+function fill(){
+  const p=PRESETS[+document.getElementById("preset").value];
+  if(!p || !p.cls) { typeHint(); return; }
+  document.getElementById("cls").value=p.cls;
+  document.getElementById("ctype").value=p.type;
+  document.getElementById("roster").value=p.roster;
+  if(p.t) document.getElementById("tname").value=p.t;
+  cnt(); typeHint(); pnotes();
+}
+function typeHint(){
+  const t=v("ctype"), n=roster().length;
+  const m={ "1:1":"1:1이라 다른 학생 걱정이 없습니다. 발언을 더 많이, 왕복 대화까지 담습니다.",
+    "하크니스":"토론 중심이라 발언 귀속이 중요합니다. 다른 학생 이름은 자동으로 걸러집니다.",
+    "그룹":"함께 말한 대목은 이름 없이 공동 서술로 바뀝니다." }[t]||"";
+  const el=document.getElementById("thint");
+  if(el) el.textContent = n?`${n}명 · ${m}`:m;
+}
+/* 한글 받침 유무 — 이름 호칭과 조사를 가른다 */
+function hasJong(w){
+  if(!w) return false;
+  const c=w.charCodeAt(w.length-1)-0xAC00;
+  if(c<0||c>11171) return false;
+  return (c%28)!==0;
+}
+/* 부르는 이름 : 받침 있으면 '이'를 붙이고, 없으면 그대로 */
+function callName(full){
+  const g = full.length>=3 ? full.slice(1) : full;
+  return hasJong(g) ? g+"이" : g;
+}
+/* 호칭 뒤 조사 */
+function josa(w,pair){ const [a,b]=pair.split("/"); return w+(hasJong(w)?a:b); }
+function nameGuide(){
+  return roster().map(n=>{
+    const c=callName(n);
+    return `${n} → ${c} / ${josa(c,"은/는")} · ${josa(c,"이/가")} · ${josa(c,"과/와")}`;
+  }).join("\n");
+}
+function roster(){ return v("roster").split(",").map(x=>x.trim()).filter(Boolean); }
+function pnotes(){
+  const el=document.getElementById("pnotes"); if(!el) return;
+  el.innerHTML=roster().map((n,i)=>
+    `<div style="display:flex;gap:7px;align-items:center;margin-bottom:6px">
+       <span style="flex:0 0 62px;font-size:12.5px;color:#42565f">${n}</span>
+       <input type="text" id="pn_${i}" placeholder="예) 얼음 대목에서 왕실 독점을 짚었다 / 필기를 꼼꼼히 남겼다"></div>`).join("");
+}
+function byeSel(){
+  const e=document.getElementById("bye"), x=document.getElementById("bye2");
+  if(!e||!x) return;
+  if(e.value==="__"){ x.classList.remove("hide"); }
+  else { x.classList.add("hide"); }
+}
+function byeText(){
+  const e=v("bye");
+  return e==="__" ? (v("bye2")||"감사합니다.") : (e||"감사합니다.");
+}
+function focusHint(){
+  const m={ talk:"아이 발언이 본론입니다. 수업 내용은 한 문장으로 줄이고, 배경은 발언 앞에만 한 줄씩 붙입니다.",
+    lecture:"담당 교사가 무엇을 어떻게 짚어 줬는지가 본론입니다. 아이가 어려워한 대목과 되물은 질문을 중심에 둡니다.",
+    auto:"발언이 있으면 토론형으로, 없으면 강의형으로 각 학생마다 알아서 갈라집니다." }[v("focus")]||"";
+  const el=document.getElementById("fhint"); if(el) el.textContent=m;
+}
+function cnt(){ $("cnt").textContent=(v("cls")||"반 미지정")+" · "+roster().length+"명"; }
+$("roster").addEventListener("input",()=>{cnt();typeHint();pnotes();}); initPreset(); fill(); pnotes(); focusHint(); byeSel();
+
+/* ---------- 프롬프트 ---------- */
+function TALK_BLOCK(n){ const c=callName(n); return `[토론형] ${c}의 발언이 본론이다. 300~420자.
+
+(가) 발언 바로 앞에 배경을 한 줄만 깐다. 길게 설명하지 마라.
+    예: "조선 후기에 흥선대원군은 쇄국정책을 펼쳤습니다."
+
+(나) 그다음 ${c}의 말을 여러 문장으로 펼친다. 한 문장에 몰아 담지 마라.
+    예: "이에 서현이는 통상수교거부 정책에 반대한다는 입장에 섰습니다.
+         서양 문물을 받아들였다면 우리나라가 더 빨리 발전했을 거라고 주장했습니다.
+         더 나아가 기술을 먼저 배워 군사력을 키운 다음 대응해야 했다고 덧붙였습니다."
+
+(다) 논의에서 어떤 역할을 했는지 드러낸다.
+    논의를 열었는지 / 다른 의견이 많던 자리에서 반대편에 섰는지 /
+    이야기를 한 걸음 옮겼는지 / 사례를 들어 뒷받침했는지 /
+    인정하면서도 단서를 달았는지 / 흐름이 바뀐 뒤에도 놓지 않았는지.
+
+(라) 되물은 질문이 있으면 그것도 쓴다. 질문은 발언만큼 값지다.
+    담당 교사가 무엇이라 답했는지까지 이어 쓴다.
+
+(마) 발언이 둘 이상이면 대목을 나눠 쓴다. 배경 한 줄 → 발언, 배경 한 줄 → 발언.
+
+(바) 여럿이 함께 말한 대목이라면 그 자리에서 ${josa(c,"이/가")} 무엇에 동의했는지만 쓴다.
+    같이 말한 학생의 이름은 절대 쓰지 않는다.
+
+(사) 끝에 담당 교사의 판단을 한 문장 붙일 수 있다. 단 근거가 앞에 있어야 한다.
+    (O) "역사적 사건에 대한 비판적 사고가 돋보였습니다."
+    (X) "적극적으로 참여했습니다."`; }
+
+function LECTURE_BLOCK(n){ const c=callName(n); return `[강의형] 담당 교사가 무엇을 어떻게 짚어 줬는지가 본론이다. 280~400자.
+
+(가) ${josa(c,"이/가")} 생소해하거나 어려워한 대목을 먼저 밝힌다.
+    예: "이때 서현이가 임진왜란, 병자호란, 흥선대원군을 생소해 하길래 이를 차근차근 짚어갔습니다."
+
+(나) 담당 교사가 그것을 어떻게 설명했는지 쓴다. 설명의 알맹이를 짧은 문장으로 나눠 담는다.
+    예: "왕은 세습으로 물려받는 절대 권력자입니다. 반면 대통령은 국민이 선출한 대표입니다.
+         그래서 예법도 다르다고 설명했습니다."
+
+(다) ${josa(c,"이/가")} 되물은 질문이 있으면 반드시 쓴다. 강의형에서는 질문이 곧 참여다.
+
+(라) 짧은 반응이라도 있으면 살린다. 고개를 끄덕인 대목, 예를 들어 본 대목.
+
+(마) 이 설명이 ${c}에게 무엇으로 남길 바라는지 한 문장.
+    예: "민주주의와 왕정의 차이를 이해하는 계기였길 바랍니다."
+
+발언이 적은 것을 문제 삼지 마라. 강의 중심 수업에서는 그것이 정상이다.`; }
+
+function AUTO_BLOCK(n){ const c=callName(n); return `[자동] 줌 요약에서 ${c}의 발언을 먼저 찾아라.
+
+발언이 있으면 아래 [토론형]으로 쓴다.
+${TALK_BLOCK(n)}
+
+발언이 하나도 없으면 아래 [강의형]으로 바꿔 쓴다.
+${LECTURE_BLOCK(n)}
+
+어느 쪽이든 "발언이 없었습니다" 같은 말은 절대 쓰지 마라.`; }
+
+function prompt1(name){
+  const R=roster(), others=R.filter(x=>x!==name);
+  const FC=v("focus")||"talk";
+  const idx=R.indexOf(name);
+  const PN=idx>=0? v("pn_"+idx) : "";
+  const T=v("tname"), P=v("par"), B=v("book"), CT=v("ctype");
+  return `당신은 모모의 책장(독서논술 학원)에서 학부모에게 수업 문자를 쓰는 담당자다.
+아래 줌 요약을 읽고 **${name} 학생의 학부모에게 보낼 문자 한 통**을 쓴다.
+
+# 반
+${v("cls")||"(이름 없음)"} · ${v("ctype")} · ${R.length}명
+
+# 명부 (이 안에서만 학생을 찾는다)
+${R.join(", ")}
+
+# 담당 교사
+${T} (${v("role")})
+
+# 수업일
+${v("date")}${B?"\n\n# 도서·주차\n"+B:""}
+
+# 줌 요약 원문
+${v("raw")}
+${v("extra")?"\n# 덧붙일 말\n"+v("extra"):""}
+
+# 아이를 부르는 이름 — 아래 표기만 쓴다
+${nameGuide()}
+
+받침이 있는 이름에만 '이'를 붙인다. 받침이 없으면 붙이지 않는다.
+  세진 → 세진이 (O) / 하음 → 하음이 (O) / 은빈 → 은빈이 (O)
+  준서 → 준서  (O) · 준서이 (X)
+  지후 → 지후  (O) · 지후이 (X)
+  예림 → 예림  (O) · 예림이 (X)
+조사도 마찬가지다. 세진이는 / 준서는, 세진이가 / 준서가, 세진이와 / 준서와.
+성을 붙여 부르지 않는다. 위 표의 왼쪽(명부 이름)은 사람을 가리키는 기준일 뿐이고,
+문장에 쓰는 것은 오른쪽 표기다.
+
+${NAMEMAP.length?`# 이름 대조표 — 교사가 확인한 확정 결과다. 이대로 읽어라
+${NAMEMAP.map(x=>`${x.raw} → ${x.to}`).join("\n")}
+표에 '없음'이나 '교사'로 되어 있는 이름은 학생으로 보지 마라.
+`:""}
+# 이름이 틀리게 적혔을 수 있다
+줌은 한국어 이름을 자주 틀린다. 명부와 대조해서 바로잡아라.
+음이 비슷하고 명부 안에 후보가 하나뿐이면 그 학생이다.
+(예: 김지우 → 김지후 / 김태근·김태검 → 김태겸 / 은빈·Eunbin → 조은빈)
+한 사람이 여러 표기로 흩어져 있으면 하나로 묶어라.
+학생 이름 뒤에 '교수·선생님'이 붙어 있으면 줌의 오류다. 직함을 떼고 학생으로 봐라.
+명부에 없는 사람이 나오면 교사나 외부 인물이다. 학생으로 보지 마라.
+
+# 문체 — 가장 중요하다
+**문장을 짧게 쓴다.** 한 문장에 한 가지만 담는다.
+한 문장은 대개 25~45자다. 60자를 넘기지 마라.
+'~하며', '~하고', '~해서', '~인데'로 문장을 길게 잇지 마라. 끊어라.
+접속은 문장 첫머리에서 한다 — 그런데. 이에. 반면. 그래서. 이때. 더 나아가. 특히나.
+
+이런 식이다.
+  (X) 왕은 세습으로 물려받는 절대 권력자인 반면 대통령은 국민이 선출한 대표이기 때문에
+      예법도 다르다고 설명했습니다.
+  (O) 왕은 세습으로 물려받는 절대 권력자입니다. 반면 대통령은 국민이 선출한 대표입니다.
+      그래서 예법도 다르다고 설명했습니다.
+
+책 제목은 꺾쇠로 감싼다 — 〈두근두근 한국사 2권〉. 주차는 꺾쇠 밖에 쓴다.
+
+# 쓸 것 — 빈 줄로 문단을 나눈다
+
+1. 인사 (한 문장)
+"${v("school")||"모모의 책장"} ${T} 선생님입니다."
+
+2. 오늘 다룬 것 (한두 문장)
+무슨 책을 몇 주 차로 읽었고 어느 대목을 살펴봤는지만 밝힌다.
+수업에서 다룬 것을 전부 늘어놓지 마라. **아이가 등장하지 않는 대목은 쓰지 않는다.**
+${v("note")?"수업 중 특이사항이 있으면 여기 앞에 한두 문장으로 담는다: "+v("note"):""}
+
+3. 본론 — 이 문자에서 가장 길고 중요한 자리다
+${FC==="lecture" ? LECTURE_BLOCK(name) : (FC==="auto" ? AUTO_BLOCK(name) : TALK_BLOCK(name))}
+
+${PN?`# 담당 교사가 직접 적은 것 — 요약에 없는 내용이다. 3번에 반드시 녹여 써라.
+${PN}
+이것은 발언이 아니라 교사가 본 것이다. "~하는 모습을 보였습니다" "~는 점이 눈에 띄었습니다"처럼
+발언과 구분되는 어미로 쓴다.`:""}
+
+4. 다음 주 (두 문장)
+다음 주에 무엇을 이어 갈지 한 문장.
+그리고 ${josa(callName(name),"이/가")} 무엇을 얻어 가길 바라는지 한 문장.
+  예: "서현이가 역사를 통해 오늘을 이해하는 안목을 기르길 기대합니다."
+
+5. 맺음 인사 (한 줄)
+줄을 바꾸고 아래 문장을 **글자 그대로** 쓴다. 바꾸거나 덧붙이지 마라.
+${byeText()}
+
+"드림", "올림" 같은 서명은 붙이지 않는다.
+
+# 절대 하지 말 것
+· 다른 학생 이름(${others.join(", ")||"없음"})을 쓰지 마라.
+  "다른 학생", "한 친구", "학생 A" 같은 익명 지칭도 안 된다. 소수 인원 반에서는 바로 특정된다.
+  여럿이 같이 말한 대목은 "친구들과 생각을 주고받으며 ~라는 데 뜻을 모았습니다" 처럼
+  ${josa(callName(name),"이/가")} 그 자리에 있었다는 사실만 남겨라.
+· 교사 이름은 인사와 맺음말에만. 본문에서는 "담당 교사"라고 써라.
+· 학원 전체에 걸린 정책이나 규정 변경을 넣지 마라. 그것은 가정통신문의 몫이다.
+  징계·강사 배정 변경·교사의 감정 표현도 넣지 마라.
+  **다만 이 학생 개인의 과제 미제출이나 수업 시간 변경은 반드시 알려야 할 일이므로 쓴다.**
+  담담하게 사실만 적는다. 나무라는 말투를 쓰지 마라.
+    (O) "지난 과제가 아직 밀려 있습니다. 이번 주에 함께 마무리했으면 합니다."
+    (O) "수업 시간은 다음 주부터 오후 3시에서 6시 사이로 바뀝니다."
+    (X) "과제를 계속 내지 않아 걱정입니다."
+· 점수와 등급은 넣지 마라.
+· 근거 없는 상투적 칭찬을 쓰지 마라 — "적극적으로 참여했습니다", "우수했습니다", "훌륭했습니다".
+  판단을 쓰려면 반드시 그 앞에 무엇을 보고 그렇게 보았는지를 써라.
+· "발언이 없었습니다", "기록이 없습니다" 같은 말은 절대 쓰지 마라.
+· 마크다운·불릿·이모지·URL을 넣지 마라.
+
+# 분량
+전체 ${v("len")||"500~700자"}. 합쇼체(~습니다). 아이는 이름만 부른다 (예: 세진이는).
+분량이 모자라면 2번이 아니라 **3번을 더 쓴다.** 2번은 늘 짧게.
+
+문자 본문만 출력해라. 설명도 따옴표도 붙이지 마라.`;
+}
+
+/* ---------- 검증 ---------- */
+const BLOCK=[[/다른 학생|한 참가자|학생 [A-Z]|친구 중 한|어떤 학생/,"익명 지칭"],
+ [/정책 변경|더 이상[^.]{0,25}(받아들이지|처리하지)|앞으로는 (모두|일괄)|일괄적으로|전면 시행|규정이 바뀌|받지 않겠다|허용하지 않겠/,"학원 정책 변경 — 가정통신문으로"],
+ [/징계|정학|퇴원|경고 조치/,"징계 사안"],
+ [/다른 교사에게|강사를 맡|담당이 바뀌/,"강사 배정"],
+ [/좌절감|실망|화가 나|유감을 표/,"교사 감정"],
+ [/적극적으로|우수한|미흡한|뛰어난|훌륭하게/,"평가 표현"],
+ [/발언이 없|기록이 없|옮기지 못|따로 없었/,"없다는 말"]];
+function check(t,me){
+  const f=[], R=roster(), T=v("tname");
+  // 호칭 오류 : 받침 없는 이름에 '이'를 붙였거나, 받침 있는 이름에 안 붙였거나
+  const g = me.length>=3 ? me.slice(1) : me;
+  if(!hasJong(g)){
+    if(new RegExp(g+"이(는|가|와|의|도|를|은)").test(t)) f.push(`호칭 오류 — '${g}이'가 아니라 '${g}'입니다`);
+  } else {
+    if(new RegExp(g+"(는|가|와)(?![가-힣])").test(t)) f.push(`호칭 오류 — '${g}'이 아니라 '${g}이'입니다`);
+  }
+  const o=[]; R.forEach(r=>{ if(r===me)return; o.push(r); if(r.length>=3)o.push(r.slice(1)); });
+  const hit=[...new Set(o.filter(x=>t.includes(x)))];
+  if(hit.length) f.push("다른 학생 이름 — "+hit.join(", "));
+  BLOCK.forEach(p=>{ if(p[0].test(t)) f.push(p[1]+" — "+t.match(p[0])[0]); });
+  // 문장 길이 — 견본 기준 60자
+  const sents=t.split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(x=>x.length>3);
+  const long=sents.filter(x=>x.length>60);
+  if(long.length) f.push(`문장이 깁니다 (${long.length}개, 최대 ${Math.max(...long.map(x=>x.length))}자) — 60자 안으로 끊어 주십시오`);
+  const avg=sents.length? Math.round(sents.reduce((a,b)=>a+b.length,0)/sents.length) : 0;
+  if(avg>50) f.push(`평균 문장이 ${avg}자입니다 — 25~45자가 적당합니다`);
+  // 책 제목 꺾쇠
+  const bk=v("book").replace(/\(.*?\)/g,"").replace(/\d+\s*주\s*차/g,"").trim();
+  if(bk && t.includes(bk) && !t.includes("〈"+bk) && !t.includes("〈"))
+    f.push(`책 제목에 꺾쇠가 없습니다 — 〈${bk}〉`);
+  if(T){ const body=t.split("\n").slice(1).join("\n").replace(new RegExp(T+"\\s*드림\\s*$"),"");
+    if(body.includes(T)) f.push("본문에 교사 실명"); }
+  return f;
+}
+
+/* ---------- 이름 대조 ---------- */
+let NAMEMAP=[];
+function namePrompt(){
+  const R=roster();
+  return `아래 줌 요약에 등장하는 사람 이름을 반 명부와 대조해라.
+
+# 명부
+${R.join(", ")}
+
+# 담당 교사
+${v("tname")}
+
+# 줌 요약
+${v("raw")}
+
+# 판정 방법
+명부에 그대로 있으면 그 학생이다.
+성을 뗀 이름(예: 은빈)이나 로마자 표기(예: Eunbin)도 명부와 맞춰 본다.
+교사가 부른 직후에 말한 사람은 그 호명된 학생이다.
+음이 비슷하고 명부 안에 후보가 하나뿐이면 그 학생으로 본다.
+  종성 ㅁ/ㄴ/ㅇ 혼동, ㅐ/ㅔ/ㅖ 혼동, ㅓ/ㅕ/ㅗ 혼동, 된소리·거센소리, 종성 탈락과 첨가.
+  음절 수가 다르면 같은 이름으로 보지 않는다.
+이름 뒤에 '교수·선생님'이 붙어 있어도 명부에 있는 학생이면 학생이다. 직함은 줌의 오류다.
+명부에 없는데 직함이 붙어 있으면 교사나 외부 인물이다.
+담당 교사 이름이 틀리게 적혔을 수도 있다.
+
+# 출력 형식 — 한 줄에 하나씩, 이 형태만
+요약본표기 → 명부이름 | 근거를 열 자 안팎으로
+
+명부에 없는 사람이면 명부이름 자리에 '없음'
+담당 교사이면 '교사'
+머리말·설명·번호를 붙이지 마라. 줄만 출력해라.`;
+}
+async function nameCheck(){
+  const res=await fetch("/api/generate",{method:"POST",
+    headers:{"Content-Type":"application/json"}, credentials:"same-origin",
+    body:JSON.stringify({prompt:namePrompt(), max_tokens:1000})});
+  const d=await res.json();
+  if(d.error) throw new Error(d.error);
+  const t=d.text||"";
+  return t.split("\n").map(x=>x.trim()).filter(x=>x.includes("→")).map(line=>{
+    const [l,r]=line.split("→");
+    const [to,why]=(r||"").split("|");
+    return { raw:(l||"").replace(/^[-*\d.\s]+/,"").trim(), to:(to||"").trim(), why:(why||"").trim() };
+  }).filter(x=>x.raw);
+}
+function rNames(){
+  const R=roster();
+  document.getElementById("namecard").classList.remove("hide");
+  const fixed=NAMEMAP.filter(x=>R.includes(x.to) && x.raw!==x.to).length;
+  document.getElementById("namec").textContent=NAMEMAP.length+"건"+(fixed?` · 보정 ${fixed}`:"");
+  document.getElementById("nametbl").innerHTML=NAMEMAP.map((x,i)=>{
+    const opts=[...R,"교사","없음"].map(o=>`<option ${o===x.to?"selected":""}>${o}</option>`).join("");
+    const changed=R.includes(x.to)&&x.raw!==x.to;
+    return `<div class="nrow">
+      <span class="raw">${esc(x.raw)}${changed?' <span class="badge b-guess" style="background:#b8944d;color:#fff;font-size:10px;padding:1px 5px">보정</span>':''}</span>
+      <span class="arw">→</span>
+      <select onchange="NAMEMAP[${i}].to=this.value;rNames()">${opts}</select>
+      <span class="why">${esc(x.why)}</span></div>`;
+  }).join("") || '<div style="font-size:12.5px;color:#7d8f97">요약에서 이름을 찾지 못했습니다.</div>';
+}
+
+/* ---------- 실행 ---------- */
+async function one(name){
+  let res;
+  try{
+    res=await fetch("/api/generate",{method:"POST",
+      headers:{"Content-Type":"application/json"}, credentials:"same-origin",
+      body:JSON.stringify({prompt:prompt1(name), max_tokens:1000})});
+  }catch(e){
+    throw new Error("서버에 닿지 못했습니다. 인터넷 연결을 확인해 주십시오.");
+  }
+  if(res.status===401) throw new Error("로그인이 필요합니다. 새로고침 후 다시 로그인해 주십시오.");
+  if(res.status===429) throw new Error("호출이 너무 잦습니다. 잠시 후 다시 시도해 주십시오.");
+  const d=await res.json();
+  if(d.error) throw new Error(d.error);
+  const t=(d.text||"").trim();
+  if(!t) throw new Error("빈 응답을 받았습니다. 다시 시도해 주십시오.");
+  return t;
+}
+async function run(){
+  const R=roster();
+  if(!R.length){ alert("명부를 넣어 주십시오."); return; }
+  if(!v("raw")){ alert("줌 요약을 붙여 넣어 주십시오."); return; }
+  $("btn").disabled=true;
+  $("stat").innerHTML='<span class="spin"></span> 이름을 대조하는 중…';
+  try{ NAMEMAP=await nameCheck(); rNames();
+       $("stat").innerHTML='이름 대조를 마쳤습니다. 확인하신 뒤 <b>이 대조표로 문자 만들기</b>를 누르십시오.';
+  }catch(e){
+    $("stat").innerHTML='이름 대조 실패 — '+esc(String(e.message||e))+' · 대조 없이 진행합니다.';
+    NAMEMAP=[]; await makeMsgs(); return;
+  }
+  $("btn").disabled=false;
+}
+async function makeMsgs(){
+  const R=roster();
+  $("btn").disabled=true; OUT={}; render();
+  for(let i=0;i<R.length;i++){
+    $("stat").innerHTML=`<span class="spin"></span> ${R[i]} 만드는 중… (${i+1}/${R.length})`;
+    try{ OUT[R[i]]={text:await one(R[i])}; }
+    catch(e){ OUT[R[i]]={error:String(e.message||e)}; }
+    render();
+  }
+  $("stat").innerHTML=`완료 · ${R.length}명 &nbsp;<button class="sm" onclick="copyAll()">전체 복사</button>`;
+  $("btn").disabled=false;
+}
+async function retry(name){
+  OUT[name]={loading:true}; render();
+  try{ OUT[name]={text:await one(name)}; }catch(e){ OUT[name]={error:String(e.message||e)}; }
+  render();
+}
+
+/* ---------- 렌더 ---------- */
+function render(){
+  const names=Object.keys(OUT);
+  if(!names.length){ return; }
+  $("out").innerHTML=names.map((n,i)=>{
+    const o=OUT[n];
+    if(o.loading) return `<div class="msg"><div class="h"><b>${n}</b></div>
+      <div class="b" style="padding:20px"><span class="spin"></span> 다시 만드는 중…</div></div>`;
+    if(o.error) return `<div class="msg"><div class="h"><b>${n}</b>
+      <span class="btns"><button class="sm" onclick="retry('${n}')">다시 시도</button></span></div>
+      <div class="b"><div class="hint w" style="margin:14px">만들지 못했습니다 — ${esc(o.error)}</div></div></div>`;
+    const f=check(o.text,n);
+    return `<div class="msg">
+      <div class="h"><b>${n}</b><span class="len">${esc(v("cls"))}</span><span class="len" id="len_${i}">${o.text.length}자</span>
+        <span class="btns">
+          <button class="sm" onclick="cp(${i})">복사</button>
+          <button class="sm" onclick="retry('${n}')">다시 쓰기</button>
+        </span></div>
+      <div class="b"><textarea id="tx_${i}" oninput="upd(${i},'${n}')">${esc(o.text)}</textarea></div>
+      <div class="v" id="v_${i}">${f.length
+        ? f.map(x=>`<div class="bad">✕ ${esc(x)}</div>`).join("")
+        : '<span class="ok">✓ 다른 학생 이름 없음 · 운영 사안 없음 · 교사 실명 본문 없음 · 평가 표현 없음</span>'}</div>
+    </div>`;
+  }).join("");
+}
+function upd(i,n){
+  const t=$("tx_"+i).value; OUT[n].text=t;
+  $("len_"+i).textContent=t.length+"자";
+  const f=check(t,n);
+  $("v_"+i).innerHTML = f.length ? f.map(x=>`<div class="bad">✕ ${esc(x)}</div>`).join("")
+    : '<span class="ok">✓ 다른 학생 이름 없음 · 운영 사안 없음 · 교사 실명 본문 없음 · 평가 표현 없음</span>';
+}
+function cpText(t,m){
+  const a=document.createElement("textarea"); a.value=t; document.body.appendChild(a);
+  a.select(); try{document.execCommand("copy");}catch(e){} document.body.removeChild(a);
+  const s=$("stat"); const old=s.innerHTML; s.textContent=m; setTimeout(()=>s.innerHTML=old,2000);
+}
+function cp(i){ const n=Object.keys(OUT)[i]; cpText(OUT[n].text, n+" 복사했습니다."); }
+function copyAll(){ cpText(Object.keys(OUT).filter(n=>OUT[n].text)
+  .map(n=>`── ${v("cls")} · ${n} ──\n`+OUT[n].text).join("\n\n"), "전체 복사했습니다."); }
+
+function demo(){
+  $("book").value="도덕과 입법의 원리 서설 (제러미 벤담) 1주 차";
+  $("extra").value="과제는 9월 11일 금요일 자정까지";
+  $("raw").value=
+`## 빠른 요약
+이번 모임은 윤영기가 이끄는 수업 세션으로, 에세이 작성 및 역사적 분석에 중점을 두었습니다.
+윤영기는 비판적 에세이와 논쟁적 에세이의 차이, 구조와 명확성, 증거 사용에 대한 피드백을 제공했습니다.
+### 역사적 평가 기준에 대한 논의
+박세진은 당시 시대의 기준을 바탕으로 역사적 행위를 평가해야 한다고 주장했습니다.
+김지우는 현재의 가치관을 중심으로 평가하는 데 집중했습니다.
+이예림은 역사적 인물들이 오늘날 살아있다면 현재의 가치관에 따라 행동할 수도 있다고 제안했지만, 시대적 배경을 이해하는 것이 중요하다고 강조했습니다.
+토론에는 살라딘과 같은 사례가 포함되었습니다.
+### 사회적 저항 전략에 관한 토론
+김지후는 직접적인 대결보다는 조용한 비판을 통한 점진적 저항을 지지했습니다.
+김지후와 이예림은 국가를 위해 시민에게 희생을 요구하는 것에 반대 의견을 표명했습니다.
+박세진은 역사적으로 나라를 지키기 위해 국가적 희생이 필요했다고 주장했습니다.
+### 학교 드레스 코드 논의
+박세진은 엄격한 복장 규정이 학교 분위기를 개선하지 못한다고 주장하며 반대했고, 김지우는 고학년으로 나아갈수록 경계가 필요하다며 이를 지지했습니다.
+이예림은 이러한 제한 조치가 학생들의 표현의 자유를 침해한다고 밝혔습니다.
+### 한국의 교육 불평등
+참가자들은 어려운 상황에 처한 사람들에게 동등한 출발 기회를 제공하는 것이 공정하다는 데 동의했습니다.
+### 늦은 제출 정책 변경 사항
+교사는 과제물을 늦게 제출하는 학생들에 대해 좌절감을 표하며, 더 이상 늦은 제출물이나 연장 요청을 받아들이지 않겠다고 발표했습니다.
+그들은 다음 학기부터 일요일 아침 수업을 다른 교사에게 맡길 것이라고 밝혔습니다.
+### 다음 단계
+- [작문 과제 지침을 게시하세요.](https://tasks.zoom.us?meetingId=Q38GGzvq)
+- 모든 학생들: 지난 1년 동안 있었던 사건 중 2~3개를 선택하여 일기 형식으로 작성해 보세요.
+**Attendees:** 윤영기 (Organizer), 김지후 (External), 박세진 (External), 이예림 (External)`;
+  $("stat").innerHTML='예시를 넣었습니다. <b>김지우</b>(김지후 오인식)와 정책 사안이 섞여 있습니다.';
+}
+</script>
+{% endraw %}
+</body>
+</html>

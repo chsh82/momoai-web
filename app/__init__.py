@@ -245,6 +245,11 @@ def create_app(config_name='default'):
     from app.teacher import teacher_bp
     app.register_blueprint(teacher_bp, url_prefix='/teacher')
 
+    # url_prefix 없음 - GET /teacher/class-sms, POST /api/generate 두 경로를
+    # 그대로 쓰기 위해 (feedback_bp 내부에서 각 라우트가 전체 경로를 선언)
+    from app.feedback import feedback_bp
+    app.register_blueprint(feedback_bp)
+
     from app.parent_portal import parent_bp
     app.register_blueprint(parent_bp, url_prefix='/parent')
 
