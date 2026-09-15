@@ -22,6 +22,10 @@ MOMOAI_ELEM_DOC_PATH = Path(os.environ.get('MOMOAI_ELEM_DOC_PATH') or str(BASE_D
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
+# aprolabs 줌 요약 조회 API (수업 문자 자동 생성기 - 5단계 다음 단계)
+APROLABS_API_KEY = os.environ.get('APROLABS_API_KEY')
+APROLABS_API_BASE = os.environ.get('APROLABS_API_BASE')
+
 # SMS/카카오톡 API 설정 - 환경 변수에서만 로드 (보안)
 SMS_API_KEY = os.environ.get('SMS_API_KEY')
 SMS_USER_ID = os.environ.get('SMS_USER_ID')
@@ -83,6 +87,8 @@ class Config:
     # MOMOAI 설정
     ANTHROPIC_API_KEY = ANTHROPIC_API_KEY
     GEMINI_API_KEY = GEMINI_API_KEY
+    APROLABS_API_KEY = APROLABS_API_KEY
+    APROLABS_API_BASE = APROLABS_API_BASE
     MOMOAI_DOC_PATH = str(MOMOAI_DOC_PATH)
     MOMOAI_STANDARD_DOC_PATH = str(MOMOAI_STANDARD_DOC_PATH)
     MOMOAI_ELEM_DOC_PATH = str(MOMOAI_ELEM_DOC_PATH)

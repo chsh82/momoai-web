@@ -15,6 +15,7 @@ system-spec-v2.md §7.7 보안 점검표).
 from datetime import datetime, timedelta, date
 
 import anthropic
+import requests
 from flask import render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 
@@ -98,6 +99,134 @@ def api_classes():
         })
 
     return jsonify(result)
+
+
+@feedback_bp.route('/api/zoom-summary')
+def zoom_summary():
+    """aprolabs의 줌 요약 조회 API(외부, X-API-Key 인증)를 중계한다.
+
+    브라우저가 aprolabs를 직접 부르면 APROLABS_API_KEY가 노출되므로,
+    이 서버가 키를 쥐고 대신 호출한다(/api/generate가 ANTHROPIC_API_KEY를
+    감추는 것과 동일 구조). JSON API이므로 미로그인/권한없음을 401/403
+    JSON으로 직접 반환한다(@login_required의 302 리디렉션 대신 - 이
+    파일의 다른 라우트들과 동일한 이유).
+
+    aprolabs는 teacher 문자열을 정확히 일치시켜 매칭하므로, 여기서
+    보내는 강사명(course.teacher.name)이 aprolabs 쪽 강사명과 한 글자라도
+    다르면 항상 found:false가 난다. 이게 자동 불러오기 실패의 가장 흔한
+    원인일 것으로 예상되어, 응답 본문(summary_text)은 절대 로그에 안
+    남기되 이 호출에 실제로 보낸 teacher 값만은 남긴다 - 불일치를
+    디버깅할 방법이 이것뿐이라서다.
+
+    aprolabs가 죽어 있거나(타임아웃/연결실패) 키가 틀려도(401) 이
+    라우트는 항상 200 + found:false로 곱게 응답한다 - 자동 불러오기는
+    어디까지나 편의이고, 실패했다고 화면이 멈추거나 강사의 직접 입력
+    흐름을 막으면 안 되기 때문이다.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({'error': '로그인이 필요합니다'}), 401
+    if current_user.role not in ('teacher', 'admin'):
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    course_id = request.args.get('course_id')
+    class_date_raw = request.args.get('class_date')
+    course_code = request.args.get('course_code')
+
+    if not course_id or not class_date_raw:
+        return jsonify({'error': '요청이 올바르지 않습니다'}), 400
+
+    try:
+        class_date = date.fromisoformat(str(class_date_raw))
+    except ValueError:
+        return jsonify({'error': '수업일 형식이 올바르지 않습니다'}), 400
+
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': '반을 찾을 수 없습니다'}), 400
+    if current_user.role == 'teacher' and course.teacher_id != current_user.user_id:
+        return jsonify({'error': '접근 권한이 없습니다'}), 403
+
+    teacher_name = (course.teacher.name if course.teacher else '').strip()
+    if not teacher_name:
+        return jsonify({
+            'found': False,
+            'error': '이 반에 연결된 강사 정보가 없어 자동으로 불러올 수 없습니다. 직접 입력해 주세요.',
+            'results': [],
+        })
+
+    if not Config.APROLABS_API_KEY or not Config.APROLABS_API_BASE:
+        current_app.logger.error('[feedback.zoom_summary] APROLABS_API_KEY/APROLABS_API_BASE 미설정')
+        return jsonify({
+            'found': False,
+            'error': '요약을 불러올 수 없습니다. 직접 입력해 주세요.',
+            'results': [],
+        })
+
+    params = {'teacher': teacher_name, 'date': class_date.isoformat()}
+    if course_code and course_code.strip():
+        params['course_code'] = course_code.strip()
+
+    current_app.logger.info(
+        '[feedback.zoom_summary] aprolabs 조회 course_id=%s class_date=%s teacher=%r',
+        course_id, class_date, teacher_name)
+
+    try:
+        resp = requests.get(
+            f"{Config.APROLABS_API_BASE}/api/external/summaries",
+            params=params,
+            headers={'X-API-Key': Config.APROLABS_API_KEY},
+            timeout=10,
+        )
+    except requests.exceptions.RequestException:
+        current_app.logger.warning(
+            '[feedback.zoom_summary] aprolabs 연결 실패 (course_id=%s, class_date=%s)', course_id, class_date)
+        return jsonify({
+            'found': False,
+            'error': '요약 서버에 연결하지 못했습니다. 직접 입력해 주세요.',
+            'results': [],
+        })
+
+    if resp.status_code == 401:
+        # 키 불일치는 운영자가 고칠 문제지 강사가 알 필요는 없다 - 서버 로그에만 남긴다.
+        current_app.logger.error(
+            '[feedback.zoom_summary] aprolabs 인증 실패(APROLABS_API_KEY 확인 필요) (course_id=%s)', course_id)
+        return jsonify({
+            'found': False,
+            'error': '요약을 불러올 수 없습니다. 직접 입력해 주세요.',
+            'results': [],
+        })
+
+    if resp.status_code != 200:
+        current_app.logger.warning(
+            '[feedback.zoom_summary] aprolabs 응답 이상 status=%s (course_id=%s)', resp.status_code, course_id)
+        return jsonify({
+            'found': False,
+            'error': '요약을 불러올 수 없습니다. 직접 입력해 주세요.',
+            'results': [],
+        })
+
+    try:
+        data = resp.json()
+    except ValueError:
+        current_app.logger.warning('[feedback.zoom_summary] aprolabs 응답이 JSON이 아님 (course_id=%s)', course_id)
+        return jsonify({
+            'found': False,
+            'error': '요약을 불러올 수 없습니다. 직접 입력해 주세요.',
+            'results': [],
+        })
+
+    # aprolabs 응답을 그대로 넘기지 않고 프론트에 필요한 필드만 추린다
+    # (course_code 등은 화면에서 안 쓰므로 뺀다 - 최소한만 넘기는 원칙).
+    results = [{
+        'course_name': r.get('course_name'),
+        'teacher': r.get('teacher'),
+        'class_date': r.get('class_date'),
+        'summary_text': r.get('summary_text', ''),
+        'char_count': r.get('char_count', 0),
+        'is_empty': r.get('is_empty', False),
+    } for r in (data.get('results') or [])]
+
+    return jsonify({'found': bool(data.get('found')), 'count': len(results), 'results': results})
 
 
 @feedback_bp.route('/api/generate', methods=['POST'])

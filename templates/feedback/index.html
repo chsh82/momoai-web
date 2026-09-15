@@ -115,6 +115,11 @@ button.sm{font-size:12px;padding:4px 10px}
     <div class="cb">
       <div class="hint">마크다운 헤더, 줌 링크, 참석자 목록이 붙어 있어도 그대로 넣으십시오.
         <b>이름이 틀리게 적혀 있어도</b> 명부와 대조해 바로잡습니다.</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="sm" type="button" onclick="loadZoomSummary()" id="zoomLoadBtn">줌 요약 불러오기</button>
+        <span id="zoomLoadStat" style="font-size:12.5px;color:#7d8f97"></span>
+      </div>
+      <div id="zoomPick" class="hide" style="margin-bottom:8px"></div>
       <textarea id="raw" rows="15" placeholder="줌 AI 요약을 통째로 붙여 넣으십시오."></textarea>
       <div class="f" style="margin:12px 0 0"><label>덧붙일 말 <span style="color:#a0aeb4">(선택 · 다음 주 예고, 과제 마감 등)</span></label>
         <input type="text" id="extra" placeholder="예) 과제는 9월 11일 금요일 자정까지"></div>
@@ -285,6 +290,63 @@ function focusHint(){
 }
 function cnt(){ $("cnt").textContent=(v("cls")||"반 미지정")+" · "+roster().length+"명"; }
 $("roster").addEventListener("input",()=>{cnt();typeHint();pnotes();}); loadClasses(); focusHint(); byeSel();
+
+/* ---------- 줌 요약 자동 불러오기(aprolabs 연동, 편의 기능) ----------
+   실패하든 비어 있든 강사는 항상 직접 입력(textarea 수정)으로 넘어갈
+   수 있어야 한다 - 여기서 채운 값도 그냥 시작점일 뿐, 잠그지 않는다. */
+let ZOOM_PICK_RESULTS = [];
+async function loadZoomSummary(){
+  if(!PRESET_COURSE_ID){
+    $("zoomLoadStat").innerHTML='<span style="color:#a8503f">이 반은 학생관리 DB와 연결되지 않아 자동 불러오기를 쓸 수 없습니다. 직접 입력해 주십시오.</span>';
+    return;
+  }
+  const d=v("date");
+  if(!d){ alert("수업일을 먼저 선택해 주십시오."); return; }
+  $("zoomLoadBtn").disabled=true;
+  $("zoomLoadStat").innerHTML='<span class="spin"></span> 불러오는 중…';
+  $("zoomPick").classList.add("hide"); $("zoomPick").innerHTML=""; ZOOM_PICK_RESULTS=[];
+  try{
+    const res=await fetch(`/api/zoom-summary?course_id=${encodeURIComponent(PRESET_COURSE_ID)}&class_date=${encodeURIComponent(d)}`,
+      {credentials:"same-origin"});
+    if(res.status===401) throw new Error("로그인이 필요합니다. 새로고침 후 다시 로그인해 주십시오.");
+    if(res.status===403) throw new Error("이 반에 접근할 권한이 없습니다.");
+    const data=await res.json();
+    if(!data.found){
+      $("zoomLoadStat").innerHTML=esc(data.error||"해당 날짜의 줌 요약을 찾지 못했습니다. 직접 입력해 주십시오.");
+    } else if(!data.results || !data.results.length){
+      $("zoomLoadStat").innerHTML="해당 날짜의 줌 요약을 찾지 못했습니다. 직접 입력해 주십시오.";
+    } else if(data.results.length===1){
+      applyZoomSummary(data.results[0]);
+    } else {
+      renderZoomPick(data.results);
+    }
+  }catch(e){
+    $("zoomLoadStat").innerHTML=`<span style="color:#a8503f">${esc(String(e.message||e))}</span>`;
+  }
+  $("zoomLoadBtn").disabled=false;
+}
+function applyZoomSummary(r){
+  $("raw").value=r.summary_text||"";
+  if(r.is_empty || (r.char_count||0)<20){
+    $("zoomLoadStat").innerHTML=`<span style="color:#b8944d">⚠ 요약이 비어 있거나 너무 짧습니다(${r.char_count||0}자). `+
+      `내용을 확인하고 필요하면 직접 입력해 주십시오.</span>`;
+  }else{
+    $("zoomLoadStat").innerHTML=`<span style="color:#2f7d76">✓ 불러왔습니다(${r.char_count}자) — ${esc(r.course_name||"")}</span>`;
+  }
+  $("zoomPick").classList.add("hide"); $("zoomPick").innerHTML=""; ZOOM_PICK_RESULTS=[];
+}
+function renderZoomPick(results){
+  ZOOM_PICK_RESULTS=results;
+  $("zoomLoadStat").innerHTML=`같은 강사·같은 날짜에 반이 ${results.length}개 있습니다. 아래에서 고르십시오.`;
+  $("zoomPick").classList.remove("hide");
+  $("zoomPick").innerHTML=results.map((r,i)=>
+    `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule)">
+       <button class="sm" type="button" onclick="pickZoomSummary(${i})">선택</button>
+       <span style="font-size:12.5px">${esc(r.course_name||"(이름 없음)")} · ${r.char_count||0}자`+
+       `${r.is_empty?' · <span style="color:#b8944d">비어 있음</span>':''}</span>
+     </div>`).join("");
+}
+function pickZoomSummary(i){ applyZoomSummary(ZOOM_PICK_RESULTS[i]); }
 
 /* ---------- 프롬프트 ---------- */
 function TALK_BLOCK(n){ const c=callName(n); return `[토론형] ${c}의 발언이 본론이다. 300~420자.
