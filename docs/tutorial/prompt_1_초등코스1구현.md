@@ -45,50 +45,82 @@ app/tutorial/
   `get_course(track, course)`, `get_lesson(track, course, lesson_id)` 정도.
 - 파일이 없거나 JSON이 깨지면 빈 값이 아니라 **명확한 에러 로그**를 남긴다.
 
-### 3. 모델 `models.py` — 새 테이블 2개
+### 3. 모델 `models.py` — 새 테이블 3개
 
 기존 `db = SQLAlchemy()` 인스턴스를 import 해서 쓴다(새로 만들지 말 것).
 
+**조사 결과 확정 사항(초안보다 우선)**: 이 리포의 모든 모델은 `db.Column` 선언형(1.x 스타일) +
+UUID 문자열 PK(`String(36)`, `__init__`에서 `uuid.uuid4()` 생성)를 쓴다(`User`/`Course` 등과 동일 관례).
+`mapped_column`/Integer 자동증가는 쓰지 않는다.
+
 ```python
+import uuid
+from datetime import datetime
+from app.models import db
+
+
 class TutorialProgress(db.Model):
     __tablename__ = 'tutorial_progress'
-    id         = mapped_column(Integer, primary_key=True)
-    user_id    = mapped_column(ForeignKey('<실제 유저 테이블>.id'), index=True, nullable=False)
-    track      = mapped_column(String(16), nullable=False)   # 'elem'
-    course     = mapped_column(String(16), nullable=False)   # 'course1'
-    lesson_id  = mapped_column(String(32), nullable=False)   # 'elem-c1-l1'
-    status     = mapped_column(String(16), default='in_progress')  # in_progress|done
-    score      = mapped_column(Integer, default=0)
-    total      = mapped_column(Integer, default=0)
-    done_at    = mapped_column(DateTime, nullable=True)
-    __table_args__ = (UniqueConstraint('user_id','lesson_id', name='uq_prog_user_lesson'),)
+    id         = db.Column(db.String(36), primary_key=True)
+    user_id    = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                          index=True, nullable=False)
+    track      = db.Column(db.String(16), nullable=False)   # 'elem'
+    course     = db.Column(db.String(16), nullable=False)   # 'course1'
+    lesson_id  = db.Column(db.String(32), nullable=False)   # 'elem-c1-l1'
+    status     = db.Column(db.String(16), default='in_progress')  # in_progress|done
+    score      = db.Column(db.Integer, default=0)
+    total      = db.Column(db.Integer, default=0)
+    done_at    = db.Column(db.DateTime, nullable=True)
+    __table_args__ = (db.UniqueConstraint('user_id', 'lesson_id', name='uq_prog_user_lesson'),)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.id:
+            self.id = str(uuid.uuid4())
+
 
 class TutorialAttempt(db.Model):
     __tablename__ = 'tutorial_attempt'
-    id          = mapped_column(Integer, primary_key=True)
-    user_id     = mapped_column(ForeignKey('<실제 유저 테이블>.id'), index=True, nullable=False)
-    lesson_id   = mapped_column(String(32), nullable=False)
-    question_id = mapped_column(String(48), nullable=False)
-    rule_no     = mapped_column(String(8))
-    correct     = mapped_column(Boolean, nullable=False)
-    created_at  = mapped_column(DateTime, default=datetime.utcnow)
+    id          = db.Column(db.String(36), primary_key=True)
+    user_id     = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                           index=True, nullable=False)
+    lesson_id   = db.Column(db.String(32), nullable=False)
+    question_id = db.Column(db.String(48), nullable=False)
+    rule_no     = db.Column(db.String(8))
+    correct     = db.Column(db.Boolean, nullable=False)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.id:
+            self.id = str(uuid.uuid4())
 ```
 
+**진도(Progress/Attempt)는 `User.user_id` 기준이다** — 학생 명부(`Student`) 레코드가 없어도
+(예: 명부 미등록 계정) 쌓일 수 있어야 하므로, 로그인 계정 자체를 키로 쓴다.
+
 추가로 **코스 완료 보상 지급 기록** 테이블 하나를 더 둔다. 코스별 100점을 최초 1회만 주기 위한 중복 방지 장치다.
+**이 테이블만 `user_id`가 아니라 `student_id`를 쓴다** — 적립 주체가 `Student`(마일리지는
+`award_points(student_id=...)`)이므로, 중복 방지 키도 그 대상과 같아야 새는 경로가 없다.
 
 ```python
 class TutorialCourseReward(db.Model):
     __tablename__ = 'tutorial_course_reward'
-    id        = mapped_column(Integer, primary_key=True)
-    user_id   = mapped_column(ForeignKey('<실제 유저 테이블>.id'), index=True, nullable=False)
-    track     = mapped_column(String(16), nullable=False)   # 'elem'
-    course    = mapped_column(String(16), nullable=False)   # 'course1'
-    points    = mapped_column(Integer, default=100)
-    rewarded_at = mapped_column(DateTime, default=datetime.utcnow)
-    __table_args__ = (UniqueConstraint('user_id','track','course', name='uq_reward_user_course'),)
+    id          = db.Column(db.String(36), primary_key=True)
+    student_id  = db.Column(db.String(36), db.ForeignKey('students.student_id', ondelete='CASCADE'),
+                           index=True, nullable=False)
+    track       = db.Column(db.String(16), nullable=False)   # 'elem'
+    course      = db.Column(db.String(16), nullable=False)   # 'course1'
+    points      = db.Column(db.Integer, default=100)
+    rewarded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('student_id', 'track', 'course', name='uq_reward_student_course'),)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.id:
+            self.id = str(uuid.uuid4())
 ```
 
-- SQLAlchemy 2.0 스타일(`mapped_column`)을 쓰되, **기존 모델이 1.x 선언형이면 그 스타일에 맞춘다.** 리포의 기존 모델을 먼저 보고 통일한다.
 - 이 프로젝트는 기동 시 `db.create_all()`이 도니 새 테이블은 자동 생성된다. 그래도 **Alembic 마이그레이션 파일을 생성**하고(`flask db migrate -m "tutorial progress/attempt/reward"`), 리뷰 후 커밋한다. 서버 반영은 기존 패턴(create_all이 만들고 Alembic stamp)을 따른다.
 
 ### 4. 라우트 `routes.py`
@@ -106,19 +138,44 @@ class TutorialCourseReward(db.Model):
 
 ### 4-1. 마일리지 적립 — 코스 완료 시 100점 (코스별 최초 1회)
 
-적립은 **레슨 단위가 아니라 코스 단위**다. `/api/complete`에서 방금 레슨을 `done` 처리한 직후, 아래를 순서대로 한 트랜잭션에서 처리한다.
+적립은 **레슨 단위가 아니라 코스 단위**다.
 
-1. 방금 완료된 레슨이 속한 **코스의 전체 레슨 id 목록**을 콘텐츠 JSON에서 읽는다.
-2. 이 학생의 `TutorialProgress` 중 그 코스에서 `status='done'`인 레슨 수를 센다.
-3. `done 수 == 코스 전체 레슨 수`가 **이번에 처음으로** 참이 됐는지 확인한다.
-   판정 근거는 `TutorialCourseReward`의 존재 여부다 — `(user_id, track, course)` 행이 **없을 때만** 적립한다.
-4. 적립: `award_points()`를 호출한다. 활동코드는 **새로 하나 만든다**(예 `TU01`, 활동명 "튜토리얼 코스 완료", 100점, `confirm_delay_hours=0` → 즉시 confirmed). 활동코드·포인트·확정지연을 등록하는 위치는 기존 QZ01/QZ02가 등록된 방식과 **똑같은 자리**에 추가한다.
-5. 적립에 성공하면 `TutorialCourseReward` 행을 INSERT 한다. `award_points()` 호출과 이 INSERT는 **같은 트랜잭션**으로 묶어, 점수만 나가고 기록이 안 남는(또는 그 반대) 상황을 막는다. 유니크 제약(`uq_reward_user_course`)이 동시요청 중복까지 방어한다.
+**활동코드 등록** — `app/services/mileage_rules.py`의 `POINT_RULES`에 QZ01과 같은 구조로 추가한다:
+
+```python
+'TU01': {
+    'name': '튜토리얼 코스 완료',
+    'points': 100,
+    'points_min': None, 'points_max': None,
+    'allowed_source_types': ['tutorial_course'],
+    'confirm_delay_hours': 0,
+    'daily_cap': None, 'monthly_cap': None,
+},
+```
+
+**`/api/complete` 처리 순서** (조사 결과 확정 - 아래 순서·트랜잭션 경계를 그대로 따른다):
+
+1. `TutorialProgress`/`TutorialAttempt` 저장(해당 레슨 `done` 처리, score/total, `done_at`) 후 **먼저 커밋한다.**
+2. `Student.query.filter_by(user_id=current_user.user_id).first()`로 명부 레코드를 찾는다.
+   - `None`이면 **적립을 건너뛴다.** 이건 오류가 아니라 정상 상황(명부 미등록·교사·관리자·테스트 계정)이므로
+     `logger.info`로만 남기고 `logger.exception`을 쓰지 않는다. 응답은 `course_completed: false`.
+3. 방금 완료된 레슨이 속한 **코스의 전체 레슨 id 목록**을 콘텐츠 JSON에서 읽어, 이 학생의
+   `TutorialProgress` 중 그 코스에서 `status='done'`인 레슨 수와 비교한다(레슨 수 하드코딩 금지 -
+   레슨 2·3이 추가되면 자동으로 마지막 레슨에서만 참이 되게).
+4. `done 수 == 코스 전체 레슨 수`이고 `TutorialCourseReward`에 `(student_id, track, course)` 행이
+   **없을 때만** 적립 대상이다.
+5. 적립은 **별도 try/except**로 감싼다:
+   - `award_points(student_id=student.student_id, activity_code='TU01', source_type='tutorial_course', source_id=f"{student.student_id}-{track}-{course}")` 호출
+     (source_id는 AT01/AT02의 합성 키 컨벤션을 따른다 - 참조할 기존 레코드가 없는 개념적 단위라서)
+   - 성공하면 `TutorialCourseReward` INSERT 후 커밋.
+   - 실패하면 **그 부분만 롤백**하고 `logger.exception`만 남긴다. 진도는 1번에서 이미 커밋돼 있으므로
+     다음 완료 시도(같은 레슨을 다시 풀어도 `done 수==전체`는 계속 참)에서 자연스럽게 재시도된다.
+     **마일리지 실패가 진도 저장이나 화면 진행을 막지 않는다.**
+6. 응답에 `{"course_completed": bool, "points": int}`를 담는다. 적립을 안 했으면(이미 지급됐거나,
+   명부 없거나, 아직 코스 미완료) `points`는 0.
 
 주의:
-- 이미 코스를 깬 학생이 아무 레슨이나 **다시 풀어** 완료 조건이 또 참이 돼도, 3번의 `TutorialCourseReward` 존재 검사에서 걸러져 **재적립되지 않는다.**
 - 상한(일일/월) 정책이 `award_points()` 안에서 적용된다면 그 결과(적립 거부/부분 적립)를 그대로 존중한다. 튜토리얼 쪽에서 상한을 우회하지 않는다.
-- 코스 완료로 적립이 발생했는지 여부를 `/api/complete` 응답에 담아(`{"course_completed": true, "points": 100}`) 프런트가 결과 화면에서 "코스 완료! +100 모모 마일리지"를 보여줄 수 있게 한다. 코스 완료가 아니면 이 필드는 false.
 
 ### 5. 템플릿 (base.html 상속, Tailwind는 바깥 뼈대만)
 
@@ -136,30 +193,32 @@ class TutorialCourseReward(db.Model):
 
 ### 6. 정적 파일
 
-- `app/static/css/tutorial.css` — **전달된 샘플 HTML의 `<style>` 내용을 그대로** 옮긴다.
+**조사 결과 확정**: 이 리포의 `static_folder`는 `app/static/`가 아니라 **프로젝트 루트의 `static/`**다
+(`app/__init__.py`에서 `static_dir = .../'..', 'static'`로 설정). 아래 경로로 만든다.
+
+- `static/css/tutorial.css` — **전달된 샘플 HTML의 `<style>` 내용을 그대로** 옮긴다.
   (`:root` 초등 팔레트 변수, `.gp` 원고지 칸, `.card`, `.opt`, `.result` 등. base.html의 Tailwind와 클래스명이 겹치지 않는지만 확인한다. 겹치면 `.tut-` 프리픽스를 붙인다)
-- `app/static/js/tutorial.js` — 샘플의 `<script>` 내용을 옮기되 다음만 바꾼다:
+- `static/js/tutorial.js` — 샘플의 `<script>` 내용을 옮기되 다음만 바꾼다:
   - 하드코딩된 `LESSON` 상수를 지우고, `#lessonData` script 태그의 JSON을 파싱해 쓴다.
-  - 문항을 맞히면 `POST /tutorial/api/answer` 를, 레슨을 다 풀면 `POST /tutorial/api/complete` 를 `fetch`로 호출한다. 저장 실패해도 화면 진행은 막지 않는다(진도는 best-effort).
+  - **샘플 JS는 문항 배열을 `LESSON.quiz`로 참조하는데, 0단계 JSON의 키는 `questions`다.**
+    `LESSON.quiz` 참조를 전부 `lesson.questions`로 바꾼다(`buildQuiz()`, `renderResult()`의
+    `LESSON.quiz.length` 포함 - 하나도 빠짐없이).
+  - `POST /tutorial/api/answer` 호출 시 `question_id`는 **문항 인덱스가 아니라 문항의 `id`**
+    (예 `'elem-c1-l1-q3'`)를 보낸다.
+  - 문항을 맞히면 `POST /tutorial/api/answer` 를, 레슨을 다 풀면 `POST /tutorial/api/complete` 를 `fetch`로 호출한다. 저장 실패해도 화면 진행은 막지 않는다(진도는 best-effort). **CSRF 토큰은 안 보낸다** (아래 "CSRF 조사 결과" 참고).
   - **정답 표시(○/✕ 도장)는 샘플에 이미 구현돼 있으니 그대로 옮긴다.** 문항을 풀면 정답이면 초록 ○, 틀리면 빨강 ✕가 선택지/입력 영역 오른쪽 위에 찍힌다(`.stamp` + `settle()`). 지우지 말 것. 선택지 채점은 `opts.children`가 아니라 **버튼 배열**을 순회해야 한다(도장이 첫 자식이라 인덱스가 밀리는 버그 방지 — 샘플에 반영돼 있음).
-  - **CSRF**: 아래처럼 토큰을 헤더에 싣는다.
+  - **`renderResult()`의 `mileN = n*5` 같은 클라이언트 계산 마일리지는 지운다.** `/api/complete`
+    응답의 `points`로 화면에 채우고, `course_completed`가 `false`면 마일리지 표시 줄 자체를 숨긴다
+    (아직 코스 완료가 아니거나 명부 미등록이면 점수를 지어내 보여주면 안 된다).
 
-### 7. CSRF (Flask-WTF가 켜져 있으면 필수)
+### CSRF 조사 결과 — 적용하지 않는다
 
-base.html(또는 lesson.html)의 `<head>`에 `<meta name="csrf-token" content="{{ csrf_token() }}">`가 있는지 확인하고, 없으면 튜토리얼 템플릿 블록에 추가한다. `tutorial.js`의 fetch는:
+`CSRFProtect`가 전역으로 켜져 있지 않고(로그인 폼 등 `FlaskForm` 렌더링용 `csrf_token()` 헬퍼만
+등록돼 있음), 기존 JSON API(`/api/generate`, `/api/sessions` 등)도 `fetch` POST에 CSRF 토큰을
+전혀 안 보낸다. 튜토리얼도 같은 관례를 따라 **CSRF 토큰 처리를 하지 않는다** — `tutorial.js`의
+`post()` 함수엔 `X-CSRFToken` 관련 코드를 넣지 않고, 라우트도 CSRF 검사를 하지 않는다.
 
-```js
-function post(url, body){
-  const t=document.querySelector('meta[name="csrf-token"]');
-  return fetch(url,{method:'POST',
-    headers:{'Content-Type':'application/json', ...(t?{'X-CSRFToken':t.content}:{})},
-    body:JSON.stringify(body)}).catch(()=>{});
-}
-```
-
-라우트는 JSON 요청에서 `X-CSRFToken` 헤더를 CSRF로 인정하도록 한다(Flask-WTF 기본 동작 확인).
-
-### 8. 진입점
+### 7. 진입점
 
 - 기존 네비게이션/사이드바(학생용)에서 튜토리얼로 가는 링크 하나를 추가한다. 위치는 기존 학생 메뉴 관례를 따른다.
 
