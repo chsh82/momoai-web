@@ -56,8 +56,7 @@
 /* .screen 자체가 이미 좌우 padding(--sp-4)을 갖고 있어서, .top에 또
    좌우 padding을 주면 아래 카드들보다 32px(양쪽 16px씩)나 좁아 보였다 -
    .top은 세로 padding만 남기고 좌우는 .screen 여백에 맡긴다. */
-.tut-page .top{position:sticky;top:0;z-index:20;background:var(--cream);
-  display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) 0 var(--sp-2)}
+.tut-page .top{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) 0 var(--sp-2)}
 .tut-page .top .back{border:none;background:var(--paper);width:40px;height:40px;border-radius:14px;
   box-shadow:var(--shadow-card);font-size:var(--fs-5);color:var(--navy);cursor:pointer}
 .tut-page .top .back:active{transform:translateY(1px)}
