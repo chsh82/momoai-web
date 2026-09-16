@@ -53,15 +53,18 @@
 /* 뒤로가기 화살표는 혼자 맨 윗줄에, 제목 줄은 그 아래 배경 바로
    강조한다 - 화살표와 제목이 한 줄에 같이 있으면 제목이 덜 도드라져
    보인다는 피드백. */
+/* .screen 자체가 이미 좌우 padding(--sp-4)을 갖고 있어서, .top에 또
+   좌우 padding을 주면 아래 카드들보다 32px(양쪽 16px씩)나 좁아 보였다 -
+   .top은 세로 padding만 남기고 좌우는 .screen 여백에 맡긴다. */
 .tut-page .top{position:sticky;top:0;z-index:20;background:var(--cream);
-  display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) var(--sp-2)}
+  display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) 0 var(--sp-2)}
 .tut-page .top .back{border:none;background:var(--paper);width:40px;height:40px;border-radius:14px;
   box-shadow:var(--shadow-card);font-size:var(--fs-5);color:var(--navy);cursor:pointer}
 .tut-page .top .back:active{transform:translateY(1px)}
 .tut-page .top .top-title{width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
-  background:var(--paper);border-radius:16px;padding:var(--sp-3) var(--sp-4);box-shadow:var(--shadow-card)}
-.tut-page .top .crumb{font-weight:700;color:var(--navy);font-size:var(--fs-4);line-height:1.3}
-.tut-page .top .of{flex:none;color:var(--muted);font-size:var(--fs-3);line-height:1.3;font-weight:500}
+  background:var(--navy);border-radius:16px;padding:var(--sp-3) var(--sp-4);box-shadow:var(--shadow-card)}
+.tut-page .top .crumb{font-weight:900;color:#fff;font-size:var(--fs-6);line-height:1.3}
+.tut-page .top .of{flex:none;color:#C3CEE3;font-size:var(--fs-3);line-height:1.3;font-weight:500}
 
 /* 트랙 선택 화면으로 돌아가는 링크 (코스 목록 화면 상단) */
 .tut-page .track-back{display:inline-block;color:var(--muted);font-size:var(--fs-2);font-weight:500;
