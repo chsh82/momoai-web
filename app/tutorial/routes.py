@@ -65,7 +65,12 @@ def index(track):
             'first_lesson_id': lesson_ids[0] if lesson_ids else None,
         })
 
-    return render_template('tutorial/home.html', track=track, courses=courses)
+    # 관리자는 순서(잠금)와 상관없이 모든 코스를 열어볼 수 있어야 콘텐츠 점검이
+    # 편하다 - 학생 진도 게이트는 화면 표시만 우회하고, 저장 대상 여부(api_complete의
+    # role 체크)는 그대로 둔다(관리자 진도는 계속 저장 안 됨, 열람만 허용).
+    bypass_gate = current_user.is_authenticated and current_user.role == 'admin'
+
+    return render_template('tutorial/home.html', track=track, courses=courses, bypass_gate=bypass_gate)
 
 
 @tutorial_bp.route('/<track>/<course_code>/<lesson_id>')
@@ -179,7 +184,9 @@ def api_complete():
     if not current_user.is_authenticated:
         return jsonify({'error': '로그인이 필요합니다'}), 401
     if current_user.role != 'student':
-        return '', 204
+        # 관리자/교사/학부모 계정으로 튜토리얼을 열어볼 수는 있지만 진도는 저장 대상이
+        # 아니다 - 화면에서 "저장 실패"로 오인하지 않도록 skipped 플래그를 명시한다.
+        return jsonify({'skipped': True, 'points_awarded': False, 'points': 0})
 
     data = request.get_json(silent=True) or {}
     lesson_id = data.get('lesson_id')

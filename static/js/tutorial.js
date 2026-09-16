@@ -82,7 +82,6 @@ async function postComplete(body){
   try{
     const res = await post('/tutorial/api/complete', body);
     if(!res || !res.ok) return {points_awarded:false, points:0, saved:false};
-    if(res.status===204) return {points_awarded:false, points:0, saved:true}; // 학생 외 역할 - 저장 대상 아님(정상)
     const data = await res.json();
     return Object.assign({saved:true}, data);
   }catch(e){
@@ -441,13 +440,23 @@ let lastResultPayload = null;
 async function tryCompleteSave(){
   const mileEl = document.getElementById('mileLine');
   const warnEl = document.getElementById('saveWarn');
+  const skipEl = document.getElementById('skipNote');
   const data = await postComplete(lastResultPayload);
   if(!data.saved){
     warnEl.hidden = false;
+    skipEl.hidden = true;
     mileEl.hidden = true;
     return;
   }
   warnEl.hidden = true;
+  if(data.skipped){
+    // 관리자/교사/학부모 계정 - 애초에 진도 저장 대상이 아니므로 실패가 아니라
+    // "왜 마일리지가 안 뜨는지" 궁금할 사람을 위한 안내만 보여준다.
+    skipEl.hidden = false;
+    mileEl.hidden = true;
+    return;
+  }
+  skipEl.hidden = true;
   if(data.points_awarded && data.points > 0){
     document.getElementById('mileN').textContent = data.points;
     mileEl.hidden = false;

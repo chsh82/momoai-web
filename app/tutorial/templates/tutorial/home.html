@@ -34,7 +34,7 @@
 
     {% for c in courses %}
       {% set percent = (c.done_count / c.total_lessons * 100) | round | int if c.total_lessons else 0 %}
-      {% set prev_done = (loop.index0 == 0) or (courses[loop.index0 - 1].done_count >= courses[loop.index0 - 1].total_lessons and courses[loop.index0 - 1].total_lessons > 0) %}
+      {% set prev_done = bypass_gate or (loop.index0 == 0) or (courses[loop.index0 - 1].done_count >= courses[loop.index0 - 1].total_lessons and courses[loop.index0 - 1].total_lessons > 0) %}
       {% if c.first_lesson_id and prev_done %}
       <a class="course c{{ loop.index }}" href="{{ url_for('tutorial.lesson', track=track, course_code=c.code, lesson_id=c.first_lesson_id) }}">
         <span class="chip">코스 {{ loop.index }}</span>
