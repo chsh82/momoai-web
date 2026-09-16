@@ -140,10 +140,13 @@ function renderCard(idx){
 
   if(c.grids){
     c.grids.forEach(g=>{
+      // 원고지를 왼쪽에 고정하고 설명 태그를 오른쪽에 둔다(칸 위치가
+      // 태그 유무/길이에 따라 흔들리지 않게) - 폭이 좁아 같이 못 들어가면
+      // flex-wrap으로 태그가 아래로 자연스럽게 내려간다.
       const w=document.createElement('div'); w.className='gpwrap';
       const tg=document.createElement('div'); tg.className='gptag '+g.tone;
       tg.textContent=(g.tone==='bad'?'✕ ':'○ ')+g.tag;
-      w.appendChild(tg); w.appendChild(gpEl(g));
+      w.appendChild(gpEl(g)); w.appendChild(tg);
       card.appendChild(w);
     });
   }
@@ -151,8 +154,10 @@ function renderCard(idx){
     c.examples.forEach(ex=> card.appendChild(exampleEl(ex)));
   }
   if(c.why){
+    // "?" 아이콘 대신 "왜 그럴까요?" 문구 자체를 배지에 넣는다 - 옆
+    // 설명과 같은 줄 높이(align-items:center)로 맞춰서 보여준다.
     const w=document.createElement('div'); w.className='why';
-    w.innerHTML='<span class="q">?</span><div><b>왜 그럴까요?</b> '+c.why+'</div>';
+    w.innerHTML='<span class="q">왜 그럴까요?</span><div>'+c.why+'</div>';
     card.appendChild(w);
   }
   if(c.remember){

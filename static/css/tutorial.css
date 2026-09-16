@@ -136,10 +136,12 @@
 .tut-page .card .cn .star{background:var(--gold);color:#3a2c0c;font-weight:700;
   font-size:var(--fs-1);padding:4px var(--sp-3);border-radius:99px}
 .tut-page .say{font-size:var(--fs-4);margin:2px 0 var(--sp-1)}
-.tut-page .why{display:flex;align-items:center;gap:var(--sp-2);background:var(--sky-pale);border-radius:16px;padding:var(--sp-3);margin:var(--sp-3) 0;
+.tut-page .why{display:flex;align-items:center;gap:var(--sp-3);background:var(--sky-pale);border-radius:16px;padding:var(--sp-3);margin:var(--sp-3) 0;
   font-size:var(--fs-3);line-height:1.5;color:#2c4a63}
-.tut-page .why .q{flex:none;width:26px;height:26px;border-radius:99px;background:#fff;
-  display:grid;place-items:center;font-weight:700;line-height:1;color:var(--sky);font-size:var(--fs-4)}
+/* "?" 아이콘 원 대신 "왜 그럴까요?" 문구를 담는 알약 배지 - 옆 설명과
+   같은 flex 행에서 align-items:center로 줄 높이를 맞춘다. */
+.tut-page .why .q{flex:none;background:#fff;border-radius:99px;padding:var(--sp-1) var(--sp-3);
+  display:inline-flex;align-items:center;font-weight:700;line-height:1.3;color:var(--sky);font-size:var(--fs-2);white-space:nowrap}
 
 /* 평문 예문 비교 박스 (코스2·3 - 원고지 칸이 필요 없는 콘텐츠) */
 .tut-page .ex-wrap{margin:var(--sp-5) 0 var(--sp-1)}
@@ -152,9 +154,11 @@
 .tut-page .ex-box.bad{background:#FFF8F5;border-color:#EBBCA6;color:var(--ink)}
 .tut-page .ex-box.good{background:#F6FCF8;border-color:#B9DEC8;color:var(--ink)}
 
-/* 원고지 */
-.tut-page .gpwrap{margin:var(--sp-5) 0 var(--sp-1)}
-.tut-page .gptag{font-size:var(--fs-2);font-weight:700;margin:0 0 var(--sp-2);display:inline-flex;align-items:center;gap:var(--sp-1);
+/* 원고지 - 칸을 항상 왼쪽에 고정하고 설명 태그는 오른쪽에 둔다(태그
+   유무/길이에 따라 칸 위치가 흔들리던 문제). 폭이 부족하면(칸이 넓은
+   규정) flex-wrap으로 태그가 자연스럽게 아래 줄로 내려간다. */
+.tut-page .gpwrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-3);margin:var(--sp-5) 0 var(--sp-1)}
+.tut-page .gptag{flex:none;font-size:var(--fs-2);font-weight:700;display:inline-flex;align-items:center;gap:var(--sp-1);
   padding:var(--sp-1) var(--sp-3);border-radius:99px}
 .tut-page .gptag.bad{background:var(--wrong-pale);color:var(--wrong)}
 .tut-page .gptag.good{background:var(--right-pale);color:var(--right)}
@@ -172,7 +176,9 @@
 .tut-page .gp span.hl{background:var(--wrong-pale);color:var(--wrong);font-weight:700}
 .tut-page .gp.good span.hl{background:var(--right-pale);color:var(--right)}
 
-.tut-page .remember{display:flex;gap:var(--sp-2);background:var(--cream);border:2px dashed var(--coral);border-radius:18px;
+/* align-items 기본값(stretch)이라 "모모" 원이 위쪽에 붙고 "기억해요"
+   문구가 그보다 높아 보였다 - center로 나란히 맞춘다. */
+.tut-page .remember{display:flex;align-items:center;gap:var(--sp-2);background:var(--cream);border:2px dashed var(--coral);border-radius:18px;
   padding:var(--sp-3) var(--sp-4);margin-top:var(--sp-4);font-size:var(--fs-3);position:relative}
 .tut-page .remember .momo{flex:none;width:34px;height:34px;border-radius:99px;background:var(--coral);color:#fff;
   display:grid;place-items:center;font-weight:700;font-size:var(--fs-2)}
