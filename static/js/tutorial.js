@@ -19,7 +19,15 @@ const COURSE = window.TUTORIAL_COURSE || '';
 function parseRow(s){
   const cells=[]; let i=0;
   while(i<s.length){
-    let hl=false, mid=false;
+    let hl=false, mid=false, fix=null;
+    if(s[i]==='^' && s[i+1]==='{'){
+      const j=s.indexOf('}',i);
+      const inner=s.slice(i+2,j);
+      const k=inner.indexOf('>');
+      cells.push({t:inner.slice(0,k), hl:false, mid:false, fix:inner.slice(k+1)});
+      i=j+1;
+      continue;
+    }
     if(s[i]==='!'){ hl=true; i++; }
     else if(s[i]==='#'){ hl=true; mid=true; i++; }
     let t;
@@ -49,6 +57,7 @@ function gpEl(spec){
       if(c.t==='“') cls.push('qo');
       if(c.t==='”') cls.push('qc');
       if(c.hl) cls.push('hl');
+      if(c.fix){ cls.push('fix'); sp.setAttribute('data-fix', c.fix); }
       if(cls.length) sp.className=cls.join(' ');
       rowEl.appendChild(sp);
     }

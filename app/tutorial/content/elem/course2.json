@@ -9,48 +9,272 @@
       "order": 1,
       "title": "소리가 비슷해서 헷갈리는 말",
       "cards": [
-        { "no": "1", "star": true, "title": "되 / 돼", "say": "'하'와 '해'를 넣어 봐요. '해'가 어울리면 <b>돼</b>예요.",
-          "examples": [ { "tone": "bad", "text": "그렇게 하면 되" }, { "tone": "good", "text": "그렇게 하면 돼" } ] },
-        { "no": "2", "star": true, "title": "안 / 않", "say": "<b>안</b>은 앞에 따로 서요. <b>않</b>은 '-지' 뒤에만 와요.",
-          "examples": [ { "tone": "bad", "text": "숙제를 않 했다" }, { "tone": "good", "text": "숙제를 안 했다" } ] },
-        { "no": "3", "star": false, "title": "-던 / -든", "say": "지난 일이면 <b>던</b>, 고르는 말이면 <b>든</b>이에요.",
-          "examples": [ { "tone": "bad", "text": "어제 먹든 빵" }, { "tone": "good", "text": "어제 먹던 빵" } ] },
-        { "no": "4", "star": false, "title": "-데 / -대", "say": "내가 겪은 일은 <b>데</b>, 남에게 들은 말은 <b>대</b>예요.",
-          "examples": [ { "tone": "bad", "text": "친구가 춥데" }, { "tone": "good", "text": "친구가 춥대" } ] },
-        { "no": "5", "star": true, "title": "다르다 / 틀리다", "say": "<b>틀리다</b>는 답이 아니라는 뜻이에요. 견줄 땐 <b>다르다</b>.",
-          "examples": [ { "tone": "bad", "text": "내 생각과 틀려요" }, { "tone": "good", "text": "내 생각과 달라요" } ] },
-        { "no": "6", "star": false, "title": "가르치다 / 가리키다", "say": "<b>가르치다</b>는 알려 주기, <b>가리키다</b>는 손으로 짚기.",
-          "examples": [ { "tone": "bad", "text": "손가락으로 가르쳤다" }, { "tone": "good", "text": "손가락으로 가리켰다" } ] },
-        { "no": "7", "star": false, "title": "바라다 / 바래다", "say": "<b>바래다</b>는 색이 옅어지는 것이에요.",
-          "examples": [ { "tone": "bad", "text": "합격을 바래요" }, { "tone": "good", "text": "합격을 바라요" } ] },
-        { "no": "8", "star": false, "title": "맞추다 / 맞히다", "say": "정답은 <b>맞히다</b>, 서로 대 보는 건 <b>맞추다</b>.",
-          "examples": [ { "tone": "bad", "text": "정답을 맞췄어요" }, { "tone": "good", "text": "정답을 맞혔어요" } ] }
+        {
+          "no": "1",
+          "star": true,
+          "title": "되 / 돼",
+          "say": "'하'와 '해'를 넣어 봐요. '해'가 어울리면 <b>돼</b>예요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "그렇게 하면 되"
+            },
+            {
+              "tone": "good",
+              "text": "그렇게 하면 돼"
+            }
+          ]
+        },
+        {
+          "no": "2",
+          "star": true,
+          "title": "안 / 않",
+          "say": "<b>안</b>은 앞에 따로 서요. <b>않</b>은 '-지' 뒤에만 와요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "숙제를 않 했다"
+            },
+            {
+              "tone": "good",
+              "text": "숙제를 안 했다"
+            }
+          ]
+        },
+        {
+          "no": "3",
+          "star": false,
+          "title": "-던 / -든",
+          "say": "지난 일이면 <b>던</b>, 고르는 말이면 <b>든</b>이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "어제 먹든 빵"
+            },
+            {
+              "tone": "good",
+              "text": "어제 먹던 빵"
+            }
+          ]
+        },
+        {
+          "no": "4",
+          "star": false,
+          "title": "-데 / -대",
+          "say": "내가 겪은 일은 <b>데</b>, 남에게 들은 말은 <b>대</b>예요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "친구가 춥데"
+            },
+            {
+              "tone": "good",
+              "text": "친구가 춥대"
+            }
+          ]
+        },
+        {
+          "no": "5",
+          "star": true,
+          "title": "다르다 / 틀리다",
+          "say": "<b>틀리다</b>는 답이 아니라는 뜻이에요. 견줄 땐 <b>다르다</b>.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "내 생각과 틀려요"
+            },
+            {
+              "tone": "good",
+              "text": "내 생각과 달라요"
+            }
+          ]
+        },
+        {
+          "no": "6",
+          "star": false,
+          "title": "가르치다 / 가리키다",
+          "say": "<b>가르치다</b>는 알려 주기, <b>가리키다</b>는 손으로 짚기.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "손가락으로 가르쳤다"
+            },
+            {
+              "tone": "good",
+              "text": "손가락으로 가리켰다"
+            }
+          ]
+        },
+        {
+          "no": "7",
+          "star": false,
+          "title": "바라다 / 바래다",
+          "say": "<b>바래다</b>는 색이 옅어지는 것이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "합격을 바래요"
+            },
+            {
+              "tone": "good",
+              "text": "합격을 바라요"
+            }
+          ]
+        },
+        {
+          "no": "8",
+          "star": false,
+          "title": "맞추다 / 맞히다",
+          "say": "정답은 <b>맞히다</b>, 서로 대 보는 건 <b>맞추다</b>.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "정답을 맞췄어요"
+            },
+            {
+              "tone": "good",
+              "text": "정답을 맞혔어요"
+            }
+          ]
+        }
       ],
       "questions": [
-        { "id": "elem-c2-l1-q1", "type": "choice", "ruleNo": "1", "ruleName": "되 / 돼", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "그렇게 하면 되" }, { "text": "그렇게 하면 돼" } ], "a": 1,
-          "why": "'하'와 '해'를 넣어 봐요. '해'가 어울리면 <b>돼</b>예요." },
-        { "id": "elem-c2-l1-q2", "type": "choice", "ruleNo": "2", "ruleName": "안 / 않", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "숙제를 않 했다" }, { "text": "숙제를 안 했다" } ], "a": 1,
-          "why": "<b>안</b>은 앞에 따로 서요. <b>않</b>은 '-지' 뒤에만 와요." },
-        { "id": "elem-c2-l1-q3", "type": "choice", "ruleNo": "3", "ruleName": "-던 / -든", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "어제 먹든 빵" }, { "text": "어제 먹던 빵" } ], "a": 1,
-          "why": "지난 일이면 <b>던</b>, 고르는 말이면 <b>든</b>이에요." },
-        { "id": "elem-c2-l1-q4", "type": "choice", "ruleNo": "4", "ruleName": "-데 / -대", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "친구가 춥데" }, { "text": "친구가 춥대" } ], "a": 1,
-          "why": "내가 겪은 일은 <b>데</b>, 남에게 들은 말은 <b>대</b>예요." },
-        { "id": "elem-c2-l1-q5", "type": "choice", "ruleNo": "5", "ruleName": "다르다 / 틀리다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "내 생각과 틀려요" }, { "text": "내 생각과 달라요" } ], "a": 1,
-          "why": "<b>틀리다</b>는 답이 아니라는 뜻이에요. 견줄 땐 <b>다르다</b>." },
-        { "id": "elem-c2-l1-q6", "type": "choice", "ruleNo": "6", "ruleName": "가르치다 / 가리키다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "손가락으로 가르쳤다" }, { "text": "손가락으로 가리켰다" } ], "a": 1,
-          "why": "<b>가르치다</b>는 알려 주기, <b>가리키다</b>는 손으로 짚기." },
-        { "id": "elem-c2-l1-q7", "type": "choice", "ruleNo": "7", "ruleName": "바라다 / 바래다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "합격을 바래요" }, { "text": "합격을 바라요" } ], "a": 1,
-          "why": "<b>바래다</b>는 색이 옅어지는 것이에요." },
-        { "id": "elem-c2-l1-q8", "type": "choice", "ruleNo": "8", "ruleName": "맞추다 / 맞히다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "정답을 맞췄어요" }, { "text": "정답을 맞혔어요" } ], "a": 1,
-          "why": "정답은 <b>맞히다</b>, 서로 대 보는 건 <b>맞추다</b>." }
+        {
+          "id": "elem-c2-l1-q1",
+          "type": "choice",
+          "ruleNo": "1",
+          "ruleName": "되 / 돼",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "그렇게 하면 되"
+            },
+            {
+              "text": "그렇게 하면 돼"
+            }
+          ],
+          "a": 1,
+          "why": "'하'와 '해'를 넣어 봐요. '해'가 어울리면 <b>돼</b>예요."
+        },
+        {
+          "id": "elem-c2-l1-q2",
+          "type": "choice",
+          "ruleNo": "2",
+          "ruleName": "안 / 않",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "숙제를 안 했다"
+            },
+            {
+              "text": "숙제를 않 했다"
+            }
+          ],
+          "a": 0,
+          "why": "<b>안</b>은 앞에 따로 서요. <b>않</b>은 '-지' 뒤에만 와요."
+        },
+        {
+          "id": "elem-c2-l1-q3",
+          "type": "choice",
+          "ruleNo": "3",
+          "ruleName": "-던 / -든",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "어제 먹든 빵"
+            },
+            {
+              "text": "어제 먹던 빵"
+            }
+          ],
+          "a": 1,
+          "why": "지난 일이면 <b>던</b>, 고르는 말이면 <b>든</b>이에요."
+        },
+        {
+          "id": "elem-c2-l1-q4",
+          "type": "choice",
+          "ruleNo": "4",
+          "ruleName": "-데 / -대",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "친구가 춥데"
+            },
+            {
+              "text": "친구가 춥대"
+            }
+          ],
+          "a": 1,
+          "why": "내가 겪은 일은 <b>데</b>, 남에게 들은 말은 <b>대</b>예요."
+        },
+        {
+          "id": "elem-c2-l1-q5",
+          "type": "choice",
+          "ruleNo": "5",
+          "ruleName": "다르다 / 틀리다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "내 생각과 달라요"
+            },
+            {
+              "text": "내 생각과 틀려요"
+            }
+          ],
+          "a": 0,
+          "why": "<b>틀리다</b>는 답이 아니라는 뜻이에요. 견줄 땐 <b>다르다</b>."
+        },
+        {
+          "id": "elem-c2-l1-q6",
+          "type": "choice",
+          "ruleNo": "6",
+          "ruleName": "가르치다 / 가리키다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "손가락으로 가리켰다"
+            },
+            {
+              "text": "손가락으로 가르쳤다"
+            }
+          ],
+          "a": 0,
+          "why": "<b>가르치다</b>는 알려 주기, <b>가리키다</b>는 손으로 짚기."
+        },
+        {
+          "id": "elem-c2-l1-q7",
+          "type": "choice",
+          "ruleNo": "7",
+          "ruleName": "바라다 / 바래다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "합격을 바라요"
+            },
+            {
+              "text": "합격을 바래요"
+            }
+          ],
+          "a": 0,
+          "why": "<b>바래다</b>는 색이 옅어지는 것이에요."
+        },
+        {
+          "id": "elem-c2-l1-q8",
+          "type": "choice",
+          "ruleNo": "8",
+          "ruleName": "맞추다 / 맞히다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "정답을 맞췄어요"
+            },
+            {
+              "text": "정답을 맞혔어요"
+            }
+          ],
+          "a": 1,
+          "why": "정답은 <b>맞히다</b>, 서로 대 보는 건 <b>맞추다</b>."
+        }
       ]
     },
     {
@@ -58,48 +282,272 @@
       "order": 2,
       "title": "자주 틀리는 맞춤법",
       "cards": [
-        { "no": "1", "star": true, "title": "며칠", "say": "'몇 일'이라고 쓰지 않아요. 언제나 <b>며칠</b>이에요.",
-          "examples": [ { "tone": "bad", "text": "몇 일 걸려요" }, { "tone": "good", "text": "며칠 걸려요" } ] },
-        { "no": "2", "star": true, "title": "역할", "say": "'역활'은 없는 말이에요.",
-          "examples": [ { "tone": "bad", "text": "역활을 맡았다" }, { "tone": "good", "text": "역할을 맡았다" } ] },
-        { "no": "3", "star": true, "title": "오랜만", "say": "'오래간만'이 줄어든 말이라 <b>오랜만</b>이에요.",
-          "examples": [ { "tone": "bad", "text": "오랫만에 만났다" }, { "tone": "good", "text": "오랜만에 만났다" } ] },
-        { "no": "4", "star": true, "title": "왠지 / 웬", "say": "'왜인지'가 줄면 <b>왠지</b>, 나머지는 <b>웬</b>.",
-          "examples": [ { "tone": "bad", "text": "웬지 슬퍼요 / 왠 떡이야" }, { "tone": "good", "text": "왠지 슬퍼요 / 웬 떡이야" } ] },
-        { "no": "5", "star": false, "title": "설레다", "say": "기본형이 '설레다'라서 <b>설렘</b>이에요.",
-          "examples": [ { "tone": "bad", "text": "설레임이 커요" }, { "tone": "good", "text": "설렘이 커요" } ] },
-        { "no": "6", "star": false, "title": "금세", "say": "'금시에'가 줄어든 말이에요.",
-          "examples": [ { "tone": "bad", "text": "금새 끝났어요" }, { "tone": "good", "text": "금세 끝났어요" } ] },
-        { "no": "7", "star": true, "title": "어떻게 / 어떡해", "say": "<b>어떡해</b>는 '어떻게 해'가 줄어든 말이라 문장 끝에만 써요.",
-          "examples": [ { "tone": "bad", "text": "나 어떻게? / 어떡해 하지?" }, { "tone": "good", "text": "나 어떡해? / 어떻게 하지?" } ] },
-        { "no": "8", "star": true, "title": "낫다 / 낳다", "say": "<b>낳다</b>는 아기를 낳을 때만 써요.",
-          "examples": [ { "tone": "bad", "text": "감기가 낳았어요" }, { "tone": "good", "text": "감기가 나았어요" } ] }
+        {
+          "no": "1",
+          "star": true,
+          "title": "며칠",
+          "say": "'몇 일'이라고 쓰지 않아요. 언제나 <b>며칠</b>이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "몇 일 걸려요"
+            },
+            {
+              "tone": "good",
+              "text": "며칠 걸려요"
+            }
+          ]
+        },
+        {
+          "no": "2",
+          "star": true,
+          "title": "역할",
+          "say": "'역활'은 없는 말이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "역활을 맡았다"
+            },
+            {
+              "tone": "good",
+              "text": "역할을 맡았다"
+            }
+          ]
+        },
+        {
+          "no": "3",
+          "star": true,
+          "title": "오랜만",
+          "say": "'오래간만'이 줄어든 말이라 <b>오랜만</b>이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "오랫만에 만났다"
+            },
+            {
+              "tone": "good",
+              "text": "오랜만에 만났다"
+            }
+          ]
+        },
+        {
+          "no": "4",
+          "star": true,
+          "title": "왠지 / 웬",
+          "say": "'왜인지'가 줄면 <b>왠지</b>, 나머지는 <b>웬</b>.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "웬지 슬퍼요 / 왠 떡이야"
+            },
+            {
+              "tone": "good",
+              "text": "왠지 슬퍼요 / 웬 떡이야"
+            }
+          ]
+        },
+        {
+          "no": "5",
+          "star": false,
+          "title": "설레다",
+          "say": "기본형이 '설레다'라서 <b>설렘</b>이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "설레임이 커요"
+            },
+            {
+              "tone": "good",
+              "text": "설렘이 커요"
+            }
+          ]
+        },
+        {
+          "no": "6",
+          "star": false,
+          "title": "금세",
+          "say": "'금시에'가 줄어든 말이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "금새 끝났어요"
+            },
+            {
+              "tone": "good",
+              "text": "금세 끝났어요"
+            }
+          ]
+        },
+        {
+          "no": "7",
+          "star": true,
+          "title": "어떻게 / 어떡해",
+          "say": "<b>어떡해</b>는 '어떻게 해'가 줄어든 말이라 문장 끝에만 써요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "나 어떻게? / 어떡해 하지?"
+            },
+            {
+              "tone": "good",
+              "text": "나 어떡해? / 어떻게 하지?"
+            }
+          ]
+        },
+        {
+          "no": "8",
+          "star": true,
+          "title": "낫다 / 낳다",
+          "say": "<b>낳다</b>는 아기를 낳을 때만 써요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "감기가 낳았어요"
+            },
+            {
+              "tone": "good",
+              "text": "감기가 나았어요"
+            }
+          ]
+        }
       ],
       "questions": [
-        { "id": "elem-c2-l2-q1", "type": "choice", "ruleNo": "1", "ruleName": "며칠", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "몇 일 걸려요" }, { "text": "며칠 걸려요" } ], "a": 1,
-          "why": "'몇 일'이라고 쓰지 않아요. 언제나 <b>며칠</b>이에요." },
-        { "id": "elem-c2-l2-q2", "type": "choice", "ruleNo": "2", "ruleName": "역할", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "역활을 맡았다" }, { "text": "역할을 맡았다" } ], "a": 1,
-          "why": "'역활'은 없는 말이에요." },
-        { "id": "elem-c2-l2-q3", "type": "choice", "ruleNo": "3", "ruleName": "오랜만", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "오랫만에 만났다" }, { "text": "오랜만에 만났다" } ], "a": 1,
-          "why": "'오래간만'이 줄어든 말이라 <b>오랜만</b>이에요." },
-        { "id": "elem-c2-l2-q4", "type": "choice", "ruleNo": "4", "ruleName": "왠지 / 웬", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "웬지 슬퍼요" }, { "text": "왠지 슬퍼요" } ], "a": 1,
-          "why": "'왜인지'가 줄면 <b>왠지</b>, 나머지는 <b>웬</b>." },
-        { "id": "elem-c2-l2-q5", "type": "choice", "ruleNo": "5", "ruleName": "설레다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "설레임이 커요" }, { "text": "설렘이 커요" } ], "a": 1,
-          "why": "기본형이 '설레다'라서 <b>설렘</b>이에요." },
-        { "id": "elem-c2-l2-q6", "type": "choice", "ruleNo": "6", "ruleName": "금세", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "금새 끝났어요" }, { "text": "금세 끝났어요" } ], "a": 1,
-          "why": "'금시에'가 줄어든 말이에요." },
-        { "id": "elem-c2-l2-q7", "type": "choice", "ruleNo": "7", "ruleName": "어떻게 / 어떡해", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "나 어떻게?" }, { "text": "나 어떡해?" } ], "a": 1,
-          "why": "<b>어떡해</b>는 '어떻게 해'가 줄어든 말이라 문장 끝에만 써요." },
-        { "id": "elem-c2-l2-q8", "type": "choice", "ruleNo": "8", "ruleName": "낫다 / 낳다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "감기가 낳았어요" }, { "text": "감기가 나았어요" } ], "a": 1,
-          "why": "<b>낳다</b>는 아기를 낳을 때만 써요." }
+        {
+          "id": "elem-c2-l2-q1",
+          "type": "choice",
+          "ruleNo": "1",
+          "ruleName": "며칠",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "몇 일 걸려요"
+            },
+            {
+              "text": "며칠 걸려요"
+            }
+          ],
+          "a": 1,
+          "why": "'몇 일'이라고 쓰지 않아요. 언제나 <b>며칠</b>이에요."
+        },
+        {
+          "id": "elem-c2-l2-q2",
+          "type": "choice",
+          "ruleNo": "2",
+          "ruleName": "역할",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "역활을 맡았다"
+            },
+            {
+              "text": "역할을 맡았다"
+            }
+          ],
+          "a": 1,
+          "why": "'역활'은 없는 말이에요."
+        },
+        {
+          "id": "elem-c2-l2-q3",
+          "type": "choice",
+          "ruleNo": "3",
+          "ruleName": "오랜만",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "오랫만에 만났다"
+            },
+            {
+              "text": "오랜만에 만났다"
+            }
+          ],
+          "a": 1,
+          "why": "'오래간만'이 줄어든 말이라 <b>오랜만</b>이에요."
+        },
+        {
+          "id": "elem-c2-l2-q4",
+          "type": "choice",
+          "ruleNo": "4",
+          "ruleName": "왠지 / 웬",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "왠지 슬퍼요"
+            },
+            {
+              "text": "웬지 슬퍼요"
+            }
+          ],
+          "a": 0,
+          "why": "'왜인지'가 줄면 <b>왠지</b>, 나머지는 <b>웬</b>."
+        },
+        {
+          "id": "elem-c2-l2-q5",
+          "type": "choice",
+          "ruleNo": "5",
+          "ruleName": "설레다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "설레임이 커요"
+            },
+            {
+              "text": "설렘이 커요"
+            }
+          ],
+          "a": 1,
+          "why": "기본형이 '설레다'라서 <b>설렘</b>이에요."
+        },
+        {
+          "id": "elem-c2-l2-q6",
+          "type": "choice",
+          "ruleNo": "6",
+          "ruleName": "금세",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "금세 끝났어요"
+            },
+            {
+              "text": "금새 끝났어요"
+            }
+          ],
+          "a": 0,
+          "why": "'금시에'가 줄어든 말이에요."
+        },
+        {
+          "id": "elem-c2-l2-q7",
+          "type": "choice",
+          "ruleNo": "7",
+          "ruleName": "어떻게 / 어떡해",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "나 어떡해?"
+            },
+            {
+              "text": "나 어떻게?"
+            }
+          ],
+          "a": 0,
+          "why": "<b>어떡해</b>는 '어떻게 해'가 줄어든 말이라 문장 끝에만 써요."
+        },
+        {
+          "id": "elem-c2-l2-q8",
+          "type": "choice",
+          "ruleNo": "8",
+          "ruleName": "낫다 / 낳다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "감기가 나았어요"
+            },
+            {
+              "text": "감기가 낳았어요"
+            }
+          ],
+          "a": 0,
+          "why": "<b>낳다</b>는 아기를 낳을 때만 써요."
+        }
       ]
     },
     {
@@ -107,58 +555,338 @@
       "order": 3,
       "title": "띄어쓰기",
       "cards": [
-        { "no": "1", "star": true, "title": "것", "say": "<b>'것'은 언제나 앞말과 띄어요.</b>",
-          "examples": [ { "tone": "bad", "text": "해야할것 같아요" }, { "tone": "good", "text": "해야 할 것 같아요" } ] },
-        { "no": "2", "star": true, "title": "수", "say": "'할 수 있다'는 세 덩어리예요.",
-          "examples": [ { "tone": "bad", "text": "할수 있어요" }, { "tone": "good", "text": "할 수 있어요" } ] },
-        { "no": "3", "star": true, "title": "지", "say": "시간이 얼마나 지났는지 말할 땐 띄어요.",
-          "examples": [ { "tone": "bad", "text": "만난지 이틀" }, { "tone": "good", "text": "만난 지 이틀" } ] },
-        { "no": "4", "star": true, "title": "데", "say": "'곳'으로 바꿔지면 띄어요.",
-          "examples": [ { "tone": "bad", "text": "갈데가 없어요" }, { "tone": "good", "text": "갈 데가 없어요" } ] },
-        { "no": "5", "star": true, "title": "만", "say": "시간이 지난 것이면 띄고, '오직'이면 붙여요.",
-          "examples": [ { "tone": "bad", "text": "사흘만에 왔어요" }, { "tone": "good", "text": "사흘 만에 왔어요" } ] },
-        { "no": "6", "star": true, "title": "명사 + 조사", "say": "은·는·이·가·을·를·에·에서는 모두 붙여요.",
-          "examples": [ { "tone": "bad", "text": "학교 에서 놀았다" }, { "tone": "good", "text": "학교에서 놀았다" } ] },
-        { "no": "7", "star": true, "title": "명사 + 하다", "say": "'-하다'는 앞말에 붙는 말이에요.",
-          "examples": [ { "tone": "bad", "text": "공부 했어요" }, { "tone": "good", "text": "공부했어요" } ] },
-        { "no": "8", "star": true, "title": "조사가 끼면 띄어요", "say": "사이에 '를'이 들어가면 <b>띄어요</b>.",
-          "examples": [ { "tone": "bad", "text": "공부를했어요" }, { "tone": "good", "text": "공부를 했어요" } ] },
-        { "no": "9", "star": false, "title": "한 번 / 한번", "say": "'두 번'으로 바꿔 말이 되면 띄어요.",
-          "examples": [ { "tone": "bad", "text": "한번 더 세어 보자(횟수)" }, { "tone": "good", "text": "한 번 더 세어 보자" } ] },
-        { "no": "10", "star": false, "title": "안 되다", "say": "그냥 아니라는 뜻이면 띄어요.",
-          "examples": [ { "tone": "bad", "text": "공부가 안된다" }, { "tone": "good", "text": "공부가 안 된다" } ] }
+        {
+          "no": "1",
+          "star": true,
+          "title": "것",
+          "say": "<b>'것'은 언제나 앞말과 띄어요.</b>",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "해야할것 같아요"
+            },
+            {
+              "tone": "good",
+              "text": "해야 할 것 같아요"
+            }
+          ]
+        },
+        {
+          "no": "2",
+          "star": true,
+          "title": "수",
+          "say": "'할 수 있다'는 세 덩어리예요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "할수 있어요"
+            },
+            {
+              "tone": "good",
+              "text": "할 수 있어요"
+            }
+          ]
+        },
+        {
+          "no": "3",
+          "star": true,
+          "title": "지",
+          "say": "시간이 얼마나 지났는지 말할 땐 띄어요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "만난지 이틀"
+            },
+            {
+              "tone": "good",
+              "text": "만난 지 이틀"
+            }
+          ]
+        },
+        {
+          "no": "4",
+          "star": true,
+          "title": "데",
+          "say": "'곳'으로 바꿔지면 띄어요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "갈데가 없어요"
+            },
+            {
+              "tone": "good",
+              "text": "갈 데가 없어요"
+            }
+          ]
+        },
+        {
+          "no": "5",
+          "star": true,
+          "title": "만",
+          "say": "시간이 지난 것이면 띄고, '오직'이면 붙여요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "사흘만에 왔어요"
+            },
+            {
+              "tone": "good",
+              "text": "사흘 만에 왔어요"
+            }
+          ]
+        },
+        {
+          "no": "6",
+          "star": true,
+          "title": "명사 + 조사",
+          "say": "은·는·이·가·을·를·에·에서는 모두 붙여요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "학교 에서 놀았다"
+            },
+            {
+              "tone": "good",
+              "text": "학교에서 놀았다"
+            }
+          ]
+        },
+        {
+          "no": "7",
+          "star": true,
+          "title": "명사 + 하다",
+          "say": "'-하다'는 앞말에 붙는 말이에요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "공부 했어요"
+            },
+            {
+              "tone": "good",
+              "text": "공부했어요"
+            }
+          ]
+        },
+        {
+          "no": "8",
+          "star": true,
+          "title": "조사가 끼면 띄어요",
+          "say": "사이에 '를'이 들어가면 <b>띄어요</b>.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "공부를했어요"
+            },
+            {
+              "tone": "good",
+              "text": "공부를 했어요"
+            }
+          ]
+        },
+        {
+          "no": "9",
+          "star": false,
+          "title": "한 번 / 한번",
+          "say": "'두 번'으로 바꿔 말이 되면 띄어요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "한번 더 세어 보자(횟수)"
+            },
+            {
+              "tone": "good",
+              "text": "한 번 더 세어 보자"
+            }
+          ]
+        },
+        {
+          "no": "10",
+          "star": false,
+          "title": "안 되다",
+          "say": "그냥 아니라는 뜻이면 띄어요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "공부가 안된다"
+            },
+            {
+              "tone": "good",
+              "text": "공부가 안 된다"
+            }
+          ]
+        }
       ],
       "questions": [
-        { "id": "elem-c2-l3-q1", "type": "choice", "ruleNo": "1", "ruleName": "것", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "해야할것 같아요" }, { "text": "해야 할 것 같아요" } ], "a": 1,
-          "why": "<b>'것'은 언제나 앞말과 띄어요.</b>" },
-        { "id": "elem-c2-l3-q2", "type": "choice", "ruleNo": "2", "ruleName": "수", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "할수 있어요" }, { "text": "할 수 있어요" } ], "a": 1,
-          "why": "'할 수 있다'는 세 덩어리예요." },
-        { "id": "elem-c2-l3-q3", "type": "choice", "ruleNo": "3", "ruleName": "지", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "만난지 이틀" }, { "text": "만난 지 이틀" } ], "a": 1,
-          "why": "시간이 얼마나 지났는지 말할 땐 띄어요." },
-        { "id": "elem-c2-l3-q4", "type": "choice", "ruleNo": "4", "ruleName": "데", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "갈데가 없어요" }, { "text": "갈 데가 없어요" } ], "a": 1,
-          "why": "'곳'으로 바꿔지면 띄어요." },
-        { "id": "elem-c2-l3-q5", "type": "choice", "ruleNo": "5", "ruleName": "만", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "사흘만에 왔어요" }, { "text": "사흘 만에 왔어요" } ], "a": 1,
-          "why": "시간이 지난 것이면 띄고, '오직'이면 붙여요." },
-        { "id": "elem-c2-l3-q6", "type": "choice", "ruleNo": "6", "ruleName": "명사 + 조사", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "학교 에서 놀았다" }, { "text": "학교에서 놀았다" } ], "a": 1,
-          "why": "은·는·이·가·을·를·에·에서는 모두 붙여요." },
-        { "id": "elem-c2-l3-q7", "type": "choice", "ruleNo": "7", "ruleName": "명사 + 하다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "공부 했어요" }, { "text": "공부했어요" } ], "a": 1,
-          "why": "'-하다'는 앞말에 붙는 말이에요." },
-        { "id": "elem-c2-l3-q8", "type": "choice", "ruleNo": "8", "ruleName": "조사가 끼면 띄어요", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "공부를했어요" }, { "text": "공부를 했어요" } ], "a": 1,
-          "why": "사이에 '를'이 들어가면 <b>띄어요</b>." },
-        { "id": "elem-c2-l3-q9", "type": "choice", "ruleNo": "9", "ruleName": "한 번 / 한번", "q": "'두 번'으로 바꿔 말이 되는 횟수 표현이에요. 다음 중 맞는 표현은?",
-          "opts": [ { "text": "한번 더 세어 보자" }, { "text": "한 번 더 세어 보자" } ], "a": 1,
-          "why": "'두 번'으로 바꿔 말이 되면 띄어요." },
-        { "id": "elem-c2-l3-q10", "type": "choice", "ruleNo": "10", "ruleName": "안 되다", "q": "다음 중 맞는 표현은?",
-          "opts": [ { "text": "공부가 안된다" }, { "text": "공부가 안 된다" } ], "a": 1,
-          "why": "그냥 아니라는 뜻이면 띄어요." }
+        {
+          "id": "elem-c2-l3-q1",
+          "type": "choice",
+          "ruleNo": "1",
+          "ruleName": "것",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "해야할것 같아요"
+            },
+            {
+              "text": "해야 할 것 같아요"
+            }
+          ],
+          "a": 1,
+          "why": "<b>'것'은 언제나 앞말과 띄어요.</b>"
+        },
+        {
+          "id": "elem-c2-l3-q2",
+          "type": "choice",
+          "ruleNo": "2",
+          "ruleName": "수",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "할 수 있어요"
+            },
+            {
+              "text": "할수 있어요"
+            }
+          ],
+          "a": 0,
+          "why": "'할 수 있다'는 세 덩어리예요."
+        },
+        {
+          "id": "elem-c2-l3-q3",
+          "type": "choice",
+          "ruleNo": "3",
+          "ruleName": "지",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "만난지 이틀"
+            },
+            {
+              "text": "만난 지 이틀"
+            }
+          ],
+          "a": 1,
+          "why": "시간이 얼마나 지났는지 말할 땐 띄어요."
+        },
+        {
+          "id": "elem-c2-l3-q4",
+          "type": "choice",
+          "ruleNo": "4",
+          "ruleName": "데",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "갈데가 없어요"
+            },
+            {
+              "text": "갈 데가 없어요"
+            }
+          ],
+          "a": 1,
+          "why": "'곳'으로 바꿔지면 띄어요."
+        },
+        {
+          "id": "elem-c2-l3-q5",
+          "type": "choice",
+          "ruleNo": "5",
+          "ruleName": "만",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "사흘 만에 왔어요"
+            },
+            {
+              "text": "사흘만에 왔어요"
+            }
+          ],
+          "a": 0,
+          "why": "시간이 지난 것이면 띄고, '오직'이면 붙여요."
+        },
+        {
+          "id": "elem-c2-l3-q6",
+          "type": "choice",
+          "ruleNo": "6",
+          "ruleName": "명사 + 조사",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "학교에서 놀았다"
+            },
+            {
+              "text": "학교 에서 놀았다"
+            }
+          ],
+          "a": 0,
+          "why": "은·는·이·가·을·를·에·에서는 모두 붙여요."
+        },
+        {
+          "id": "elem-c2-l3-q7",
+          "type": "choice",
+          "ruleNo": "7",
+          "ruleName": "명사 + 하다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "공부했어요"
+            },
+            {
+              "text": "공부 했어요"
+            }
+          ],
+          "a": 0,
+          "why": "'-하다'는 앞말에 붙는 말이에요."
+        },
+        {
+          "id": "elem-c2-l3-q8",
+          "type": "choice",
+          "ruleNo": "8",
+          "ruleName": "조사가 끼면 띄어요",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "공부를했어요"
+            },
+            {
+              "text": "공부를 했어요"
+            }
+          ],
+          "a": 1,
+          "why": "사이에 '를'이 들어가면 <b>띄어요</b>."
+        },
+        {
+          "id": "elem-c2-l3-q9",
+          "type": "choice",
+          "ruleNo": "9",
+          "ruleName": "한 번 / 한번",
+          "q": "'두 번'으로 바꿔 말이 되는 횟수 표현이에요. 다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "한번 더 세어 보자"
+            },
+            {
+              "text": "한 번 더 세어 보자"
+            }
+          ],
+          "a": 1,
+          "why": "'두 번'으로 바꿔 말이 되면 띄어요."
+        },
+        {
+          "id": "elem-c2-l3-q10",
+          "type": "choice",
+          "ruleNo": "10",
+          "ruleName": "안 되다",
+          "q": "다음 중 맞는 표현은?",
+          "opts": [
+            {
+              "text": "공부가 안 된다"
+            },
+            {
+              "text": "공부가 안된다"
+            }
+          ],
+          "a": 0,
+          "why": "그냥 아니라는 뜻이면 띄어요."
+        }
       ]
     },
     {
@@ -166,38 +894,206 @@
       "order": 4,
       "title": "문장 다듬기",
       "cards": [
-        { "no": "1", "star": true, "title": "주어와 서술어", "say": "가운데를 지우고 '꿈은 되고 싶다'를 읽어 보세요. 어색하죠?",
-          "examples": [ { "tone": "bad", "text": "내 꿈은 요리사가 되고 싶다" }, { "tone": "good", "text": "내 꿈은 요리사가 되는 것이다" } ] },
-        { "no": "2", "star": true, "title": "이유를 말하는 문장", "say": "'까닭은'으로 시작했으면 '~기 때문이다'로 닫아요.",
-          "examples": [ { "tone": "bad", "text": "그 까닭은 준비를 못 했다" }, { "tone": "good", "text": "그 까닭은 준비를 못 했기 때문이다" } ] },
-        { "no": "3", "star": true, "title": "겹치는 말", "say": "'-어지다'를 빼고 읽어도 뜻이 통하면 빼는 게 맞아요.",
-          "examples": [ { "tone": "bad", "text": "보여진다, 잊혀진다" }, { "tone": "good", "text": "보인다, 잊힌다" } ] },
-        { "no": "4", "star": true, "title": "너무 긴 문장", "say": "소리 내어 읽다가 숨이 차면 그 자리에서 자르세요.",
-          "examples": [ { "tone": "bad", "text": "쉼표로 이어 붙인 네 줄짜리 문장" }, { "tone": "good", "text": "두 문장으로 나누기" } ] },
-        { "no": "5", "star": false, "title": "구어체", "say": "말할 때 쓰는 말은 글에서 빼요.",
-          "examples": [ { "tone": "bad", "text": "진짜 되게 좋았어요" }, { "tone": "good", "text": "정말 좋았어요" } ] },
-        { "no": "6", "star": false, "title": "같은 말 반복", "say": "같은 이음말이 세 번 넘게 나오면 바꿔요.",
-          "examples": [ { "tone": "bad", "text": "그리고 … 그리고 … 그리고" }, { "tone": "good", "text": "그리고 / 또 / 게다가" } ] }
+        {
+          "no": "1",
+          "star": true,
+          "title": "주어와 서술어",
+          "say": "가운데를 지우고 '꿈은 되고 싶다'를 읽어 보세요. 어색하죠?",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "내 꿈은 요리사가 되고 싶다"
+            },
+            {
+              "tone": "good",
+              "text": "내 꿈은 요리사가 되는 것이다"
+            }
+          ]
+        },
+        {
+          "no": "2",
+          "star": true,
+          "title": "이유를 말하는 문장",
+          "say": "'까닭은'으로 시작했으면 '~기 때문이다'로 닫아요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "그 까닭은 준비를 못 했다"
+            },
+            {
+              "tone": "good",
+              "text": "그 까닭은 준비를 못 했기 때문이다"
+            }
+          ]
+        },
+        {
+          "no": "3",
+          "star": true,
+          "title": "겹치는 말",
+          "say": "'-어지다'를 빼고 읽어도 뜻이 통하면 빼는 게 맞아요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "보여진다, 잊혀진다"
+            },
+            {
+              "tone": "good",
+              "text": "보인다, 잊힌다"
+            }
+          ]
+        },
+        {
+          "no": "4",
+          "star": true,
+          "title": "너무 긴 문장",
+          "say": "소리 내어 읽다가 숨이 차면 그 자리에서 자르세요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "쉼표로 이어 붙인 네 줄짜리 문장"
+            },
+            {
+              "tone": "good",
+              "text": "두 문장으로 나누기"
+            }
+          ]
+        },
+        {
+          "no": "5",
+          "star": false,
+          "title": "구어체",
+          "say": "말할 때 쓰는 말은 글에서 빼요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "진짜 되게 좋았어요"
+            },
+            {
+              "tone": "good",
+              "text": "정말 좋았어요"
+            }
+          ]
+        },
+        {
+          "no": "6",
+          "star": false,
+          "title": "같은 말 반복",
+          "say": "같은 이음말이 세 번 넘게 나오면 바꿔요.",
+          "examples": [
+            {
+              "tone": "bad",
+              "text": "그리고 … 그리고 … 그리고"
+            },
+            {
+              "tone": "good",
+              "text": "그리고 / 또 / 게다가"
+            }
+          ]
+        }
       ],
       "questions": [
-        { "id": "elem-c2-l4-q1", "type": "choice", "ruleNo": "1", "ruleName": "주어와 서술어", "q": "다음 중 자연스러운 문장은?",
-          "opts": [ { "text": "내 꿈은 요리사가 되고 싶다" }, { "text": "내 꿈은 요리사가 되는 것이다" } ], "a": 1,
-          "why": "가운데를 지우고 '꿈은 되고 싶다'를 읽어 보세요. 어색하죠? 주어와 서술어를 맞춰요." },
-        { "id": "elem-c2-l4-q2", "type": "choice", "ruleNo": "2", "ruleName": "이유를 말하는 문장", "q": "다음 중 자연스러운 문장은?",
-          "opts": [ { "text": "그 까닭은 준비를 못 했다" }, { "text": "그 까닭은 준비를 못 했기 때문이다" } ], "a": 1,
-          "why": "'까닭은'으로 시작했으면 '~기 때문이다'로 닫아요." },
-        { "id": "elem-c2-l4-q3", "type": "choice", "ruleNo": "3", "ruleName": "겹치는 말", "q": "다음 중 자연스러운 표현은?",
-          "opts": [ { "text": "보여진다, 잊혀진다" }, { "text": "보인다, 잊힌다" } ], "a": 1,
-          "why": "'-어지다'를 빼고 읽어도 뜻이 통하면 빼는 게 맞아요." },
-        { "id": "elem-c2-l4-q4", "type": "choice", "ruleNo": "4", "ruleName": "너무 긴 문장", "q": "문장이 너무 길어서 숨이 찰 때는 어떻게 할까요?",
-          "opts": [ { "text": "쉼표로 계속 이어 붙여요" }, { "text": "두 문장으로 나눠요" } ], "a": 1,
-          "why": "소리 내어 읽다가 숨이 차면 그 자리에서 자르세요." },
-        { "id": "elem-c2-l4-q5", "type": "choice", "ruleNo": "5", "ruleName": "구어체", "q": "다음 중 글에 어울리는 표현은?",
-          "opts": [ { "text": "진짜 되게 좋았어요" }, { "text": "정말 좋았어요" } ], "a": 1,
-          "why": "말할 때 쓰는 말은 글에서 빼요." },
-        { "id": "elem-c2-l4-q6", "type": "choice", "ruleNo": "6", "ruleName": "같은 말 반복", "q": "같은 이음말이 세 번 넘게 나오면 어떻게 할까요?",
-          "opts": [ { "text": "계속 같은 말을 써요" }, { "text": "그리고 / 또 / 게다가로 바꿔요" } ], "a": 1,
-          "why": "같은 이음말이 세 번 넘게 나오면 바꿔요." }
+        {
+          "id": "elem-c2-l4-q1",
+          "type": "choice",
+          "ruleNo": "1",
+          "ruleName": "주어와 서술어",
+          "q": "다음 중 자연스러운 문장은?",
+          "opts": [
+            {
+              "text": "내 꿈은 요리사가 되는 것이다"
+            },
+            {
+              "text": "내 꿈은 요리사가 되고 싶다"
+            }
+          ],
+          "a": 0,
+          "why": "가운데를 지우고 '꿈은 되고 싶다'를 읽어 보세요. 어색하죠? 주어와 서술어를 맞춰요."
+        },
+        {
+          "id": "elem-c2-l4-q2",
+          "type": "choice",
+          "ruleNo": "2",
+          "ruleName": "이유를 말하는 문장",
+          "q": "다음 중 자연스러운 문장은?",
+          "opts": [
+            {
+              "text": "그 까닭은 준비를 못 했다"
+            },
+            {
+              "text": "그 까닭은 준비를 못 했기 때문이다"
+            }
+          ],
+          "a": 1,
+          "why": "'까닭은'으로 시작했으면 '~기 때문이다'로 닫아요."
+        },
+        {
+          "id": "elem-c2-l4-q3",
+          "type": "choice",
+          "ruleNo": "3",
+          "ruleName": "겹치는 말",
+          "q": "다음 중 자연스러운 표현은?",
+          "opts": [
+            {
+              "text": "보인다, 잊힌다"
+            },
+            {
+              "text": "보여진다, 잊혀진다"
+            }
+          ],
+          "a": 0,
+          "why": "'-어지다'를 빼고 읽어도 뜻이 통하면 빼는 게 맞아요."
+        },
+        {
+          "id": "elem-c2-l4-q4",
+          "type": "choice",
+          "ruleNo": "4",
+          "ruleName": "너무 긴 문장",
+          "q": "문장이 너무 길어서 숨이 찰 때는 어떻게 할까요?",
+          "opts": [
+            {
+              "text": "두 문장으로 나눠요"
+            },
+            {
+              "text": "쉼표로 계속 이어 붙여요"
+            }
+          ],
+          "a": 0,
+          "why": "소리 내어 읽다가 숨이 차면 그 자리에서 자르세요."
+        },
+        {
+          "id": "elem-c2-l4-q5",
+          "type": "choice",
+          "ruleNo": "5",
+          "ruleName": "구어체",
+          "q": "다음 중 글에 어울리는 표현은?",
+          "opts": [
+            {
+              "text": "진짜 되게 좋았어요"
+            },
+            {
+              "text": "정말 좋았어요"
+            }
+          ],
+          "a": 1,
+          "why": "말할 때 쓰는 말은 글에서 빼요."
+        },
+        {
+          "id": "elem-c2-l4-q6",
+          "type": "choice",
+          "ruleNo": "6",
+          "ruleName": "같은 말 반복",
+          "q": "같은 이음말이 세 번 넘게 나오면 어떻게 할까요?",
+          "opts": [
+            {
+              "text": "계속 같은 말을 써요"
+            },
+            {
+              "text": "그리고 / 또 / 게다가로 바꿔요"
+            }
+          ],
+          "a": 1,
+          "why": "같은 이음말이 세 번 넘게 나오면 바꿔요."
+        }
       ]
     }
   ]

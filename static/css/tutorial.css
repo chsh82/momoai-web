@@ -120,6 +120,12 @@
 .tut-page .course.locked{opacity:.62;cursor:default}
 .tut-page .course.locked .chip{background:var(--muted)}
 
+/* 트랙 카드 아래 원문 PDF 다운로드 링크 */
+.tut-page .doc-download{display:flex;align-items:center;justify-content:center;gap:6px;
+  color:var(--navy-soft);font-size:var(--fs-2);font-weight:600;text-decoration:none;
+  margin:calc(-1 * var(--sp-3)) 0 var(--sp-4);padding:var(--sp-2);border-radius:12px}
+.tut-page .doc-download:hover{color:var(--navy);background:var(--paper)}
+
 /* ---------- LESSON CARDS ---------- */
 .tut-page .stage{font-weight:700;color:#fff;background:var(--coral);display:inline-flex;align-items:center;
   gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);border-radius:99px;font-size:var(--fs-3);margin:4px 0 var(--sp-4)}
@@ -185,6 +191,12 @@
 .tut-page .gp span.qc{align-items:flex-start;justify-content:flex-start;padding:2px 0 0 4px}
 .tut-page .gp span.hl{background:var(--wrong-pale);color:var(--wrong);font-weight:700}
 .tut-page .gp.good span.hl{background:var(--right-pale);color:var(--right)}
+
+/* 고쳐쓰기(두 줄 긋고 위 여백에 정정) - 틀린 글자는 두 줄로 긋고, 칸 위에 고친 글자를 작게 적는다 */
+.tut-page .gp span.fix{color:var(--wrong);text-decoration:line-through;text-decoration-style:double;
+  text-decoration-color:var(--wrong);text-decoration-thickness:2px}
+.tut-page .gp span.fix::before{content:attr(data-fix);position:absolute;left:50%;top:-1.3em;
+  transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--right);white-space:nowrap;line-height:1}
 
 /* align-items 기본값(stretch)이라 "모모" 원이 위쪽에 붙고 "기억해요"
    문구가 그보다 높아 보였다 - center로 나란히 맞춘다. */
