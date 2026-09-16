@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""글쓰기 튜토리얼 라우트 (1단계: 초등 코스1).
+"""글쓰기 튜토리얼 라우트.
 
 레슨 열람(GET)은 비로그인도 허용한다 - 이 프로젝트는 aprolabs와 달리 전역
 "미로그인 리다이렉트" 미들웨어가 없고 라우트별 @login_required만 쓰므로,
@@ -7,10 +7,15 @@
 요구하고, JSON 응답이어야 하므로 @login_required(302 리다이렉트) 대신
 feedback_bp와 동일하게 수동으로 current_user.is_authenticated를 확인해
 401 JSON을 반환한다.
+
+2단계(트랙/코스 확장)부터 URL의 track/course를 그대로 content.py에 넘긴다 -
+TutorialProgress 등 모델은 처음부터 track/course 컬럼을 갖고 있었으므로
+스키마 변경 없이 라우트만 파라미터화하면 된다. 중등(middle) 등 콘텐츠
+파일이 없는 트랙은 content.get_course()가 None을 반환하니 그대로 404 처리.
 """
 from datetime import datetime
 
-from flask import render_template, request, jsonify, current_app
+from flask import render_template, request, jsonify, current_app, abort
 from flask_login import current_user
 
 from app.tutorial import tutorial_bp
@@ -19,49 +24,67 @@ from app.tutorial.models import TutorialProgress, TutorialAttempt, TutorialCours
 from app.models import db
 from app.models.student import Student
 
-TRACK = 'elem'
-COURSE = 'course1'
+# 실제 콘텐츠가 있는 트랙만 화이트리스트로 관리한다 - URL의 track을 그대로
+# content.get_course()에 넘기면 임의 문자열로 파일시스템 경로를 조립하게
+# 되므로, 라우트 단계에서 먼저 걸러낸다.
+SUPPORTED_TRACKS = {'elem'}
+TRACK_COURSES = {
+    'elem': ['course1', 'course2', 'course3'],
+}
 
 
 @tutorial_bp.route('/')
-def index():
-    """튜토리얼 홈 - 코스 카드 + 코스1 진도."""
-    course = content.get_course(TRACK, COURSE)
-    lesson_ids = content.get_lesson_ids(TRACK, COURSE)
-    total_lessons = len(lesson_ids)
-
-    done_count = 0
-    if current_user.is_authenticated and total_lessons:
-        done_count = TutorialProgress.query.filter_by(
-            user_id=current_user.user_id, track=TRACK, course=COURSE, status='done',
-        ).count()
-
-    first_lesson_id = lesson_ids[0] if lesson_ids else None
-
-    return render_template(
-        'tutorial/home.html',
-        course=course,
-        total_lessons=total_lessons,
-        done_count=done_count,
-        first_lesson_id=first_lesson_id,
-    )
+def track_select():
+    """트랙(초등/중등) 선택 화면."""
+    return render_template('tutorial/track_select.html')
 
 
-@tutorial_bp.route('/elem/course1/<lesson_id>')
-def lesson(lesson_id):
+@tutorial_bp.route('/<track>/')
+def index(track):
+    """코스 목록 - 해당 트랙의 코스 카드 + 코스별 진도."""
+    if track not in SUPPORTED_TRACKS:
+        abort(404)
+
+    courses = []
+    for course_code in TRACK_COURSES[track]:
+        course_data = content.get_course(track, course_code)
+        lesson_ids = content.get_lesson_ids(track, course_code)
+        total_lessons = len(lesson_ids)
+
+        done_count = 0
+        if current_user.is_authenticated and total_lessons:
+            done_count = TutorialProgress.query.filter_by(
+                user_id=current_user.user_id, track=track, course=course_code, status='done',
+            ).count()
+
+        courses.append({
+            'code': course_code,
+            'data': course_data,
+            'total_lessons': total_lessons,
+            'done_count': done_count,
+            'first_lesson_id': lesson_ids[0] if lesson_ids else None,
+        })
+
+    return render_template('tutorial/home.html', track=track, courses=courses)
+
+
+@tutorial_bp.route('/<track>/<course_code>/<lesson_id>')
+def lesson(track, course_code, lesson_id):
     """레슨 화면 - 학습(#learn) + 퀴즈(#quiz-screen) + 결과(#result) 세 화면을 한 템플릿에 담는다."""
-    lesson_data = content.get_lesson(TRACK, COURSE, lesson_id)
+    if track not in SUPPORTED_TRACKS or course_code not in TRACK_COURSES[track]:
+        abort(404)
+
+    lesson_data = content.get_lesson(track, course_code, lesson_id)
     if lesson_data is None:
-        return render_template('tutorial/home.html', course=None, total_lessons=0,
-                              done_count=0, first_lesson_id=None,
+        return render_template('tutorial/home.html', track=track, courses=[],
                               error='레슨을 찾을 수 없습니다.'), 404
 
-    course = content.get_course(TRACK, COURSE)
+    course = content.get_course(track, course_code)
     return render_template(
         'tutorial/lesson.html',
         lesson=lesson_data,
         course_title=course.get('title') if course else '',
-        track=TRACK, course_code=COURSE,
+        track=track, course_code=course_code,
     )
 
 
@@ -162,8 +185,12 @@ def api_complete():
     lesson_id = data.get('lesson_id')
     score = data.get('score')
     total = data.get('total')
+    track = data.get('track')
+    course_code = data.get('course')
 
     if not lesson_id or score is None or total is None:
+        return jsonify({'error': '요청이 올바르지 않습니다'}), 400
+    if track not in SUPPORTED_TRACKS or course_code not in TRACK_COURSES.get(track, []):
         return jsonify({'error': '요청이 올바르지 않습니다'}), 400
 
     # 1) 진도 저장 - 먼저 커밋한다(마일리지 적립과 트랜잭션을 분리).
@@ -173,7 +200,7 @@ def api_complete():
         ).first()
         if progress is None:
             progress = TutorialProgress(
-                user_id=current_user.user_id, track=TRACK, course=COURSE, lesson_id=lesson_id,
+                user_id=current_user.user_id, track=track, course=course_code, lesson_id=lesson_id,
             )
             db.session.add(progress)
         progress.status = 'done'
@@ -197,10 +224,10 @@ def api_complete():
         return jsonify({'points_awarded': False, 'points': 0})
 
     # 3) 코스의 전체 레슨이 done인지 판정 (레슨 수는 콘텐츠 JSON에서 센다 - 하드코딩 금지).
-    all_lesson_ids = content.get_lesson_ids(TRACK, COURSE)
+    all_lesson_ids = content.get_lesson_ids(track, course_code)
     done_lesson_ids = {
         p.lesson_id for p in TutorialProgress.query.filter_by(
-            user_id=current_user.user_id, track=TRACK, course=COURSE, status='done',
+            user_id=current_user.user_id, track=track, course=course_code, status='done',
         ).all()
     }
     all_lessons_done = bool(all_lesson_ids) and set(all_lesson_ids).issubset(done_lesson_ids)
@@ -208,7 +235,7 @@ def api_complete():
     points = 0
     if all_lessons_done:
         # 4)+5) 중복 확인 + 적립은 별도 트랜잭션(_award_course_completion 안에서 처리).
-        points = _award_course_completion(student, TRACK, COURSE)
+        points = _award_course_completion(student, track, course_code)
 
     # points_awarded는 "코스가 다 끝났다"가 아니라 "이번 호출로 적립이 발생했다"는 뜻이다
     # (이미 지급된 코스를 다시 풀어도 all_lessons_done은 계속 true지만, 그때는 points=0이라

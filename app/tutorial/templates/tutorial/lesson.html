@@ -6,9 +6,7 @@
 {% block page_subtitle %}{% endblock %}
 
 {% block extra_head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ static_v('css/tutorial.css') }}">
 {% endblock %}
 
@@ -23,16 +21,15 @@
     <span class="crumb">{{ course_title }} · {{ lesson.title }}</span>
     <span class="of">1단계 · 배우기</span>
   </div>
-  <div style="padding:4px 0 0">
+  <div class="screen-body">
     <div class="stage">📖 읽어 보기</div>
-    <p class="intro">
-      원고지는 어려운 규칙이 아니라 <b>칸을 쓰는 약속</b>이에요. 설명을 읽는 것보다 칸에 들어간 모습을 보는 게 훨씬 빨라요. 카드를 넘기면서 ✕와 ○를 눈으로 담아요.
-    </p>
+    <p class="intro">한 장씩 읽고 넘겨요. 카드마다 ✕와 ○를 눈으로 담아 두세요.</p>
+    <div class="card-counter" id="cardCounter">1 / {{ lesson.cards|length }}</div>
     <div id="cards"></div>
 
-    <div class="to-quiz">
-      <div class="to-quiz-msg">규정 <b id="cardTotal">{{ lesson.cards|length }}</b>가지를 다 읽었어요.<br>이제 문제로 확인해 볼까요?</div>
-      <button class="big" id="toQuizBtn" style="width:100%;margin:0" onclick="go('quiz-screen')">✏️ 퀴즈 풀기 →</button>
+    <div class="card-nav">
+      <button class="big ghost" id="cardPrevBtn" onclick="cardPrev()">‹ 이전</button>
+      <button class="big" id="cardNextBtn" onclick="cardNext()">다음 ›</button>
     </div>
   </div>
 </section>
@@ -45,12 +42,17 @@
     <span class="of">2단계 · 확인 문제</span>
   </div>
   <div class="dots" id="lessonDots"></div>
-  <div style="padding:4px 0 0">
+  <div class="screen-body">
     <div class="stage quiz">✏️ 확인 문제</div>
     <p class="intro">
-      방금 배운 규정을 문제로 확인해요. 헷갈리면 <button class="reread" onclick="go('learn')">다시 읽기</button> 로 돌아가도 돼요.
+      방금 배운 내용을 문제로 확인해요. 헷갈리면 <button class="reread" onclick="go('learn')">다시 읽기</button> 로 돌아가도 돼요.
     </p>
     <div id="quiz"></div>
+
+    <div class="card-nav">
+      <button class="big ghost" id="quizPrevBtn" onclick="quizPrev()">‹ 이전 문제</button>
+      <button class="big" id="quizNextBtn" onclick="quizNext()" disabled>다음 문제 ›</button>
+    </div>
   </div>
 </section>
 
@@ -67,7 +69,7 @@
     <div class="mile" id="mileLine" hidden>⭐ <span id="mileN">0</span> 모모 마일리지</div>
   </div>
   <div class="review">
-    <h4>다시 볼 규정</h4>
+    <h4>다시 볼 내용</h4>
     <div id="reviewList"></div>
   </div>
   <div class="result-actions">
@@ -75,7 +77,7 @@
     <button class="big ghost" style="margin:0;width:100%" onclick="goHome()">코스 화면으로</button>
   </div>
   <div class="foot">
-    모모의 책장 · 글쓰기 튜토리얼 (초등) — 《문장과 생각》 초등판 원고지 편에서 뽑았습니다.
+    모모의 책장 · 글쓰기 튜토리얼 (초등) — 《문장과 생각》 초등판에서 뽑았습니다.
   </div>
 </section>
 
@@ -83,7 +85,11 @@
 </div>
 
 <script id="lessonData" type="application/json">{{ lesson|tojson }}</script>
-<script>window.TUTORIAL_HOME_URL = "{{ url_for('tutorial.index') }}";</script>
+<script>
+  window.TUTORIAL_HOME_URL = "{{ url_for('tutorial.index', track=track) }}";
+  window.TUTORIAL_TRACK = "{{ track }}";
+  window.TUTORIAL_COURSE = "{{ course_code }}";
+</script>
 {% endblock %}
 
 {% block scripts %}

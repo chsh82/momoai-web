@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}글쓰기 튜토리얼 - MOMOAI{% endblock %}
+
+{% block page_title %}📖 글쓰기 튜토리얼{% endblock %}
+{% block page_subtitle %}{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ static_v('css/tutorial.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="tut-page">
+<div class="wrap">
+<section class="screen on" id="track-select">
+  <div class="tut-top-space">
+    <div class="hero">
+      <h1>글쓰기 튜토리얼</h1>
+      <p>학년에 맞는 트랙을 골라 주세요</p>
+    </div>
+
+    <a class="course track-card" href="{{ url_for('tutorial.index', track='elem') }}">
+      <span class="chip">초등</span>
+      <h3>초등 3~6학년</h3>
+      <div class="sub">원고지 · 문장 · 생각 — 세 가지를 차례로 익혀요</div>
+      <div class="meta"><span>시작해요</span><span>›</span></div>
+    </a>
+
+    <div class="course track-card locked">
+      <span class="chip">중등</span>
+      <h3>중등</h3>
+      <div class="sub">콘텐츠 준비 중입니다</div>
+      <div class="meta"><span>🔒 콘텐츠 준비 중</span></div>
+    </div>
+  </div>
+</section>
+</div>
+</div>
+{% endblock %}

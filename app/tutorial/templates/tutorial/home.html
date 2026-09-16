@@ -6,9 +6,7 @@
 {% block page_subtitle %}{% endblock %}
 
 {% block extra_head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ static_v('css/tutorial.css') }}">
 {% endblock %}
 
@@ -16,7 +14,8 @@
 <div class="tut-page">
 <div class="wrap">
 <section class="screen on" id="home">
-  <div style="padding:6px 2px 2px">
+  <div class="tut-top-space">
+    <a class="track-back" href="{{ url_for('tutorial.track_select') }}">‹ 트랙 선택으로</a>
     <div class="hero">
       <span class="badge">초등 3~6학년</span>
       <h1>글쓰기 튜토리얼</h1>
@@ -33,52 +32,38 @@
 
     <div class="sec-label">🎒 코스를 골라요</div>
 
-    {% if first_lesson_id %}
-    <a class="course c1" href="{{ url_for('tutorial.lesson', lesson_id=first_lesson_id) }}">
-      <span class="chip">코스 1</span>
-      <h3>{{ course.title if course else '원고지 — 칸의 약속' }}</h3>
-      <div class="sub">칸을 쓰는 열네 가지 약속</div>
-      <div class="bar"><i style="width:{{ (done_count / total_lessons * 100) | round | int if total_lessons else 0 }}%"></i></div>
-      <div class="meta">
-        {% if total_lessons and done_count >= total_lessons %}
-        <span>레슨 1 완료 · {{ done_count }}/{{ total_lessons }}</span>
-        {% else %}
-        <span>레슨 1 · 시작해요</span>
-        {% endif %}
-        <span>›</span>
+    {% for c in courses %}
+      {% set percent = (c.done_count / c.total_lessons * 100) | round | int if c.total_lessons else 0 %}
+      {% set prev_done = (loop.index0 == 0) or (courses[loop.index0 - 1].done_count >= courses[loop.index0 - 1].total_lessons and courses[loop.index0 - 1].total_lessons > 0) %}
+      {% if c.first_lesson_id and prev_done %}
+      <a class="course c{{ loop.index }}" href="{{ url_for('tutorial.lesson', track=track, course_code=c.code, lesson_id=c.first_lesson_id) }}">
+        <span class="chip">코스 {{ loop.index }}</span>
+        <h3>{{ c.data.title if c.data else '' }}</h3>
+        <div class="sub">{{ c.data.lede if c.data else '' }}</div>
+        <div class="bar"><i style="width:{{ percent }}%"></i></div>
+        <div class="meta">
+          {% if c.total_lessons and c.done_count >= c.total_lessons %}
+          <span>완료 · {{ c.done_count }}/{{ c.total_lessons }}</span>
+          {% else %}
+          <span>{{ c.done_count }}/{{ c.total_lessons }} · {% if c.done_count %}이어서 하기{% else %}시작해요{% endif %}</span>
+          {% endif %}
+          <span>›</span>
+        </div>
+      </a>
+      {% else %}
+      <div class="course c{{ loop.index }} locked">
+        <span class="chip">코스 {{ loop.index }}</span>
+        <h3>{{ c.data.title if c.data else '준비 중' }}</h3>
+        <div class="sub">{{ c.data.lede if c.data else '콘텐츠 준비 중입니다' }}</div>
+        <div class="bar"><i style="width:0"></i></div>
+        <div class="meta">
+          <span>
+            {% if not c.first_lesson_id %}🔒 콘텐츠 준비 중{% else %}🔒 이전 코스를 먼저 끝내요{% endif %}
+          </span>
+        </div>
       </div>
-    </a>
-    {% else %}
-    <div class="course c1 locked">
-      <span class="chip">코스 1</span>
-      <h3>원고지 — 칸의 약속</h3>
-      <div class="sub">준비 중입니다</div>
-      <div class="bar"><i style="width:0"></i></div>
-      <div class="meta"><span>콘텐츠 준비 중</span></div>
-    </div>
-    {% endif %}
-
-    <div class="course c2 locked">
-      <span class="chip">코스 2</span>
-      <h3>문장 — 바르게 쓰기</h3>
-      <div class="sub">소리 비슷한 말 · 맞춤법 · 띄어쓰기</div>
-      <div class="bar"><i style="width:0"></i></div>
-      <div class="meta"><span>🔒 코스 1을 먼저 끝내요</span></div>
-    </div>
-
-    <div class="course c3 locked">
-      <span class="chip">코스 3</span>
-      <h3>생각 — 힘 있게 쓰기</h3>
-      <div class="sub">주장 · 이유 · 반대 생각</div>
-      <div class="bar"><i style="width:0"></i></div>
-      <div class="meta"><span>🔒 곧 열려요</span></div>
-    </div>
-
-    <div class="sec-label">🧰 연습 도구</div>
-    <div class="tools">
-      <div class="tool"><span class="ico">📋</span>30초 점검표</div>
-      <div class="tool"><span class="ico">✎</span>원고지 연습장</div>
-    </div>
+      {% endif %}
+    {% endfor %}
   </div>
 </section>
 </div>

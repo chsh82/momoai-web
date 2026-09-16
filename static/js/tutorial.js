@@ -1,17 +1,21 @@
-/* 글쓰기 튜토리얼 - 전달된 샘플 HTML의 <script>를 옮긴 것.
-   바뀐 점(1단계 지시서 6절):
-   - 하드코딩된 LESSON 상수 제거 -> #lessonData script 태그에서 파싱
-   - LESSON.quiz -> lesson.questions (0단계 JSON 키 이름에 맞춤, buildQuiz/renderResult 포함 전부)
-   - /api/answer의 question_id는 인덱스가 아니라 문항 id(예: elem-c1-l1-q3)
-   - /api/complete 응답의 points로 마일리지 표시, points_awarded=false면 그 줄 자체를 숨김
-     (renderResult()의 mileN = n*5 같은 클라이언트 계산 마일리지는 만들지 않음)
-   - CSRF 토큰 처리 없음(이 리포는 CSRFProtect가 전역으로 꺼져 있고 기존 JSON API도 안 씀)
-   - ○/✕ 도장(.stamp, settle())과 버튼 배열 순회 방식은 샘플 그대로 유지 */
+/* 글쓰기 튜토리얼 - 2단계(페이지 넘김 + 코스1 전체 + 코스2·3 신설).
+   1단계 대비 바뀐 점:
+   - 학습 카드·퀴즈 문항을 한 화면에 다 쌓지 않고 하나씩만 보여준다(renderCard/
+     renderQuestion). 카드는 진입 즉시 "다음"이 활성화되고, 문항은 답을 확인한
+     뒤에만 "다음 문제"가 활성화된다(학습 상태를 눈으로 확인하고 넘어가자는 요청).
+   - 카드가 두 가지 콘텐츠 스키마를 지원한다: 원고지 칸 비교(c.grids, 코스1)와
+     평문 문장 비교(c.examples, 코스2·3 - 원고지가 필요 없는 콘텐츠라서 새로 추가).
+   - 퀴즈 opts도 grid-spec({rows})과 평문({text}) 둘 다 지원(buildChoice 분기).
+   - /api/complete 페이로드에 track/course를 추가로 보낸다 - 라우트가 더 이상
+     트랙/코스를 서버 상수로 고정하지 않고 요청에서 받으므로(트랙/코스 확장).
+   - ○/✕ 도장(.stamp)과 gpEl 원고지 렌더러는 1단계 그대로 유지. */
 
 const lesson = JSON.parse(document.getElementById('lessonData').textContent);
 const HOME_URL = window.TUTORIAL_HOME_URL || '/tutorial/';
+const TRACK = window.TUTORIAL_TRACK || '';
+const COURSE = window.TUTORIAL_COURSE || '';
 
-/* ===== 원고지 렌더러 (샘플 gpEl/parseRow 그대로) ===== */
+/* ===== 원고지 렌더러 (1단계 그대로) ===== */
 function parseRow(s){
   const cells=[]; let i=0;
   while(i<s.length){
@@ -53,6 +57,17 @@ function gpEl(spec){
   return wrap;
 }
 
+/* ===== 평문 예문 렌더러 (코스2·3 - 원고지 칸이 필요 없는 카드용) ===== */
+function exampleEl(ex){
+  const wrap=document.createElement('div'); wrap.className='ex-wrap';
+  const tag=document.createElement('div'); tag.className='ex-tag '+ex.tone;
+  tag.textContent = ex.label ? ex.label : (ex.tone==='bad' ? '✕ 이렇게 쓰면 안 돼요' : '○ 이렇게 써요');
+  const box=document.createElement('div'); box.className='ex-box '+ex.tone;
+  box.textContent=ex.text;
+  wrap.appendChild(tag); wrap.appendChild(box);
+  return wrap;
+}
+
 /* ===== 서버 저장 (best-effort - 실패해도 화면 진행은 막지 않는다) ===== */
 function post(url, body){
   return fetch(url, {
@@ -74,7 +89,9 @@ async function postComplete(body){
 }
 
 /* ===== 상태 ===== */
-let answered={};          // qi -> {correct}
+let answered={};   // qi -> {correct, ruleName, ruleNo, type, selectedIndex?, fillState?}
+let cardIdx=0;
+let quizIdx=0;
 
 function go(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
@@ -86,11 +103,10 @@ function goHome(){ window.location.href = HOME_URL; }
 /* ===== 레슨 시작 ===== */
 function startLesson(){
   answered={};
-  removeFinBar();
+  cardIdx=0;
+  quizIdx=0;
   buildDots();
-  buildCards();
-  buildQuiz();
-  const ct=document.getElementById('cardTotal'); if(ct) ct.textContent=lesson.cards.length;
+  renderCard(0);
   go('learn');
 }
 
@@ -98,28 +114,31 @@ function buildDots(){
   const d=document.getElementById('lessonDots'); d.innerHTML='';
   const total=lesson.questions.length;
   for(let i=0;i<total;i++){ const el=document.createElement('i'); el.id='dot'+i; d.appendChild(el); }
-  document.getElementById('dot0').classList.add('now');
 }
 function refreshDots(){
   lesson.questions.forEach((q,i)=>{
     const el=document.getElementById('dot'+i);
     el.classList.remove('now','done');
     if(answered[i]) el.classList.add('done');
+    if(i===quizIdx) el.classList.add('now');
   });
-  const nextI=lesson.questions.findIndex((q,i)=>!answered[i]);
-  if(nextI>=0) document.getElementById('dot'+nextI).classList.add('now');
 }
 
-/* ===== 카드 ===== */
-function buildCards(){
+/* ===== 카드 (학습 화면 - 한 번에 한 장) ===== */
+function cardBodyHtml(c){
+  let h='<div class="cn"><span class="b">'+c.no+'</span><h3>'+c.title+'</h3>'
+       +(c.star?'<span class="star">★ 자주 틀려요</span>':'')+'</div>';
+  h+='<div class="say">'+c.say+'</div>';
+  return h;
+}
+function renderCard(idx){
+  cardIdx=idx;
+  const c=lesson.cards[idx];
   const box=document.getElementById('cards'); box.innerHTML='';
-  lesson.cards.forEach((c)=>{
-    const card=document.createElement('div'); card.className='card';
-    let h='<div class="cn"><span class="b">'+c.no+'</span><h3>'+c.title+'</h3>'
-         +(c.star?'<span class="star">★ 자주 틀려요</span>':'')+'</div>';
-    h+='<div class="say">'+c.say+'</div>';
-    if(c.why) h+='<div class="why"><span class="q">?</span><div><b>왜 그럴까요?</b> '+c.why+'</div></div>';
-    card.innerHTML=h;
+  const card=document.createElement('div'); card.className='card';
+  card.innerHTML=cardBodyHtml(c);
+
+  if(c.grids){
     c.grids.forEach(g=>{
       const w=document.createElement('div'); w.className='gpwrap';
       const tg=document.createElement('div'); tg.className='gptag '+g.tone;
@@ -127,45 +146,103 @@ function buildCards(){
       w.appendChild(tg); w.appendChild(gpEl(g));
       card.appendChild(w);
     });
-    if(c.remember){
-      const r=document.createElement('div'); r.className='remember';
-      r.innerHTML='<span class="momo">모모</span><div><b>기억해요</b> '+c.remember+'</div>';
-      card.appendChild(r);
-    }
-    box.appendChild(card);
-  });
+  }
+  if(c.examples){
+    c.examples.forEach(ex=> card.appendChild(exampleEl(ex)));
+  }
+  if(c.why){
+    const w=document.createElement('div'); w.className='why';
+    w.innerHTML='<span class="q">?</span><div><b>왜 그럴까요?</b> '+c.why+'</div>';
+    card.appendChild(w);
+  }
+  if(c.remember){
+    const r=document.createElement('div'); r.className='remember';
+    r.innerHTML='<span class="momo">모모</span><div><b>기억해요</b> '+c.remember+'</div>';
+    card.appendChild(r);
+  }
+  box.appendChild(card);
+
+  const counter=document.getElementById('cardCounter');
+  if(counter) counter.textContent=(idx+1)+' / '+lesson.cards.length;
+
+  const prevBtn=document.getElementById('cardPrevBtn');
+  const nextBtn=document.getElementById('cardNextBtn');
+  prevBtn.disabled = (idx===0);
+  const isLast = idx===lesson.cards.length-1;
+  nextBtn.textContent = isLast ? '✏️ 퀴즈 풀기 →' : '다음 ›';
+}
+function cardPrev(){ if(cardIdx>0) renderCard(cardIdx-1); }
+function cardNext(){
+  if(cardIdx<lesson.cards.length-1){ renderCard(cardIdx+1); }
+  else { startQuiz(); }
 }
 
-/* ===== 퀴즈 ===== */
-function buildQuiz(){
+/* ===== 퀴즈 (한 번에 한 문제) ===== */
+function startQuiz(){
+  quizIdx=0;
+  renderQuestion(0);
+  go('quiz-screen');
+}
+
+function renderQuestion(idx){
+  quizIdx=idx;
+  const q=lesson.questions[idx];
   const box=document.getElementById('quiz'); box.innerHTML='';
-  lesson.questions.forEach((q,qi)=>{
-    const el=document.createElement('div'); el.className='q'; el.id='q'+qi;
-    const head=document.createElement('div'); head.className='qhead';
-    head.innerHTML='<span class="qno">문제 '+(qi+1)+'</span>'
-      +'<span class="qtype">'+(q.type==='fill'?'칸 채우기':'고르기')+'</span>';
-    el.appendChild(head);
-    const qt=document.createElement('div'); qt.className='qtext'; qt.textContent=q.q;
-    el.appendChild(qt);
 
-    if(q.type==='choice') buildChoice(el,q,qi);
-    else buildFill(el,q,qi);
+  const el=document.createElement('div'); el.className='q'; el.id='qActive';
+  const head=document.createElement('div'); head.className='qhead';
+  head.innerHTML='<span class="qno">문제 '+(idx+1)+'</span>'
+    +'<span class="qtype">'+(q.type==='fill'?'칸 채우기':'고르기')+'</span>';
+  el.appendChild(head);
+  const qt=document.createElement('div'); qt.className='qtext'; qt.textContent=q.q;
+  el.appendChild(qt);
 
-    const why=document.createElement('div'); why.className='why-box'; why.id='why'+qi;
-    el.appendChild(why);
-    box.appendChild(el);
-  });
+  if(q.type==='choice') buildChoice(el,q,idx);
+  else buildFill(el,q,idx);
+
+  const why=document.createElement('div'); why.className='why-box'; why.id='whyActive';
+  el.appendChild(why);
+  box.appendChild(el);
+
+  refreshDots();
+  updateQuizNav();
+
+  if(answered[idx]) applyAnsweredState(idx,q);
+}
+
+function updateQuizNav(){
+  const prevBtn=document.getElementById('quizPrevBtn');
+  const nextBtn=document.getElementById('quizNextBtn');
+  prevBtn.disabled = (quizIdx===0);
+  const isLast = quizIdx===lesson.questions.length-1;
+  const isAnswered = !!answered[quizIdx];
+  nextBtn.disabled = !isAnswered;
+  nextBtn.textContent = isLast ? '결과 보기 🎉' : '다음 문제 ›';
+}
+function quizPrev(){ if(quizIdx>0) renderQuestion(quizIdx-1); }
+function quizNext(){
+  if(!answered[quizIdx]) return;
+  if(quizIdx<lesson.questions.length-1){ renderQuestion(quizIdx+1); }
+  else { renderResult(); }
+}
+
+/* 옵션이 원고지 grid-spec({rows})인지 평문({text})인지에 따라 다르게 그린다
+   - 코스1은 grid-spec, 코스2·3은 평문 문장이라 원고지 칸이 필요 없다. */
+function optionContentEl(o){
+  if(o && o.rows) return gpEl(o);
+  const span=document.createElement('span'); span.className='opt-text';
+  span.textContent = o.text||''; return span;
 }
 
 function buildChoice(el,q,qi){
   const opts=document.createElement('div'); opts.className='opts';
-  const stamp=document.createElement('div'); stamp.className='stamp'; stamp.id='stamp'+qi;
+  const stamp=document.createElement('div'); stamp.className='stamp'; stamp.id='stampActive';
   opts.appendChild(stamp);
   const btns=[];
   q.opts.forEach((o,oi)=>{
     const b=document.createElement('button'); b.className='opt'; b.type='button';
     const k=document.createElement('span'); k.className='key'; k.textContent=['가','나','다','라'][oi];
-    b.appendChild(k); b.appendChild(gpEl(o));
+    b.appendChild(k); b.appendChild(optionContentEl(o));
     b.addEventListener('click',()=>{
       if(answered[qi]) return;
       const ok=(oi===q.a);
@@ -175,7 +252,7 @@ function buildChoice(el,q,qi){
         else if(ci===oi) c.classList.add('wrong');
         else c.classList.add('dim');
       });
-      settle(qi,ok,q);
+      settle(qi,ok,q,{selectedIndex:oi});
     });
     btns.push(b);
     opts.appendChild(b);
@@ -187,7 +264,7 @@ function buildFill(el,q,qi){
   const state=Array(q.n).fill(null);
   let sel=0;
   const target=document.createElement('div'); target.className='fill-target';
-  const stamp=document.createElement('div'); stamp.className='stamp'; stamp.id='stamp'+qi;
+  const stamp=document.createElement('div'); stamp.className='stamp'; stamp.id='stampActive';
   target.appendChild(stamp);
   const grid=gpEl({n:q.n, rows:['']});
   target.appendChild(grid);
@@ -238,8 +315,8 @@ function buildFill(el,q,qi){
     pieceBox.appendChild(p);
   });
 
-  const check=document.createElement('button'); check.className='big'; check.style.width='100%';
-  check.style.margin='4px 0 0'; check.textContent='확인하기';
+  const check=document.createElement('button'); check.className='big'; check.id='fillCheckBtn';
+  check.style.width='100%'; check.style.margin='4px 0 0'; check.textContent='확인하기';
   check.addEventListener('click',()=>{
     if(answered[qi]) return;
     let ok=true;
@@ -251,16 +328,54 @@ function buildFill(el,q,qi){
     });
     check.disabled=true;
     [...pieceBox.children].forEach(p=>p.style.pointerEvents='none');
-    settle(qi,ok,q);
+    settle(qi,ok,q,{fillState:state.slice()});
   });
   el.appendChild(check);
 
   paint();
 }
 
-function settle(qi,ok,q){
-  answered[qi]={correct:ok, ruleName:q.ruleName, ruleNo:q.ruleNo};
-  const stamp=document.getElementById('stamp'+qi);
+/* 이전 문제로 돌아왔을 때 - 이미 답한 상태를 다시 계산하지 않고 그대로
+   복원한다(정답/오답 판정을 다시 하거나 서버에 또 저장하지 않는다). */
+function applyAnsweredState(qi,q){
+  const rec=answered[qi];
+  if(q.type==='choice'){
+    const btns=[...document.querySelectorAll('#qActive .opt')];
+    btns.forEach((b,ci)=>{
+      b.disabled=true;
+      if(ci===q.a) b.classList.add('right');
+      else if(ci===rec.selectedIndex) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+  } else {
+    const cells=[...document.querySelectorAll('#qActive .gp-row span')];
+    cells.forEach((sp,i)=>{
+      const want=q.answer[i]||''; const got=(rec.fillState&&rec.fillState[i])||'';
+      sp.textContent=got;
+      if(got.length>1) sp.classList.add('two');
+      if(got) sp.classList.add('filled');
+      if(got===want){ if(got) sp.classList.add('ok'); } else sp.classList.add('err');
+    });
+    const check=document.getElementById('fillCheckBtn');
+    if(check) check.disabled=true;
+    document.querySelectorAll('#qActive .piece').forEach(p=>p.style.pointerEvents='none');
+  }
+  const stamp=document.getElementById('stampActive');
+  if(stamp){
+    stamp.classList.add(rec.correct?'y':'n');
+    stamp.innerHTML = rec.correct
+      ? '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="20"/></svg>'
+      : '<svg viewBox="0 0 52 52"><line x1="14" y1="14" x2="38" y2="38"/><line x1="38" y1="14" x2="14" y2="38"/></svg>';
+    stamp.classList.add('on');
+  }
+  const why=document.getElementById('whyActive');
+  why.innerHTML='<span class="verdict '+(rec.correct?'y':'n')+'">'+(rec.correct?'맞았어요! ':'다시 볼까요. ')+'</span>'+q.why;
+  why.classList.add('on');
+}
+
+function settle(qi,ok,q,extra){
+  answered[qi]=Object.assign({correct:ok, ruleName:q.ruleName, ruleNo:q.ruleNo, type:q.type}, extra||{});
+  const stamp=document.getElementById('stampActive');
   if(stamp){
     stamp.classList.add(ok?'y':'n');
     stamp.innerHTML = ok
@@ -268,10 +383,11 @@ function settle(qi,ok,q){
       : '<svg viewBox="0 0 52 52"><line x1="14" y1="14" x2="38" y2="38"/><line x1="38" y1="14" x2="14" y2="38"/></svg>';
     stamp.classList.add('on');
   }
-  const why=document.getElementById('why'+qi);
+  const why=document.getElementById('whyActive');
   why.innerHTML='<span class="verdict '+(ok?'y':'n')+'">'+(ok?'맞았어요! ':'다시 볼까요. ')+'</span>'+q.why;
   why.classList.add('on');
   refreshDots();
+  updateQuizNav();
 
   // 문항 저장은 best-effort - 실패해도 화면 진행을 막지 않는다.
   post('/tutorial/api/answer', {
@@ -281,22 +397,8 @@ function settle(qi,ok,q){
     correct: ok,
   });
 
-  const allDone=lesson.questions.every((x,i)=>answered[i]);
-  if(allDone) showResultButton();
   why.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-
-function showResultButton(){
-  let bar=document.getElementById('finBar');
-  if(bar) return;
-  bar=document.createElement('div'); bar.id='finBar'; bar.style.marginTop='18px';
-  const b=document.createElement('button'); b.className='big'; b.style.width='100%'; b.style.margin='0';
-  b.textContent='레슨 결과 보기 🎉';
-  b.addEventListener('click',renderResult);
-  bar.appendChild(b);
-  document.getElementById('quiz').appendChild(bar);
-}
-function removeFinBar(){ const b=document.getElementById('finBar'); if(b) b.remove(); }
 
 /* ===== 결과 ===== */
 async function renderResult(){
@@ -322,7 +424,9 @@ async function renderResult(){
 
   // 완료 저장 + 마일리지는 서버 응답을 받은 뒤에 채운다(클라이언트 계산 없음).
   const mileEl = document.getElementById('mileLine');
-  const data = await postComplete({lesson_id: lesson.id, score: n, total: total});
+  const data = await postComplete({
+    lesson_id: lesson.id, score: n, total: total, track: TRACK, course: COURSE,
+  });
   if(data.points_awarded && data.points > 0){
     document.getElementById('mileN').textContent = data.points;
     mileEl.hidden = false;

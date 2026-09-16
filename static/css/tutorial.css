@@ -1,14 +1,12 @@
-/* 글쓰기 튜토리얼 전용 스타일 - 전달된 샘플 HTML의 <style> 내용을 옮긴 것.
-   base.html(Tailwind)과 클래스명이 겹치지 않아 접두사 없이 그대로 썼지만,
-   *, body 같은 전역 선택자는 사이드바까지 깨뜨리므로 전부 .tut-page 아래로
-   스코프했다(1단계 조사에서 확인한 feedback 페이지와 같은 문제를 미리 피함).
-
-   주의: 원본 샘플 CSS에 .card{} 선택자 자체가 빠져 있고(box-shadow/border
-   선언 두 줄만 붕 떠 있었음) 카드에 배경·둥근 모서리·여백이 전혀 안 먹는
-   버그가 있었다. 아래 .tut-page .card{}는 그 원본 버그를 고쳐 넣은 것 -
-   떠 있던 box-shadow/border 선언은 그대로 살리고, 다른 박스형 컴포넌트
-   (.course/.q)와 같은 값으로 background/border-radius/padding/margin을
-   채웠다. */
+/* 글쓰기 튜토리얼 전용 스타일.
+   2단계(디자인 재작업) 방침: Jua(장식용 폰트)는 정말 "장식"이 필요한 곳
+   (히어로 타이틀, 결과 점수·메달)에만 남기고, 나머지 UI 텍스트(브레드크럼·
+   버튼·배지·문제·보기·설명문)는 전부 사이트 기본 폰트 Noto Sans KR로
+   통일한다 - Jua를 버튼/문제 텍스트에까지 섞어 쓰면서 베이스라인이 안
+   맞고 나머지 화면(static/css/style.css - Noto Sans KR만 사용)과도
+   톤이 안 맞았던 문제. 헤딩은 폰트 대신 font-weight:900으로 위계를 준다.
+   카드류 그림자도 --shadow-card로 사이트 기본 옅은 그림자 톤에 맞췄다
+   (버튼의 눌림 효과용 3D 그림자 --shadow는 유지). */
 .tut-page{
   --cream:#FFF8EC; --paper:#FFFDF7;
   --navy:#2F4A7A; --navy-soft:#5C6B8C;
@@ -22,16 +20,11 @@
   --rule:#EFE7D6;
   --cell:clamp(24px,7.6vw,40px);
   --shadow:0 6px 0 rgba(47,74,122,.10);
+  --shadow-card:0 2px 10px rgba(47,74,122,.08);
 
-  /* 타입 스케일 - 전에는 본문 텍스트에 11.5~19px 사이 17개 값이 제각각
-     쓰여있었다(13.5/14.5/15.5px 같은 반 단위 포함). 6단계로 통일하고,
-     히어로/점수/메달처럼 "한 화면에 하나뿐인" 연출용 큰 숫자만 스케일
-     밖에 별도 변수로 둔다. */
   --fs-1:12px; --fs-2:13px; --fs-3:14px; --fs-4:16px; --fs-5:19px; --fs-6:24px;
   --fs-hero:27px; --fs-score:40px; --fs-medal:52px;
 
-  /* 스페이싱 스케일 - 4px 그리드. 기존엔 6/7/9/11/13/15/22/26px 같은
-     그리드에 안 맞는 값이 컴포넌트마다 손으로 박혀 있었다. */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
 
   font-family:'Noto Sans KR',sans-serif;
@@ -41,18 +34,18 @@
 }
 .tut-page *{box-sizing:border-box}
 .tut-page .wrap{max-width:520px;margin:0 auto;position:relative}
-/* PC 등 넓은 화면에서 520px 모바일 폭으로 고정돼 좌우가 크림색 여백으로
-   비는 문제 - 뷰포트가 넓어질수록 단계적으로 폭을 넓힌다. 너무 넓히면
-   읽기 줄 길이가 길어져 오히려 가독성이 떨어지므로 900px에서 멈춘다. */
 @media (min-width:768px){.tut-page .wrap{max-width:720px}}
 @media (min-width:1200px){.tut-page .wrap{max-width:900px}}
-.tut-page h1,.tut-page h2,.tut-page h3,.tut-page .jua{font-family:'Jua',sans-serif;font-weight:400;letter-spacing:.2px}
+.tut-page h1,.tut-page h2,.tut-page h3{font-weight:900;letter-spacing:.1px}
+.tut-page .jua{font-family:'Jua',sans-serif;font-weight:400;letter-spacing:.2px}
 .tut-page b{font-weight:700;color:var(--navy)}
 .tut-page em{font-style:normal;background:linear-gradient(transparent 62%,var(--coral-pale) 62%);font-weight:500}
 
 /* ---------- screens ---------- */
 .tut-page .screen{display:none;padding:var(--sp-5) var(--sp-4) 60px}
 .tut-page .screen.on{display:block;animation:tut-pop .32s ease}
+.tut-page .screen-body{padding:4px 0 0}
+.tut-page .tut-top-space{padding:6px 2px 2px}
 @keyframes tut-pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.tut-page .screen.on{animation:none}}
 
@@ -60,13 +53,15 @@
 .tut-page .top{position:sticky;top:0;z-index:20;background:var(--cream);
   display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) var(--sp-2)}
 .tut-page .top .back{border:none;background:var(--paper);width:40px;height:40px;border-radius:14px;
-  box-shadow:var(--shadow);font-size:var(--fs-5);color:var(--navy);cursor:pointer}
-.tut-page .top .back:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(47,74,122,.10)}
-/* crumb(Jua)와 of(Noto Sans KR)가 폰트가 섞여 있어 같은 line-height를
-   안 주면 베이스라인이 미묘하게 어긋나 보인다 - 크기 차이도 17px→16px로
-   줄여 위계를 과장하지 않게 했다. */
-.tut-page .top .crumb{font-family:'Jua';color:var(--navy);font-size:var(--fs-4);line-height:1.3;flex:1}
+  box-shadow:var(--shadow-card);font-size:var(--fs-5);color:var(--navy);cursor:pointer}
+.tut-page .top .back:active{transform:translateY(1px)}
+.tut-page .top .crumb{font-weight:700;color:var(--navy);font-size:var(--fs-4);line-height:1.3;flex:1}
 .tut-page .top .of{color:var(--muted);font-size:var(--fs-3);line-height:1.3;font-weight:500}
+
+/* 트랙 선택 화면으로 돌아가는 링크 (코스 목록 화면 상단) */
+.tut-page .track-back{display:inline-block;color:var(--muted);font-size:var(--fs-2);font-weight:500;
+  text-decoration:none;margin-bottom:var(--sp-2)}
+.tut-page .track-back:hover{color:var(--navy)}
 
 /* progress dots */
 .tut-page .dots{display:flex;gap:var(--sp-2);padding:0 var(--sp-4) var(--sp-2)}
@@ -74,40 +69,41 @@
 .tut-page .dots i.done{background:var(--coral)}
 .tut-page .dots i.now{background:var(--coral);box-shadow:0 0 0 3px var(--coral-pale)}
 
-/* ---------- HOME ---------- */
+/* ---------- HOME / TRACK SELECT ---------- */
 .tut-page .hero{background:var(--navy);color:#fff;border-radius:26px;padding:var(--sp-6) var(--sp-5) var(--sp-6);
-  position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  position:relative;overflow:hidden;box-shadow:var(--shadow-card)}
 .tut-page .hero .badge{position:absolute;top:var(--sp-4);right:var(--sp-4);background:var(--gold);color:#3a2c0c;
-  font-family:'Jua';font-size:var(--fs-2);padding:var(--sp-1) var(--sp-3);border-radius:99px}
-.tut-page .hero h1{font-size:var(--fs-hero);margin:0 0 var(--sp-2);color:#fff}
+  font-weight:700;font-size:var(--fs-2);padding:var(--sp-1) var(--sp-3);border-radius:99px}
+.tut-page .hero h1{font-family:'Jua',sans-serif;font-weight:400;font-size:var(--fs-hero);margin:0 0 var(--sp-2);color:#fff}
 .tut-page .hero p{margin:0;color:#D5DEEE;font-size:var(--fs-3)}
 .tut-page .hero .cells{display:flex;gap:var(--sp-1);margin-top:var(--sp-4)}
 .tut-page .hero .cells span{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);
   border:1.5px solid rgba(255,255,255,.28);display:grid;place-items:center;
-  font-family:'Jua';color:#fff;font-size:var(--fs-4)}
+  font-weight:700;color:#fff;font-size:var(--fs-4)}
 
 .tut-page .eyes{margin:var(--sp-4) 2px var(--sp-1);border:2px dashed var(--rule);border-radius:20px;
   background:var(--paper);padding:var(--sp-2) var(--sp-1)}
-.tut-page .eyes summary{list-style:none;cursor:pointer;padding:var(--sp-3) var(--sp-4);font-family:'Jua';
+.tut-page .eyes summary{list-style:none;cursor:pointer;padding:var(--sp-3) var(--sp-4);font-weight:700;
   color:var(--navy);display:flex;align-items:center;gap:var(--sp-2)}
 .tut-page .eyes summary::-webkit-details-marker{display:none}
 .tut-page .eyes summary::after{content:'▾';margin-left:auto;color:var(--muted)}
 .tut-page .eyes[open] summary::after{content:'▴'}
 .tut-page .eye{display:flex;gap:var(--sp-3);padding:var(--sp-2) var(--sp-4)}
 .tut-page .eye .n{flex:none;width:30px;height:30px;border-radius:99px;display:grid;place-items:center;
-  font-family:'Jua';color:#fff;font-size:var(--fs-4)}
+  font-weight:700;color:#fff;font-size:var(--fs-4)}
 .tut-page .eye.a .n{background:var(--coral)} .tut-page .eye.b .n{background:var(--sky)} .tut-page .eye.c .n{background:var(--leaf)}
 .tut-page .eye .t{font-size:var(--fs-3);color:var(--navy-soft)}
-.tut-page .eye .t b{display:block;font-family:'Jua';color:var(--navy);font-weight:400;font-size:var(--fs-4)}
+.tut-page .eye .t b{display:block;font-size:var(--fs-4)}
 
-.tut-page .sec-label{font-family:'Jua';color:var(--navy);margin:var(--sp-6) 4px var(--sp-3);font-size:var(--fs-4);
+.tut-page .sec-label{font-weight:900;color:var(--navy);margin:var(--sp-6) 4px var(--sp-3);font-size:var(--fs-4);
   display:flex;align-items:center;gap:var(--sp-2)}
 .tut-page .course{display:block;width:100%;text-align:left;border:none;cursor:pointer;
   background:var(--paper);border-radius:22px;padding:var(--sp-4);margin-bottom:var(--sp-4);
-  box-shadow:var(--shadow);position:relative;text-decoration:none}
-.tut-page .course:active{transform:translateY(2px);box-shadow:0 3px 0 rgba(47,74,122,.10)}
-.tut-page .course .chip{font-family:'Jua';font-size:var(--fs-2);color:#fff;padding:var(--sp-1) var(--sp-3);border-radius:99px;display:inline-block}
+  box-shadow:var(--shadow-card);position:relative;text-decoration:none}
+.tut-page .course:active{transform:translateY(1px)}
+.tut-page .course .chip{font-weight:700;font-size:var(--fs-2);color:#fff;padding:var(--sp-1) var(--sp-3);border-radius:99px;display:inline-block}
 .tut-page .course.c1 .chip{background:var(--coral)} .tut-page .course.c2 .chip{background:var(--sky)} .tut-page .course.c3 .chip{background:var(--leaf)}
+.tut-page .track-card .chip{background:var(--navy)}
 .tut-page .course h3{margin:var(--sp-2) 0 4px;font-size:var(--fs-5);color:var(--navy)}
 .tut-page .course .sub{font-size:var(--fs-2);color:var(--muted);margin-bottom:var(--sp-3)}
 .tut-page .bar{height:11px;border-radius:99px;background:var(--rule);overflow:hidden}
@@ -115,49 +111,48 @@
 .tut-page .course .meta{display:flex;justify-content:space-between;margin-top:var(--sp-2);font-size:var(--fs-2);color:var(--navy-soft);font-weight:500}
 .tut-page .course.locked{opacity:.62;cursor:default}
 .tut-page .course.locked .chip{background:var(--muted)}
-.tut-page .tools{display:flex;gap:var(--sp-3);margin-top:var(--sp-2)}
-.tut-page .tool{flex:1;border:2px solid var(--rule);background:var(--paper);border-radius:18px;padding:var(--sp-4);
-  text-align:center;font-family:'Jua';color:var(--navy);font-size:var(--fs-3);cursor:pointer}
-.tut-page .tool .ico{font-size:22px;display:block;margin-bottom:var(--sp-1)}
 
 /* ---------- LESSON CARDS ---------- */
-.tut-page .stage{font-family:'Jua';color:#fff;background:var(--coral);display:inline-flex;align-items:center;
+.tut-page .stage{font-weight:700;color:#fff;background:var(--coral);display:inline-flex;align-items:center;
   gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);border-radius:99px;font-size:var(--fs-3);margin:4px 0 var(--sp-4)}
 .tut-page .stage.quiz{background:var(--sky)}
-/* lesson.html에 인라인 style="font-size:14.5px..."로 두 번 중복 박혀
-   있던 설명 문단 - 스타일시트 값(fs-3/sp-4)과 따로 놀지 않게 클래스로 뺐다. */
 .tut-page .intro{font-size:var(--fs-3);color:var(--navy-soft);margin:0 0 var(--sp-4)}
-.tut-page .reread{border:none;background:var(--sky-pale);color:var(--sky);font-family:'Jua';font-size:var(--fs-2);
+.tut-page .reread{border:none;background:var(--sky-pale);color:var(--sky);font-weight:700;font-size:var(--fs-2);
   padding:2px var(--sp-3);border-radius:99px;cursor:pointer;vertical-align:middle}
-.tut-page .to-quiz{margin-top:var(--sp-6);background:var(--navy);border-radius:24px;padding:var(--sp-5);text-align:center;
-  box-shadow:var(--shadow)}
-.tut-page .to-quiz-msg{color:#D5DEEE;font-size:var(--fs-4);margin-bottom:var(--sp-4);line-height:1.6}
-.tut-page .to-quiz-msg b{color:var(--gold)}
-.tut-page .to-quiz .big{box-shadow:0 4px 0 var(--coral-deep)}
+
+.tut-page .card-counter{color:var(--muted);font-size:var(--fs-2);font-weight:700;margin:0 0 var(--sp-2)}
+.tut-page .card-nav{display:flex;gap:var(--sp-3);margin-top:var(--sp-5)}
+.tut-page .card-nav .big{flex:1;margin:0;text-align:center}
+.tut-page .card-nav .big:first-child{flex:none;min-width:96px}
+
 .tut-page .card{background:var(--paper);border-radius:22px;padding:var(--sp-5) var(--sp-4);margin-bottom:var(--sp-4);
-  box-shadow:var(--shadow);border:1px solid var(--rule)}
+  box-shadow:var(--shadow-card);border:1px solid var(--rule)}
 .tut-page .card .cn{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-2)}
-.tut-page .card .cn .b{flex:none;width:34px;height:34px;border-radius:99px;background:var(--coral);color:#fff;
-  display:grid;place-items:center;font-family:'Jua';font-size:var(--fs-4)}
+/* 코스3의 "1단계"처럼 숫자 1~2자보다 긴 라벨도 들어오므로 고정 width가
+   아니라 min-width - 짧은 숫자는 원형, 긴 라벨은 알약형으로 늘어난다. */
+.tut-page .card .cn .b{flex:none;min-width:34px;height:34px;padding:0 8px;border-radius:99px;background:var(--coral);color:#fff;
+  display:grid;place-items:center;font-weight:700;font-size:var(--fs-3);white-space:nowrap}
 .tut-page .card .cn h3{margin:0;font-size:var(--fs-5);color:var(--navy)}
-/* margin-left:auto로 배지를 오른쪽 끝까지 밀면 카드가 넓어질수록(PC)
-   제목과 배지 사이가 벌어져 보였다 - 제목 바로 옆에 붙게 뺐다. */
-.tut-page .card .cn .star{background:var(--gold);color:#3a2c0c;font-family:'Jua';
+.tut-page .card .cn .star{background:var(--gold);color:#3a2c0c;font-weight:700;
   font-size:var(--fs-1);padding:4px var(--sp-3);border-radius:99px}
 .tut-page .say{font-size:var(--fs-4);margin:2px 0 var(--sp-1)}
-/* align-items:center로 아이콘을 텍스트 블록 전체 높이의 가운데에 맞춘다
-   (flex-start로 했더니 두 줄 텍스트보다 짧은 아이콘이 위쪽에 붙어 보여
-   오히려 안 맞아 보인다는 피드백). "?" 자체는 Jua 폰트를 뺐다 - Jua는
-   물음표 글리프의 실제 잉크 영역이 em 박스 안에서 위로 치우쳐 있어서
-   place-items:center로 감싸도 원 가운데로 안 온다. */
 .tut-page .why{display:flex;align-items:center;gap:var(--sp-2);background:var(--sky-pale);border-radius:16px;padding:var(--sp-3);margin:var(--sp-3) 0;
   font-size:var(--fs-3);line-height:1.5;color:#2c4a63}
 .tut-page .why .q{flex:none;width:26px;height:26px;border-radius:99px;background:#fff;
   display:grid;place-items:center;font-weight:700;line-height:1;color:var(--sky);font-size:var(--fs-4)}
 
+/* 평문 예문 비교 박스 (코스2·3 - 원고지 칸이 필요 없는 콘텐츠) */
+.tut-page .ex-wrap{margin:var(--sp-5) 0 var(--sp-1)}
+.tut-page .ex-wrap + .ex-wrap{margin-top:var(--sp-3)}
+.tut-page .ex-tag{font-size:var(--fs-2);font-weight:700;margin:0 0 var(--sp-2);display:inline-flex;
+  padding:var(--sp-1) var(--sp-3);border-radius:99px}
+.tut-page .ex-tag.bad{background:var(--wrong-pale);color:var(--wrong)}
+.tut-page .ex-tag.good{background:var(--right-pale);color:var(--right)}
+.tut-page .ex-box{border-radius:16px;padding:var(--sp-4);font-size:var(--fs-4);line-height:1.6;border:1.5px solid}
+.tut-page .ex-box.bad{background:#FFF8F5;border-color:#EBBCA6;color:var(--ink)}
+.tut-page .ex-box.good{background:#F6FCF8;border-color:#B9DEC8;color:var(--ink)}
+
 /* 원고지 */
-/* .why 박스 바로 아래 붙는 경우 margin collapse로 실제 간격이
-   var(--sp-3)(12px)로 줄어들어 붙어 보였다 - sp-5로 키움. */
 .tut-page .gpwrap{margin:var(--sp-5) 0 var(--sp-1)}
 .tut-page .gptag{font-size:var(--fs-2);font-weight:700;margin:0 0 var(--sp-2);display:inline-flex;align-items:center;gap:var(--sp-1);
   padding:var(--sp-1) var(--sp-3);border-radius:99px}
@@ -170,9 +165,6 @@
   font-size:calc(var(--cell)*.5);font-family:'Noto Sans KR';background:#fff;vertical-align:top}
 .tut-page .gp.bad span{border-color:#EBBCA6;background:#FFF8F5}
 .tut-page .gp.good span{border-color:#B9DEC8;background:#F6FCF8}
-/* 한 칸에 숫자 2개 들어갈 때 너무 작아 보인다는 피드백으로 .36→.42 -
-   "숫자는 한 칸에 두 개" 규정 자체가 작아진다는 걸 보여주는 의도된
-   차이라 완전히 없애지는 않고 격차만 줄였다. */
 .tut-page .gp span.two{font-size:calc(var(--cell)*.42);letter-spacing:-1px}
 .tut-page .gp span.bl{align-items:flex-end;justify-content:flex-start;padding:0 0 3px 4px;font-size:calc(var(--cell)*.5)}
 .tut-page .gp span.qo{align-items:flex-start;justify-content:flex-end;padding:2px 4px 0 0}
@@ -183,35 +175,31 @@
 .tut-page .remember{display:flex;gap:var(--sp-2);background:var(--cream);border:2px dashed var(--coral);border-radius:18px;
   padding:var(--sp-3) var(--sp-4);margin-top:var(--sp-4);font-size:var(--fs-3);position:relative}
 .tut-page .remember .momo{flex:none;width:34px;height:34px;border-radius:99px;background:var(--coral);color:#fff;
-  display:grid;place-items:center;font-family:'Jua';font-size:var(--fs-4)}
+  display:grid;place-items:center;font-weight:700;font-size:var(--fs-2)}
 .tut-page .remember b{color:var(--coral-deep)}
 
-.tut-page .cardnav{display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2)}
-.tut-page .cardnav .count{color:var(--muted);font-size:var(--fs-3);font-weight:500}
-.tut-page .big{margin-left:auto;border:none;cursor:pointer;font-family:'Jua';color:#fff;background:var(--coral);
+.tut-page .big{border:none;cursor:pointer;font-weight:700;color:#fff;background:var(--coral);
   padding:var(--sp-3) var(--sp-5);border-radius:16px;font-size:var(--fs-4);box-shadow:0 4px 0 var(--coral-deep)}
 .tut-page .big:active{transform:translateY(3px);box-shadow:0 1px 0 var(--coral-deep)}
 .tut-page .big:disabled{background:var(--rule);color:#B7AF9C;box-shadow:0 4px 0 #D8CFBB;cursor:default}
-.tut-page .big.ghost{background:var(--paper);color:var(--navy);border:2px solid var(--rule);box-shadow:var(--shadow)}
-.tut-page .big.ghost:active{box-shadow:0 2px 0 rgba(47,74,122,.10)}
-
-.tut-page .divide{text-align:center;font-family:'Jua';color:var(--coral);margin:var(--sp-6) 0 var(--sp-4);
-  display:flex;align-items:center;gap:var(--sp-3);font-size:var(--fs-4)}
-.tut-page .divide::before,.tut-page .divide::after{content:'';height:2px;background:var(--rule);flex:1;border-radius:2px}
+.tut-page .big.ghost{background:var(--paper);color:var(--navy);border:2px solid var(--rule);box-shadow:none}
+.tut-page .big.ghost:active{transform:translateY(1px)}
+.tut-page .big.ghost:disabled{background:var(--paper);color:#C9C2B2;border-color:var(--rule)}
 
 /* ---------- QUIZ ---------- */
-.tut-page .q{position:relative;background:var(--paper);border-radius:24px;padding:var(--sp-5) var(--sp-4);box-shadow:var(--shadow);border:1px solid var(--rule)}
+.tut-page .q{position:relative;background:var(--paper);border-radius:24px;padding:var(--sp-5) var(--sp-4);box-shadow:var(--shadow-card);border:1px solid var(--rule)}
 .tut-page .q .qhead{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-3)}
-.tut-page .q .qno{font-family:'Jua';color:#fff;background:var(--navy);padding:var(--sp-1) var(--sp-3);border-radius:99px;font-size:var(--fs-2)}
+.tut-page .q .qno{font-weight:700;color:#fff;background:var(--navy);padding:var(--sp-1) var(--sp-3);border-radius:99px;font-size:var(--fs-2)}
 .tut-page .q .qtype{font-size:var(--fs-2);color:var(--muted);font-weight:500;margin-left:auto}
-.tut-page .q .qtext{font-size:var(--fs-5);font-family:'Jua';color:var(--navy);line-height:1.5;margin-bottom:var(--sp-4)}
+.tut-page .q .qtext{font-size:var(--fs-5);font-weight:700;color:var(--navy);line-height:1.5;margin-bottom:var(--sp-4)}
 .tut-page .opts{display:flex;flex-direction:column;gap:var(--sp-3)}
 .tut-page .opt{display:flex;align-items:center;gap:var(--sp-3);text-align:left;cursor:pointer;
   border:2.5px solid var(--rule);background:#fff;border-radius:18px;padding:var(--sp-3) var(--sp-4);font-size:var(--fs-4);color:var(--ink);
   font-family:'Noto Sans KR';transition:border-color .15s,background .15s}
 .tut-page .opt:active{transform:translateY(1px)}
 .tut-page .opt .key{flex:none;width:30px;height:30px;border-radius:99px;background:var(--cream);color:var(--navy);
-  display:grid;place-items:center;font-family:'Jua';font-size:var(--fs-4)}
+  display:grid;place-items:center;font-weight:700;font-size:var(--fs-4)}
+.tut-page .opt .opt-text{flex:1;line-height:1.5}
 .tut-page .opt.right{border-color:var(--right);background:var(--right-pale)}
 .tut-page .opt.right .key{background:var(--right);color:#fff}
 .tut-page .opt.wrong{border-color:var(--wrong);background:var(--wrong-pale)}
@@ -229,7 +217,7 @@
 .tut-page .fill-target .gp span.ok{background:var(--right-pale);color:var(--right);font-weight:700}
 .tut-page .pieces{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-4)}
 .tut-page .piece{border:2px solid var(--navy);background:var(--paper);color:var(--navy);border-radius:12px;
-  min-width:38px;padding:var(--sp-2) var(--sp-3);font-family:'Jua';font-size:var(--fs-4);cursor:pointer}
+  min-width:38px;padding:var(--sp-2) var(--sp-3);font-weight:700;font-size:var(--fs-4);cursor:pointer}
 .tut-page .piece.used{opacity:.28;pointer-events:none}
 .tut-page .piece.blank{color:var(--muted)}
 .tut-page .fill-hint{font-size:var(--fs-2);color:var(--muted);margin:-6px 0 var(--sp-3)}
@@ -237,7 +225,7 @@
 .tut-page .why-box{margin-top:var(--sp-4);background:var(--cream);border-radius:16px;padding:var(--sp-4);font-size:var(--fs-3);
   display:none}
 .tut-page .why-box.on{display:block;animation:tut-pop .28s}
-.tut-page .verdict{font-family:'Jua';display:inline-block;margin-right:6px}
+.tut-page .verdict{font-weight:700;display:inline-block;margin-right:6px}
 .tut-page .verdict.y{color:var(--right)} .tut-page .verdict.n{color:var(--coral-deep)}
 
 /* ○/✕ 도장 — 선택지/입력 영역 오른쪽 위에 붙는다 */
@@ -253,20 +241,21 @@
 @media (prefers-reduced-motion:reduce){.tut-page .stamp.on{animation:none;opacity:1;transform:scale(1) rotate(-8deg)}}
 
 /* ---------- RESULT ---------- */
-.tut-page .result{text-align:center;background:var(--navy);color:#fff;border-radius:28px;padding:var(--sp-6) var(--sp-5);box-shadow:var(--shadow)}
+.tut-page .result{text-align:center;background:var(--navy);color:#fff;border-radius:28px;padding:var(--sp-6) var(--sp-5);box-shadow:var(--shadow-card)}
 .tut-page .result .medal{font-size:var(--fs-medal);margin-bottom:var(--sp-1)}
-.tut-page .result h2{color:#fff;font-size:var(--fs-6);margin:var(--sp-1) 0}
-.tut-page .result .score{font-family:'Jua';font-size:var(--fs-score);color:var(--gold);margin:var(--sp-2) 0}
+.tut-page .result h2{font-family:'Jua',sans-serif;font-weight:400;color:#fff;font-size:var(--fs-6);margin:var(--sp-1) 0}
+.tut-page .result .score{font-family:'Jua',sans-serif;font-weight:400;font-size:var(--fs-score);color:var(--gold);margin:var(--sp-2) 0}
 .tut-page .result .mile{display:inline-flex;align-items:center;gap:var(--sp-2);background:rgba(224,166,75,.18);
-  color:var(--gold);font-family:'Jua';padding:var(--sp-2) var(--sp-4);border-radius:99px;margin-top:var(--sp-2)}
+  color:var(--gold);font-weight:700;padding:var(--sp-2) var(--sp-4);border-radius:99px;margin-top:var(--sp-2)}
 .tut-page .result .mile[hidden]{display:none}
-.tut-page .review{background:var(--paper);border-radius:22px;padding:var(--sp-4);margin-top:var(--sp-4);box-shadow:var(--shadow);text-align:left}
-.tut-page .review h4{font-family:'Jua';color:var(--navy);margin:0 0 var(--sp-2);font-size:var(--fs-4)}
+.tut-page .review{background:var(--paper);border-radius:22px;padding:var(--sp-4);margin-top:var(--sp-4);box-shadow:var(--shadow-card);text-align:left}
+.tut-page .review h4{font-weight:900;color:var(--navy);margin:0 0 var(--sp-2);font-size:var(--fs-4)}
 .tut-page .review .row{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) 0;border-bottom:1px dashed var(--rule);font-size:var(--fs-3)}
 .tut-page .review .row:last-child{border:none}
-.tut-page .review .row .rn{flex:none;width:26px;height:26px;border-radius:99px;background:var(--coral);color:#fff;
-  display:grid;place-items:center;font-family:'Jua';font-size:var(--fs-1)}
+.tut-page .review .row .rn{flex:none;min-width:26px;height:26px;padding:0 4px;border-radius:99px;background:var(--coral);color:#fff;
+  display:grid;place-items:center;font-weight:700;font-size:var(--fs-1)}
 .tut-page .review .row.good .rn{background:var(--right)}
 .tut-page .result-actions{display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-4)}
+.tut-page .result-actions .big{width:100%}
 
 .tut-page .foot{text-align:center;color:var(--muted);font-size:var(--fs-1);padding:var(--sp-6) var(--sp-4) var(--sp-2);line-height:1.7}
