@@ -10,6 +10,7 @@ import os
 
 from app.library import library_bp
 from app.models import db, Book, Video, Student
+from app.models.essay import Essay
 from app.models.library import HallOfFame, AdmissionInfo
 from app.models.parent_student import ParentStudent
 from app.utils.content_access import can_access_content
@@ -704,6 +705,28 @@ def delete_book(book_id):
 # ==================== 관리자 전용 - 기존 코드 ====================
 
 # 명예의 전당 관리
+@library_bp.route('/admin/hall-of-fame/student-essays/<student_id>')
+@requires_permission_level(3)
+def hall_of_fame_student_essays(student_id):
+    """명예의 전당 작성 폼에서 학생 선택 시, 그 학생의 확정된 첨삭 글 목록을
+    돌려준다(이미 명예의 전당에 연결된 글은 제외 - 중복 등록 방지)."""
+    linked_essay_ids = {row[0] for row in db.session.query(HallOfFame.essay_id)
+                        .filter(HallOfFame.essay_id.isnot(None)).all()}
+    essays = (Essay.query
+              .filter_by(student_id=student_id, is_finalized=True)
+              .order_by(Essay.finalized_at.desc())
+              .limit(50).all())
+    return jsonify([
+        {
+            'essay_id': e.essay_id,
+            'title': e.title or e.original_text[:40],
+            'finalized_at': e.finalized_at.strftime('%Y-%m-%d') if e.finalized_at else '',
+            'already_linked': e.essay_id in linked_essay_ids,
+        }
+        for e in essays
+    ])
+
+
 @library_bp.route('/admin/hall-of-fame/new', methods=['GET', 'POST'])
 @requires_permission_level(3)
 def create_hall_of_fame():
@@ -730,6 +753,15 @@ def create_hall_of_fame():
             selected_student_id = request.form.get('student_id') or None
             selected_student = Student.query.get(selected_student_id) if selected_student_id else None
 
+            # 첨삭 글 연결(선택) - "우수답안 선정" 버튼과 같은 글인지 판단하는
+            # 기준이 되므로, 이미 이 글로 만들어진 게시글이 있으면 중복 생성을
+            # 막는다(2026-09-17 결정).
+            selected_essay_id = request.form.get('essay_id') or None
+            selected_essay = Essay.query.get(selected_essay_id) if selected_essay_id else None
+            if selected_essay and HallOfFame.query.filter_by(essay_id=selected_essay.essay_id).first():
+                flash('이미 명예의 전당에 등록된 첨삭 글입니다.', 'error')
+                return redirect(url_for('library.create_hall_of_fame'))
+
             week_number_raw = request.form.get('week_number') or ''
             week_number = int(week_number_raw) if week_number_raw.isdigit() else None
             book_id = request.form.get('book_id') or None
@@ -746,6 +778,7 @@ def create_hall_of_fame():
                 award_name=request.form.get('award_name') or None,
                 week_number=week_number,
                 book_id=book_id,
+                essay_id=selected_essay.essay_id if selected_essay else None,
                 file_path=file_path,
                 is_published=bool(request.form.get('is_published')),
                 created_by=current_user.user_id,
@@ -766,19 +799,28 @@ def create_hall_of_fame():
             # 우수답안(excellent_answer)으로 등록하면 첨삭 화면의 "우수답안 선정"
             # 버튼과 동일하게 EX01(1,000점) 마일리지를 지급한다(2026-09-16 결정) -
             # 실패해도 게시글 등록 자체는 이미 커밋됐으므로 예외를 밖으로 던지지 않는다.
+            # 연결한 첨삭 글이 이미 버튼으로 선정되어 EX01을 받았다면(반대 방향
+            # 흐름에서 이미 지급됨) 여기서는 중복 지급하지 않는다(2026-09-17 결정).
             if selected_student and post.category == 'excellent_answer':
                 try:
-                    from app.services.mileage_service import award_points
+                    from app.services.mileage_service import award_points, is_awarded
                     from app.services.badge_service import evaluate_badges
-                    event = award_points(
-                        student_id=selected_student.student_id, activity_code='EX01',
-                        source_type='hall_of_fame', source_id=post.post_id,
-                        granted_by=current_user.user_id,
+
+                    already_via_essay = bool(
+                        selected_essay and is_awarded('EX01', 'essay', selected_essay.essay_id)
                     )
-                    if event:
-                        evaluate_badges(selected_student.student_id, trigger_codes=['EX01'])
-                        db.session.commit()
-                        flash(f'{selected_student.name} 학생에게 우수답안 마일리지 1,000점을 지급했습니다.', 'success')
+                    if already_via_essay:
+                        flash('이 첨삭 글은 이미 "우수답안 선정" 버튼으로 마일리지가 지급되어 있어 중복 지급하지 않았습니다.', 'info')
+                    else:
+                        event = award_points(
+                            student_id=selected_student.student_id, activity_code='EX01',
+                            source_type='hall_of_fame', source_id=post.post_id,
+                            granted_by=current_user.user_id,
+                        )
+                        if event:
+                            evaluate_badges(selected_student.student_id, trigger_codes=['EX01'])
+                            db.session.commit()
+                            flash(f'{selected_student.name} 학생에게 우수답안 마일리지 1,000점을 지급했습니다.', 'success')
                 except Exception:
                     db.session.rollback()
                     current_app.logger.exception(

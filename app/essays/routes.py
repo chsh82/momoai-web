@@ -1195,6 +1195,31 @@ def select_excellent(essay_id):
             evaluate_badges(essay.student_id, trigger_codes=['EX01'])
             db.session.commit()
             flash(f'{essay.student.name} 학생의 답안을 우수답안으로 선정했습니다. (+1,000점)', 'success')
+
+            # 명예의 전당에도 자동 등록(2026-09-17 결정) - 마일리지는 위에서 이미
+            # 지급했으므로 여기서는 게시글만 만들고 award_points를 다시 부르지
+            # 않는다. essay_id로 이미 등록된 게시글이 있으면 중복 생성하지 않는다.
+            try:
+                from app.models.library import HallOfFame
+                if not HallOfFame.query.filter_by(essay_id=essay.essay_id).first():
+                    hof_post = HallOfFame(
+                        title=essay.title or f'[{essay.student.grade}] {essay.student.name} 학생 우수답안',
+                        content=essay.original_text,
+                        category='excellent_answer',
+                        student_id=essay.student_id,
+                        student_name=essay.student.name,
+                        grade=essay.student.grade,
+                        essay_id=essay.essay_id,
+                        is_published=True,
+                        created_by=current_user.user_id,
+                        created_at=datetime.now(),
+                    )
+                    db.session.add(hof_post)
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception(
+                    '[select_excellent] 명예의 전당 자동 등록 실패 (essay_id=%s)', essay.essay_id)
         else:
             db.session.rollback()
             flash('선정에 실패했습니다. 이미 선정된 항목이거나 주간 상한을 초과했습니다.', 'error')

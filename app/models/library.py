@@ -23,6 +23,13 @@ class HallOfFame(db.Model):
     student_name = db.Column(db.String(100), nullable=True)  # 익명 처리용
     grade = db.Column(db.String(20), nullable=True)  # 학년
 
+    # 연결된 첨삭 글(선택) - "우수답안 선정" 버튼과 명예의 전당이 같은 글을
+    # 가리키는지 판단하는 기준. 이 값이 있으면 EX01 마일리지 중복 지급을
+    # 여기로 막는다(2026-09-17 결정, app/essays/routes.py select_excellent
+    # / app/library/routes.py create_hall_of_fame 참고).
+    essay_id = db.Column(db.String(36), db.ForeignKey('essays.essay_id', ondelete='SET NULL'),
+                        nullable=True, index=True)
+
     # 수상 정보
     award_name = db.Column(db.String(200), nullable=True)  # 수상명
     award_date = db.Column(db.Date, nullable=True)  # 수상일
@@ -51,6 +58,7 @@ class HallOfFame(db.Model):
     student = db.relationship('Student', backref='hall_of_fame_posts')
     creator = db.relationship('User', backref='hall_of_fame_posts')
     book = db.relationship('Book')
+    essay = db.relationship('Essay', backref='hall_of_fame_posts')
 
     def __repr__(self):
         return f'<HallOfFame {self.post_id}: {self.title}>'
