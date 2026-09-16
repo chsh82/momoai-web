@@ -154,10 +154,12 @@
 .tut-page .ex-box.bad{background:#FFF8F5;border-color:#EBBCA6;color:var(--ink)}
 .tut-page .ex-box.good{background:#F6FCF8;border-color:#B9DEC8;color:var(--ink)}
 
-/* 원고지 - 칸을 항상 왼쪽에 고정하고 설명 태그는 오른쪽에 둔다(태그
-   유무/길이에 따라 칸 위치가 흔들리던 문제). 폭이 부족하면(칸이 넓은
-   규정) flex-wrap으로 태그가 자연스럽게 아래 줄로 내려간다. */
-.tut-page .gpwrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-3);margin:var(--sp-5) 0 var(--sp-1)}
+/* 원고지 - 칸+설명 태그를 한 덩어리로 보고 카드 가운데에 놓는다(PC
+   폭에서 카드가 넓어지며 왼쪽에 쏠려 보이던 문제). 태그 유무/길이와
+   무관하게 칸 자체는 항상 왼쪽에 오고 태그가 오른쪽에 붙는 순서는
+   유지 - justify-content:center는 그 덩어리의 좌우 여백만 맞춘다.
+   폭이 부족하면(칸이 넓은 규정) flex-wrap으로 태그가 아래 줄로 내려간다. */
+.tut-page .gpwrap{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:var(--sp-3);margin:var(--sp-5) 0 var(--sp-1)}
 .tut-page .gptag{flex:none;font-size:var(--fs-2);font-weight:700;display:inline-flex;align-items:center;gap:var(--sp-1);
   padding:var(--sp-1) var(--sp-3);border-radius:99px}
 .tut-page .gptag.bad{background:var(--wrong-pale);color:var(--wrong)}

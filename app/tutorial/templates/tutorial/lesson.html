@@ -18,7 +18,7 @@
 <section class="screen" id="learn">
   <div class="top">
     <button class="back" onclick="goHome()">‹</button>
-    <span class="crumb">{{ course_title }} · {{ lesson.title }}</span>
+    <span class="crumb">코스{{ course_code[-1] }} · {{ course_title }}</span>
     <span class="of">1단계 · 배우기</span>
   </div>
   <div class="screen-body">
@@ -38,7 +38,7 @@
 <section class="screen" id="quiz-screen">
   <div class="top">
     <button class="back" onclick="go('learn')">‹</button>
-    <span class="crumb">{{ course_title }} · {{ lesson.title }}</span>
+    <span class="crumb">코스{{ course_code[-1] }} · {{ course_title }}</span>
     <span class="of">2단계 · 확인 문제</span>
   </div>
   <div class="dots" id="lessonDots"></div>
