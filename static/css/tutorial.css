@@ -145,16 +145,20 @@
 .tut-page .card .cn .star{background:var(--gold);color:#3a2c0c;font-family:'Jua';
   font-size:var(--fs-1);padding:4px var(--sp-3);border-radius:99px}
 .tut-page .say{font-size:var(--fs-4);margin:2px 0 var(--sp-1)}
-/* align-items 기본값(stretch)이라 아이콘이 두 줄 텍스트의 위쪽에만
-   붙어 보였다 - flex-start로 명시하고 .q에 아이콘 배지 스타일을
-   더해 다른 원형 아이콘들(.eye .n, .card .cn .b)과 통일했다. */
-.tut-page .why{display:flex;align-items:flex-start;gap:var(--sp-2);background:var(--sky-pale);border-radius:16px;padding:var(--sp-3);margin:var(--sp-3) 0;
-  font-size:var(--fs-3);color:#2c4a63}
+/* align-items:center로 아이콘을 텍스트 블록 전체 높이의 가운데에 맞춘다
+   (flex-start로 했더니 두 줄 텍스트보다 짧은 아이콘이 위쪽에 붙어 보여
+   오히려 안 맞아 보인다는 피드백). "?" 자체는 Jua 폰트를 뺐다 - Jua는
+   물음표 글리프의 실제 잉크 영역이 em 박스 안에서 위로 치우쳐 있어서
+   place-items:center로 감싸도 원 가운데로 안 온다. */
+.tut-page .why{display:flex;align-items:center;gap:var(--sp-2);background:var(--sky-pale);border-radius:16px;padding:var(--sp-3);margin:var(--sp-3) 0;
+  font-size:var(--fs-3);line-height:1.5;color:#2c4a63}
 .tut-page .why .q{flex:none;width:26px;height:26px;border-radius:99px;background:#fff;
-  display:grid;place-items:center;font-family:'Jua';color:var(--sky);font-size:var(--fs-4)}
+  display:grid;place-items:center;font-weight:700;line-height:1;color:var(--sky);font-size:var(--fs-4)}
 
 /* 원고지 */
-.tut-page .gpwrap{margin:var(--sp-4) 0 var(--sp-1)}
+/* .why 박스 바로 아래 붙는 경우 margin collapse로 실제 간격이
+   var(--sp-3)(12px)로 줄어들어 붙어 보였다 - sp-5로 키움. */
+.tut-page .gpwrap{margin:var(--sp-5) 0 var(--sp-1)}
 .tut-page .gptag{font-size:var(--fs-2);font-weight:700;margin:0 0 var(--sp-2);display:inline-flex;align-items:center;gap:var(--sp-1);
   padding:var(--sp-1) var(--sp-3);border-radius:99px}
 .tut-page .gptag.bad{background:var(--wrong-pale);color:var(--wrong)}
@@ -166,7 +170,10 @@
   font-size:calc(var(--cell)*.5);font-family:'Noto Sans KR';background:#fff;vertical-align:top}
 .tut-page .gp.bad span{border-color:#EBBCA6;background:#FFF8F5}
 .tut-page .gp.good span{border-color:#B9DEC8;background:#F6FCF8}
-.tut-page .gp span.two{font-size:calc(var(--cell)*.36);letter-spacing:-1px}
+/* 한 칸에 숫자 2개 들어갈 때 너무 작아 보인다는 피드백으로 .36→.42 -
+   "숫자는 한 칸에 두 개" 규정 자체가 작아진다는 걸 보여주는 의도된
+   차이라 완전히 없애지는 않고 격차만 줄였다. */
+.tut-page .gp span.two{font-size:calc(var(--cell)*.42);letter-spacing:-1px}
 .tut-page .gp span.bl{align-items:flex-end;justify-content:flex-start;padding:0 0 3px 4px;font-size:calc(var(--cell)*.5)}
 .tut-page .gp span.qo{align-items:flex-start;justify-content:flex-end;padding:2px 4px 0 0}
 .tut-page .gp span.qc{align-items:flex-start;justify-content:flex-start;padding:2px 0 0 4px}
