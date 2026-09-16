@@ -30,6 +30,11 @@
 }
 .tut-page *{box-sizing:border-box}
 .tut-page .wrap{max-width:520px;margin:0 auto;position:relative}
+/* PC 등 넓은 화면에서 520px 모바일 폭으로 고정돼 좌우가 크림색 여백으로
+   비는 문제 - 뷰포트가 넓어질수록 단계적으로 폭을 넓힌다. 너무 넓히면
+   읽기 줄 길이가 길어져 오히려 가독성이 떨어지므로 900px에서 멈춘다. */
+@media (min-width:768px){.tut-page .wrap{max-width:720px}}
+@media (min-width:1200px){.tut-page .wrap{max-width:900px}}
 .tut-page h1,.tut-page h2,.tut-page h3,.tut-page .jua{font-family:'Jua',sans-serif;font-weight:400;letter-spacing:.2px}
 .tut-page b{font-weight:700;color:var(--navy)}
 .tut-page em{font-style:normal;background:linear-gradient(transparent 62%,var(--coral-pale) 62%);font-weight:500}
