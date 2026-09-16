@@ -81,10 +81,12 @@ function post(url, body){
 async function postComplete(body){
   try{
     const res = await post('/tutorial/api/complete', body);
-    if(!res || !res.ok) return {points_awarded:false, points:0};
-    return await res.json();
+    if(!res || !res.ok) return {points_awarded:false, points:0, saved:false};
+    if(res.status===204) return {points_awarded:false, points:0, saved:true}; // 학생 외 역할 - 저장 대상 아님(정상)
+    const data = await res.json();
+    return Object.assign({saved:true}, data);
   }catch(e){
-    return {points_awarded:false, points:0};
+    return {points_awarded:false, points:0, saved:false};
   }
 }
 
@@ -428,10 +430,24 @@ async function renderResult(){
   go('result');
 
   // 완료 저장 + 마일리지는 서버 응답을 받은 뒤에 채운다(클라이언트 계산 없음).
+  lastResultPayload = { lesson_id: lesson.id, score: n, total: total, track: TRACK, course: COURSE };
+  await tryCompleteSave();
+}
+
+/* 진도 저장이 실패(세션 만료·네트워크 오류 등)하면 화면은 이미 "완료"로 보이지만
+   서버엔 기록이 안 남아 다음 코스가 계속 잠겨있는 문제가 있었다 - 실패를 화면에
+   드러내고 재시도할 수 있게 한다. */
+let lastResultPayload = null;
+async function tryCompleteSave(){
   const mileEl = document.getElementById('mileLine');
-  const data = await postComplete({
-    lesson_id: lesson.id, score: n, total: total, track: TRACK, course: COURSE,
-  });
+  const warnEl = document.getElementById('saveWarn');
+  const data = await postComplete(lastResultPayload);
+  if(!data.saved){
+    warnEl.hidden = false;
+    mileEl.hidden = true;
+    return;
+  }
+  warnEl.hidden = true;
   if(data.points_awarded && data.points > 0){
     document.getElementById('mileN').textContent = data.points;
     mileEl.hidden = false;

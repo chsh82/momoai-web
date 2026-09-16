@@ -264,6 +264,12 @@
 .tut-page .result .mile{display:inline-flex;align-items:center;gap:var(--sp-2);background:rgba(224,166,75,.18);
   color:var(--gold);font-weight:700;padding:var(--sp-2) var(--sp-4);border-radius:99px;margin-top:var(--sp-2)}
 .tut-page .result .mile[hidden]{display:none}
+.tut-page .result .save-warn{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);
+  background:var(--wrong-pale);color:var(--wrong);font-weight:700;padding:var(--sp-3) var(--sp-4);
+  border-radius:16px;margin-top:var(--sp-2);font-size:var(--fs-2)}
+.tut-page .result .save-warn[hidden]{display:none}
+.tut-page .result .save-warn button{border:none;cursor:pointer;font-weight:700;color:#fff;background:var(--wrong);
+  padding:var(--sp-1) var(--sp-4);border-radius:99px;font-size:var(--fs-2)}
 .tut-page .review{background:var(--paper);border-radius:22px;padding:var(--sp-4);margin-top:var(--sp-4);box-shadow:var(--shadow-card);text-align:left}
 .tut-page .review h4{font-weight:900;color:var(--navy);margin:0 0 var(--sp-2);font-size:var(--fs-4)}
 .tut-page .review .row{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) 0;border-bottom:1px dashed var(--rule);font-size:var(--fs-3)}
