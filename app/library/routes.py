@@ -763,6 +763,28 @@ def create_hall_of_fame():
 
             db.session.commit()
 
+            # 우수답안(excellent_answer)으로 등록하면 첨삭 화면의 "우수답안 선정"
+            # 버튼과 동일하게 EX01(1,000점) 마일리지를 지급한다(2026-09-16 결정) -
+            # 실패해도 게시글 등록 자체는 이미 커밋됐으므로 예외를 밖으로 던지지 않는다.
+            if selected_student and post.category == 'excellent_answer':
+                try:
+                    from app.services.mileage_service import award_points
+                    from app.services.badge_service import evaluate_badges
+                    event = award_points(
+                        student_id=selected_student.student_id, activity_code='EX01',
+                        source_type='hall_of_fame', source_id=post.post_id,
+                        granted_by=current_user.user_id,
+                    )
+                    if event:
+                        evaluate_badges(selected_student.student_id, trigger_codes=['EX01'])
+                        db.session.commit()
+                        flash(f'{selected_student.name} 학생에게 우수답안 마일리지 1,000점을 지급했습니다.', 'success')
+                except Exception:
+                    db.session.rollback()
+                    current_app.logger.exception(
+                        '[hall_of_fame] EX01 마일리지 적립 실패 (post_id=%s, student_id=%s)',
+                        post.post_id, selected_student.student_id)
+
             flash('명예의 전당 게시글이 등록되었습니다.', 'success')
             return redirect(url_for('library.hall_of_fame_detail', post_id=post.post_id))
 

@@ -74,7 +74,10 @@ POINT_RULES = {
         'points': 1000,
         'points_min': None,
         'points_max': None,
-        'allowed_source_types': ['essay', 'post'],
+        # 'hall_of_fame': 첨삭 화면의 "우수답안 선정" 버튼과 별개로, 명예의
+        # 전당에 우수답안(excellent_answer)으로 직접 등록할 때도 지급한다
+        # (2026-09-16 결정 - library/routes.py의 create_hall_of_fame() 참고).
+        'allowed_source_types': ['essay', 'post', 'hall_of_fame'],
         'confirm_delay_hours': 0,
         'daily_cap': None,
         'monthly_cap': None,
