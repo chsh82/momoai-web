@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}글쓰기 튜토리얼 - MOMOAI{% endblock %}
+{% block title %}모모아이 글쓰기 튜토리얼 - MOMOAI{% endblock %}
 
-{% block page_title %}📖 글쓰기 튜토리얼{% endblock %}
+{% block page_title %}📖 모모아이 글쓰기 튜토리얼{% endblock %}
 {% block page_subtitle %}{% endblock %}
 
 {% block extra_head %}
@@ -13,23 +13,41 @@
 {% block content %}
 <div class="tut-page">
 <div class="wrap">
-<section class="screen on" id="home">
+<section class="screen on" id="intro">
   <div class="tut-top-space">
     <a class="track-back" href="{{ url_for('tutorial.track_select') }}">‹ 트랙 선택으로</a>
     <div class="hero">
       <span class="badge">{% if track == 'mid' %}중등{% else %}초등 3~6학년{% endif %}</span>
-      <h1>글쓰기 튜토리얼</h1>
+      <h1>모모아이 글쓰기 튜토리얼</h1>
       <p>원고지 · 문장 · 생각 — 세 가지를 차례로 익혀요</p>
       <div class="cells"><span>원</span><span>고</span><span>지</span><span>편</span></div>
     </div>
 
-    <details class="eyes">
+    <div class="remember">
+      <span class="momo">모모</span>
+      <div>
+        {% if track == 'mid' %}
+        <b>안녕하세요!</b> 저는 모모예요. 원고지 22가지 약속부터 문장 106가지, 생각을 단단하게 만드는 다섯 가지 방법까지 함께 다져 볼게요. 한 장씩, 한 문제씩 차근차근 넘기면 어느새 실력이 붙어 있을 거예요.
+        {% else %}
+        <b>안녕하세요!</b> 저는 모모예요. 오늘부터 원고지 · 문장 · 생각, 세 가지를 하나씩 배워 볼 거예요. 카드 한 장, 문제 한 개씩 천천히 넘기면 돼요.
+        {% endif %}
+      </div>
+    </div>
+
+    <details class="eyes" open>
       <summary>글을 볼 때 필요한 눈은 세 개예요</summary>
       <div class="eye a"><div class="n">원</div><div class="t"><b>원고지 — 칸의 약속</b>글 내용이 좋아도 칸을 안 지키면 점수가 깎여요. 대신 오늘 배우면 그날로 해결돼요.</div></div>
       <div class="eye b"><div class="n">문</div><div class="t"><b>문장 — 맞고 틀림</b>맞는 말과 틀린 말을 가려요. 답이 하나라 알면 바로 고쳐요.</div></div>
       <div class="eye c"><div class="n">생</div><div class="t"><b>생각 — 약함과 강함</b>맞춤법이 완벽해도 생각이 약하면 힘이 없어요.</div></div>
     </details>
 
+    <button type="button" class="big" style="width:100%;margin-top:var(--sp-4)" onclick="go('courses')">코스 보러 가기 ›</button>
+  </div>
+</section>
+
+<section class="screen" id="courses">
+  <div class="tut-top-space">
+    <button type="button" class="track-back" onclick="go('intro')">‹ 인사말로</button>
     <div class="sec-label">🎒 코스를 골라요</div>
 
     {% for c in courses %}
@@ -68,4 +86,12 @@
 </section>
 </div>
 </div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  window.scrollTo(0,0);
+}
+</script>
 {% endblock %}
