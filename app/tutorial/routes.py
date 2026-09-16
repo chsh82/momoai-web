@@ -33,6 +33,11 @@ TRACK_COURSES = {
     'mid': ['course1', 'course2', 'course3'],
 }
 
+# 튜토리얼 마일리지는 학생 1명당 평생 최대 300점(코스 3개 분, 트랙 하나를
+# 완주한 만큼)까지만 지급한다 - 초등/중등 두 트랙을 다 풀어도 한쪽을
+# 완주한 시점부터는 더 지급하지 않는다.
+TUTORIAL_LIFETIME_MAX_COURSES = 3
+
 
 @tutorial_bp.route('/')
 def track_select():
@@ -151,6 +156,12 @@ def _award_course_completion(student, track, course):
         student_id=student.student_id, track=track, course=course,
     ).first()
     if existing is not None:
+        return 0
+
+    already_awarded_count = TutorialCourseReward.query.filter_by(
+        student_id=student.student_id,
+    ).count()
+    if already_awarded_count >= TUTORIAL_LIFETIME_MAX_COURSES:
         return 0
 
     try:
