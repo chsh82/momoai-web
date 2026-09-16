@@ -50,13 +50,18 @@
 @media (prefers-reduced-motion:reduce){.tut-page .screen.on{animation:none}}
 
 /* ---------- topbar ---------- */
+/* 뒤로가기 화살표는 혼자 맨 윗줄에, 제목 줄은 그 아래 배경 바로
+   강조한다 - 화살표와 제목이 한 줄에 같이 있으면 제목이 덜 도드라져
+   보인다는 피드백. */
 .tut-page .top{position:sticky;top:0;z-index:20;background:var(--cream);
-  display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) var(--sp-2)}
+  display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) var(--sp-2)}
 .tut-page .top .back{border:none;background:var(--paper);width:40px;height:40px;border-radius:14px;
   box-shadow:var(--shadow-card);font-size:var(--fs-5);color:var(--navy);cursor:pointer}
 .tut-page .top .back:active{transform:translateY(1px)}
-.tut-page .top .crumb{font-weight:700;color:var(--navy);font-size:var(--fs-4);line-height:1.3;flex:1}
-.tut-page .top .of{color:var(--muted);font-size:var(--fs-3);line-height:1.3;font-weight:500}
+.tut-page .top .top-title{width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+  background:var(--paper);border-radius:16px;padding:var(--sp-3) var(--sp-4);box-shadow:var(--shadow-card)}
+.tut-page .top .crumb{font-weight:700;color:var(--navy);font-size:var(--fs-4);line-height:1.3}
+.tut-page .top .of{flex:none;color:var(--muted);font-size:var(--fs-3);line-height:1.3;font-weight:500}
 
 /* 트랙 선택 화면으로 돌아가는 링크 (코스 목록 화면 상단) */
 .tut-page .track-back{display:inline-block;color:var(--muted);font-size:var(--fs-2);font-weight:500;
