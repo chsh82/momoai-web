@@ -1169,10 +1169,6 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.submit_essay' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 글쓰기 제출
                             </a>
-                            <a href="{{ url_for('tutorial.index') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'tutorial.' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
-                                📖 글쓰기 튜토리얼
-                            </a>
                             <a href="{{ url_for('student.my_essays') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.my_essays' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 <span>내 첨삭</span>
@@ -1223,6 +1219,10 @@
                             <a href="{{ url_for('student.reading_mbti') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'reading_mbti' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
                                 모모아이 MBTI
+                            </a>
+                            <a href="{{ url_for('tutorial.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'tutorial.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                📖 글쓰기 튜토리얼
                             </a>
                             <!-- 어휘퀴즈 & 스키마퀴즈 - 임시 비활성화
                             <a href="{{ url_for('student.vocabulary_quiz') }}"
