@@ -90,7 +90,7 @@
     <button class="big ghost" style="margin:0;width:100%" onclick="goHome()">코스 화면으로</button>
   </div>
   <div class="foot">
-    모모의 책장 · 글쓰기 튜토리얼 (초등) — 《문장과 생각》 초등판에서 뽑았습니다.
+    모모의 책장 · 글쓰기 튜토리얼 ({{ '중등' if track == 'mid' else '초등' }}) — 《문장과 생각》 {{ '본편' if track == 'mid' else '초등판' }}에서 뽑았습니다.
   </div>
 </section>
 

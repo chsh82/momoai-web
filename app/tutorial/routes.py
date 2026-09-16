@@ -27,9 +27,10 @@ from app.models.student import Student
 # 실제 콘텐츠가 있는 트랙만 화이트리스트로 관리한다 - URL의 track을 그대로
 # content.get_course()에 넘기면 임의 문자열로 파일시스템 경로를 조립하게
 # 되므로, 라우트 단계에서 먼저 걸러낸다.
-SUPPORTED_TRACKS = {'elem'}
+SUPPORTED_TRACKS = {'elem', 'mid'}
 TRACK_COURSES = {
     'elem': ['course1', 'course2', 'course3'],
+    'mid': ['course1', 'course2', 'course3'],
 }
 
 

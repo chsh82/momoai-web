@@ -17,7 +17,7 @@
   <div class="tut-top-space">
     <a class="track-back" href="{{ url_for('tutorial.track_select') }}">‹ 트랙 선택으로</a>
     <div class="hero">
-      <span class="badge">초등 3~6학년</span>
+      <span class="badge">{% if track == 'mid' %}중등{% else %}초등 3~6학년{% endif %}</span>
       <h1>글쓰기 튜토리얼</h1>
       <p>원고지 · 문장 · 생각 — 세 가지를 차례로 익혀요</p>
       <div class="cells"><span>원</span><span>고</span><span>지</span><span>편</span></div>
