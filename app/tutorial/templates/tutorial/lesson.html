@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.title }} - MOMOAI{% endblock %}
+
+{% block page_title %}📖 {{ course_title }}{% endblock %}
+{% block page_subtitle %}{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tutorial.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="tut-page">
+<div class="wrap">
+
+<!-- ============ LESSON (학습) ============ -->
+<section class="screen" id="learn">
+  <div class="top">
+    <button class="back" onclick="goHome()">‹</button>
+    <span class="crumb">{{ course_title }} · {{ lesson.title }}</span>
+    <span class="of">1단계 · 배우기</span>
+  </div>
+  <div style="padding:4px 0 0">
+    <div class="stage">📖 읽어 보기</div>
+    <p style="font-size:14.5px;color:var(--navy-soft);margin:0 0 14px">
+      원고지는 어려운 규칙이 아니라 <b>칸을 쓰는 약속</b>이에요. 설명을 읽는 것보다 칸에 들어간 모습을 보는 게 훨씬 빨라요. 카드를 넘기면서 ✕와 ○를 눈으로 담아요.
+    </p>
+    <div id="cards"></div>
+
+    <div class="to-quiz">
+      <div class="to-quiz-msg">규정 <b id="cardTotal">{{ lesson.cards|length }}</b>가지를 다 읽었어요.<br>이제 문제로 확인해 볼까요?</div>
+      <button class="big" id="toQuizBtn" style="width:100%;margin:0" onclick="go('quiz-screen')">✏️ 퀴즈 풀기 →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUIZ ============ -->
+<section class="screen" id="quiz-screen">
+  <div class="top">
+    <button class="back" onclick="go('learn')">‹</button>
+    <span class="crumb">{{ course_title }} · {{ lesson.title }}</span>
+    <span class="of">2단계 · 확인 문제</span>
+  </div>
+  <div class="dots" id="lessonDots"></div>
+  <div style="padding:4px 0 0">
+    <div class="stage quiz">✏️ 확인 문제</div>
+    <p style="font-size:14.5px;color:var(--navy-soft);margin:0 0 14px">
+      방금 배운 규정을 문제로 확인해요. 헷갈리면 <button class="reread" onclick="go('learn')">다시 읽기</button> 로 돌아가도 돼요.
+    </p>
+    <div id="quiz"></div>
+  </div>
+</section>
+
+<!-- ============ RESULT ============ -->
+<section class="screen" id="result">
+  <div class="top">
+    <button class="back" onclick="goHome()">‹</button>
+    <span class="crumb">{{ lesson.title }} 결과</span>
+  </div>
+  <div class="result">
+    <div class="medal" id="medal">🎉</div>
+    <h2>{{ lesson.title }} 끝!</h2>
+    <div class="score"><span id="scoreN">0</span> / <span id="scoreT">0</span></div>
+    <div class="mile" id="mileLine" hidden>⭐ <span id="mileN">0</span> 모모 마일리지</div>
+  </div>
+  <div class="review">
+    <h4>다시 볼 규정</h4>
+    <div id="reviewList"></div>
+  </div>
+  <div class="result-actions">
+    <button class="big" style="margin:0;width:100%" onclick="startLesson()">다시 풀기</button>
+    <button class="big ghost" style="margin:0;width:100%" onclick="goHome()">코스 화면으로</button>
+  </div>
+  <div class="foot">
+    모모의 책장 · 글쓰기 튜토리얼 (초등) — 《문장과 생각》 초등판 원고지 편에서 뽑았습니다.
+  </div>
+</section>
+
+</div>
+</div>
+
+<script id="lessonData" type="application/json">{{ lesson|tojson }}</script>
+<script>window.TUTORIAL_HOME_URL = "{{ url_for('tutorial.index') }}";</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tutorial.js') }}"></script>
+{% endblock %}

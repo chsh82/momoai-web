@@ -250,6 +250,9 @@ def create_app(config_name='default'):
     from app.feedback import feedback_bp
     app.register_blueprint(feedback_bp)
 
+    from app.tutorial import tutorial_bp
+    app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+
     from app.parent_portal import parent_bp
     app.register_blueprint(parent_bp, url_prefix='/parent')
 
