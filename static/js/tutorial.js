@@ -3,7 +3,7 @@
    - 하드코딩된 LESSON 상수 제거 -> #lessonData script 태그에서 파싱
    - LESSON.quiz -> lesson.questions (0단계 JSON 키 이름에 맞춤, buildQuiz/renderResult 포함 전부)
    - /api/answer의 question_id는 인덱스가 아니라 문항 id(예: elem-c1-l1-q3)
-   - /api/complete 응답의 points로 마일리지 표시, course_completed=false면 그 줄 자체를 숨김
+   - /api/complete 응답의 points로 마일리지 표시, points_awarded=false면 그 줄 자체를 숨김
      (renderResult()의 mileN = n*5 같은 클라이언트 계산 마일리지는 만들지 않음)
    - CSRF 토큰 처리 없음(이 리포는 CSRFProtect가 전역으로 꺼져 있고 기존 JSON API도 안 씀)
    - ○/✕ 도장(.stamp, settle())과 버튼 배열 순회 방식은 샘플 그대로 유지 */
@@ -66,10 +66,10 @@ function post(url, body){
 async function postComplete(body){
   try{
     const res = await post('/tutorial/api/complete', body);
-    if(!res || !res.ok) return {course_completed:false, points:0};
+    if(!res || !res.ok) return {points_awarded:false, points:0};
     return await res.json();
   }catch(e){
-    return {course_completed:false, points:0};
+    return {points_awarded:false, points:0};
   }
 }
 
@@ -323,7 +323,7 @@ async function renderResult(){
   // 완료 저장 + 마일리지는 서버 응답을 받은 뒤에 채운다(클라이언트 계산 없음).
   const mileEl = document.getElementById('mileLine');
   const data = await postComplete({lesson_id: lesson.id, score: n, total: total});
-  if(data.course_completed && data.points > 0){
+  if(data.points_awarded && data.points > 0){
     document.getElementById('mileN').textContent = data.points;
     mileEl.hidden = false;
   } else {

@@ -194,7 +194,7 @@ def api_complete():
         current_app.logger.info(
             '[tutorial.api_complete] 명부(Student) 레코드 없음 - 적립 건너뜀 (user_id=%s)',
             current_user.user_id)
-        return jsonify({'course_completed': False, 'points': 0})
+        return jsonify({'points_awarded': False, 'points': 0})
 
     # 3) 코스의 전체 레슨이 done인지 판정 (레슨 수는 콘텐츠 JSON에서 센다 - 하드코딩 금지).
     all_lesson_ids = content.get_lesson_ids(TRACK, COURSE)
@@ -210,7 +210,7 @@ def api_complete():
         # 4)+5) 중복 확인 + 적립은 별도 트랜잭션(_award_course_completion 안에서 처리).
         points = _award_course_completion(student, TRACK, COURSE)
 
-    # course_completed는 "코스가 다 끝났다"가 아니라 "이번 호출로 적립이 발생했다"는 뜻이다
+    # points_awarded는 "코스가 다 끝났다"가 아니라 "이번 호출로 적립이 발생했다"는 뜻이다
     # (이미 지급된 코스를 다시 풀어도 all_lessons_done은 계속 true지만, 그때는 points=0이라
     # 프런트가 마일리지 줄을 또 보여주면 안 되므로 - "코스 완료! +0"처럼 어색해지는 것을 막는다).
-    return jsonify({'course_completed': points > 0, 'points': points})
+    return jsonify({'points_awarded': points > 0, 'points': points})
