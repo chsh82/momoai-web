@@ -45,7 +45,7 @@
 
     <!-- 빠른 통계 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('student.courses') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">수강 수업</p>
@@ -53,9 +53,9 @@
                 </div>
                 <div class="text-blue-600 text-4xl">📚</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('student.my_essays') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">전체 첨삭</p>
@@ -63,9 +63,9 @@
                 </div>
                 <div class="text-green-600 text-4xl">✍️</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('student.my_essays') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">완료된 첨삭</p>
@@ -73,9 +73,9 @@
                 </div>
                 <div class="text-purple-600 text-4xl">✅</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('student.announcements') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">읽지 않은 공지</p>
@@ -83,7 +83,7 @@
                 </div>
                 <div class="text-yellow-600 text-4xl">📢</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- 빠른 메뉴 -->

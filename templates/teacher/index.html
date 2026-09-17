@@ -167,7 +167,7 @@
 
     <!-- 통계 카드 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('teacher.courses') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">담당 수업</p>
@@ -175,9 +175,9 @@
                 </div>
                 <div class="text-blue-600 text-4xl">📚</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('teacher.students') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">담당 학생</p>
@@ -185,9 +185,9 @@
                 </div>
                 <div class="text-green-600 text-4xl">👨‍🎓</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('teacher.schedule') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">총 세션</p>
@@ -195,7 +195,7 @@
                 </div>
                 <div class="text-purple-600 text-4xl">📅</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- 빠른 메뉴 -->

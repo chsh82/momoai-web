@@ -20,7 +20,7 @@
 
     <!-- 통계 카드 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('parent.children') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">내 자녀</p>
@@ -28,9 +28,9 @@
                 </div>
                 <div class="text-blue-600 text-4xl">👨‍👩‍👧‍👦</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('parent.courses_index') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">수강 중인 수업</p>
@@ -38,9 +38,9 @@
                 </div>
                 <div class="text-green-600 text-4xl">📚</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('parent.all_feedback') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">읽지 않은 피드백</p>
@@ -48,9 +48,9 @@
                 </div>
                 <div class="text-yellow-600 text-4xl">📬</div>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <a href="{{ url_for('parent.all_payments') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition block">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">미납 금액</p>
@@ -58,7 +58,7 @@
                 </div>
                 <div class="text-red-600 text-4xl">💰</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- 빠른 메뉴 -->
