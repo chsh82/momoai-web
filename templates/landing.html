@@ -338,6 +338,49 @@
         footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
         footer a:hover { color: #fff; }
 
+        /* ── REFUND POLICY MODAL ── */
+        .refund-modal {
+            display: none;
+            position: fixed; inset: 0; z-index: 1200;
+            align-items: center; justify-content: center;
+            padding: 24px;
+        }
+        .refund-modal.open { display: flex; }
+        .refund-modal-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(15,23,42,0.6);
+        }
+        .refund-modal-box {
+            position: relative;
+            background: #fff; border-radius: 18px;
+            max-width: 460px; width: 100%;
+            max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        .refund-modal-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 22px 24px 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .refund-modal-head h3 { font-size: 18px; font-weight: 800; color: var(--navy-dark); }
+        .refund-modal-close {
+            width: 28px; height: 28px; border-radius: 8px;
+            border: none; background: #f1f5f9; color: #64748b;
+            font-size: 13px; cursor: pointer;
+        }
+        .refund-modal-close:hover { background: #e2e8f0; color: #1e293b; }
+        .refund-modal-body { padding: 18px 24px 24px; }
+        .refund-modal-body ul { padding-left: 18px; }
+        .refund-modal-body li {
+            font-size: 13.5px; color: #475569; line-height: 1.75;
+            margin-bottom: 10px;
+        }
+        .refund-modal-note {
+            margin-top: 14px; padding-top: 14px;
+            border-top: 1px dashed #e2e8f0;
+            font-size: 12px; color: #94a3b8; line-height: 1.7;
+        }
+
         /* ── MOBILE ── */
         @media (max-width: 640px) {
             nav { padding: 0 16px; }
@@ -575,10 +618,37 @@
     <p>AI 기반 교육 관리 플랫폼 · MOMOAI v4.0</p>
     <p style="margin-top:12px;">
         <a href="{{ url_for('auth.login') }}">로그인</a> &nbsp;·&nbsp;
-        <a href="{{ url_for('auth.signup') }}">회원가입</a>
+        <a href="{{ url_for('auth.signup') }}">회원가입</a> &nbsp;·&nbsp;
+        <a href="#" onclick="document.getElementById('refundModal').classList.add('open');return false;">환불정책</a>
     </p>
     <p style="margin-top:16px;font-size:11px;">© 2026 모모의 책장. All rights reserved.</p>
 </footer>
+
+<!-- 환불정책 모달 -->
+<div id="refundModal" class="refund-modal">
+    <div class="refund-modal-backdrop" onclick="document.getElementById('refundModal').classList.remove('open')"></div>
+    <div class="refund-modal-box">
+        <div class="refund-modal-head">
+            <h3>환불정책</h3>
+            <button type="button" class="refund-modal-close" onclick="document.getElementById('refundModal').classList.remove('open')" aria-label="닫기">✕</button>
+        </div>
+        <div class="refund-modal-body">
+            <ul>
+                <li>수강 시작 전 취소하시면 결제하신 금액 전액을 환불해드립니다.</li>
+                <li>수강 시작 후에는 총 수업 일수 중 남은 일수에 비례해 일할 계산하여 환불해드립니다(이미 진행된 수업은 제외).</li>
+                <li>교재비 등 실비로 이미 지출된 비용은 환불 대상에서 제외될 수 있습니다.</li>
+                <li>환불 신청은 담당 선생님 또는 상담을 통해 접수해주시면 영업일 기준 5일 이내 처리해드립니다.</li>
+            </ul>
+            <p class="refund-modal-note">자세한 사항은 상담 시 안내해드리며, 관련 법령(학원의 설립·운영 및 과외교습에 관한 법률 시행령)에 따라 정산됩니다.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') document.getElementById('refundModal').classList.remove('open');
+});
+</script>
 
 </body>
 </html>
