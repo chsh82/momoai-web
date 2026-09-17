@@ -66,6 +66,53 @@ function gpEl(spec){
   return wrap;
 }
 
+/* 원고지 칸 크기를 실제 화면에 맞게 다시 계산한다(모바일 세로화면에서 칸이
+   화면 밖으로 밀려 잘려 보이던 문제 수정). --cell이 뷰포트 폭 비율(vw)로만
+   정해져 있어서, 문장이 길어 칸 개수(n)가 많은 줄은 폭을 넘어가도 줄어들지
+   않았다. gpEl()이 DOM에 삽입된 "뒤에" 호출해야 한다(삽입 전엔 폭을 잴 수
+   없음).
+   부모의 실제 렌더 폭에서 칸 개수를 나눠 구하되, 형제 요소는 실제로 같은
+   줄 폭을 나눠 쓰는 경우에만 뺀다 - position:absolute인 도장(.stamp)은
+   레이아웃 공간을 안 차지하므로 빼면 안 되고, flex-wrap:wrap인 부모
+   (.gpwrap의 설명 태그)는 공간이 부족하면 형제가 다음 줄로 자연히
+   내려가므로(그래서 애초에 겹칠 일이 없음) 형제 폭을 빼면 오히려 실제보다
+   훨씬 좁게 계산돼 칸이 필요 이상으로 작아진다(실측 중 발견 - n=16줄에서
+   가용폭이 22px까지 떨어져 최소값(18px) 아래로도 넘치는 원인이었음). */
+function fitGridCells(gp){
+  const row=gp.querySelector('.gp-row');
+  if(!row) return;
+  const n=row.children.length;
+  if(!n) return;
+  const parent=gp.parentElement;
+  if(!parent) return;
+  const ps=getComputedStyle(parent);
+  let avail=parent.clientWidth - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight);
+  const wraps = ps.display.indexOf('flex')!==-1 && (ps.flexWrap==='wrap' || ps.flexWrap==='wrap-reverse');
+  if(!wraps){
+    const gap=parseFloat(ps.columnGap||ps.gap)||0;
+    let gapCount=0;
+    [...parent.children].forEach(sib=>{
+      if(sib===gp) return;
+      if(getComputedStyle(sib).position==='absolute' || getComputedStyle(sib).position==='fixed') return;
+      avail-=sib.getBoundingClientRect().width;
+      gapCount++;
+    });
+    avail-=gap*gapCount;
+  }
+  const cell=Math.max(14, Math.min(40, Math.floor(avail/n)));
+  gp.style.setProperty('--cell', cell+'px');
+}
+
+/* 화면에 보이는 모든 원고지를 회전/리사이즈 시 다시 맞춘다. */
+let _fitGridTimer=null;
+function fitAllGrids(){
+  document.querySelectorAll('.tut-page .gp').forEach(fitGridCells);
+}
+window.addEventListener('resize', ()=>{
+  clearTimeout(_fitGridTimer);
+  _fitGridTimer=setTimeout(fitAllGrids, 150);
+});
+
 /* ===== 평문 예문 렌더러 (코스2·3 - 원고지 칸이 필요 없는 카드용) ===== */
 function exampleEl(ex){
   const wrap=document.createElement('div'); wrap.className='ex-wrap';
@@ -176,6 +223,7 @@ function renderCard(idx){
     card.appendChild(r);
   }
   box.appendChild(card);
+  card.querySelectorAll('.gp').forEach(fitGridCells);
 
   const counter=document.getElementById('cardCounter');
   if(counter) counter.textContent=(idx+1)+' / '+lesson.cards.length;
@@ -218,6 +266,7 @@ function renderQuestion(idx){
   const why=document.createElement('div'); why.className='why-box'; why.id='whyActive';
   el.appendChild(why);
   box.appendChild(el);
+  el.querySelectorAll('.gp').forEach(fitGridCells);
 
   refreshDots();
   updateQuizNav();
