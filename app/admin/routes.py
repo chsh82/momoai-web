@@ -2245,6 +2245,8 @@ def create_announcement():
             target_tiers=target_tiers_str,
             is_pinned=form.is_pinned.data,
             is_popup=form.is_popup.data,
+            link_url=form.link_url.data or None,
+            link_text=form.link_text.data or None,
             publish_start=_kst_form_to_utc(form.publish_start.data),
             publish_end=_kst_form_to_utc(form.publish_end.data),
             is_published=True
@@ -2331,6 +2333,8 @@ def edit_announcement(announcement_id):
         announcement.target_tiers = target_tiers_str
         announcement.is_pinned = form.is_pinned.data
         announcement.is_popup = form.is_popup.data
+        announcement.link_url = form.link_url.data or None
+        announcement.link_text = form.link_text.data or None
         announcement.publish_start = _kst_form_to_utc(form.publish_start.data)
         announcement.publish_end = _kst_form_to_utc(form.publish_end.data)
 

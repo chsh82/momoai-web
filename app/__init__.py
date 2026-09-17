@@ -446,7 +446,9 @@ def create_app(config_name='default'):
                             'content': announcement.content,
                             'announcement_type': announcement.announcement_type,
                             'author': announcement.author.name if announcement.author else '관리자',
-                            'created_at': announcement.created_at.strftime('%Y년 %m월 %d일 %H:%M')
+                            'created_at': announcement.created_at.strftime('%Y년 %m월 %d일 %H:%M'),
+                            'link_url': announcement.link_url,
+                            'link_text': announcement.link_text
                         })
 
         return jsonify({

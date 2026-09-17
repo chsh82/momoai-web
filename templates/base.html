@@ -1501,8 +1501,11 @@
                     <span id="popupDate"></span>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="closeAnnouncementPopup()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                    <button onclick="closeAnnouncementPopup()" id="popupConfirmBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
                         확인
+                    </button>
+                    <button onclick="goToPopupLink()" id="popupLinkBtn" class="hidden flex-1 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-lg transition duration-200 shadow-md">
+                        <span id="popupLinkBtnText">바로가기</span> →
                     </button>
                 </div>
             </div>
@@ -1630,6 +1633,20 @@
         document.getElementById('popupAuthor').textContent = '작성자: ' + (announcement.author || '관리자');
         document.getElementById('popupDate').textContent = '작성일: ' + announcement.created_at;
 
+        // 바로가기 버튼 - link_url이 있을 때만 노출(있으면 "바로가기"가 넓게,
+        // "확인"은 옆에 작게 - 없으면 "확인"이 기존처럼 전체 너비를 채움)
+        const linkBtn = document.getElementById('popupLinkBtn');
+        const confirmBtn = document.getElementById('popupConfirmBtn');
+        if (announcement.link_url) {
+            document.getElementById('popupLinkBtnText').textContent = announcement.link_text || '바로가기';
+            linkBtn.dataset.href = announcement.link_url;
+            linkBtn.classList.remove('hidden');
+            confirmBtn.classList.remove('flex-1');
+        } else {
+            linkBtn.classList.add('hidden');
+            confirmBtn.classList.add('flex-1');
+        }
+
         // 배지 설정
         const badge = document.getElementById('popupBadge');
         let badgeClass = 'bg-blue-100 text-blue-800';
@@ -1714,6 +1731,21 @@
                 document.getElementById('announcementPopup').classList.add('hidden');
             }
         });
+    }
+
+    // "바로가기" 클릭 - 이 공지도 읽음 처리해서 다음 로그인 때 또 안 뜨게 하고,
+    // 응답을 기다리지 않고 바로 이동한다(이동해버리면 어차피 다음 팝업 표시 로직이
+    // 의미 없어짐 - 읽음 처리는 페이지를 떠나기 전에 fetch만 발사해두면 충분).
+    function goToPopupLink() {
+        const announcement = currentPopupAnnouncements[currentPopupIndex];
+        const href = document.getElementById('popupLinkBtn').dataset.href;
+
+        fetch(`/api/announcements/${announcement.announcement_id}/mark-read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        }).catch(error => console.error('Error marking announcement as read:', error));
+
+        window.location.href = href;
     }
 
     // 페이지 로드 시 팝업 공지 확인 (3초 후)

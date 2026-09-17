@@ -213,6 +213,14 @@ class AnnouncementForm(FlaskForm):
     is_pinned = BooleanField('상단 고정')
     is_popup = BooleanField('로그인 시 팝업 표시')
 
+    link_url = StringField('바로가기 링크 (선택)',
+                          validators=[Optional(), Length(max=300)],
+                          render_kw={'placeholder': '예: /tutorial/  (내부 경로 또는 https:// 외부 링크)'})
+
+    link_text = StringField('버튼 문구 (선택)',
+                           validators=[Optional(), Length(max=50)],
+                           render_kw={'placeholder': '비워두면 "바로가기"로 표시됩니다'})
+
     publish_start = DateTimeField('게시 시작일시',
                                  validators=[Optional()],
                                  format='%Y-%m-%dT%H:%M',

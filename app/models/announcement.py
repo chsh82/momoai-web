@@ -31,6 +31,12 @@ class Announcement(db.Model):
     is_popup = db.Column(db.Boolean, default=False)  # 로그인시 팝업
     is_published = db.Column(db.Boolean, default=True)  # 게시 여부
 
+    # 바로가기 버튼(선택) - 팝업에 "확인"만 있으면 안내한 기능을 못 찾고 그냥
+    # 닫아버리는 경우가 있어서(예: 튜토리얼 홍보 팝업), 내부 경로나 외부 URL로
+    # 바로 이동하는 버튼을 옵션으로 달 수 있게 함. 없으면 기존처럼 "확인" 버튼만 뜸.
+    link_url = db.Column(db.String(300), nullable=True)
+    link_text = db.Column(db.String(50), nullable=True)  # 버튼 문구, 비어있으면 프론트에서 기본값("바로가기") 사용
+
     # 게시 기간
     publish_start = db.Column(db.DateTime, nullable=True)
     publish_end = db.Column(db.DateTime, nullable=True)
