@@ -93,16 +93,37 @@
                     <p class="text-2xl sm:text-3xl font-bold text-teal-600">{{ attendance_rate }}%</p>
                 </a>
 
-                <!-- 대기 중 알림 (학부모연결+보강신청 합산이라 단일 목적지가 없음 - 기획안 참고, 링크는 보류) -->
-                <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-3">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-lg sm:text-2xl">🔔</span>
-                        {% if pending_notifications > 0 %}
-                        <span class="text-xs font-medium text-red-600 bg-red-200 px-1.5 py-0.5 rounded animate-pulse">승인필요</span>
-                        {% endif %}
+                <!-- 대기 중 알림 (학부모연결+보강신청 합산 - 단일 목적지가 없어 드롭다운으로 각각 연결) -->
+                <div class="relative" x-data="{ notifOpen: false }">
+                    <button type="button" @click="notifOpen = !notifOpen"
+                            class="w-full text-left bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-3 hover:shadow-md transition">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-lg sm:text-2xl">🔔</span>
+                            {% if pending_notifications > 0 %}
+                            <span class="text-xs font-medium text-red-600 bg-red-200 px-1.5 py-0.5 rounded animate-pulse">승인필요</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-gray-600 mb-0.5">대기 중 알림</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-red-600">{{ pending_notifications }}</p>
+                    </button>
+
+                    <div x-show="notifOpen" @click.away="notifOpen = false"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-100 z-20 overflow-hidden"
+                         style="display: none;">
+                        <a href="{{ url_for('admin.parent_link_requests') }}"
+                           class="flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition text-sm">
+                            <span class="flex items-center gap-2 text-gray-700">👪 학부모 연결 승인 대기</span>
+                            <span class="font-bold {{ 'text-red-600' if pending_parent_links else 'text-gray-400' }}">{{ pending_parent_links }}건</span>
+                        </a>
+                        <a href="{{ url_for('admin.makeup_requests') }}"
+                           class="flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition text-sm border-t border-gray-100">
+                            <span class="flex items-center gap-2 text-gray-700">📋 보강 신청 승인 대기</span>
+                            <span class="font-bold {{ 'text-red-600' if pending_makeup_requests else 'text-gray-400' }}">{{ pending_makeup_requests }}건</span>
+                        </a>
                     </div>
-                    <p class="text-xs text-gray-600 mb-0.5">대기 중 알림</p>
-                    <p class="text-2xl sm:text-3xl font-bold text-red-600">{{ pending_notifications }}</p>
                 </div>
 
                 <!-- 학부모 연결 -->

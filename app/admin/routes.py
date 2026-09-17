@@ -205,6 +205,7 @@ def index():
                          pending_notifications=pending_notifications,
                          total_parent_links=total_parent_links,
                          pending_parent_links=pending_parent_links,
+                         pending_makeup_requests=pending_makeup_requests,
                          essays_pending=essays_pending,
                          essays_processing=essays_processing,
                          essays_completed=essays_completed,
