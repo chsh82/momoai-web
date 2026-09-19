@@ -17,6 +17,18 @@
         {% endif %}
     </div>
 
+    <!-- 우수답안 / 랭킹 전환 탭 -->
+    <div class="flex gap-2 mb-4 border-b border-gray-200">
+        <a href="{{ url_for('library.hall_of_fame') }}"
+           class="px-4 py-2.5 font-semibold border-b-2 border-blue-600 text-blue-600">
+            📝 우수답안 보기
+        </a>
+        <a href="{{ url_for('library.hall_of_fame_ranking') }}"
+           class="px-4 py-2.5 font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+            🏅 주간/월간 랭킹
+        </a>
+    </div>
+
     <!-- Category Filter -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
         <div class="flex flex-wrap gap-2">

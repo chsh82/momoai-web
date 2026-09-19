@@ -413,6 +413,26 @@ def hall_of_fame():
                          current_category=category)
 
 
+@library_bp.route('/hall-of-fame/ranking')
+@login_required
+def hall_of_fame_ranking():
+    """명예의 전당 - 주간/월간 성적 랭킹(학년별 top5, 초등부/중등부로 묶음).
+    글 내용은 노출하지 않고 점수·마스킹된 이름·지도교사·글 제목만 보여준다."""
+    from app.services.hall_of_fame_ranking_service import build_ranking
+
+    period = request.args.get('period', 'week')
+    if period not in ('week', 'month'):
+        period = 'week'
+
+    bands, start, end = build_ranking(period=period)
+    from datetime import timedelta
+    range_end_display = end - timedelta(days=1)
+
+    return render_template('library/hall_of_fame_ranking.html',
+                         bands=bands, period=period,
+                         range_start=start, range_end_display=range_end_display)
+
+
 @library_bp.route('/hall-of-fame/<post_id>')
 @login_required
 def hall_of_fame_detail(post_id):
