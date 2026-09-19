@@ -253,6 +253,9 @@ def create_app(config_name='default'):
     from app.tutorial import tutorial_bp
     app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
 
+    from app.interest_quest import interest_quest_bp
+    app.register_blueprint(interest_quest_bp, url_prefix='/student/interest-quest')
+
     from app.parent_portal import parent_bp
     app.register_blueprint(parent_bp, url_prefix='/parent')
 
