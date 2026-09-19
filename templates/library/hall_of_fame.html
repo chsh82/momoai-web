@@ -78,8 +78,8 @@
                         {% if post.grade %}
                         <span>📚 {{ post.grade }}</span>
                         {% endif %}
-                        {% if post.student and post.student.teacher %}
-                        <span>👨‍🏫 {{ post.student.teacher.name }}</span>
+                        {% if post.student and post.student.main_teacher %}
+                        <span>👨‍🏫 {{ post.student.main_teacher.name }}</span>
                         {% endif %}
                         {% if post.week_number %}
                         <span>🗓️ {{ post.week_number }}주차</span>
@@ -89,6 +89,8 @@
                         {% endif %}
                         <span>📅 {{ post.created_at | kst('%Y-%m-%d') }}</span>
                         <span>👁️ {{ post.view_count }}</span>
+                        <span>❤️ {{ post.like_count }}</span>
+                        <span>💬 {{ post.comments | length }}</span>
                     </div>
                 </div>
             </div>

@@ -68,6 +68,67 @@ class HallOfFame(db.Model):
         if not self.post_id:
             self.post_id = str(uuid.uuid4())
 
+    @property
+    def like_count(self):
+        return len(self.likes)
+
+    def liked_by(self, user_id):
+        if not user_id:
+            return False
+        return any(like.user_id == user_id for like in self.likes)
+
+
+class HallOfFameComment(db.Model):
+    """명예의 전당 댓글 - 간단한 칭찬·격려 코멘트용(대댓글 없음)"""
+    __tablename__ = 'hall_of_fame_comments'
+
+    comment_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    post_id = db.Column(db.String(36), db.ForeignKey('hall_of_fame.post_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    content = db.Column(db.String(300), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    post = db.relationship('HallOfFame', backref=db.backref(
+        'comments', cascade='all, delete-orphan', order_by='HallOfFameComment.created_at'))
+    user = db.relationship('User')
+
+    def __repr__(self):
+        return f'<HallOfFameComment {self.comment_id}: post={self.post_id}>'
+
+    def __init__(self, **kwargs):
+        super(HallOfFameComment, self).__init__(**kwargs)
+        if not self.comment_id:
+            self.comment_id = str(uuid.uuid4())
+
+
+class HallOfFameLike(db.Model):
+    """명예의 전당 좋아요 - 사용자 1명당 게시글 1개에 1회만"""
+    __tablename__ = 'hall_of_fame_likes'
+
+    like_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    post_id = db.Column(db.String(36), db.ForeignKey('hall_of_fame.post_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                       nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('post_id', 'user_id', name='uq_hall_of_fame_like_post_user'),
+    )
+
+    post = db.relationship('HallOfFame', backref=db.backref('likes', cascade='all, delete-orphan'))
+    user = db.relationship('User')
+
+    def __repr__(self):
+        return f'<HallOfFameLike post={self.post_id} user={self.user_id}>'
+
+    def __init__(self, **kwargs):
+        super(HallOfFameLike, self).__init__(**kwargs)
+        if not self.like_id:
+            self.like_id = str(uuid.uuid4())
+
 
 class AdmissionInfo(db.Model):
     """입시정보 게시판"""

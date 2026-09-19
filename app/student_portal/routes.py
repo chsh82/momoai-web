@@ -26,6 +26,7 @@ from app.utils.progress_tracker import ProgressTracker
 from app.utils.decorators import requires_role
 from app.utils.content_access import can_access_content, format_file_size, extract_youtube_video_id
 from app.utils.enrollment_utils import get_essay_student_ids
+from app.services.hall_of_fame_service import get_monday_congrats_posts
 
 
 @student_bp.route('/')
@@ -198,6 +199,11 @@ def index():
         if radar_data['thinking_types'] or radar_data['integrated_indicators']:
             radar_data['has_data'] = True
 
+    # 명예의 전당 월요일 축하 팝업 (지난주에 이 학생 글이 올라갔고, 이번 주에 아직
+    # 안 보여줬을 때만 - 매 요청마다 조건을 다시 확인하므로 월요일이 아니거나 이미
+    # 봤으면 조용히 None을 반환한다)
+    hof_congrats_posts = get_monday_congrats_posts(student)
+
     return render_template('student/index.html',
                          student=student,
                          mileage=mileage,
@@ -213,7 +219,8 @@ def index():
                          score_data=json.dumps(score_data),
                          course_names=json.dumps(course_names),
                          attendance_rates=json.dumps(attendance_rates),
-                         radar_data=radar_data)
+                         radar_data=radar_data,
+                         hof_congrats_posts=hof_congrats_posts)
 
 
 @student_bp.route('/courses')

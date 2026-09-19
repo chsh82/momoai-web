@@ -32,8 +32,8 @@
             {% if post.grade %}
             <span>📚 {{ post.grade }}</span>
             {% endif %}
-            {% if post.student and post.student.teacher %}
-            <span>👨‍🏫 지도교사 {{ post.student.teacher.name }}</span>
+            {% if post.student and post.student.main_teacher %}
+            <span>👨‍🏫 지도교사 {{ post.student.main_teacher.name }}</span>
             {% endif %}
             {% if post.week_number %}
             <span>🗓️ {{ post.week_number }}주차</span>
@@ -54,6 +54,16 @@
             </div>
         </div>
         {{ image_display_section(images|default([])) }}
+    </div>
+
+    <!-- 좋아요 -->
+    <div class="flex justify-center mb-6">
+        <button id="likeBtn" onclick="toggleLike()"
+                class="flex items-center gap-2 px-6 py-2 rounded-full border transition duration-200 {{ 'bg-pink-100 text-pink-600 border-pink-300' if post.liked_by(current_user.user_id) else 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200' }}">
+            <span id="likeIcon">{{ '❤️' if post.liked_by(current_user.user_id) else '🤍' }}</span>
+            <span>좋아요</span>
+            <span id="likeCount" class="font-bold">{{ post.like_count }}</span>
+        </button>
     </div>
 
     <!-- Attached File -->
@@ -94,6 +104,41 @@
     </div>
     {% endif %}
 
+    <!-- 댓글: 칭찬·격려 코멘트 -->
+    <div class="bg-white rounded-lg shadow p-8 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">💬 칭찬·격려 댓글 ({{ post.comments | length }})</h3>
+
+        <form id="commentForm" class="mb-8">
+            <textarea id="commentContent" rows="2" maxlength="300"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                      placeholder="칭찬이나 격려의 한마디를 남겨주세요 (300자 이내)"
+                      required></textarea>
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
+                댓글 작성
+            </button>
+        </form>
+
+        <div id="commentList" class="space-y-4">
+            {% for comment in post.comments %}
+            <div class="border-l-4 border-blue-400 pl-4 py-2" id="comment-{{ comment.comment_id }}">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-3">
+                        <span class="font-semibold text-gray-800">{{ comment.user.name if comment.user else '(삭제된 사용자)' }}</span>
+                        <span class="text-xs text-gray-500">{{ comment.created_at | kst('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    {% if comment.user_id == current_user.user_id or current_user.is_admin %}
+                    <button onclick="deleteComment('{{ comment.comment_id }}')" class="text-xs text-red-500 hover:text-red-700">삭제</button>
+                    {% endif %}
+                </div>
+                <p class="text-gray-700 whitespace-pre-wrap">{{ comment.content }}</p>
+            </div>
+            {% else %}
+            <p id="noCommentMsg" class="text-center text-gray-500 py-6">아직 댓글이 없습니다. 첫 댓글로 응원해주세요!</p>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="flex justify-center space-x-4">
         <a href="{{ url_for('library.hall_of_fame') }}"
@@ -102,4 +147,74 @@
         </a>
     </div>
 </div>
+
+<script>
+const hofPostId = '{{ post.post_id }}';
+const currentUserName = {{ current_user.name | tojson }};
+
+function toggleLike() {
+    fetch(`/library/hall-of-fame/${hofPostId}/like`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) return;
+        document.getElementById('likeCount').textContent = data.like_count;
+        const btn = document.getElementById('likeBtn');
+        const icon = document.getElementById('likeIcon');
+        if (data.liked) {
+            icon.textContent = '❤️';
+            btn.classList.remove('bg-gray-100', 'text-gray-600', 'border-gray-300', 'hover:bg-gray-200');
+            btn.classList.add('bg-pink-100', 'text-pink-600', 'border-pink-300');
+        } else {
+            icon.textContent = '🤍';
+            btn.classList.remove('bg-pink-100', 'text-pink-600', 'border-pink-300');
+            btn.classList.add('bg-gray-100', 'text-gray-600', 'border-gray-300', 'hover:bg-gray-200');
+        }
+    });
+}
+
+document.getElementById('commentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const textarea = document.getElementById('commentContent');
+    const content = textarea.value.trim();
+    if (!content) return;
+
+    const formData = new FormData();
+    formData.append('content', content);
+
+    fetch(`/library/hall-of-fame/${hofPostId}/comments`, { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert(data.message); return; }
+        textarea.value = '';
+        const noMsg = document.getElementById('noCommentMsg');
+        if (noMsg) noMsg.remove();
+        const html = `
+            <div class="border-l-4 border-blue-400 pl-4 py-2" id="comment-${data.comment.comment_id}">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-3">
+                        <span class="font-semibold text-gray-800">${data.comment.author_name}</span>
+                        <span class="text-xs text-gray-500">${data.comment.created_at}</span>
+                    </div>
+                    <button onclick="deleteComment('${data.comment.comment_id}')" class="text-xs text-red-500 hover:text-red-700">삭제</button>
+                </div>
+                <p class="text-gray-700 whitespace-pre-wrap"></p>
+            </div>`;
+        document.getElementById('commentList').insertAdjacentHTML('beforeend', html);
+        document.querySelector(`#comment-${data.comment.comment_id} p`).textContent = data.comment.content;
+    });
+});
+
+function deleteComment(commentId) {
+    if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+    fetch(`/library/hall-of-fame/comments/${commentId}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`comment-${commentId}`).remove();
+        } else {
+            alert(data.message);
+        }
+    });
+}
+</script>
 {% endblock %}

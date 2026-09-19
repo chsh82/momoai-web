@@ -11,7 +11,7 @@ import os
 from app.library import library_bp
 from app.models import db, Book, Video, Student
 from app.models.essay import Essay
-from app.models.library import HallOfFame, AdmissionInfo
+from app.models.library import HallOfFame, AdmissionInfo, HallOfFameComment, HallOfFameLike
 from app.models.parent_student import ParentStudent
 from app.utils.content_access import can_access_content
 
@@ -379,7 +379,7 @@ def _hall_of_fame_students_data():
             'name': s.name,
             'grade': s.grade or '',
             'school': s.school or '',
-            'teacher_name': s.teacher.name if s.teacher else ''
+            'teacher_name': s.main_teacher.name if s.main_teacher else ''
         }
         for s in students
     ]
@@ -432,6 +432,78 @@ def hall_of_fame_detail(post_id):
     return render_template('library/hall_of_fame_detail.html',
                          post=post,
                          images=images)
+
+
+# ==================== 명예의 전당 좋아요 ====================
+
+@library_bp.route('/hall-of-fame/<post_id>/like', methods=['POST'])
+@login_required
+def hall_of_fame_toggle_like(post_id):
+    """명예의 전당 게시글 좋아요 토글"""
+    post = HallOfFame.query.get_or_404(post_id)
+
+    existing_like = HallOfFameLike.query.filter_by(
+        post_id=post_id, user_id=current_user.user_id
+    ).first()
+
+    if existing_like:
+        db.session.delete(existing_like)
+        db.session.commit()
+        return jsonify({'success': True, 'liked': False, 'like_count': post.like_count})
+
+    like = HallOfFameLike(post_id=post_id, user_id=current_user.user_id)
+    db.session.add(like)
+    db.session.commit()
+    return jsonify({'success': True, 'liked': True, 'like_count': post.like_count})
+
+
+# ==================== 명예의 전당 댓글 ====================
+
+@library_bp.route('/hall-of-fame/<post_id>/comments', methods=['POST'])
+@login_required
+def hall_of_fame_create_comment(post_id):
+    """명예의 전당 댓글 작성 (간단한 칭찬·격려용 - 대댓글 없음)"""
+    post = HallOfFame.query.get_or_404(post_id)
+
+    content = request.form.get('content', '').strip()
+    if not content:
+        return jsonify({'success': False, 'message': '내용을 입력해주세요.'}), 400
+    if len(content) > 300:
+        return jsonify({'success': False, 'message': '댓글은 300자 이내로 작성해주세요.'}), 400
+
+    comment = HallOfFameComment(
+        post_id=post.post_id,
+        user_id=current_user.user_id,
+        content=content
+    )
+    db.session.add(comment)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'comment': {
+            'comment_id': comment.comment_id,
+            'author_name': current_user.name,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+            'is_author': True,
+            'can_delete': True
+        }
+    })
+
+
+@library_bp.route('/hall-of-fame/comments/<comment_id>/delete', methods=['POST'])
+@login_required
+def hall_of_fame_delete_comment(comment_id):
+    """명예의 전당 댓글 삭제 (본인 또는 관리자만)"""
+    comment = HallOfFameComment.query.get_or_404(comment_id)
+
+    if comment.user_id != current_user.user_id and not current_user.is_admin:
+        return jsonify({'success': False, 'message': '삭제 권한이 없습니다.'}), 403
+
+    db.session.delete(comment)
+    db.session.commit()
+    return jsonify({'success': True, 'message': '댓글이 삭제되었습니다.'})
 
 
 # ==================== 입시정보 ====================

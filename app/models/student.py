@@ -32,6 +32,10 @@ class Student(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # 명예의 전당 월요일 축하 팝업 - 이 학생 계정에게 마지막으로 팝업을 보여준 시각
+    # (같은 주에 중복으로 뜨지 않게 막는 용도)
+    hof_congrats_shown_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     teacher = db.relationship('User', back_populates='students',
                              foreign_keys=[teacher_id])
@@ -70,6 +74,42 @@ class Student(db.Model):
         """등급 업데이트"""
         self.tier = new_tier
         self.tier_updated_at = datetime.utcnow()
+
+    @property
+    def main_teacher(self):
+        """지도교사로 표시할 강사(명예의 전당 등 공개 화면용).
+
+        - teacher_id(실제 접근 권한 기준 - 여기서는 바꾸지 않음)가 일반 강사 계정이면
+          그 강사를 그대로 "현재 담당 강사"로 보여준다.
+        - teacher_id가 마스터/매니저 관리자 계정(role_level<=2)이면, 이 학생이 현재
+          수강 중인 "정규" 수업(course_type='보강수업'인 보강 수업은 제외)의 담당 강사로
+          대체해 보여준다 - 관리자 계정이 실제 지도교사인 것처럼 보이는 문제를 화면
+          표시 단에서 바로잡는다(실제 teacher_id 자체는 접근 권한에 영향을 주므로 건드리지
+          않음 - 별도 데이터 정리가 필요하면 scripts/backfill_hof_main_teacher.py 참고).
+        - 정규 수업이 여러 개라 강사가 둘 이상이면 가장 최근에 시작한 수업의 강사를 쓴다.
+        - 대체할 정규 수업을 못 찾으면(수강 중인 정규 수업이 없음) 원래 teacher_id를
+          그대로 반환한다 - 화면에서 관리자 이름이 보이더라도 실제로 배정된 강사가 없다는
+          사실을 숨기지 않는다.
+        """
+        if self.teacher and self.teacher.role_level > 2:
+            return self.teacher
+
+        from app.models.course import Course, CourseEnrollment
+
+        enrollments = (CourseEnrollment.query
+                       .join(Course, CourseEnrollment.course_id == Course.course_id)
+                       .filter(CourseEnrollment.student_id == self.student_id)
+                       .filter(CourseEnrollment.status == 'active')
+                       .filter(Course.status == 'active')
+                       .filter(Course.course_type != '보강수업')
+                       .filter(Course.teacher_id.isnot(None))
+                       .order_by(Course.start_date.desc())
+                       .all())
+        for e in enrollments:
+            if e.course and e.course.teacher and e.course.teacher.role_level > 2:
+                return e.course.teacher
+
+        return self.teacher
 
     def has_tier_access(self, required_tiers):
         """특정 티어에 대한 접근 권한 확인
