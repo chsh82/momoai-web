@@ -387,22 +387,31 @@ def _hall_of_fame_students_data():
 
 # ==================== 명예의 전당 ====================
 
+GRADE_ORDER = ['초1', '초2', '초3', '초4', '초5', '초6',
+               '중1', '중2', '중3', '고1', '고2', '고3']
+
+
 @library_bp.route('/hall-of-fame')
 @login_required
 def hall_of_fame():
-    """명예의 전당 목록"""
+    """명예의 전당 목록 - 우수답안만 노출, 학년 탭으로 필터링"""
     page = request.args.get('page', 1, type=int)
-    category = request.args.get('category', '')
+    grade = request.args.get('grade', '')
     per_page = 20
 
-    query = HallOfFame.query.filter_by(is_published=True)
+    query = HallOfFame.query.filter_by(is_published=True, category='excellent_answer')
 
-    if category:
-        query = query.filter_by(category=category)
+    if grade:
+        query = query.filter_by(grade=grade)
 
     posts = query.order_by(HallOfFame.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
+
+    existing_grades = {g for (g,) in db.session.query(HallOfFame.grade)
+                        .filter_by(is_published=True, category='excellent_answer')
+                        .distinct() if g}
+    available_grades = [g for g in GRADE_ORDER if g in existing_grades]
 
     # NEW 배지 초기화: 이 사용자의 마지막 열람 시각 갱신
     current_user.hall_of_fame_last_viewed_at = datetime.now()
@@ -410,7 +419,8 @@ def hall_of_fame():
 
     return render_template('library/hall_of_fame.html',
                          posts=posts,
-                         current_category=category)
+                         current_grade=grade,
+                         available_grades=available_grades)
 
 
 @library_bp.route('/hall-of-fame/ranking')
@@ -424,12 +434,17 @@ def hall_of_fame_ranking():
     if period not in ('week', 'month'):
         period = 'week'
 
+    band = request.args.get('band', '초등부')
+    if band not in ('초등부', '중등부'):
+        band = '초등부'
+
     bands, start, end = build_ranking(period=period)
     from datetime import timedelta
     range_end_display = end - timedelta(days=1)
+    grade_lists = next((gl for label, gl in bands if label == band), [])
 
     return render_template('library/hall_of_fame_ranking.html',
-                         bands=bands, period=period,
+                         period=period, band=band, grade_lists=grade_lists,
                          range_start=start, range_end_display=range_end_display)
 
 
