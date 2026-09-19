@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>중등 전공 나침반 결과 - 인쇄용</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+        }
+        body { background: #fff; }
+    </style>
+</head>
+<body class="max-w-2xl mx-auto p-8">
+    <div class="no-print mb-4 text-right">
+        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md">🖨️ 인쇄하기</button>
+    </div>
+    <h1 class="text-xl font-bold text-gray-800 mb-1">중등 전공 나침반 결과</h1>
+    <p class="text-xs text-gray-400 mb-6">momoai.kr · 관리자 검토용 인쇄 미리보기</p>
+
+    {% include "interest_mid/_result_body.html" %}
+</body>
+</html>

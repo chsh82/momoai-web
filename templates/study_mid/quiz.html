@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}중등 공부력 테스트 - 응답 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">📊 중등 공부력 테스트</h2>
+        <p class="text-sm text-gray-600 mt-1">전체 {{ item_count }}문항 · 모두 응답 후 맨 아래 제출 버튼을 눌러주세요.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('study_mid.submit') }}" class="space-y-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% for item in items %}
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-sm font-semibold text-gray-800 mb-3">
+                <span class="text-gray-400">{{ item.index + 1 }}.</span> {{ item.text }}
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                {% for label in item.options %}
+                <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 border border-gray-200 rounded-md px-2 py-2 cursor-pointer hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400">
+                    <input type="radio" name="q{{ item.index }}" value="{{ loop.index }}" required
+                           class="text-blue-600 focus:ring-blue-500">
+                    <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="text-center pt-2">
+            <button type="submit"
+                    class="px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 font-semibold">
+                제출하고 결과 보기
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

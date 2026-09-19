@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}중등 전공 나침반 - 결과 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">🧭 중등 전공 나침반 결과</h2>
+        <div class="flex gap-2">
+            <a href="{{ url_for('interest_mid.print_view') }}" target="_blank"
+               class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-200">
+                🖨️ 인쇄용 보기
+            </a>
+            <a href="{{ url_for('interest_mid.index') }}"
+               class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-200">
+                다시 검사하기
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        {% include "interest_mid/_result_body.html" %}
+    </div>
+</div>
+{% endblock %}

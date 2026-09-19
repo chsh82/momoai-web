@@ -1233,6 +1233,14 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'interest_quest.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
                                 🗺️ 이야기 탐험단 (초5-6) <span class="text-xs opacity-60">· 관리자 검토용</span>
                             </a>
+                            <a href="{{ url_for('study_mid.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'study_mid.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                📊 중등 공부력 테스트 <span class="text-xs opacity-60">· 관리자 검토용</span>
+                            </a>
+                            <a href="{{ url_for('interest_mid.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'interest_mid.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                🧭 중등 전공 나침반 <span class="text-xs opacity-60">· 관리자 검토용</span>
+                            </a>
                             {% endif %}
                             <!-- 어휘퀴즈 & 스키마퀴즈 - 임시 비활성화
                             <a href="{{ url_for('student.vocabulary_quiz') }}"
