@@ -259,6 +259,9 @@ def create_app(config_name='default'):
     from app.study_mid import study_mid_bp
     app.register_blueprint(study_mid_bp, url_prefix='/student/study-mid')
 
+    from app.study_elem import study_elem_bp
+    app.register_blueprint(study_elem_bp, url_prefix='/student/study-elem')
+
     from app.interest_mid import interest_mid_bp
     app.register_blueprint(interest_mid_bp, url_prefix='/student/interest-mid')
 

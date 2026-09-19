@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}초등 공부력 테스트 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">📊 초등 공부력 테스트</h2>
+        <p class="text-sm text-gray-600 mt-1">관리자 검토용 · 아직 학생/학부모에게 공개되지 않았습니다.</p>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-sm text-amber-800">
+        ⚠️ <strong>구버전 문항으로 임시 적용된 상태입니다.</strong>
+        원래 지정됐던 최신본(32문항, 9단계 가이드 포함)은 전달받은 패키지에 파일 자체가 없어
+        같은 패키지 안에 보존돼 있던 구버전 폼(33문항)을 대신 쓰고 있습니다.
+        최신본을 다시 전달받으면 교체할 예정입니다.
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 space-y-4">
+        <p class="text-gray-700">
+            공부동기·공부기초·공부태도 등 5개 평가요소를 총 {{ item_count }}문항으로 진단해
+            공부력 총점(200점 만점)과 LV1~9 레벨을 산출합니다. (초등 5~6학년 대상)
+        </p>
+        <p class="text-xs text-gray-400">
+            ※ 문항·배점·채점 로직은 제공된 원본(app/sources/middle_study, elem 폼)을 그대로 사용합니다.
+            결과는 이 브라우저 세션에만 저장되며 momoai_web DB에는 남지 않습니다.
+        </p>
+        <a href="{{ url_for('study_elem.quiz') }}"
+           class="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+            검사 시작하기 →
+        </a>
+    </div>
+</div>
+{% endblock %}
