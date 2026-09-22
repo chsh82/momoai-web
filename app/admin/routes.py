@@ -3188,7 +3188,13 @@ def approve_makeup_request(request_id):
         else:  # 프리미엄, 보강(프리미엄), 기타
             duration_min = 60
 
-        makeup_start = original_course.start_time
+        # 시간은 기본적으로 원 수업 시간을 그대로 쓰되, 강사와 협의해 다른
+        # 시간으로 정했다면 폼에서 넘어온 makeup_time으로 덮어쓴다.
+        makeup_time_str = request.form.get('makeup_time', '').strip()
+        if makeup_time_str:
+            makeup_start = datetime.strptime(makeup_time_str, '%H:%M').time()
+        else:
+            makeup_start = original_course.start_time
         if makeup_start:
             from datetime import datetime as _dt
             makeup_end = (_dt.combine(date.today(), makeup_start) + timedelta(minutes=duration_min)).time()
@@ -3395,6 +3401,167 @@ def makeup_internal_consult(request_id):
 
     flash('강사에게 보강 가능 시간을 문의했습니다.', 'success')
     return redirect(url_for('admin.makeup_requests'))
+
+
+_LLM_HOURLY_LIMIT = 30
+
+
+def _llm_rate_limited(usage_type):
+    from app.models.api_usage_log import ApiUsageLog
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    recent_calls = ApiUsageLog.query.filter(
+        ApiUsageLog.user_id == current_user.user_id,
+        ApiUsageLog.usage_type == usage_type,
+        ApiUsageLog.created_at >= one_hour_ago,
+    ).count()
+    return recent_calls >= _LLM_HOURLY_LIMIT
+
+
+def _log_llm_usage(usage_type, usage):
+    from app.models.api_usage_log import ApiUsageLog
+    db.session.add(ApiUsageLog(
+        user_id=current_user.user_id,
+        api_type='claude',
+        model_name='claude-sonnet-4-6',
+        usage_type=usage_type,
+        input_tokens=usage['input_tokens'],
+        output_tokens=usage['output_tokens'],
+        cost_usd=ApiUsageLog.calc_claude_cost(usage['input_tokens'], usage['output_tokens']),
+    ))
+
+
+@admin_bp.route('/makeup-requests/<request_id>/draft-message', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def makeup_draft_message(request_id):
+    """강사에게 보낼 문의 문구 초안을 Claude로 생성 - 관리자가 확인·수정 후
+    전송한다(자동 발송 아님). 판단은 전부 사람이 함, LLM은 문구만 돕는다."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.utils.llm_assist import call_claude_text
+
+    if _llm_rate_limited('makeup_consult_draft'):
+        return jsonify({'error': '잠시 후 다시 시도해 주세요.'}), 429
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    student = makeup_request.student
+    course = makeup_request.requested_course
+    teacher = course.teacher if course else None
+
+    weekday_names = ['월', '화', '수', '목', '금', '토', '일']
+    orig_weekday = weekday_names[course.weekday] if course and course.weekday is not None else '미정'
+    orig_time = f'{course.start_time.strftime("%H:%M")}~{course.end_time.strftime("%H:%M")}' \
+        if course and course.start_time and course.end_time else '미정'
+
+    prompt = f"""당신은 국어 학원 관리자를 도와 담당 강사에게 보낼 메시지 초안을 씁니다.
+아래 보강 신청 정보를 참고해 강사에게 보강 가능한 시간을 정중하게 물어보는
+메시지를 1~2문장으로 작성하세요. 존댓말을 쓰고 인사말이나 서명은 넣지
+마세요. 메시지 본문만 출력하세요(따옴표나 설명 없이).
+
+학생: {student.name if student else '학생'} ({student.grade if student else ''})
+수업: {course.course_name if course else ''}
+원래 수업 요일/시간: {orig_weekday}요일 {orig_time}
+신청 사유: {makeup_request.reason or '없음'}
+학부모 희망일: {makeup_request.requested_date.strftime('%Y-%m-%d') if makeup_request.requested_date else '특별히 없음'}
+오늘 날짜: {datetime.utcnow().strftime('%Y-%m-%d')}"""
+
+    try:
+        text, usage = call_claude_text(prompt, max_tokens=200)
+    except Exception:
+        current_app.logger.exception('[admin.makeup_draft_message] 생성 실패 (request_id=%s)', request_id)
+        return jsonify({'error': '초안 생성에 실패했습니다.'}), 500
+
+    try:
+        _log_llm_usage('makeup_consult_draft', usage)
+        db.session.commit()
+    except Exception:
+        current_app.logger.exception('[admin.makeup_draft_message] 사용량 로그 저장 실패')
+
+    return jsonify({'text': text.strip()})
+
+
+@admin_bp.route('/makeup-requests/<request_id>/extract-proposed-time', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def makeup_extract_proposed_time(request_id):
+    """강사와의 내부 협의 대화에서 제안된 날짜/시간을 Claude로 추출해 승인
+    폼에 넣을 '제안값'으로만 돌려준다 - 절대 자동으로 확정하지 않는다.
+    관리자가 화면에서 직접 확인하고 수정할 수 있어야 한다."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.models.conversation import ConversationMessage
+    from app.utils.llm_assist import call_claude_text, extract_json_block
+
+    if _llm_rate_limited('makeup_consult_extract'):
+        return jsonify({'found': False, 'error': '잠시 후 다시 시도해 주세요.'}), 429
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    if not makeup_request.internal_conversation_id:
+        return jsonify({'found': False, 'error': '강사와 나눈 대화가 없습니다.'}), 400
+
+    messages = ConversationMessage.query.filter_by(
+        conversation_id=makeup_request.internal_conversation_id
+    ).order_by(ConversationMessage.created_at).all()
+    if not messages:
+        return jsonify({'found': False, 'error': '강사와 나눈 대화가 없습니다.'}), 400
+
+    course = makeup_request.requested_course
+    weekday_names = ['월', '화', '수', '목', '금', '토', '일']
+    orig_weekday = weekday_names[course.weekday] if course and course.weekday is not None else '미정'
+    today = datetime.utcnow()
+    today_weekday = weekday_names[today.weekday()]
+
+    transcript = '\n'.join(
+        f'{"관리자" if m.sender_id == current_user.user_id else "강사"}: {m.body}'
+        for m in messages
+    )
+
+    prompt = f"""아래는 학원 관리자와 강사가 보강수업 시간을 조율한 메시지 기록입니다.
+강사가 제안했거나 확정한 보강 가능 날짜와 시간을 찾아 JSON으로만 답하세요.
+다른 설명은 절대 붙이지 마세요.
+
+오늘 날짜: {today.strftime('%Y-%m-%d')} ({today_weekday}요일)
+원래 수업 요일: {orig_weekday}요일
+
+대화 기록:
+{transcript}
+
+다음 형식의 JSON만 출력하세요:
+{{"found": true 또는 false, "date": "YYYY-MM-DD" 또는 null, "time": "HH:MM" 또는 null, "note": "판단 근거 또는 불확실한 이유를 한 문장으로"}}
+
+강사가 명확한 날짜를 제시하지 않았거나 애매하면 found를 false로 하세요.
+"이번주 목요일", "다음주 화요일" 같은 상대적 표현은 오늘 날짜를 기준으로 실제 날짜로 계산하세요."""
+
+    try:
+        text, usage = call_claude_text(prompt, max_tokens=250)
+    except Exception:
+        current_app.logger.exception('[admin.makeup_extract_proposed_time] 호출 실패 (request_id=%s)', request_id)
+        return jsonify({'found': False, 'error': '추출에 실패했습니다.'}), 500
+
+    try:
+        _log_llm_usage('makeup_consult_extract', usage)
+        db.session.commit()
+    except Exception:
+        current_app.logger.exception('[admin.makeup_extract_proposed_time] 사용량 로그 저장 실패')
+
+    parsed = extract_json_block(text)
+    if not parsed or not parsed.get('found'):
+        return jsonify({'found': False, 'note': (parsed or {}).get('note', '대화에서 날짜를 찾지 못했습니다.')})
+
+    # 안전장치: 과거 날짜나 형식이 이상하면 신뢰하지 않는다 - 관리자가 눈으로
+    # 확인하는 '제안'일 뿐이라 여기서 걸러도 기능이 막히지 않는다.
+    date_str = parsed.get('date')
+    try:
+        parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if parsed_date < today.date():
+            return jsonify({'found': False, 'note': f'추출된 날짜({date_str})가 과거라 제안하지 않습니다. 대화를 직접 확인해주세요.'})
+    except (ValueError, TypeError):
+        return jsonify({'found': False, 'note': '날짜 형식을 확인하지 못했습니다. 대화를 직접 확인해주세요.'})
+
+    return jsonify({
+        'found': True,
+        'date': date_str,
+        'time': parsed.get('time'),
+        'note': parsed.get('note', ''),
+    })
 
 
 # ============================================================================
