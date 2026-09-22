@@ -39,6 +39,12 @@ class MakeupClassRequest(db.Model):
     created_makeup_course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id', ondelete='SET NULL'),
                                         nullable=True)
 
+    # 관리자<->강사 내부 협의 (기존 messages 모듈의 Conversation 재사용, 학부모는 접근 불가).
+    # 강사 스케줄이 매번 달라 사전 등록 풀 대신 요청 건마다 즉석으로 물어보는 방식으로 결정함.
+    internal_conversation_id = db.Column(db.Integer,
+                                         db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
+                                         nullable=True)
+
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -50,6 +56,7 @@ class MakeupClassRequest(db.Model):
     created_makeup_course = db.relationship('Course', foreign_keys=[created_makeup_course_id])
     requester = db.relationship('User', foreign_keys=[requested_by])
     admin_responder = db.relationship('User', foreign_keys=[admin_response_by])
+    internal_conversation = db.relationship('Conversation', foreign_keys=[internal_conversation_id])
 
     def __repr__(self):
         return f'<MakeupClassRequest {self.request_id}: {self.student_id} -> {self.requested_course_id}>'

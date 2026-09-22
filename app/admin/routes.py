@@ -3341,6 +3341,62 @@ def reject_makeup_request(request_id):
     return redirect(url_for('admin.makeup_requests'))
 
 
+@admin_bp.route('/makeup-requests/<request_id>/internal-consult', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def makeup_internal_consult(request_id):
+    """담당 강사에게 보강 가능 시간을 물어보기 - 기존 강사<->관리자 메신저 재사용.
+    강사 스케줄이 매번 달라 사전 등록 풀 대신 요청 건마다 즉석으로 물어본다."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.models.conversation import Conversation, ConversationMessage
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    course = makeup_request.requested_course
+    teacher = course.teacher if course else None
+    if not teacher:
+        flash('이 신청의 담당 강사를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
+    body = request.form.get('body', '').strip()
+    if not body:
+        flash('강사에게 전달할 내용을 입력해주세요.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
+    uid = current_user.user_id
+    conv = Conversation.query.filter(
+        db.or_(
+            db.and_(Conversation.user1_id == uid, Conversation.user2_id == teacher.user_id),
+            db.and_(Conversation.user1_id == teacher.user_id, Conversation.user2_id == uid),
+        )
+    ).first()
+    if conv is None:
+        conv = Conversation(user1_id=uid, user2_id=teacher.user_id)
+        db.session.add(conv)
+        db.session.flush()
+
+    student = makeup_request.student
+    prefix = f'[보강 신청 - {student.display_name if student else ""} / {course.course_name}]\n'
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=prefix + body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+
+    if not makeup_request.internal_conversation_id:
+        makeup_request.internal_conversation_id = conv.conversation_id
+
+    db.session.add(Notification(
+        user_id=teacher.user_id,
+        notification_type='dm',
+        title=f'💬 {current_user.name}님의 새 메시지',
+        message=(prefix + body)[:80],
+        link_url=url_for('messages.conversation', conv_id=conv.conversation_id),
+        related_user_id=uid,
+    ))
+    db.session.commit()
+
+    flash('강사에게 보강 가능 시간을 문의했습니다.', 'success')
+    return redirect(url_for('admin.makeup_requests'))
+
+
 # ============================================================================
 # 결석 예고 관리
 # ============================================================================

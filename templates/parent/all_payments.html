@@ -52,6 +52,7 @@
                         <th class="px-4 py-3 text-right font-medium text-gray-700">청구 금액</th>
                         <th class="px-4 py-3 text-center">상태</th>
                         <th class="px-4 py-3 text-center">납부일</th>
+                        <th class="px-4 py-3 text-center">환불</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -92,12 +93,28 @@
                             <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full">납부대기</span>
                             {% elif payment.status == 'cancelled' %}
                             <span class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">취소</span>
+                            {% elif payment.status == 'refunded' %}
+                            <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">환불됨</span>
                             {% else %}
                             <span class="text-gray-400 text-xs">{{ payment.status }}</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-center text-xs text-gray-500">
                             {{ payment.paid_at.strftime('%m/%d') if payment.paid_at else '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% set pending_refund = payment.refund_requests | selectattr('status', 'equalto', 'pending') | list | first %}
+                            {% if payment.status == 'refunded' %}
+                            <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">환불완료</span>
+                            {% elif pending_refund %}
+                            <a href="{{ url_for('refund_request.detail', request_id=pending_refund.request_id) }}"
+                               class="text-xs text-yellow-700 hover:underline">요청중</a>
+                            {% elif payment.status == 'completed' %}
+                            <a href="{{ url_for('refund_request.new', payment_id=payment.payment_id) }}"
+                               class="text-xs text-red-600 hover:underline">환불 요청</a>
+                            {% else %}
+                            <span class="text-gray-300 text-xs">-</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

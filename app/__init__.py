@@ -265,6 +265,9 @@ def create_app(config_name='default'):
     from app.consultation_request import consultation_request_bp
     app.register_blueprint(consultation_request_bp, url_prefix='/consultation-request')
 
+    from app.refund_request import refund_request_bp
+    app.register_blueprint(refund_request_bp, url_prefix='/refund-request')
+
     from app.interest_mid import interest_mid_bp
     app.register_blueprint(interest_mid_bp, url_prefix='/student/interest-mid')
 
@@ -368,9 +371,12 @@ def create_app(config_name='default'):
 
             # 상담 신청 접수 대기 수 (관리자만)
             consultation_request_pending = 0
+            refund_request_pending = 0
             if current_user.is_active and current_user.has_permission_level(2):
                 from app.models.consultation_request import ConsultationRequest
+                from app.models.refund_request import RefundRequest
                 consultation_request_pending = ConsultationRequest.query.filter_by(status='pending').count()
+                refund_request_pending = RefundRequest.query.filter_by(status='pending').count()
 
             counts = {
                 'homework': hw,
@@ -383,6 +389,7 @@ def create_app(config_name='default'):
                 'dm': dm_unread,  # DM 미읽은 수
                 'hall_of_fame': hall_of_fame_new,  # 명예의 전당 새 글 수
                 'consultation_request_pending': consultation_request_pending,  # 관리자용: 상담 신청 접수 대기
+                'refund_request_pending': refund_request_pending,  # 관리자용: 환불 요청 접수 대기
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),

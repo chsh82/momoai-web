@@ -584,6 +584,13 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint == 'admin.payments' %}text-orange-600 bg-orange-50{% endif %}">
                                 결제 관리
                             </a>
+                            <a href="{{ url_for('refund_request.admin_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'refund_request.admin' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                <span>💰 환불 요청 접수함</span>
+                                {% if unread_counts.refund_request_pending > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.refund_request_pending }}</span>
+                                {% endif %}
+                            </a>
                             <a href="{{ url_for('admin.session_adjustments') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'session_adjustment' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
                                 이월 및 차감
@@ -1060,6 +1067,10 @@
                        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.all_payments' in request.endpoint %}active{% endif %} mt-2">
                         <span class="text-xl">💰</span>
                         <span>결제 관리</span>
+                    </a>
+                    <a href="{{ url_for('refund_request.index') }}"
+                       class="sidebar-link-sub flex items-center gap-2 px-4 py-2 ml-8 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'refund_request.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                        환불 요청 내역
                     </a>
 
                     <!-- 7. 게시판 -->
