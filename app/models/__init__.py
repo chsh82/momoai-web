@@ -54,6 +54,7 @@ from app.models.push_subscription import PushSubscription
 from app.models.teacher_hours import TeacherHoursCorrection
 from app.models.teacher_prompt import TeacherPromptTemplate
 from app.models.conversation import Conversation, ConversationMessage
+from app.models.consultation_request import ConsultationRequest
 from app.models.student_caution import StudentCaution
 from app.models.payment_period import PaymentPeriod, HolidayWeek
 from app.models.session_adjustment import SessionAdjustment

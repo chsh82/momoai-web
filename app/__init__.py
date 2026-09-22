@@ -262,6 +262,9 @@ def create_app(config_name='default'):
     from app.study_elem import study_elem_bp
     app.register_blueprint(study_elem_bp, url_prefix='/student/study-elem')
 
+    from app.consultation_request import consultation_request_bp
+    app.register_blueprint(consultation_request_bp, url_prefix='/consultation-request')
+
     from app.interest_mid import interest_mid_bp
     app.register_blueprint(interest_mid_bp, url_prefix='/student/interest-mid')
 
@@ -363,6 +366,12 @@ def create_app(config_name='default'):
                 HallOfFame.created_at > hof_last_viewed
             ).count()
 
+            # 상담 신청 접수 대기 수 (관리자만)
+            consultation_request_pending = 0
+            if current_user.is_active and current_user.has_permission_level(2):
+                from app.models.consultation_request import ConsultationRequest
+                consultation_request_pending = ConsultationRequest.query.filter_by(status='pending').count()
+
             counts = {
                 'homework': hw,
                 'announcement': ann,
@@ -373,6 +382,7 @@ def create_app(config_name='default'):
                 'pending_users': pending_users,  # 관리자용: 승인 대기
                 'dm': dm_unread,  # DM 미읽은 수
                 'hall_of_fame': hall_of_fame_new,  # 명예의 전당 새 글 수
+                'consultation_request_pending': consultation_request_pending,  # 관리자용: 상담 신청 접수 대기
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),

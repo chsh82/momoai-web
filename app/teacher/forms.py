@@ -99,3 +99,7 @@ class ConsultationRecordForm(FlaskForm):
     content = TextAreaField('상담 내용',
                            validators=[DataRequired(message='상담 내용을 입력하세요.')],
                            render_kw={'rows': 10})
+
+    link_request_id = SelectField('연결할 상담 신청 (선택)',
+                                 choices=[('', '연결 안 함')],
+                                 validators=[Optional()])

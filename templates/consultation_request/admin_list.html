@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}상담 신청 접수함 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-xl sm:text-3xl font-bold text-gray-800">📋 상담 신청 접수함</h2>
+        <p class="text-sm text-gray-600 mt-1">학부모가 접수한 상담 신청을 확인하고 처리하세요.</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('consultation_request.admin_list') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if not status_filter %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                전체
+            </a>
+            <a href="{{ url_for('consultation_request.admin_list', status='pending') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if status_filter == 'pending' %}bg-yellow-100 text-yellow-800 border-2 border-yellow-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                접수 대기 {% if pending_count %}({{ pending_count }}){% endif %}
+            </a>
+            <a href="{{ url_for('consultation_request.admin_list', status='scheduled') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if status_filter == 'scheduled' %}bg-blue-100 text-blue-800 border-2 border-blue-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                일정 확정
+            </a>
+            <a href="{{ url_for('consultation_request.admin_list', status='rejected') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if status_filter == 'rejected' %}bg-red-100 text-red-800 border-2 border-red-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                반려
+            </a>
+            <a href="{{ url_for('consultation_request.admin_list', status='completed') }}"
+               class="px-4 py-2 rounded-md transition duration-200 {% if status_filter == 'completed' %}bg-green-100 text-green-800 border-2 border-green-300{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                완료
+            </a>
+        </div>
+    </div>
+
+    {% if requests %}
+    <div class="space-y-3">
+        {% for r in requests %}
+        <a href="{{ url_for('consultation_request.admin_detail', request_id=r.request_id) }}"
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition duration-200">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+                            {% if r.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif r.status == 'scheduled' %}bg-blue-100 text-blue-800
+                            {% elif r.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-green-100 text-green-800{% endif %}">
+                            {% if r.status == 'pending' %}접수 대기
+                            {% elif r.status == 'scheduled' %}일정 확정
+                            {% elif r.status == 'rejected' %}반려
+                            {% else %}완료{% endif %}
+                        </span>
+                        <span class="text-sm font-semibold text-gray-800">{{ r.category }}</span>
+                        {% if r.internal_conversation_id %}
+                        <span class="text-xs text-gray-400">💬 내부 협의 진행중</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-600">
+                        {{ r.student.display_name if r.student else '' }} ·
+                        신청자 {{ r.requester.name if r.requester else '' }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1 truncate">{{ r.reason }}</p>
+                </div>
+                <span class="text-xs text-gray-400 whitespace-nowrap">{{ r.created_at.strftime('%Y-%m-%d') }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+        해당 조건의 상담 신청이 없습니다.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

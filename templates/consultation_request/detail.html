@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}상담 신청 상세 - MOMOAI v4.0{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">📋 상담 신청 상세</h2>
+        <a href="{{ url_for('consultation_request.index') }}"
+           class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-200">
+            목록으로
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 space-y-5">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+                {% if req.status == 'pending' %}bg-yellow-100 text-yellow-800
+                {% elif req.status == 'scheduled' %}bg-blue-100 text-blue-800
+                {% elif req.status == 'rejected' %}bg-red-100 text-red-800
+                {% else %}bg-green-100 text-green-800{% endif %}">
+                {% if req.status == 'pending' %}접수 대기
+                {% elif req.status == 'scheduled' %}일정 확정
+                {% elif req.status == 'rejected' %}반려
+                {% else %}완료{% endif %}
+            </span>
+            <span class="text-sm font-semibold text-gray-800">{{ req.category }}</span>
+        </div>
+
+        <div class="text-sm text-gray-600">
+            <span class="font-medium text-gray-800">자녀</span> · {{ req.student.display_name if req.student else '' }}
+        </div>
+
+        {% if req.preferred_date or req.preferred_note %}
+        <div class="text-sm text-gray-600">
+            <span class="font-medium text-gray-800">희망 일정</span> ·
+            {{ req.preferred_date.strftime('%Y-%m-%d') if req.preferred_date else '' }}
+            {{ req.preferred_note or '' }}
+        </div>
+        {% endif %}
+
+        <div>
+            <div class="text-sm font-medium text-gray-800 mb-1">상담 사유</div>
+            <p class="text-sm text-gray-600 whitespace-pre-wrap">{{ req.reason }}</p>
+        </div>
+
+        {% if req.status == 'scheduled' %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="text-sm font-semibold text-blue-800 mb-1">✅ 확정된 일정</div>
+            <p class="text-sm text-blue-700">{{ req.scheduled_date.strftime('%Y-%m-%d') }}
+                {% if req.scheduled_note %} · {{ req.scheduled_note }}{% endif %}</p>
+        </div>
+        {% elif req.status == 'rejected' %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="text-sm font-semibold text-red-800 mb-1">반려 사유</div>
+            <p class="text-sm text-red-700">{{ req.reject_reason }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

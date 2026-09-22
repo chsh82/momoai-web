@@ -1811,6 +1811,7 @@ def create_consultation():
     import traceback
     try:
         from app.models.consultation import ConsultationRecord
+        from app.models.consultation_request import ConsultationRequest
         from app.teacher.forms import ConsultationRecordForm
 
         form = ConsultationRecordForm()
@@ -1837,14 +1838,34 @@ def create_consultation():
 
         form.student_id.choices = [('', '-- 학생 선택 --')] + [(s.student_id, s.display_name) for s in students]
 
+        # 연결 가능한 상담 신청 (아직 상담 기록과 연결되지 않은 접수/일정확정 건)
+        open_requests = ConsultationRequest.query.filter(
+            ConsultationRequest.status.in_(['pending', 'scheduled']),
+            ConsultationRequest.consultation_id.is_(None)
+        ).order_by(ConsultationRequest.created_at.desc()).all()
+        form.link_request_id.choices = [('', '연결 안 함')] + [
+            (r.request_id, f'{r.student.display_name if r.student else ""} · {r.category} · '
+                            f'{r.created_at.strftime("%Y-%m-%d")} 접수')
+            for r in open_requests
+        ]
+
         if request.method == 'GET':
             form.counselor_id.data = current_user.user_id
+            link_request_id = request.args.get('link_request', '')
+            if link_request_id:
+                form.link_request_id.data = link_request_id
+                linked_req = ConsultationRequest.query.get(link_request_id)
+                if linked_req:
+                    form.student_id.data = linked_req.student_id
 
-        # POST 시 sub_category 값이 choices에 없으면 WTForms 검증 실패 방지
+        # POST 시 sub_category/link_request_id 값이 choices에 없으면 WTForms 검증 실패 방지
         if request.method == 'POST':
             sub_val = request.form.get('sub_category', '')
             if sub_val and not any(v == sub_val for v, _ in form.sub_category.choices):
                 form.sub_category.choices.append((sub_val, sub_val))
+            link_val = request.form.get('link_request_id', '')
+            if link_val and not any(v == link_val for v, _ in form.link_request_id.choices):
+                form.link_request_id.choices.append((link_val, link_val))
 
         if form.validate_on_submit():
             counselor_id = form.counselor_id.data if current_user.role in ['admin', 'master_admin'] else current_user.user_id
@@ -1865,6 +1886,13 @@ def create_consultation():
             )
             db.session.add(consultation)
             db.session.flush()  # consultation_id 확보
+
+            # 상담 신청 건과 연결 - 완료 처리
+            if form.link_request_id.data:
+                linked_req = ConsultationRequest.query.get(form.link_request_id.data)
+                if linked_req:
+                    linked_req.consultation_id = consultation.consultation_id
+                    linked_req.status = 'completed'
 
             # ⚠️ 주의사항으로 함께 등록
             if request.form.get('register_caution'):
