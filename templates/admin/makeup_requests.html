@@ -336,6 +336,7 @@
                 <p class="text-sm text-gray-600">학생: <span id="parentReplyStudentName" class="font-bold text-gray-800"></span></p>
                 <p class="text-xs text-gray-400 mt-1">이 답장은 학부모의 대화 위젯에 그대로 보입니다.</p>
             </div>
+            <div id="parentReplyHistory" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div>
             <div class="mb-4">
                 <textarea name="body" rows="4" required
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -482,12 +483,57 @@ async function draftConsultMessage() {
     }
 }
 
-function showParentReplyModal(requestId, studentName) {
+function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+function renderParentHistory(timeline) {
+    const el = document.getElementById('parentReplyHistory');
+    if (!timeline || !timeline.length) {
+        el.innerHTML = '<p class="text-xs text-gray-400">아직 대화가 없습니다.</p>';
+        return;
+    }
+    el.innerHTML = timeline.map(m => {
+        if (m.kind === 'sys') {
+            return `<div class="text-center"><span class="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs">${escapeHtml(m.text)}</span></div>`;
+        }
+        const mine = m.kind === 'me';
+        let attHtml = '';
+        if (m.attachment_url) {
+            attHtml = m.is_image
+                ? `<a href="${m.attachment_url}" target="_blank"><img src="${m.attachment_url}" class="max-w-[200px] rounded-md border border-gray-200 mt-1"></a>`
+                : `<a href="${m.attachment_url}" target="_blank" class="inline-flex items-center gap-1 text-xs underline mt-1">📎 ${escapeHtml(m.attachment_name || '첨부파일')}</a>`;
+        }
+        return `<div class="text-sm ${mine ? 'text-right' : ''}">
+            <span class="inline-block px-3 py-2 rounded-lg ${mine ? 'bg-green-100 text-green-900' : 'bg-gray-100 text-gray-800'}">
+                ${escapeHtml(m.text)}${attHtml}
+            </span>
+        </div>`;
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+}
+
+async function showParentReplyModal(requestId, studentName) {
     const modal = document.getElementById('parentReplyModal');
     const form = document.getElementById('parentReplyForm');
     form.action = `/admin/makeup-requests/${requestId}/parent-reply`;
     document.getElementById('parentReplyStudentName').textContent = studentName;
+    document.getElementById('parentReplyHistory').innerHTML = '<p class="text-xs text-gray-400">불러오는 중...</p>';
     modal.classList.remove('hidden');
+
+    try {
+        const res = await fetch(`/widget/thread/makeup/${requestId}`);
+        const data = await res.json();
+        if (data.error) {
+            document.getElementById('parentReplyHistory').innerHTML = `<p class="text-xs text-red-400">${escapeHtml(data.error)}</p>`;
+            return;
+        }
+        renderParentHistory(data.timeline);
+    } catch (e) {
+        document.getElementById('parentReplyHistory').innerHTML = '<p class="text-xs text-red-400">대화 내역을 불러오지 못했습니다.</p>';
+    }
 }
 
 function closeParentReplyModal() {
