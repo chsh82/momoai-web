@@ -6,7 +6,7 @@
   position:fixed; right:20px; bottom:20px; width:56px; height:56px; border-radius:50%;
   background:linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%);
   border:none; cursor:pointer; box-shadow:var(--shadow-header);
-  display:flex; align-items:center; justify-content:center; z-index:1200;
+  display:flex; align-items:center; justify-content:center; z-index:9998;
   transition:transform .18s ease;
 }
 #momoWidgetFab:hover{ transform:translateY(-2px) scale(1.03); }
@@ -21,14 +21,14 @@
 }
 #momoWidgetScrim{
   position:fixed; inset:0; background:rgba(15,23,42,.15); opacity:0; pointer-events:none;
-  transition:opacity .2s; z-index:1195;
+  transition:opacity .2s; z-index:9996;
 }
 #momoWidgetScrim.open{ opacity:1; pointer-events:auto; }
 #momoWidgetPanel{
   position:fixed; right:20px; bottom:20px; width:380px; max-width:calc(100vw - 24px);
   height:min(600px, calc(100vh - 40px)); background:var(--card); border-radius:18px;
   box-shadow:0 24px 60px rgba(15,23,42,.28), 0 2px 8px rgba(15,23,42,.08);
-  display:flex; flex-direction:column; overflow:hidden; z-index:1200;
+  display:flex; flex-direction:column; overflow:hidden; z-index:9998;
   transform:translateY(14px) scale(.98); opacity:0; pointer-events:none;
   transition:transform .2s cubic-bezier(.2,.8,.2,1), opacity .16s;
   font-size:13px;
