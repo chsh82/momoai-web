@@ -268,6 +268,9 @@ def create_app(config_name='default'):
     from app.refund_request import refund_request_bp
     app.register_blueprint(refund_request_bp, url_prefix='/refund-request')
 
+    from app.chat_widget import chat_widget_bp
+    app.register_blueprint(chat_widget_bp)
+
     from app.interest_mid import interest_mid_bp
     app.register_blueprint(interest_mid_bp, url_prefix='/student/interest-mid')
 

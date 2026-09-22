@@ -171,8 +171,57 @@ def admin_detail(request_id):
         internal_messages = ConversationMessage.query.filter_by(
             conversation_id=req.internal_conversation_id
         ).order_by(ConversationMessage.created_at).all()
+    parent_messages = []
+    if req.parent_conversation_id:
+        parent_messages = ConversationMessage.query.filter_by(
+            conversation_id=req.parent_conversation_id
+        ).order_by(ConversationMessage.created_at).all()
     return render_template('consultation_request/admin_detail.html',
-                            req=req, teachers=teachers, internal_messages=internal_messages)
+                            req=req, teachers=teachers, internal_messages=internal_messages,
+                            parent_messages=parent_messages)
+
+
+@consultation_request_bp.route('/admin/<request_id>/parent-reply', methods=['POST'])
+@requires_role('admin')
+def parent_reply(request_id):
+    """학부모(위젯)에게 답장 - app.chat_widget이 학부모 쪽 답장을 담당하고
+    여기는 관리자 쪽 답장만 처리한다. 같은 parent_conversation_id를 공유."""
+    req = ConsultationRequest.query.get_or_404(request_id)
+    body = request.form.get('body', '').strip()
+    if not body:
+        flash('메시지를 입력해주세요.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+    uid = current_user.user_id
+    if not req.parent_conversation_id:
+        if not req.requester_id:
+            flash('신청자 정보를 찾을 수 없습니다.', 'error')
+            return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+        # 신청 건마다 독립된 Conversation을 쓴다(기존 대화 재사용 금지) - 재사용하면
+        # 같은 학부모의 다른 신청(보강/환불) 스레드와 뒤섞인다.
+        conv = Conversation(user1_id=uid, user2_id=req.requester_id)
+        db.session.add(conv)
+        db.session.flush()
+        req.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(req.parent_conversation_id)
+
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+
+    if req.requester_id:
+        db.session.add(Notification(
+            user_id=req.requester_id,
+            notification_type='dm',
+            title=f'💬 {current_user.name}님의 새 메시지',
+            message=f'[상담 신청] {body[:80]}',
+            related_user_id=uid,
+        ))
+    db.session.commit()
+
+    flash('답장을 보냈습니다.', 'success')
+    return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
 
 
 @consultation_request_bp.route('/admin/<request_id>/internal-consult', methods=['POST'])

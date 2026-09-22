@@ -45,6 +45,11 @@ class MakeupClassRequest(db.Model):
                                          db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
                                          nullable=True)
 
+    # 관리자<->학부모 대화 (위젯에서 노출되는 스레드, consultation_request와 동일 패턴)
+    parent_conversation_id = db.Column(db.Integer,
+                                       db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
+                                       nullable=True)
+
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -57,6 +62,7 @@ class MakeupClassRequest(db.Model):
     requester = db.relationship('User', foreign_keys=[requested_by])
     admin_responder = db.relationship('User', foreign_keys=[admin_response_by])
     internal_conversation = db.relationship('Conversation', foreign_keys=[internal_conversation_id])
+    parent_conversation = db.relationship('Conversation', foreign_keys=[parent_conversation_id])
 
     def __repr__(self):
         return f'<MakeupClassRequest {self.request_id}: {self.student_id} -> {self.requested_course_id}>'

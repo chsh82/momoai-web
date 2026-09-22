@@ -3403,6 +3403,54 @@ def makeup_internal_consult(request_id):
     return redirect(url_for('admin.makeup_requests'))
 
 
+@admin_bp.route('/makeup-requests/<request_id>/parent-reply', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def makeup_parent_reply(request_id):
+    """학부모(위젯)에게 답장 - app.chat_widget이 학부모 쪽 답장을 담당하고
+    여기는 관리자 쪽 답장만 처리한다."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.models.conversation import Conversation, ConversationMessage
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    body = request.form.get('body', '').strip()
+    if not body:
+        flash('메시지를 입력해주세요.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
+    uid = current_user.user_id
+    parent_id = makeup_request.requested_by
+    if not parent_id:
+        flash('신청자 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
+    if not makeup_request.parent_conversation_id:
+        # 신청 건마다 독립된 Conversation을 쓴다(기존 대화 재사용 금지) - 재사용하면
+        # 같은 학부모의 다른 신청(상담/환불) 스레드와 뒤섞인다.
+        conv = Conversation(user1_id=uid, user2_id=parent_id)
+        db.session.add(conv)
+        db.session.flush()
+        makeup_request.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(makeup_request.parent_conversation_id)
+
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+
+    db.session.add(Notification(
+        user_id=parent_id,
+        notification_type='dm',
+        title=f'💬 {current_user.name}님의 새 메시지',
+        message=f'[보강 신청] {body[:80]}',
+        related_user_id=uid,
+    ))
+    db.session.commit()
+
+    flash('답장을 보냈습니다.', 'success')
+    return redirect(url_for('admin.makeup_requests'))
+
+
 _LLM_HOURLY_LIMIT = 30
 
 

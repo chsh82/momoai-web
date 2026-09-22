@@ -33,12 +33,19 @@ class RefundRequest(db.Model):
     responded_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
     responded_at = db.Column(db.DateTime, nullable=True)
 
+    # 관리자<->학부모 대화 (위젯에서 노출되는 스레드, 기존 messages 모듈의
+    # Conversation 재사용 - consultation_request.parent_conversation_id와 동일 패턴)
+    parent_conversation_id = db.Column(db.Integer,
+                                       db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
+                                       nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     payment = db.relationship('Payment', foreign_keys=[payment_id], backref='refund_requests')
     requester = db.relationship('User', foreign_keys=[requester_id])
     responder = db.relationship('User', foreign_keys=[responded_by])
+    parent_conversation = db.relationship('Conversation', foreign_keys=[parent_conversation_id])
 
     def __repr__(self):
         return f'<RefundRequest {self.request_id}: {self.status}>'

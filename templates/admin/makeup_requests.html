@@ -113,6 +113,12 @@
                            class="text-xs text-blue-600 hover:underline">강사와 협의중 · 대화 보기</a>
                     </div>
                     {% endif %}
+                    {% if req.parent_conversation_id %}
+                    <div class="flex items-center gap-2 pt-1">
+                        <span class="text-gray-400 shrink-0">👤</span>
+                        <span class="text-xs text-green-700">학부모와 대화중 (위젯에서 확인)</span>
+                    </div>
+                    {% endif %}
                 </div>
                 <!-- 버튼 -->
                 <div class="pt-2 border-t border-gray-100">
@@ -130,6 +136,10 @@
                     <button onclick="showConsultModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}')"
                             class="w-full mt-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">
                         💬 강사에게 물어보기
+                    </button>
+                    <button onclick="showParentReplyModal('{{ req.request_id }}', '{{ req.student.name }}')"
+                            class="w-full mt-2 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">
+                        👤 학부모에게 답장
                     </button>
                     {% elif req.status == 'approved' and req.created_makeup_course %}
                     <a href="{{ url_for('admin.course_detail', course_id=req.created_makeup_course_id) }}"
@@ -296,6 +306,39 @@
     </div>
 </div>
 
+<!-- 학부모 답장 모달 -->
+<div id="parentReplyModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h3 class="text-2xl font-bold text-gray-800">학부모에게 답장</h3>
+            <button onclick="closeParentReplyModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
+                &times;
+            </button>
+        </div>
+        <form id="parentReplyForm" method="POST" action="">
+            <div class="mb-4">
+                <p class="text-sm text-gray-600">학생: <span id="parentReplyStudentName" class="font-bold text-gray-800"></span></p>
+                <p class="text-xs text-gray-400 mt-1">이 답장은 학부모의 대화 위젯에 그대로 보입니다.</p>
+            </div>
+            <div class="mb-4">
+                <textarea name="body" rows="4" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="학부모에게 전달할 내용을 입력하세요."></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    보내기
+                </button>
+                <button type="button" onclick="closeParentReplyModal()"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
+                    취소
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 let approveRequestId = null;
 
@@ -423,12 +466,25 @@ async function draftConsultMessage() {
     }
 }
 
+function showParentReplyModal(requestId, studentName) {
+    const modal = document.getElementById('parentReplyModal');
+    const form = document.getElementById('parentReplyForm');
+    form.action = `/admin/makeup-requests/${requestId}/parent-reply`;
+    document.getElementById('parentReplyStudentName').textContent = studentName;
+    modal.classList.remove('hidden');
+}
+
+function closeParentReplyModal() {
+    document.getElementById('parentReplyModal').classList.add('hidden');
+}
+
 // ESC 키로 모달 닫기
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeApproveModal();
         closeRejectModal();
         closeConsultModal();
+        closeParentReplyModal();
     }
 });
 </script>

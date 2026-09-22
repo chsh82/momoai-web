@@ -5,8 +5,14 @@
 책임지고, 필요하면 강사와 내부 협의(기존 강사↔관리자 메신저 재사용)를
 거친 뒤 학부모와의 일정을 확정한다. 강사 회신(내부 협의)과 일정 확정(학부모
 응답)은 서로 다른 행동이라 상태 컬럼을 하나만 두고 internal_conversation_id로
-내부 협의 스레드만 연결한다 - 학부모용 대화 스레드는 1차 범위에 없어 컬럼을
-아직 추가하지 않는다(추후 필요 시 마이그레이션으로 추가).
+내부 협의 스레드만 연결한다.
+
+학부모용 대화도 같은 Conversation 모델을 재사용한다(parent_conversation_id) -
+internal_conversation_id와 마찬가지로 신청 건 하나에 스레드 하나. 두 스레드는
+서로 다른 participant 쌍(관리자↔강사 / 관리자↔학부모)이라 자연히 내용이
+섞이지 않는다 - 학부모는 messages 블루프린트 자체에 접근 권한이 없으므로
+오직 이 신청 상세 화면(consultation_request.detail)을 통해서만 자신의
+parent_conversation을 읽고 답장할 수 있다.
 """
 import uuid
 from datetime import datetime
@@ -49,6 +55,11 @@ class ConsultationRequest(db.Model):
                                          db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
                                          nullable=True)
 
+    # 관리자<->학부모 대화 (위젯에서 노출되는 스레드)
+    parent_conversation_id = db.Column(db.Integer,
+                                       db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
+                                       nullable=True)
+
     # 완료 후 실제 상담 기록과 연결
     consultation_id = db.Column(db.Integer,
                                 db.ForeignKey('consultation_records.consultation_id', ondelete='SET NULL'),
@@ -61,6 +72,7 @@ class ConsultationRequest(db.Model):
     requester = db.relationship('User', foreign_keys=[requester_id])
     responder = db.relationship('User', foreign_keys=[responded_by])
     internal_conversation = db.relationship('Conversation', foreign_keys=[internal_conversation_id])
+    parent_conversation = db.relationship('Conversation', foreign_keys=[parent_conversation_id])
     consultation_record = db.relationship('ConsultationRecord', foreign_keys=[consultation_id])
 
     def __repr__(self):

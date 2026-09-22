@@ -2133,6 +2133,10 @@
     {% endif %}
     </script>
 
+    {% if current_user.is_authenticated and current_user.role == 'parent' %}
+    {% include "partials/chat_widget.html" %}
+    {% endif %}
+
     {% if current_user.is_authenticated and current_user.role == 'student' %}
     <!-- 줌 강의실 선택 모달 -->
     <div id="zoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100]">

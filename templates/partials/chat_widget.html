@@ -1,0 +1,326 @@
+{# 학부모용 대화 위젯 - 우측 하단 플로팅 버튼. static/css/style.css의 디자인
+   토큰(--navy, --blue, --purple 등)을 그대로 재사용한다(base.html이 항상
+   style.min.css를 로드하므로 여기서 다시 정의하지 않음). #}
+<style>
+#momoWidgetFab{
+  position:fixed; right:20px; bottom:20px; width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%);
+  border:none; cursor:pointer; box-shadow:var(--shadow-header);
+  display:flex; align-items:center; justify-content:center; z-index:1200;
+  transition:transform .18s ease;
+}
+#momoWidgetFab:hover{ transform:translateY(-2px) scale(1.03); }
+#momoWidgetFab .mark{
+  width:28px; height:28px; border-radius:8px; background:#fff; color:var(--blue);
+  display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;
+}
+#momoWidgetFab .badge{
+  position:absolute; top:-3px; right:-3px; min-width:19px; height:19px; padding:0 5px;
+  background:var(--red); color:#fff; border-radius:999px; font-size:10.5px; font-weight:800;
+  display:flex; align-items:center; justify-content:center; border:2px solid var(--bg);
+}
+#momoWidgetScrim{
+  position:fixed; inset:0; background:rgba(15,23,42,.15); opacity:0; pointer-events:none;
+  transition:opacity .2s; z-index:1195;
+}
+#momoWidgetScrim.open{ opacity:1; pointer-events:auto; }
+#momoWidgetPanel{
+  position:fixed; right:20px; bottom:20px; width:380px; max-width:calc(100vw - 24px);
+  height:min(600px, calc(100vh - 40px)); background:var(--card); border-radius:18px;
+  box-shadow:0 24px 60px rgba(15,23,42,.28), 0 2px 8px rgba(15,23,42,.08);
+  display:flex; flex-direction:column; overflow:hidden; z-index:1200;
+  transform:translateY(14px) scale(.98); opacity:0; pointer-events:none;
+  transition:transform .2s cubic-bezier(.2,.8,.2,1), opacity .16s;
+  font-size:13px;
+}
+#momoWidgetPanel.open{ transform:translateY(0) scale(1); opacity:1; pointer-events:auto; }
+.mw-head{
+  background:linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%); color:#fff;
+  padding:16px 16px 14px; flex-shrink:0; display:flex; align-items:center; gap:10px;
+}
+.mw-head .mark{ width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.18);
+  display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; }
+.mw-head .name{ font-weight:800; font-size:14px; }
+.mw-head .sub{ font-size:11px; opacity:.8; margin-top:1px; }
+.mw-head button{
+  width:26px; height:26px; border-radius:8px; border:none; cursor:pointer;
+  background:rgba(255,255,255,.14); color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center;
+}
+.mw-head button:hover{ background:rgba(255,255,255,.24); }
+.mw-body{ flex:1; overflow-y:auto; background:var(--light); }
+.mw-greet{ padding:14px 16px 4px; }
+.mw-greet .h{ font-size:13.5px; font-weight:700; color:var(--text); }
+.mw-greet .p{ font-size:11.5px; color:var(--text3); margin-top:2px; }
+.mw-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 16px 4px; }
+.mw-tile{
+  background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:12px 11px;
+  cursor:pointer; text-align:left; transition:border-color .15s, transform .1s;
+}
+.mw-tile:hover{ border-color:var(--blue); transform:translateY(-1px); }
+.mw-tile .ic{ font-size:18px; }
+.mw-tile .t{ font-size:11.5px; font-weight:700; margin-top:5px; color:var(--text); }
+.mw-list-head{ padding:14px 16px 4px; font-size:11.5px; font-weight:700; color:var(--text3); }
+.mw-item{ display:flex; gap:9px; align-items:flex-start; padding:10px 16px; cursor:pointer; }
+.mw-item:hover{ background:#eef2f9; }
+.mw-item .ic{ width:32px; height:32px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.mw-item .ic.consult{ background:rgba(139,92,246,.12); } .mw-item .ic.makeup{ background:rgba(16,185,129,.12); } .mw-item .ic.refund{ background:rgba(245,158,11,.12); }
+.mw-item .body{ min-width:0; flex:1; }
+.mw-item .r1{ display:flex; align-items:center; gap:5px; }
+.mw-item .title{ font-size:12px; font-weight:700; color:var(--text); }
+.mw-item .time{ margin-left:auto; font-size:10px; color:var(--text3); flex-shrink:0; }
+.mw-item .preview{ font-size:11px; color:var(--text2); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mw-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--red); flex-shrink:0; margin-top:4px; }
+.mw-empty{ padding:30px 16px; text-align:center; color:var(--text3); font-size:12px; }
+
+.mw-status-card{ margin:10px 14px 0; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
+.mw-status-card .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:7px; font-size:11.5px; margin-top:5px; }
+.mw-status-card .grid2 div span{ display:block; color:var(--text3); font-size:10px; }
+.mw-status-card .grid2 div b{ font-size:12px; color:var(--text); }
+.mw-chip{ font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:var(--radius-badge); display:inline-block; }
+.mw-chip.pending{ background:#FFFBEB; color:#D97706; } .mw-chip.ok{ background:#ECFDF5; color:#059669; } .mw-chip.bad{ background:#FEF2F2; color:#DC2626; }
+
+.mw-scroll{ flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+.mw-msg{ max-width:82%; font-size:12px; line-height:1.5; padding:8px 11px; border-radius:13px; }
+.mw-msg.them{ align-self:flex-start; background:var(--card); border:1px solid var(--border); }
+.mw-msg.me{ align-self:flex-end; background:var(--blue); color:#fff; }
+.mw-msg.sys{ align-self:center; background:#eef2f9; color:var(--text2); font-size:10.5px; padding:5px 11px; border-radius:999px; }
+.mw-composer{ flex-shrink:0; border-top:1px solid var(--border); background:var(--card); padding:9px 11px; display:flex; gap:7px; align-items:flex-end; }
+.mw-composer textarea{ flex:1; resize:none; border:1px solid var(--border); border-radius:10px; padding:8px 11px; font-size:12px; font-family:inherit; max-height:70px; outline:none; }
+.mw-composer textarea:focus{ border-color:var(--blue); }
+.mw-composer button{ width:34px; height:34px; border-radius:10px; border:none; background:var(--blue); color:#fff; cursor:pointer; flex-shrink:0; }
+
+.mw-form{ padding:14px 16px; }
+.mw-form h3{ margin:0 0 3px; font-size:13px; color:var(--text); }
+.mw-form p.hint{ margin:0 0 12px; font-size:11px; color:var(--text3); }
+.mw-fgroup{ margin-bottom:10px; }
+.mw-fgroup label{ display:block; font-size:11px; font-weight:600; margin-bottom:4px; color:var(--text2); }
+.mw-fgroup select, .mw-fgroup textarea{ width:100%; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-size:12px; font-family:inherit; outline:none; }
+.mw-fgroup select:focus, .mw-fgroup textarea:focus{ border-color:var(--blue); }
+.mw-submit{ width:100%; padding:10px; border:none; border-radius:10px; background:var(--blue); color:#fff; font-weight:700; font-size:12.5px; cursor:pointer; }
+
+@media (max-width:480px){
+  #momoWidgetPanel{ right:8px; left:8px; width:auto; bottom:8px; height:min(78vh, 600px); }
+  #momoWidgetFab{ right:16px; bottom:16px; }
+}
+</style>
+
+<div id="momoWidgetScrim" onclick="momoWidgetClose()"></div>
+<button id="momoWidgetFab" onclick="momoWidgetToggle()" aria-label="대화 위젯 열기">
+  <span class="mark">m</span>
+  <span class="badge" id="momoWidgetBadge" hidden>0</span>
+</button>
+
+<div id="momoWidgetPanel">
+  <div class="mw-head">
+    <button id="momoWidgetBack" onclick="momoWidgetHome()" hidden>‹</button>
+    <div class="mark">m</div>
+    <div style="flex:1;min-width:0">
+      <div class="name" id="momoWidgetHeadName">모모의 책장</div>
+      <div class="sub" id="momoWidgetHeadSub">보통 몇 분 안에 답변드려요</div>
+    </div>
+    <button onclick="momoWidgetClose()">✕</button>
+  </div>
+  <div class="mw-body" id="momoWidgetBody"></div>
+</div>
+
+<script>
+(function(){
+  let mwOpen = false, mwLoaded = false, mwSummaryCache = null;
+
+  window.momoWidgetToggle = function(){ mwOpen ? momoWidgetClose() : momoWidgetOpen(); };
+
+  window.momoWidgetOpen = function(){
+    mwOpen = true;
+    document.getElementById('momoWidgetPanel').classList.add('open');
+    document.getElementById('momoWidgetScrim').classList.add('open');
+    momoWidgetHome();
+  };
+
+  window.momoWidgetClose = function(){
+    mwOpen = false;
+    document.getElementById('momoWidgetPanel').classList.remove('open');
+    document.getElementById('momoWidgetScrim').classList.remove('open');
+  };
+
+  function setHead(name, sub, showBack){
+    document.getElementById('momoWidgetHeadName').textContent = name;
+    document.getElementById('momoWidgetHeadSub').textContent = sub;
+    document.getElementById('momoWidgetBack').hidden = !showBack;
+  }
+
+  const TYPE_META = { consult:{ic:'📋',cls:'consult'}, makeup:{ic:'🔄',cls:'makeup'}, refund:{ic:'💰',cls:'refund'} };
+
+  window.momoWidgetHome = async function(){
+    setHead('모모의 책장', '보통 몇 분 안에 답변드려요', false);
+    const body = document.getElementById('momoWidgetBody');
+    body.innerHTML = '<div class="mw-empty">불러오는 중...</div>';
+    try{
+      const res = await fetch('{{ url_for("chat_widget.summary") }}');
+      const data = await res.json();
+      mwSummaryCache = data;
+      renderBadge(data.unread_total);
+
+      let listHtml = '';
+      if(data.threads.length){
+        listHtml = '<div class="mw-list-head">최근 대화</div>' + data.threads.map(t=>{
+          const m = TYPE_META[t.type];
+          return `<div class="mw-item" onclick="momoWidgetThread('${t.type}','${t.id}')">
+            <div class="ic ${m.cls}">${m.ic}</div>
+            <div class="body">
+              <div class="r1"><span class="title">${t.title}</span><span class="time">${t.time.slice(5,16)}</span></div>
+              <div class="preview">${escapeHtml(t.preview)}</div>
+            </div>
+            ${t.unread ? '<div class="dot"></div>' : ''}
+          </div>`;
+        }).join('');
+      } else {
+        listHtml = '<div class="mw-empty">아직 대화 내역이 없어요</div>';
+      }
+
+      body.innerHTML = `
+        <div class="mw-greet">
+          <div class="h">안녕하세요 👋 무엇을 도와드릴까요?</div>
+          <div class="p">신청하거나, 지난 대화를 이어서 확인할 수 있어요</div>
+        </div>
+        <div class="mw-grid">
+          <button class="mw-tile" onclick="momoWidgetConsultForm()"><div class="ic">📋</div><div class="t">상담 신청</div></button>
+          <button class="mw-tile" onclick="location.href='{{ url_for("parent.makeup_classes_index") }}'"><div class="ic">🔄</div><div class="t">보강 신청</div></button>
+          <button class="mw-tile" onclick="location.href='{{ url_for("parent.all_payments") }}'"><div class="ic">💰</div><div class="t">결제·환불</div></button>
+          <button class="mw-tile" onclick="momoWidgetConsultForm()"><div class="ic">💬</div><div class="t">문의하기</div></button>
+        </div>
+        ${listHtml}
+      `;
+    }catch(e){
+      body.innerHTML = '<div class="mw-empty">불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>';
+    }
+  };
+
+  function renderBadge(n){
+    const b = document.getElementById('momoWidgetBadge');
+    if(n > 0){ b.textContent = n > 9 ? '9+' : n; b.hidden = false; } else { b.hidden = true; }
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+  }
+
+  let mwCurrentThread = null;
+
+  window.momoWidgetThread = async function(type, id){
+    mwCurrentThread = {type, id};
+    const titleMap = {consult:'상담 신청', makeup:'보강 신청', refund:'환불 요청'};
+    setHead(titleMap[type] || '대화', '', true);
+    const body = document.getElementById('momoWidgetBody');
+    body.innerHTML = '<div class="mw-empty">불러오는 중...</div>';
+    try{
+      const res = await fetch(`/widget/thread/${type}/${id}`);
+      const data = await res.json();
+      if(data.error){ body.innerHTML = `<div class="mw-empty">${escapeHtml(data.error)}</div>`; return; }
+      renderThread(data);
+    }catch(e){
+      body.innerHTML = '<div class="mw-empty">불러오지 못했습니다.</div>';
+    }
+  };
+
+  function chipClass(status){
+    if(['scheduled','approved','completed'].includes(status)) return 'ok';
+    if(status === 'rejected') return 'bad';
+    return 'pending';
+  }
+
+  function renderThread(data){
+    const fieldsHtml = Object.entries(data.fields || {}).map(([k,v])=>`<div><span>${k}</span><b>${escapeHtml(String(v))}</b></div>`).join('');
+    const msgHtml = data.timeline.map(m=>{
+      if(m.kind === 'sys') return `<div class="mw-msg sys">${escapeHtml(m.text)}</div>`;
+      const cls = m.kind === 'me' ? 'me' : 'them';
+      return `<div class="mw-msg ${cls}">${escapeHtml(m.text)}</div>`;
+    }).join('');
+
+    const body = document.getElementById('momoWidgetBody');
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div class="mw-status-card">
+          <span class="mw-chip ${chipClass(data.status)}">${data.status_label}</span>
+          <div class="grid2">${fieldsHtml}</div>
+        </div>
+        <div class="mw-scroll" id="momoWidgetScroll">${msgHtml}</div>
+        <div class="mw-composer">
+          <textarea rows="1" placeholder="메시지 입력..." id="momoWidgetInput"></textarea>
+          <button onclick="momoWidgetSend()">➤</button>
+        </div>
+      </div>
+    `;
+    const scroll = document.getElementById('momoWidgetScroll');
+    scroll.scrollTop = scroll.scrollHeight;
+  }
+
+  window.momoWidgetSend = async function(){
+    if(!mwCurrentThread) return;
+    const input = document.getElementById('momoWidgetInput');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    try{
+      await fetch(`/widget/thread/${mwCurrentThread.type}/${mwCurrentThread.id}/reply`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body:text})
+      });
+      momoWidgetThread(mwCurrentThread.type, mwCurrentThread.id);
+    }catch(e){
+      alert('전송에 실패했습니다.');
+    }
+  };
+
+  window.momoWidgetConsultForm = function(){
+    setHead('상담 신청', '몇 가지만 알려주세요', true);
+    const body = document.getElementById('momoWidgetBody');
+    const children = (mwSummaryCache && mwSummaryCache.children) || [];
+    const categories = (mwSummaryCache && mwSummaryCache.categories) || [];
+    if(!children.length){
+      body.innerHTML = '<div class="mw-empty">연결된 자녀가 없습니다. 먼저 자녀 연결을 완료해주세요.</div>';
+      return;
+    }
+    body.innerHTML = `
+      <div class="mw-form">
+        <h3>어떤 상담이 필요하신가요?</h3>
+        <p class="hint">접수 후 관리자가 확인하고 답변드려요</p>
+        <div class="mw-fgroup">
+          <label>자녀</label>
+          <select id="mwConsultStudent">${children.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>
+        </div>
+        <div class="mw-fgroup">
+          <label>상담 분류</label>
+          <select id="mwConsultCategory">${categories.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+        </div>
+        <div class="mw-fgroup">
+          <label>상담 사유</label>
+          <textarea id="mwConsultReason" rows="3" placeholder="상담이 필요한 내용을 적어주세요"></textarea>
+        </div>
+        <button class="mw-submit" onclick="momoWidgetSubmitConsult()">신청하기</button>
+      </div>
+    `;
+  };
+
+  window.momoWidgetSubmitConsult = async function(){
+    const student_id = document.getElementById('mwConsultStudent').value;
+    const category = document.getElementById('mwConsultCategory').value;
+    const reason = document.getElementById('mwConsultReason').value.trim();
+    if(!reason){ alert('상담 사유를 입력해주세요.'); return; }
+    try{
+      const res = await fetch('{{ url_for("chat_widget.quick_consult") }}', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({student_id, category, reason})
+      });
+      const data = await res.json();
+      if(data.error){ alert(data.error); return; }
+      momoWidgetThread('consult', data.id);
+    }catch(e){
+      alert('신청에 실패했습니다.');
+    }
+  };
+
+  // 뱃지만 미리 확인 (패널 열기 전에도 안읽음 표시)
+  fetch('{{ url_for("chat_widget.summary") }}').then(r=>r.json()).then(d=>{
+    mwSummaryCache = d; renderBadge(d.unread_total);
+  }).catch(()=>{});
+})();
+</script>

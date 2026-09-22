@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 from app.refund_request import refund_request_bp
 from app.models import db, User, Payment, ParentStudent, Notification
 from app.models.refund_request import RefundRequest
+from app.models.conversation import Conversation, ConversationMessage
 from app.utils.decorators import requires_role
 
 
@@ -141,7 +142,55 @@ def admin_list():
 def admin_detail(request_id):
     """환불 요청 상세 (관리자) - 승인/거절 액션 포함"""
     req = RefundRequest.query.get_or_404(request_id)
-    return render_template('refund_request/admin_detail.html', req=req)
+    parent_messages = []
+    if req.parent_conversation_id:
+        parent_messages = ConversationMessage.query.filter_by(
+            conversation_id=req.parent_conversation_id
+        ).order_by(ConversationMessage.created_at).all()
+    return render_template('refund_request/admin_detail.html', req=req, parent_messages=parent_messages)
+
+
+@refund_request_bp.route('/admin/<request_id>/parent-reply', methods=['POST'])
+@requires_role('admin')
+def parent_reply(request_id):
+    """학부모(위젯)에게 답장 - app.chat_widget이 학부모 쪽 답장을 담당하고
+    여기는 관리자 쪽 답장만 처리한다."""
+    req = RefundRequest.query.get_or_404(request_id)
+    body = request.form.get('body', '').strip()
+    if not body:
+        flash('메시지를 입력해주세요.', 'error')
+        return redirect(url_for('refund_request.admin_detail', request_id=request_id))
+
+    uid = current_user.user_id
+    if not req.parent_conversation_id:
+        if not req.requester_id:
+            flash('신청자 정보를 찾을 수 없습니다.', 'error')
+            return redirect(url_for('refund_request.admin_detail', request_id=request_id))
+        # 신청 건마다 독립된 Conversation을 쓴다(기존 대화 재사용 금지) - 재사용하면
+        # 같은 학부모의 다른 신청(상담/보강) 스레드와 뒤섞인다.
+        conv = Conversation(user1_id=uid, user2_id=req.requester_id)
+        db.session.add(conv)
+        db.session.flush()
+        req.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(req.parent_conversation_id)
+
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+
+    if req.requester_id:
+        db.session.add(Notification(
+            user_id=req.requester_id,
+            notification_type='dm',
+            title=f'💬 {current_user.name}님의 새 메시지',
+            message=f'[환불 요청] {body[:80]}',
+            related_user_id=uid,
+        ))
+    db.session.commit()
+
+    flash('답장을 보냈습니다.', 'success')
+    return redirect(url_for('refund_request.admin_detail', request_id=request_id))
 
 
 @refund_request_bp.route('/admin/<request_id>/approve', methods=['POST'])
