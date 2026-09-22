@@ -7,9 +7,9 @@
 대화처럼 보이게 한다 - 별도의 이벤트 로그 테이블을 새로 만들지 않고
 기존 필드(status, created_at, responded_at 등)에서 매번 계산한다.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from flask import jsonify, request, url_for
+from flask import current_app, jsonify, request, url_for
 from flask_login import current_user
 
 from app.chat_widget import chat_widget_bp
@@ -383,3 +383,83 @@ def quick_consult():
     db.session.commit()
 
     return jsonify({'ok': True, 'id': req.request_id})
+
+
+# ==================== 대화형 진입 - 자유 텍스트 의도 분류 ====================
+# 학부모가 위젯을 열고 처음 던지는 한 문장만 보고 4개 카테고리 중 하나로
+# 라우팅한다. 분류 이후의 실제 데이터 입력(자녀 선택, 사유, 금액 등)은 전부
+# 기존 구조화된 폼을 그대로 쓴다 - LLM은 "입구"에서만 판단하고, 보강 일정·
+# 환불 금액처럼 틀리면 안 되는 값은 절대 대화 중 자동으로 채우지 않는다.
+
+_WIDGET_LLM_HOURLY_LIMIT = 30
+_WIDGET_INTENTS = ('consult', 'makeup', 'refund', 'inquiry')
+
+
+def _widget_llm_rate_limited():
+    from app.models.api_usage_log import ApiUsageLog
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    recent_calls = ApiUsageLog.query.filter(
+        ApiUsageLog.user_id == current_user.user_id,
+        ApiUsageLog.usage_type == 'widget_intent_classify',
+        ApiUsageLog.created_at >= one_hour_ago,
+    ).count()
+    return recent_calls >= _WIDGET_LLM_HOURLY_LIMIT
+
+
+def _log_widget_llm_usage(usage):
+    from app.models.api_usage_log import ApiUsageLog
+    db.session.add(ApiUsageLog(
+        user_id=current_user.user_id,
+        api_type='claude',
+        model_name='claude-sonnet-4-6',
+        usage_type='widget_intent_classify',
+        input_tokens=usage['input_tokens'],
+        output_tokens=usage['output_tokens'],
+        cost_usd=ApiUsageLog.calc_claude_cost(usage['input_tokens'], usage['output_tokens']),
+    ))
+
+
+@chat_widget_bp.route('/widget/classify', methods=['POST'])
+@requires_role('parent', 'admin')
+def classify_intent():
+    from app.utils.llm_assist import call_claude_text, extract_json_block
+
+    text = (request.get_json(silent=True) or {}).get('text', '').strip()
+    if not text:
+        return jsonify({'error': '메시지를 입력해주세요.'}), 400
+    text = text[:500]
+
+    fallback = {'intent': 'inquiry', 'reply': '네, 확인 후 답변드릴게요. 아래에서 문의를 남겨주세요.'}
+
+    if _widget_llm_rate_limited():
+        return jsonify(fallback)
+
+    prompt = f"""당신은 국어 학원 학부모 채팅창의 안내 담당자입니다.
+학부모가 보낸 메시지 한 줄만 보고 아래 4가지 중 하나로 분류하세요.
+
+- consult: 신규/퇴원/분기별/진로진학 등 상담 신청
+- makeup: 결석 등으로 인한 보강 수업 신청
+- refund: 결제 내역 확인, 환불 요청
+- inquiry: 위 3가지에 해당하지 않는 그 외 일반 문의
+
+학부모 메시지: "{text}"
+
+다음 JSON 형식으로만 답하세요. 다른 설명은 절대 붙이지 마세요.
+{{"intent": "consult 또는 makeup 또는 refund 또는 inquiry", "reply": "학부모에게 보여줄 짧고 다정한 한 문장 안내(존댓말, 20자 내외, 이모지 없이)"}}"""
+
+    try:
+        raw, usage = call_claude_text(prompt, max_tokens=150)
+    except Exception:
+        current_app.logger.exception('[chat_widget.classify_intent] 호출 실패')
+        return jsonify(fallback)
+
+    try:
+        _log_widget_llm_usage(usage)
+        db.session.commit()
+    except Exception:
+        current_app.logger.exception('[chat_widget.classify_intent] 사용량 로그 저장 실패')
+
+    parsed = extract_json_block(raw) or {}
+    intent = parsed.get('intent') if parsed.get('intent') in _WIDGET_INTENTS else 'inquiry'
+    reply = parsed.get('reply') or fallback['reply']
+    return jsonify({'intent': intent, 'reply': reply})

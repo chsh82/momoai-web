@@ -72,6 +72,14 @@
 .mw-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--red); flex-shrink:0; margin-top:4px; }
 .mw-empty{ padding:30px 16px; text-align:center; color:var(--text3); font-size:13px; }
 
+.mw-quickreplies{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+.mw-chip-btn{
+  border:1.5px solid var(--border); background:var(--card); color:var(--text);
+  border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.mw-chip-btn:hover{ border-color:var(--blue); background:#eef4ff; }
+
 .mw-status-card{ margin:10px 14px 0; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
 .mw-status-card .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:7px; font-size:13px; margin-top:5px; }
 .mw-status-card .grid2 div span{ display:block; color:var(--text3); font-size:11px; }
@@ -174,24 +182,89 @@
           </div>`;
         }).join('');
       } else {
-        listHtml = '<div class="mw-empty">아직 대화 내역이 없어요</div>';
+        listHtml = '';
       }
 
       body.innerHTML = `
-        <div class="mw-greet">
-          <div class="h">안녕하세요 👋 무엇을 도와드릴까요?</div>
-          <div class="p">신청하거나, 지난 대화를 이어서 확인할 수 있어요</div>
+        <div style="display:flex;flex-direction:column;height:100%;min-height:0">
+          <div class="mw-scroll" id="momoWidgetHomeScroll">
+            <div class="mw-msg them">
+              안녕하세요 👋 무엇을 도와드릴까요?
+              <div class="mw-quickreplies">
+                <button class="mw-chip-btn" onclick="momoWidgetPickIntent('consult')">📋 상담 신청</button>
+                <button class="mw-chip-btn" onclick="momoWidgetPickIntent('makeup')">🔄 보강 신청</button>
+                <button class="mw-chip-btn" onclick="momoWidgetPickIntent('refund')">💰 결제·환불</button>
+                <button class="mw-chip-btn" onclick="momoWidgetPickIntent('inquiry')">💬 문의하기</button>
+              </div>
+            </div>
+            ${listHtml}
+          </div>
+          <div class="mw-composer">
+            <textarea rows="1" placeholder="메시지를 입력해보세요 (예: 보강 신청하고 싶어요)" id="momoWidgetHomeInput" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();momoWidgetHomeSend();}"></textarea>
+            <button onclick="momoWidgetHomeSend()">➤</button>
+          </div>
         </div>
-        <div class="mw-grid">
-          <button class="mw-tile" onclick="momoWidgetConsultForm()"><div class="ic">📋</div><div class="t">상담 신청</div></button>
-          <button class="mw-tile" onclick="location.href='{{ url_for("parent.makeup_classes_index") }}'"><div class="ic">🔄</div><div class="t">보강 신청</div></button>
-          <button class="mw-tile" onclick="location.href='{{ url_for("parent.all_payments") }}'"><div class="ic">💰</div><div class="t">결제·환불</div></button>
-          <button class="mw-tile" onclick="momoWidgetConsultForm()"><div class="ic">💬</div><div class="t">문의하기</div></button>
-        </div>
-        ${listHtml}
       `;
+      const scroll = document.getElementById('momoWidgetHomeScroll');
+      scroll.scrollTop = scroll.scrollHeight;
     }catch(e){
       body.innerHTML = '<div class="mw-empty">불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>';
+    }
+  };
+
+  function appendHomeBubble(kind, text){
+    const scroll = document.getElementById('momoWidgetHomeScroll');
+    if(!scroll) return;
+    const div = document.createElement('div');
+    div.className = `mw-msg ${kind}`;
+    div.textContent = text;
+    scroll.appendChild(div);
+    scroll.scrollTop = scroll.scrollHeight;
+  }
+
+  const INTENT_LABEL = { consult:'📋 상담 신청', makeup:'🔄 보강 신청', refund:'💰 결제·환불', inquiry:'💬 문의하기' };
+
+  function routeIntent(intent, replyText){
+    if(!INTENT_LABEL[intent]) intent = 'inquiry';
+    appendHomeBubble('them', replyText || '네, 확인해볼게요.');
+    setTimeout(()=>{
+      if(intent === 'makeup'){ location.href = '{{ url_for("parent.makeup_classes_index") }}'; }
+      else if(intent === 'refund'){ location.href = '{{ url_for("parent.all_payments") }}'; }
+      else { momoWidgetConsultForm(); }
+    }, 500);
+  }
+
+  window.momoWidgetPickIntent = function(intent){
+    appendHomeBubble('me', INTENT_LABEL[intent] || intent);
+    const canned = {
+      consult: '네, 상담 신청 도와드릴게요.',
+      makeup: '네, 보강 신청 페이지로 안내해드릴게요.',
+      refund: '네, 결제·환불 내역으로 안내해드릴게요.',
+      inquiry: '네, 문의 내용을 남겨주세요.',
+    };
+    routeIntent(intent, canned[intent]);
+  };
+
+  window.momoWidgetHomeSend = async function(){
+    const input = document.getElementById('momoWidgetHomeInput');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    appendHomeBubble('me', text);
+    appendHomeBubble('sys', '확인하고 있어요...');
+    try{
+      const res = await fetch('{{ url_for("chat_widget.classify_intent") }}', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text})
+      });
+      const data = await res.json();
+      const scroll = document.getElementById('momoWidgetHomeScroll');
+      if(scroll && scroll.lastChild) scroll.removeChild(scroll.lastChild); // "확인하고 있어요..." 제거
+      if(data.error){ appendHomeBubble('them', data.error); return; }
+      routeIntent(data.intent, data.reply);
+    }catch(e){
+      const scroll = document.getElementById('momoWidgetHomeScroll');
+      if(scroll && scroll.lastChild) scroll.removeChild(scroll.lastChild);
+      appendHomeBubble('them', '죄송해요, 잠시 후 다시 시도해주세요.');
     }
   };
 
