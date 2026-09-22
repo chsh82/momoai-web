@@ -399,6 +399,104 @@ def upcoming_changes():
                            week_end=week_end)
 
 
+# ==================== 보강 신청 확인 (강사) ====================
+# 관리자가 "강사에게 물어보기"로 협의를 시작한 보강 신청을 강사 본인이
+# 직접 확인·컨펌하는 화면. approve_makeup_request는 이 teacher_confirmed
+# 값을 강제로 확인하므로, 관리자가 이 확인 절차 없이 임의로 보강수업을
+# 확정할 수 없다(예전엔 이 확인이 UI 버튼만 있고 실제로 강제되지 않았음).
+
+@teacher_bp.route('/makeup-requests')
+@login_required
+@requires_role('teacher', 'admin')
+def makeup_confirm_list():
+    """내가 확인해야 할 보강 신청 목록 - 관리자가 협의를 시작했지만
+    아직 내가 컨펌하지 않은 것들을 위로 올린다."""
+    from app.models.makeup_request import MakeupClassRequest
+
+    query = MakeupClassRequest.query.join(Course, MakeupClassRequest.requested_course_id == Course.course_id).filter(
+        Course.teacher_id == current_user.user_id,
+        MakeupClassRequest.status == 'pending',
+        MakeupClassRequest.internal_conversation_id.isnot(None),
+    )
+    requests = query.order_by(MakeupClassRequest.teacher_confirmed.asc(),
+                              MakeupClassRequest.request_date.desc()).all()
+    pending_count = sum(1 for r in requests if not r.teacher_confirmed)
+
+    return render_template('teacher/makeup_confirm_list.html', requests=requests, pending_count=pending_count)
+
+
+@teacher_bp.route('/makeup-requests/<request_id>')
+@login_required
+@requires_role('teacher', 'admin')
+def makeup_confirm_detail(request_id):
+    """보강 신청 확인 상세 - 관리자와 나눈 협의 내용 + 컨펌 버튼"""
+    from app.models.makeup_request import MakeupClassRequest
+
+    from app.models.conversation import ConversationMessage
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    course = makeup_request.requested_course
+    if course.teacher_id != current_user.user_id and current_user.role != 'admin':
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.makeup_confirm_list'))
+
+    messages = []
+    if makeup_request.internal_conversation_id:
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=makeup_request.internal_conversation_id
+        ).order_by(ConversationMessage.created_at).all()
+
+    return render_template('teacher/makeup_confirm_detail.html', req=makeup_request, messages=messages)
+
+
+@teacher_bp.route('/makeup-requests/<request_id>/confirm', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def makeup_confirm(request_id):
+    """강사가 이 보강 신청을 최종 컨펌 - 이후 관리자가 승인 버튼을 눌러야
+    실제 보강수업이 생성된다(강사 컨펌만으로 자동 확정되지 않음)."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.models.conversation import Conversation, ConversationMessage as CM
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    course = makeup_request.requested_course
+    if course.teacher_id != current_user.user_id and current_user.role != 'admin':
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.makeup_confirm_list'))
+
+    if makeup_request.status != 'pending':
+        flash('이미 처리된 신청입니다.', 'warning')
+        return redirect(url_for('teacher.makeup_confirm_list'))
+
+    note = request.form.get('note', '').strip()
+    makeup_request.teacher_confirmed = True
+    makeup_request.teacher_confirmed_at = datetime.utcnow()
+
+    # 컨펌 사실을 내부 협의 대화에도 남겨서 관리자가 대화 기록만 봐도 알 수 있게 한다
+    if makeup_request.internal_conversation_id:
+        conv = Conversation.query.get(makeup_request.internal_conversation_id)
+        body = '✅ 이 보강 가능합니다. 확인했습니다.'
+        if note:
+            body += f' ({note})'
+        msg = CM(conversation_id=conv.conversation_id, sender_id=current_user.user_id, body=body)
+        conv.last_message_at = datetime.utcnow()
+        db.session.add(msg)
+
+        admin_id = conv.user2_id if conv.user1_id == current_user.user_id else conv.user1_id
+        db.session.add(Notification(
+            user_id=admin_id,
+            notification_type='dm',
+            title=f'✅ {current_user.name}님이 보강 신청을 확인했습니다',
+            message=body,
+            link_url=url_for('admin.makeup_requests'),
+            related_user_id=current_user.user_id,
+        ))
+
+    db.session.commit()
+    flash('보강 신청을 확인했습니다. 관리자가 최종 승인하면 보강수업이 생성됩니다.', 'success')
+    return redirect(url_for('teacher.makeup_confirm_list'))
+
+
 @teacher_bp.route('/absence-notices/create', methods=['POST'])
 @login_required
 @requires_role('teacher', 'admin')

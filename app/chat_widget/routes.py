@@ -172,6 +172,8 @@ def _makeup_preview(m):
         return '✅ 보강 일정이 확정되었습니다'
     if m.status == 'rejected':
         return f'반려: {m.admin_notes or ""}'
+    if m.teacher_confirmed:
+        return '강사 확인 완료 · 관리자 승인 대기중'
     return m.reason[:60] if m.reason else ''
 
 def _refund_status_label(r):
@@ -218,6 +220,9 @@ def _build_timeline(kind, obj):
         thread_msgs = _thread_messages(obj.parent_conversation_id)
     elif kind == 'makeup':
         events.append({'kind': 'sys', 'text': '보강 신청이 접수되었습니다', 'time': obj.created_at.strftime(KST_FMT), '_ts': obj.created_at})
+        if obj.teacher_confirmed and obj.teacher_confirmed_at:
+            events.append({'kind': 'sys', 'text': '강사가 보강 가능 시간을 확인했습니다',
+                            'time': obj.teacher_confirmed_at.strftime(KST_FMT), '_ts': obj.teacher_confirmed_at})
         if obj.status == 'approved' and obj.admin_response_date:
             course = obj.created_makeup_course
             when = f'{course.start_date.strftime("%Y-%m-%d")} {course.start_time.strftime("%H:%M")}' if course and course.start_date and course.start_time else ''
@@ -251,11 +256,20 @@ def _fields(kind, obj):
             f['희망일'] = obj.preferred_date.strftime('%Y-%m-%d')
         return f
     if kind == 'makeup':
-        return {
+        f = {
             '자녀': obj.student.display_name if obj.student else '',
             '수업': obj.requested_course.course_name if obj.requested_course else '',
-            '희망일': obj.requested_date.strftime('%Y-%m-%d') if obj.requested_date else '특별히 없음',
         }
+        course = obj.created_makeup_course
+        if obj.status == 'approved' and course and course.start_date:
+            when = course.start_date.strftime('%Y-%m-%d')
+            if course.start_time:
+                when += ' ' + course.start_time.strftime('%H:%M')
+            f['확정 일정'] = when
+        else:
+            f['희망일'] = obj.requested_date.strftime('%Y-%m-%d') if obj.requested_date else '특별히 없음'
+            f['강사 확인'] = '완료' if obj.teacher_confirmed else '대기중'
+        return f
     if kind == 'refund':
         return {
             '금액': f'{obj.payment.amount:,}원' if obj.payment else '',

@@ -3140,11 +3140,15 @@ def approve_makeup_request(request_id):
     from datetime import date, time, timedelta
     
     makeup_request = MakeupClassRequest.query.get_or_404(request_id)
-    
+
     if makeup_request.status != 'pending':
         flash('이미 처리된 신청입니다.', 'warning')
         return redirect(url_for('admin.makeup_requests'))
-    
+
+    if not makeup_request.teacher_confirmed:
+        flash('담당 강사가 아직 확인하지 않았습니다. "강사에게 물어보기"로 먼저 협의해주세요.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
     # 원본 수업 정보
     original_course = makeup_request.requested_course
     student = makeup_request.student
@@ -3240,7 +3244,7 @@ def approve_makeup_request(request_id):
         db.session.add(makeup_session)
         db.session.flush()
 
-        # 학생 자동 등록 (보강수업 감지 시 강사 알림 자동 발송)
+        # 학생 자동 등록
         from app.utils.course_utils import enroll_student_to_course
         enroll_student_to_course(makeup_course.course_id, student.student_id)
 
@@ -3275,6 +3279,18 @@ def approve_makeup_request(request_id):
                     related_entity_type='course',
                     related_entity_id=makeup_course.course_id
                 ))
+
+        # 담당 강사에게도 확정 알림 (예전엔 학부모/학생에게만 가고 강사는 못 받았음)
+        if makeup_course.teacher_id:
+            db.session.add(Notification(
+                user_id=makeup_course.teacher_id,
+                notification_type='makeup_approved',
+                title=f'{student.name} 학생 보강수업이 확정되었습니다',
+                message=f'"{original_course.course_name}" 보강 - {makeup_date.strftime("%Y년 %m월 %d일")} {makeup_start.strftime("%H:%M") if makeup_start else ""}',
+                related_entity_type='course',
+                related_entity_id=makeup_course.course_id,
+                link_url=url_for('admin.course_detail', course_id=makeup_course.course_id),
+            ))
 
         db.session.commit()
 
@@ -3394,7 +3410,7 @@ def makeup_internal_consult(request_id):
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
         message=(prefix + body)[:80],
-        link_url=url_for('messages.conversation', conv_id=conv.conversation_id),
+        link_url=url_for('teacher.makeup_confirm_detail', request_id=makeup_request.request_id),
         related_user_id=uid,
     ))
     db.session.commit()

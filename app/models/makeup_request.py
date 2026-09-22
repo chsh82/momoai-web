@@ -50,6 +50,12 @@ class MakeupClassRequest(db.Model):
                                        db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
                                        nullable=True)
 
+    # 강사 최종 컨펌 - 담당 강사 본인이 직접 확인해야 승인 가능하다(approve_makeup_request
+    # 에서 이 값을 강제로 확인함). 관리자가 대신 체크하는 게 아니라 강사 전용 화면
+    # (teacher.makeup_confirm)에서 강사 계정으로만 True가 될 수 있다.
+    teacher_confirmed = db.Column(db.Boolean, default=False, nullable=False)
+    teacher_confirmed_at = db.Column(db.DateTime, nullable=True)
+
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

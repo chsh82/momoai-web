@@ -111,6 +111,15 @@
                         <span class="text-gray-400 shrink-0">💬</span>
                         <a href="{{ url_for('messages.conversation', conv_id=req.internal_conversation_id) }}"
                            class="text-xs text-blue-600 hover:underline">강사와 협의중 · 대화 보기</a>
+                        {% if req.teacher_confirmed %}
+                        <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">✅ 강사 확인됨</span>
+                        {% else %}
+                        <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">⏳ 강사 확인 대기</span>
+                        {% endif %}
+                    </div>
+                    {% elif req.status == 'pending' %}
+                    <div class="flex items-center gap-2 pt-1">
+                        <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">강사 문의 전</span>
                     </div>
                     {% endif %}
                     {% if req.parent_conversation_id %}
@@ -124,10 +133,17 @@
                 <div class="pt-2 border-t border-gray-100">
                     {% if req.status == 'pending' %}
                     <div class="flex gap-2">
+                        {% if req.teacher_confirmed %}
                         <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}', {{ 'true' if req.internal_conversation_id else 'false' }})"
                                 class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
                             승인
                         </button>
+                        {% else %}
+                        <button type="button" disabled title="담당 강사가 먼저 확인해야 승인할 수 있습니다"
+                                class="flex-1 bg-gray-200 text-gray-400 text-xs font-medium px-3 py-1.5 rounded-lg cursor-not-allowed">
+                            승인 (강사 확인 필요)
+                        </button>
+                        {% endif %}
                         <button onclick="showRejectModal('{{ req.request_id }}', '{{ req.student.name }}')"
                                 class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">
                             거절

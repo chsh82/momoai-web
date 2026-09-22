@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}보강 신청 확인 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔄 보강 신청 확인{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">관리자가 문의한 보강 시간을 확인해주세요</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">🔄 보강 신청 확인</h2>
+        <p class="text-gray-600 mt-1 text-sm">관리자가 문의한 보강 가능 시간을 확인하고 컨펌해주세요. 컨펌해야 관리자가 최종 승인할 수 있습니다.</p>
+    </div>
+
+    {% if requests %}
+    <div class="space-y-3">
+        {% for r in requests %}
+        <a href="{{ url_for('teacher.makeup_confirm_detail', request_id=r.request_id) }}"
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition duration-200">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        {% if r.teacher_confirmed %}
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800">✅ 확인 완료</span>
+                        {% else %}
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">⏳ 확인 필요</span>
+                        {% endif %}
+                        <span class="text-sm font-semibold text-gray-800">{{ r.student.name if r.student else '' }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">{{ r.requested_course.course_name if r.requested_course else '' }}</p>
+                    <p class="text-xs text-gray-400 mt-1">{{ r.reason or '' }}</p>
+                </div>
+                <span class="text-xs text-gray-400 whitespace-nowrap">{{ r.request_date.strftime('%Y-%m-%d') }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+        확인할 보강 신청이 없습니다.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

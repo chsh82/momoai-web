@@ -381,6 +381,22 @@ def create_app(config_name='default'):
                 consultation_request_pending = ConsultationRequest.query.filter_by(status='pending').count()
                 refund_request_pending = RefundRequest.query.filter_by(status='pending').count()
 
+            # 강사가 확인해야 할 보강 신청 수 (관리자가 내부 협의를 시작했지만
+            # 아직 강사 본인이 컨펌 안 한 것 - approve_makeup_request가 이 값을
+            # 강제로 확인하므로 강사가 놓치면 승인 자체가 막힌다)
+            makeup_confirm_pending = 0
+            if current_user.is_active and current_user.role == 'teacher':
+                from app.models.makeup_request import MakeupClassRequest
+                from app.models.course import Course as _Course
+                makeup_confirm_pending = MakeupClassRequest.query.join(
+                    _Course, MakeupClassRequest.requested_course_id == _Course.course_id
+                ).filter(
+                    _Course.teacher_id == current_user.user_id,
+                    MakeupClassRequest.status == 'pending',
+                    MakeupClassRequest.internal_conversation_id.isnot(None),
+                    MakeupClassRequest.teacher_confirmed == False,
+                ).count()
+
             counts = {
                 'homework': hw,
                 'announcement': ann,
@@ -393,6 +409,7 @@ def create_app(config_name='default'):
                 'hall_of_fame': hall_of_fame_new,  # 명예의 전당 새 글 수
                 'consultation_request_pending': consultation_request_pending,  # 관리자용: 상담 신청 접수 대기
                 'refund_request_pending': refund_request_pending,  # 관리자용: 환불 요청 접수 대기
+                'makeup_confirm_pending': makeup_confirm_pending,  # 강사용: 보강 신청 확인 대기
                 'total': Notification.query.filter_by(
                     user_id=current_user.user_id, is_read=False
                 ).count(),

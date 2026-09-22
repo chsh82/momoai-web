@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}보강 신청 확인 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🔄 보강 신청 확인{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">🔄 보강 신청 확인</h2>
+        <a href="{{ url_for('teacher.makeup_confirm_list') }}"
+           class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition duration-200">
+            목록으로
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 space-y-4 mb-6">
+        <div class="flex items-center gap-2">
+            {% if req.teacher_confirmed %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800">✅ 확인 완료</span>
+            {% else %}
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">⏳ 확인 필요</span>
+            {% endif %}
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div><span class="text-gray-400">학생</span><br>{{ req.student.name if req.student else '' }} ({{ req.student.grade if req.student else '' }})</div>
+            <div><span class="text-gray-400">수업</span><br>{{ req.requested_course.course_name if req.requested_course else '' }}</div>
+            <div><span class="text-gray-400">희망일</span><br>{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '특별히 없음' }}</div>
+            <div><span class="text-gray-400">신청일</span><br>{{ req.request_date.strftime('%Y-%m-%d') }}</div>
+        </div>
+        <div>
+            <div class="text-sm font-medium text-gray-800 mb-1">신청 사유</div>
+            <p class="text-sm text-gray-600 whitespace-pre-wrap">{{ req.reason or '-' }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">💬 관리자와의 협의</h3>
+        {% if messages %}
+        <div class="space-y-2 mb-2 max-h-72 overflow-y-auto">
+            {% for m in messages %}
+            <div class="text-sm {{ 'text-right' if m.sender_id == current_user.user_id }}">
+                <span class="inline-block px-3 py-2 rounded-lg {{ 'bg-blue-100 text-blue-900' if m.sender_id == current_user.user_id else 'bg-gray-100 text-gray-800' }}">
+                    <span class="block text-xs text-gray-400 mb-0.5">{{ m.sender.name if m.sender else '' }}</span>
+                    {{ m.body }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-xs text-gray-400">아직 대화가 없습니다.</p>
+        {% endif %}
+    </div>
+
+    {% if not req.teacher_confirmed and req.status == 'pending' %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">✅ 이 시간에 보강 가능하신가요?</h3>
+        <p class="text-xs text-gray-400 mb-3">컨펌하면 관리자에게 알림이 가고, 관리자가 최종 승인하면 보강수업이 생성됩니다.</p>
+        <form method="post" action="{{ url_for('teacher.makeup_confirm', request_id=req.request_id) }}" class="space-y-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="note" placeholder="메모 (선택, 예: 화요일 오후 5시 가능합니다)"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition duration-200">
+                가능합니다 - 확인 완료로 표시
+            </button>
+        </form>
+    </div>
+    {% elif req.teacher_confirmed %}
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
+        ✅ {{ req.teacher_confirmed_at.strftime('%Y-%m-%d %H:%M') }}에 확인 완료했습니다. 관리자의 최종 승인을 기다리고 있습니다.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -719,6 +719,13 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.attendance_list' %}text-blue-600 bg-blue-50{% endif %}">
                                 출석 체크
                             </a>
+                            <a href="{{ url_for('teacher.makeup_confirm_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.makeup_confirm' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                <span>🔄 보강 신청 확인</span>
+                                {% if unread_counts.makeup_confirm_pending > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.makeup_confirm_pending }}</span>
+                                {% endif %}
+                            </a>
                             <a href="{{ url_for('teacher.class_messages') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.class_messages' %}text-blue-600 bg-blue-50{% endif %}">
                                 수업 공지 및 메세지
