@@ -92,10 +92,19 @@
 .mw-msg.them{ align-self:flex-start; background:var(--card); border:1px solid var(--border); }
 .mw-msg.me{ align-self:flex-end; background:var(--blue); color:#fff; }
 .mw-msg.sys{ align-self:center; background:#eef2f9; color:var(--text2); font-size:11.5px; padding:5px 11px; border-radius:999px; }
-.mw-composer{ flex-shrink:0; border-top:1px solid var(--border); background:var(--card); padding:9px 11px; display:flex; gap:7px; align-items:flex-end; }
+.mw-composer{ flex-shrink:0; border-top:1px solid var(--border); background:var(--card); padding:9px 11px; display:flex; flex-direction:column; gap:6px; }
+.mw-composer-row{ display:flex; gap:7px; align-items:flex-end; }
 .mw-composer textarea{ flex:1; resize:none; border:1px solid var(--border); border-radius:10px; padding:8px 11px; font-size:13.5px; font-family:inherit; max-height:70px; outline:none; }
 .mw-composer textarea:focus{ border-color:var(--blue); }
 .mw-composer button{ width:34px; height:34px; border-radius:10px; border:none; background:var(--blue); color:#fff; cursor:pointer; flex-shrink:0; }
+.mw-composer .mw-attach-btn{ background:var(--light); border:1px solid var(--border); color:var(--text2); font-size:15px; }
+.mw-composer .mw-attach-btn:hover{ border-color:var(--blue); color:var(--blue); }
+.mw-file-chip{ display:flex; align-items:center; gap:6px; align-self:flex-start; max-width:100%; background:var(--light); border:1px solid var(--border); border-radius:8px; padding:5px 9px; font-size:11.5px; color:var(--text2); }
+.mw-file-chip span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
+.mw-file-chip button{ width:auto; height:auto; border:none; background:none; padding:0; cursor:pointer; color:var(--text3); font-size:13px; flex-shrink:0; }
+
+.mw-att-img{ max-width:100%; border-radius:10px; display:block; margin-top:6px; cursor:zoom-in; }
+.mw-att-file{ display:flex; align-items:center; gap:6px; margin-top:6px; padding:6px 9px; background:rgba(0,0,0,.06); border-radius:8px; font-size:11.5px; text-decoration:none; color:inherit; }
 
 .mw-form{ padding:14px 16px; }
 .mw-form h3{ margin:0 0 3px; font-size:14.5px; color:var(--text); }
@@ -301,12 +310,18 @@
     return 'pending';
   }
 
+  function attHtml(m){
+    if(!m.attachment_url) return '';
+    if(m.is_image) return `<img class="mw-att-img" src="${m.attachment_url}" alt="첨부 이미지" onclick="window.open('${m.attachment_url}','_blank')">`;
+    return `<a class="mw-att-file" href="${m.attachment_url}" target="_blank" rel="noopener">📎 ${escapeHtml(m.attachment_name || '첨부파일')}</a>`;
+  }
+
   function renderThread(data){
     const fieldsHtml = Object.entries(data.fields || {}).map(([k,v])=>`<div><span>${k}</span><b>${escapeHtml(String(v))}</b></div>`).join('');
     const msgHtml = data.timeline.map(m=>{
       if(m.kind === 'sys') return `<div class="mw-msg sys">${escapeHtml(m.text)}</div>`;
       const cls = m.kind === 'me' ? 'me' : 'them';
-      return `<div class="mw-msg ${cls}">${escapeHtml(m.text)}</div>`;
+      return `<div class="mw-msg ${cls}">${escapeHtml(m.text)}${attHtml(m)}</div>`;
     }).join('');
 
     const body = document.getElementById('momoWidgetBody');
@@ -318,25 +333,55 @@
         </div>
         <div class="mw-scroll" id="momoWidgetScroll">${msgHtml}</div>
         <div class="mw-composer">
-          <textarea rows="1" placeholder="메시지 입력..." id="momoWidgetInput"></textarea>
-          <button onclick="momoWidgetSend()">➤</button>
+          <div class="mw-file-chip" id="momoWidgetFileChip" hidden>
+            <span id="momoWidgetFileName"></span>
+            <button type="button" onclick="momoWidgetClearFile()">✕</button>
+          </div>
+          <div class="mw-composer-row">
+            <button type="button" class="mw-attach-btn" onclick="document.getElementById('momoWidgetFile').click()" aria-label="파일 첨부">📎</button>
+            <textarea rows="1" placeholder="메시지 입력..." id="momoWidgetInput" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();momoWidgetSend();}"></textarea>
+            <button onclick="momoWidgetSend()">➤</button>
+          </div>
+          <input type="file" id="momoWidgetFile" accept="image/*,.pdf,.doc,.docx,.hwp" hidden onchange="momoWidgetFileChange(event)">
         </div>
       </div>
     `;
+    mwPendingFile = null;
     const scroll = document.getElementById('momoWidgetScroll');
     scroll.scrollTop = scroll.scrollHeight;
   }
+
+  let mwPendingFile = null;
+
+  window.momoWidgetFileChange = function(ev){
+    const f = ev.target.files[0];
+    if(!f) return;
+    if(f.size > 8 * 1024 * 1024){ alert('파일 크기는 8MB 이하만 가능합니다.'); ev.target.value = ''; return; }
+    mwPendingFile = f;
+    document.getElementById('momoWidgetFileName').textContent = f.name;
+    document.getElementById('momoWidgetFileChip').hidden = false;
+  };
+
+  window.momoWidgetClearFile = function(){
+    mwPendingFile = null;
+    const input = document.getElementById('momoWidgetFile');
+    if(input) input.value = '';
+    const chip = document.getElementById('momoWidgetFileChip');
+    if(chip) chip.hidden = true;
+  };
 
   window.momoWidgetSend = async function(){
     if(!mwCurrentThread) return;
     const input = document.getElementById('momoWidgetInput');
     const text = input.value.trim();
-    if(!text) return;
+    if(!text && !mwPendingFile) return;
     input.value = '';
+    const fd = new FormData();
+    fd.append('body', text);
+    if(mwPendingFile) fd.append('attachment', mwPendingFile);
+    momoWidgetClearFile();
     try{
-      await fetch(`/widget/thread/${mwCurrentThread.type}/${mwCurrentThread.id}/reply`, {
-        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({body:text})
-      });
+      await fetch(`/widget/thread/${mwCurrentThread.type}/${mwCurrentThread.id}/reply`, { method:'POST', body: fd });
       momoWidgetThread(mwCurrentThread.type, mwCurrentThread.id);
     }catch(e){
       alert('전송에 실패했습니다.');

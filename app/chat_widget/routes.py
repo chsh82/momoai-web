@@ -7,10 +7,13 @@
 대화처럼 보이게 한다 - 별도의 이벤트 로그 테이블을 새로 만들지 않고
 기존 필드(status, created_at, responded_at 등)에서 매번 계산한다.
 """
+import os
+import uuid as _uuid
 from datetime import datetime, timedelta
 
-from flask import current_app, jsonify, request, url_for
+from flask import abort, current_app, jsonify, request, send_from_directory, url_for
 from flask_login import current_user
+from werkzeug.utils import secure_filename
 
 from app.chat_widget import chat_widget_bp
 from app.models import db, User, Notification
@@ -22,6 +25,32 @@ from app.models.parent_student import ParentStudent
 from app.utils.decorators import requires_role
 
 KST_FMT = '%Y-%m-%d %H:%M'
+
+# app.messages._save_attachment와 같은 규칙(허용 확장자/저장 위치)을 그대로
+# 따른다 - 다만 파일 서빙은 별도 라우트(attachment())로 둔다. 일반 메신저의
+# download_attachment는 강사/관리자 전용이라 학부모(parent)가 못 본다.
+_ALLOWED_ATTACHMENT_EXT = {'jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'hwp'}
+_IMAGE_EXT = {'jpg', 'jpeg', 'png', 'gif'}
+
+
+def _save_attachment(file):
+    if not file or not file.filename:
+        return None, None
+    ext = os.path.splitext(secure_filename(file.filename))[1].lstrip('.').lower()
+    if ext not in _ALLOWED_ATTACHMENT_EXT:
+        return None, None
+    save_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'dm_attachments')
+    os.makedirs(save_dir, exist_ok=True)
+    unique_name = f"{_uuid.uuid4().hex}.{ext}"
+    file.save(os.path.join(save_dir, unique_name))
+    return f"dm_attachments/{unique_name}", file.filename
+
+
+def _is_image(name):
+    if not name:
+        return False
+    ext = os.path.splitext(name)[1].lstrip('.').lower()
+    return ext in _IMAGE_EXT
 
 
 def _my_children():
@@ -63,6 +92,9 @@ def _thread_messages(conversation_id):
         'who': None if m.sender_id == current_user.user_id else (m.sender.name if m.sender else '담당자'),
         'text': m.body,
         'time': m.created_at.strftime(KST_FMT),
+        'attachment_url': url_for('chat_widget.attachment', msg_id=m.message_id) if m.attachment_url else None,
+        'attachment_name': m.attachment_name,
+        'is_image': _is_image(m.attachment_name) if m.attachment_url else False,
         '_ts': m.created_at,
     } for m in msgs]
 
@@ -307,8 +339,9 @@ def reply(kind, request_id):
     if obj is None:
         return jsonify({'error': '접근 권한이 없습니다.'}), 403
 
-    body = (request.get_json(silent=True) or {}).get('body', '').strip()
-    if not body:
+    body = (request.form.get('body') or '').strip()
+    att_url, att_name = _save_attachment(request.files.get('attachment'))
+    if not body and not att_url:
         return jsonify({'error': '메시지를 입력해주세요.'}), 400
 
     admin_id = _any_admin_id()
@@ -321,7 +354,10 @@ def reply(kind, request_id):
     else:
         conv = Conversation.query.get(obj.parent_conversation_id)
 
-    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=current_user.user_id, body=body)
+    msg = ConversationMessage(
+        conversation_id=conv.conversation_id, sender_id=current_user.user_id,
+        body=body or '(사진을 보냈습니다)', attachment_url=att_url, attachment_name=att_name,
+    )
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
@@ -338,13 +374,34 @@ def reply(kind, request_id):
         user_id=other_id,
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
-        message=f'[{type_label}] {body[:80]}',
+        message=f'[{type_label}] {(body or msg.body)[:80]}',
         link_url=detail_url,
         related_user_id=current_user.user_id,
     ))
     db.session.commit()
 
     return jsonify({'ok': True})
+
+
+@chat_widget_bp.route('/widget/attachment/<int:msg_id>')
+@requires_role('parent', 'admin')
+def attachment(msg_id):
+    """대화 중 첨부파일 서빙. app.messages.download_attachment은 강사/관리자
+    전용이라 학부모가 못 본다 - 여기는 학부모도 자기 대화에 한해 볼 수 있게
+    별도로 둔다. 관리자는 어느 상담 건이든(이 conv에 user1/user2로 없어도)
+    admin_detail 화면에서 볼 수 있어야 하므로 role만으로 허용한다."""
+    msg = ConversationMessage.query.get_or_404(msg_id)
+    if not msg.attachment_url:
+        abort(404)
+    if current_user.role == 'parent':
+        conv = Conversation.query.get_or_404(msg.conversation_id)
+        uid = current_user.user_id
+        if conv.user1_id != uid and conv.user2_id != uid:
+            abort(403)
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    file_dir = os.path.dirname(os.path.join(upload_folder, msg.attachment_url))
+    file_name = os.path.basename(msg.attachment_url)
+    return send_from_directory(file_dir, file_name, download_name=msg.attachment_name or file_name)
 
 
 # ==================== 빠른 상담 신청 (위젯 안에서 바로 작성) ====================

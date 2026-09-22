@@ -67,6 +67,20 @@
             <div class="text-sm {{ 'text-right' if m.sender_id == current_user.user_id }}">
                 <span class="inline-block px-3 py-2 rounded-lg {{ 'bg-green-100 text-green-900' if m.sender_id == current_user.user_id else 'bg-gray-100 text-gray-800' }}">
                     {{ m.body }}
+                    {% if m.attachment_url %}
+                    {% set ext = m.attachment_name.rsplit('.', 1)[-1].lower() if m.attachment_name and '.' in m.attachment_name else '' %}
+                    <div class="mt-1">
+                        {% if ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                        <a href="{{ url_for('chat_widget.attachment', msg_id=m.message_id) }}" target="_blank">
+                            <img src="{{ url_for('chat_widget.attachment', msg_id=m.message_id) }}" class="max-w-[200px] rounded-md border border-gray-200">
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('chat_widget.attachment', msg_id=m.message_id) }}" target="_blank" class="inline-flex items-center gap-1 text-xs underline">
+                            📎 {{ m.attachment_name }}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </span>
             </div>
             {% endfor %}
