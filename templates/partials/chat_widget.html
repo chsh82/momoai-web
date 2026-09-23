@@ -231,8 +231,31 @@
     scroll.scrollTop = scroll.scrollHeight;
   }
 
-  const INTENT_LABEL = { consult:'📋 상담 신청', makeup:'🔄 보강 신청', refund:'💰 결제·환불', inquiry:'💬 문의하기' };
+  // 대화 중간에 페이지가 갑자기 넘어가 버리지 않도록, 자유 텍스트로 들어온
+  // 요청은 안내 버튼을 눌러야만 다른 화면으로 이동한다(버튼 클릭 같은 명시적
+  // 진입은 momoWidgetPickIntent가 계속 즉시 이동시킴 - 의도가 이미 확실하므로).
+  function appendHomeCta(label, onClick){
+    const scroll = document.getElementById('momoWidgetHomeScroll');
+    if(!scroll) return;
+    const div = document.createElement('div');
+    div.className = 'mw-msg them';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mw-chip-btn';
+    btn.textContent = label;
+    btn.onclick = onClick;
+    div.appendChild(btn);
+    scroll.appendChild(div);
+    scroll.scrollTop = scroll.scrollHeight;
+  }
 
+  const INTENT_LABEL = { consult:'📋 상담 신청', makeup:'🔄 보강 신청', refund:'💰 결제·환불', inquiry:'💬 문의하기' };
+  const ROUTE_CTA = {
+    makeup: { label: '🔄 보강 신청 페이지로 이동', href: '{{ url_for("parent.makeup_classes_index") }}' },
+    refund: { label: '💰 결제·환불 내역 보기', href: '{{ url_for("parent.all_payments") }}' },
+  };
+
+  // 버튼(퀵리플라이)으로 의도가 이미 확실한 경우 - 기존처럼 바로 이동/전환.
   function routeIntent(intent, replyText){
     if(!INTENT_LABEL[intent]) intent = 'inquiry';
     appendHomeBubble('them', replyText || '네, 확인해볼게요.');
@@ -241,6 +264,21 @@
       else if(intent === 'refund'){ location.href = '{{ url_for("parent.all_payments") }}'; }
       else { momoWidgetConsultForm(); }
     }, 500);
+  }
+
+  // 자유 텍스트로 들어온 경우 - LLM 분류가 틀렸거나 사용자 메시지에 예외
+  // 상황(예: "목록에 없는 반")이 섞여 있을 수 있으므로 자동 이동하지 않고
+  // 안내 버튼만 보여준다. consult/inquiry는 원래도 페이지 이동이 아니라
+  // 위젯 내부 폼 전환이라 그대로 유지.
+  function routeIntentFromText(intent, replyText){
+    if(!INTENT_LABEL[intent]) intent = 'inquiry';
+    appendHomeBubble('them', replyText || '네, 확인해볼게요.');
+    const cta = ROUTE_CTA[intent];
+    if(cta){
+      appendHomeCta(cta.label, () => { location.href = cta.href; });
+    } else {
+      setTimeout(()=>{ momoWidgetConsultForm(); }, 500);
+    }
   }
 
   window.momoWidgetPickIntent = function(intent){
@@ -269,7 +307,7 @@
       const scroll = document.getElementById('momoWidgetHomeScroll');
       if(scroll && scroll.lastChild) scroll.removeChild(scroll.lastChild); // "확인하고 있어요..." 제거
       if(data.error){ appendHomeBubble('them', data.error); return; }
-      routeIntent(data.intent, data.reply);
+      routeIntentFromText(data.intent, data.reply);
     }catch(e){
       const scroll = document.getElementById('momoWidgetHomeScroll');
       if(scroll && scroll.lastChild) scroll.removeChild(scroll.lastChild);

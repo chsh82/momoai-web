@@ -450,6 +450,7 @@ def quick_consult():
 
 _WIDGET_LLM_HOURLY_LIMIT = 30
 _WIDGET_INTENTS = ('consult', 'makeup', 'refund', 'inquiry')
+_INTENT_LOG_LABEL = {'consult': '상담', 'makeup': '보강', 'refund': '환불', 'inquiry': '문의'}
 
 
 def _widget_llm_rate_limited():
@@ -476,6 +477,47 @@ def _log_widget_llm_usage(usage):
     ))
 
 
+def _log_widget_free_text(text, intent):
+    """위젯 입구의 자유 텍스트 원문을 상담 신청(카테고리 '기타')으로 남긴다.
+
+    makeup/refund로 분류되면 프론트가 안내 페이지로 이동시키는데, 그 페이지에
+    사용자가 실제로 물어본 예외 상황(예: "목록에 없는 반")까지 처리해줄 단서는
+    없다 - 이동 여부와 무관하게 원문이 관리자 화면(상담 신청 목록)에 항상
+    남도록 별도 기록을 남긴다. 전용 문의 테이블이 없어 기존 ConsultationRequest
+    인프라(알림·상세화면·답장 스레드)를 재사용한다 - 진짜 상담 신청은 아니지만
+    관리자가 볼 수 있는 유일한 자유 텍스트 경로다.
+    """
+    children = _my_children()
+    if not children:
+        return
+    student_id = children[0].student_id
+    reason = f'[위젯 자동분류: {_INTENT_LOG_LABEL.get(intent, intent)}] {text}'
+    if len(children) > 1:
+        reason += '\n(자녀 여러 명 - 위젯에서 특정되지 않음, 확인 필요)'
+
+    req = ConsultationRequest(
+        student_id=student_id, requester_id=current_user.user_id,
+        category='기타', reason=reason, status='pending',
+    )
+    db.session.add(req)
+    db.session.flush()
+
+    admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+    for admin in admins:
+        db.session.add(Notification(
+            user_id=admin.user_id, notification_type='consultation_request',
+            title=f'💬 위젯 문의({_INTENT_LOG_LABEL.get(intent, intent)}): {children[0].display_name if len(children) == 1 else "자녀 확인 필요"}',
+            message=text[:60],
+            related_entity_type='consultation_request', related_entity_id=req.request_id,
+            link_url=url_for('consultation_request.admin_detail', request_id=req.request_id),
+        ))
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('[chat_widget.classify_intent] 위젯 문의 로그 저장 실패')
+
+
 @chat_widget_bp.route('/widget/classify', methods=['POST'])
 @requires_role('parent', 'admin')
 def classify_intent():
@@ -489,6 +531,7 @@ def classify_intent():
     fallback = {'intent': 'inquiry', 'reply': '네, 확인 후 답변드릴게요. 아래에서 문의를 남겨주세요.'}
 
     if _widget_llm_rate_limited():
+        _log_widget_free_text(text, fallback['intent'])
         return jsonify(fallback)
 
     prompt = f"""당신은 국어 학원 학부모 채팅창의 안내 담당자입니다.
@@ -508,6 +551,7 @@ def classify_intent():
         raw, usage = call_claude_text(prompt, max_tokens=150)
     except Exception:
         current_app.logger.exception('[chat_widget.classify_intent] 호출 실패')
+        _log_widget_free_text(text, fallback['intent'])
         return jsonify(fallback)
 
     try:
@@ -519,4 +563,5 @@ def classify_intent():
     parsed = extract_json_block(raw) or {}
     intent = parsed.get('intent') if parsed.get('intent') in _WIDGET_INTENTS else 'inquiry'
     reply = parsed.get('reply') or fallback['reply']
+    _log_widget_free_text(text, intent)
     return jsonify({'intent': intent, 'reply': reply})
