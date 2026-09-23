@@ -3467,6 +3467,96 @@ def makeup_parent_reply(request_id):
     return redirect(url_for('admin.makeup_requests'))
 
 
+# ==================== 전체 대화 기록 (상담/보강/환불 통합) ====================
+# 학부모 대화가 상담 신청 접수함/보강수업 관리/환불 요청 접수함 세 화면에
+# 나뉘어 있어 관리자가 놓치기 쉽다는 문제로 신설 - 세 유형을 시간순으로
+# 합쳐 한 화면에서 보고, 클릭하면 app.chat_widget의 기존 스레드 API
+# (/widget/thread/<kind>/<id>, 조회·답장 둘 다 admin 권한으로 이미 접근
+# 가능했음)를 그대로 재사용해 모달에서 바로 확인·답장한다.
+
+def _conversation_has_parent_unread(conv_id):
+    from app.models.conversation import ConversationMessage
+    if not conv_id:
+        return False
+    return ConversationMessage.query.join(User, ConversationMessage.sender_id == User.user_id) \
+        .filter(ConversationMessage.conversation_id == conv_id,
+                User.role == 'parent', ConversationMessage.is_read == False).count() > 0
+
+
+@admin_bp.route('/conversations')
+@login_required
+@requires_permission_level(2)
+def conversation_history():
+    """학부모 대화 전체 기록 - 상담/보강/환불 신청을 시간순으로 통합해 보여준다."""
+    from app.models.consultation_request import ConsultationRequest
+    from app.models.makeup_request import MakeupClassRequest
+    from app.models.refund_request import RefundRequest
+
+    type_filter = request.args.get('type', '').strip()
+    q = request.args.get('q', '').strip()
+
+    items = []
+
+    if type_filter in ('', 'consult'):
+        for r in ConsultationRequest.query.all():
+            parent_name = r.requester.name if r.requester else ''
+            student_name = r.student.display_name if r.student else ''
+            if q and q not in parent_name and q not in student_name:
+                continue
+            is_widget_log = r.category == '기타' and r.reason and r.reason.startswith('[위젯 자동분류')
+            items.append({
+                'kind': 'consult', 'id': r.request_id,
+                'parent_name': parent_name, 'student_name': student_name,
+                'badge': '📋 상담' if not is_widget_log else '💬 위젯 문의',
+                'preview': r.reason[:80] if r.reason else '',
+                'status': r.status,
+                'status_label': {'pending': '접수 대기', 'scheduled': '일정 확정', 'rejected': '반려', 'completed': '완료'}.get(r.status, r.status),
+                'time': r.updated_at,
+                'unread': _conversation_has_parent_unread(r.parent_conversation_id),
+            })
+
+    if type_filter in ('', 'makeup'):
+        for r in MakeupClassRequest.query.all():
+            parent = User.query.get(r.requested_by) if r.requested_by else None
+            parent_name = parent.name if parent else ''
+            student_name = r.student.display_name if r.student else ''
+            if q and q not in parent_name and q not in student_name:
+                continue
+            items.append({
+                'kind': 'makeup', 'id': r.request_id,
+                'parent_name': parent_name, 'student_name': student_name,
+                'badge': '🔄 보강',
+                'preview': r.reason[:80] if r.reason else '',
+                'status': r.status,
+                'status_label': {'pending': '접수 대기', 'approved': '보강 확정', 'rejected': '반려'}.get(r.status, r.status),
+                'time': r.updated_at,
+                'unread': _conversation_has_parent_unread(r.parent_conversation_id),
+            })
+
+    if type_filter in ('', 'refund'):
+        for r in RefundRequest.query.all():
+            parent_name = r.requester.name if r.requester else ''
+            student_name = r.payment.student.display_name if r.payment and r.payment.student else ''
+            if q and q not in parent_name and q not in student_name:
+                continue
+            items.append({
+                'kind': 'refund', 'id': r.request_id,
+                'parent_name': parent_name, 'student_name': student_name,
+                'badge': '💰 환불',
+                'preview': r.reason[:80] if r.reason else '',
+                'status': r.status,
+                'status_label': {'pending': '검토 대기', 'approved': '승인됨', 'rejected': '반려'}.get(r.status, r.status),
+                'time': r.updated_at,
+                'unread': _conversation_has_parent_unread(r.parent_conversation_id),
+            })
+
+    items.sort(key=lambda x: x['time'] or datetime.min, reverse=True)
+
+    return render_template('admin/conversation_history.html',
+                            items=items, type_filter=type_filter, q=q,
+                            unread_count=sum(1 for i in items if i['unread']))
+
+
 _LLM_HOURLY_LIMIT = 30
 
 
