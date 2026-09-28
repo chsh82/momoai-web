@@ -878,7 +878,9 @@ def fix_missing_sessions(course_id):
             )
             db.session.add(new_session)
             db.session.flush()
-            create_attendance_records_for_session(new_session)
+            # 관리자가 직접 확인하고 보완하는 과거 세션이므로, 입반일이 세션 날짜보다
+            # 늦은 재원생(재등록 등)이어도 출결 레코드를 생성한다.
+            create_attendance_records_for_session(new_session, skip_date_filter=True)
             added += 1
         current += timedelta(days=7)
 
@@ -917,6 +919,22 @@ def session_attendance(session_id):
     return render_template('admin/session_attendance.html',
                          course_session=course_session,
                          attendance_records=attendance_records)
+
+
+@admin_bp.route('/sessions/<session_id>/regenerate-attendance', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def regenerate_session_attendance(session_id):
+    """세션 출석 레코드 재생성 (재등록 등으로 입반일이 늦어져 출결 레코드가 누락된 재원생 보완용)"""
+    from app.utils.course_utils import create_attendance_records_for_session
+    course_session = CourseSession.query.get_or_404(session_id)
+    created = create_attendance_records_for_session(course_session, skip_date_filter=True)
+    db.session.commit()
+    if created:
+        flash(f'출결 레코드 {len(created)}건을 생성했습니다.', 'success')
+    else:
+        flash('추가로 생성할 출결 레코드가 없습니다.', 'info')
+    return redirect(url_for('admin.session_attendance', session_id=session_id))
 
 
 @admin_bp.route('/sessions/<session_id>/mark-completed', methods=['POST'])

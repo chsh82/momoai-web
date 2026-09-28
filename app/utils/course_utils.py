@@ -202,13 +202,16 @@ def create_attendance_records_for_enrollment(enrollment):
     return attendance_records
 
 
-def create_attendance_records_for_session(session, default_status='present'):
+def create_attendance_records_for_session(session, default_status='present', skip_date_filter=False):
     """
     새로운 세션이 생성되면 모든 수강 학생에 대한 출석 레코드를 자동 생성
 
     Args:
         session: CourseSession 객체
         default_status: 출석 레코드 초기 상태 ('present' 또는 'absent')
+        skip_date_filter: True면 입반일이 세션 날짜보다 늦어도 현재 재원 중인 학생이면 레코드 생성
+            (관리자가 누락된 과거 세션을 수동으로 보완하는 경우처럼, 그 세션에 실제로 수업이
+            있었음을 관리자가 직접 확인한 경우에만 사용)
 
     Returns:
         생성된 Attendance 객체 리스트
@@ -227,7 +230,7 @@ def create_attendance_records_for_session(session, default_status='present'):
         if enrollment.status == 'active':
             # 입반일 이후 세션만 생성
             enrollment_date = enrollment.enrolled_at.date() if enrollment.enrolled_at else None
-            if enrollment_date and enrollment_date > session.session_date:
+            if not skip_date_filter and enrollment_date and enrollment_date > session.session_date:
                 continue
             # 이미 존재하는지 확인
             existing = Attendance.query.filter_by(
