@@ -51,8 +51,16 @@ def _notify_parent_response(req):
         message = req.reject_reason or ''
     else:
         return
+
+    # 학부모가 신청할 때 쓴 그 대화 스레드에 이어서 남긴다 - 알림(벨)만
+    # 보내면 신청과 응답이 서로 다른 대화처럼 보인다는 피드백을 반영
+    # (2026-09-29, 그룹 보강 거절에서 같은 문제 발견 후 상담에도 함께 적용).
+    from app.utils.course_utils import post_parent_conversation_message
+    post_parent_conversation_message(req, current_user.user_id, req.requester_id, f'{title}\n{message}'.strip())
+
     # create_notification()을 통해야 웹푸시도 함께 나간다 - 직접 db.session.add로
     # 만들면 알림함에만 쌓이고 실제 알림(푸시)은 안 가서 확인이 늦어진다.
+    # link_url도 별도 페이지가 아니라 위젯 대화로 바로 열리게 한다.
     Notification.create_notification(
         user_id=req.requester_id,
         notification_type='consultation_request',
@@ -60,7 +68,7 @@ def _notify_parent_response(req):
         message=message,
         related_entity_type='consultation_request',
         related_entity_id=req.request_id,
-        link_url=url_for('consultation_request.detail', request_id=req.request_id),
+        link_url=url_for('parent.index', mw=f'consult:{req.request_id}'),
     )
 
 

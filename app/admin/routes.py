@@ -3213,56 +3213,62 @@ def approve_makeup_request(request_id):
 @login_required
 @requires_permission_level(2)
 def reject_makeup_request(request_id):
-    """보강수업 신청 거절"""
+    """보강수업 신청 거절 - 학부모가 신청할 때 쓴 그 대화 스레드에 거절
+    사유를 이어서 남긴다. 예전엔 알림(벨)만 만들고 대화는 전혀 안 건드려서,
+    학부모가 신청했던 대화와 거절 응답이 서로 다른 것처럼 보이는 문제가
+    있었다(2026-09-29, 최선우 학생 건에서 발견)."""
     from app.models.makeup_request import MakeupClassRequest
-    
+    from app.utils.course_utils import post_parent_conversation_message
+
     makeup_request = MakeupClassRequest.query.get_or_404(request_id)
-    
+
     if makeup_request.status != 'pending':
         flash('이미 처리된 신청입니다.', 'warning')
         return redirect(url_for('admin.makeup_requests'))
-    
-    # 거절 사유
+
     reject_reason = request.form.get('reject_reason', '').strip()
-    
-    # 신청 상태 업데이트
+
     makeup_request.status = 'rejected'
     makeup_request.admin_response_date = datetime.utcnow()
     makeup_request.admin_response_by = current_user.user_id
     makeup_request.admin_notes = reject_reason
-    
-    # 신청자에게 알림
+
     requester = makeup_request.requester
     student = makeup_request.student
     original_course = makeup_request.requested_course
+    body = f'"{original_course.course_name}" 보강수업 신청이 거절되었습니다. 사유: {reject_reason or "없음"}'
+    widget_link = url_for('parent.index', mw=f'makeup:{request_id}')
+
+    if requester and requester.role == 'parent':
+        post_parent_conversation_message(makeup_request, current_user.user_id, requester.user_id, body)
+
+    db.session.commit()
 
     if requester:
-        notification = Notification(
+        Notification.create_notification(
             user_id=requester.user_id,
             notification_type='makeup_rejected',
             title='보강수업 신청이 거절되었습니다',
-            message=f'"{original_course.course_name}" 보강수업 신청이 거절되었습니다. 사유: {reject_reason or "없음"}',
+            message=body,
             related_entity_type='makeup_request',
-            related_entity_id=request_id
+            related_entity_id=request_id,
+            link_url=widget_link if requester.role == 'parent' else None,
         )
-        db.session.add(notification)
 
         # 학부모에게도 알림 (학생이 신청한 경우)
         if requester.role == 'student':
             from app.models.parent_student import ParentStudent
             parent_links = ParentStudent.query.filter_by(student_id=student.student_id, is_active=True).all()
             for link in parent_links:
-                parent_notification = Notification(
+                Notification.create_notification(
                     user_id=link.parent_id,
                     notification_type='makeup_rejected',
                     title=f'{student.name} 학생의 보강수업 신청 거절',
-                    message=f'{student.name} 학생의 "{original_course.course_name}" 보강수업 신청이 거절되었습니다. 사유: {reject_reason or "없음"}',
+                    message=f'{student.name} 학생의 {body}',
                     related_entity_type='makeup_request',
-                    related_entity_id=request_id
+                    related_entity_id=request_id,
+                    link_url=widget_link,
                 )
-                db.session.add(parent_notification)
-
-    db.session.commit()
 
     flash('보강수업 신청이 거절되었습니다.', 'info')
     return redirect(url_for('admin.makeup_requests'))

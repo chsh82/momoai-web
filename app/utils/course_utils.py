@@ -542,6 +542,27 @@ def create_makeup_course_from_source(source_course, student, makeup_date, schedu
     return makeup_course
 
 
+def post_parent_conversation_message(obj, sender_id, parent_id, body):
+    """obj(MakeupClassRequest/ConsultationRequest 등 parent_conversation_id를
+    갖는 신청 모델)의 학부모 대화 스레드에 실제 메시지를 남긴다(없으면 새로
+    생성). 승인/거절 같은 상태 변화를 알림(벨)만으로 끝내면 학부모 입장에서
+    "신청했던 그 대화가 이어지는 느낌"이 안 든다는 피드백을 반영 - 관리자가
+    직접 처리한 경우에만 부른다(자동 확정처럼 학부모 본인 행동에 대해서는
+    위젯이 즉시 다시 그려주는 합성 타임라인으로 충분하다)."""
+    if not sender_id or not parent_id:
+        return
+    from app.models.conversation import Conversation, ConversationMessage
+    if not obj.parent_conversation_id:
+        conv = Conversation(user1_id=sender_id, user2_id=parent_id)
+        db.session.add(conv)
+        db.session.flush()
+        obj.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(obj.parent_conversation_id)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(ConversationMessage(conversation_id=conv.conversation_id, sender_id=sender_id, body=body))
+
+
 def finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=None,
                              approved_by=None, admin_notes=None):
     """MakeupClassRequest(그룹 보강)를 확정 - 1회 보강수업 개설 + 학생 등록 +
@@ -581,9 +602,18 @@ def finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=N
     # 어느 대화인지 다시 찾아야 해서 확인이 어렵다는 피드백을 반영).
     widget_link = url_for('parent.index', mw=f'makeup:{makeup_request.request_id}')
 
+    # 관리자가 직접 승인한 경우에만 대화 메시지를 남긴다(자동 확정은 학부모
+    # 본인 행동이라 위젯이 즉시 다시 그려주는 합성 타임라인으로 충분함).
+    requester = makeup_request.requester
+    if approved_by and requester and requester.role == 'parent':
+        post_parent_conversation_message(
+            makeup_request, approved_by, requester.user_id,
+            f'✅ 보강 일정이 확정되었습니다. "{original_course.course_name}" · {when_label}'
+            + (f' {makeup_start.strftime("%H:%M")}' if makeup_start else ''),
+        )
+
     # 실제 발송(push 포함)은 create_notification()을 통해서만 이뤄진다 - 직접
     # db.session.add(Notification(...))로 만들면 웹푸시가 나가지 않는다.
-    requester = makeup_request.requester
     if requester:
         Notification.create_notification(
             user_id=requester.user_id,
@@ -660,6 +690,12 @@ def finalize_individual_makeup(consult_request, source_course, makeup_date, make
     widget_link = url_for('parent.index', mw=f'consult:{consult_request.request_id}')
 
     requester = consult_request.requester
+    if approved_by and requester and requester.role == 'parent':
+        post_parent_conversation_message(
+            consult_request, approved_by, requester.user_id,
+            f'✅ 보강 일정이 확정되었습니다. {when_label}{time_label}',
+        )
+
     if requester:
         Notification.create_notification(
             user_id=requester.user_id,
