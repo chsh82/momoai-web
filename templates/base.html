@@ -408,9 +408,7 @@
                             <a href="{{ url_for('consultation_request.admin_list') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'consultation_request.admin' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
                                 <span>📥 상담 신청 접수함</span>
-                                {% if unread_counts.consultation_request_pending > 0 %}
-                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.consultation_request_pending }}</span>
-                                {% endif %}
+                                <span data-badge="consultation_request_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.consultation_request_pending %}hidden{% endif %}">{{ unread_counts.consultation_request_pending }}</span>
                             </a>
                             <a href="{{ url_for('inquiry.index') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
@@ -520,9 +518,7 @@
                             <a href="{{ url_for('messages.inbox') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'messages.' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
                                 <span>💬 업무 메신저</span>
-                                {% if unread_counts.dm > 0 %}
-                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.dm }}</span>
-                                {% endif %}
+                                <span data-badge="dm" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.dm %}hidden{% endif %}">{{ unread_counts.dm }}</span>
                             </a>
                         </div>
                     </div>
@@ -591,9 +587,7 @@
                             <a href="{{ url_for('refund_request.admin_list') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'refund_request.admin' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
                                 <span>💰 환불 요청 접수함</span>
-                                {% if unread_counts.refund_request_pending > 0 %}
-                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.refund_request_pending }}</span>
-                                {% endif %}
+                                <span data-badge="refund_request_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.refund_request_pending %}hidden{% endif %}">{{ unread_counts.refund_request_pending }}</span>
                             </a>
                             <a href="{{ url_for('admin.session_adjustments') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'session_adjustment' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
@@ -726,9 +720,12 @@
                             <a href="{{ url_for('teacher.makeup_confirm_list') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.makeup_confirm' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 <span>🔄 보강 신청 확인</span>
-                                {% if unread_counts.makeup_confirm_pending > 0 %}
-                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.makeup_confirm_pending }}</span>
-                                {% endif %}
+                                <span data-badge="makeup_confirm_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.makeup_confirm_pending %}hidden{% endif %}">{{ unread_counts.makeup_confirm_pending }}</span>
+                            </a>
+                            <a href="{{ url_for('teacher.consult_confirm_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.consult_confirm' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                <span>💬 상담/개별보강 협의 확인</span>
+                                <span data-badge="consult_confirm_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.consult_confirm_pending %}hidden{% endif %}">{{ unread_counts.consult_confirm_pending }}</span>
                             </a>
                             <a href="{{ url_for('teacher.class_messages') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.class_messages' %}text-blue-600 bg-blue-50{% endif %}">
@@ -1621,7 +1618,10 @@
         }
     }
 
-    // 알림 뱃지 업데이트
+    // 알림 뱃지 업데이트 - 종 아이콘뿐 아니라 사이드바의 "상담 신청 접수함"/
+    // "보강 신청 확인" 같은 배지([data-badge])도 30초마다 같이 갱신한다.
+    // 예전엔 이 사이드바 배지들이 페이지 로드 시점 값 그대로 고정돼 있어서
+    // 새 신청/답변이 와도 그 메뉴를 직접 눌러봐야만 알 수 있었다.
     function updateNotificationBadge() {
         fetch('/notifications/api/unread-count')
             .then(response => response.json())
@@ -1644,6 +1644,13 @@
                         navigator.clearAppBadge().catch(() => {});
                     }
                 }
+
+                const sidebar = data.sidebar || {};
+                document.querySelectorAll('[data-badge]').forEach(function(el) {
+                    const n = sidebar[el.getAttribute('data-badge')] || 0;
+                    el.textContent = n;
+                    el.classList.toggle('hidden', n <= 0);
+                });
             })
             .catch(error => console.error('Error fetching notification count:', error));
     }

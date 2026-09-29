@@ -70,11 +70,20 @@ def mark_all_read():
 @notifications_bp.route('/api/unread-count')
 @login_required
 def api_unread_count():
-    """읽지 않은 알림 수 조회 API"""
+    """읽지 않은 알림 수 + 사이드바 배지용 세부 건수 조회 API.
+
+    base.html이 30초마다 이 API를 폴링해 종 아이콘뿐 아니라 사이드바의
+    "상담 신청 접수함"/"보강 신청 확인" 같은 배지도 함께 갱신한다 - 예전엔
+    사이드바 배지가 페이지를 새로 열어야만 갱신돼서, 새 신청/답변이 와도
+    직접 그 메뉴를 눌러봐야만 알 수 있었다."""
+    from app.utils.notification_counts import compute_unread_counts
+
     unread_count = Notification.get_unread_count(current_user.user_id)
+    sidebar = compute_unread_counts(current_user)
 
     return jsonify({
-        'unread_count': unread_count
+        'unread_count': unread_count,
+        'sidebar': sidebar,
     })
 
 

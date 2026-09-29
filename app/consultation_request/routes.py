@@ -191,15 +191,25 @@ def admin_detail(request_id):
     # 수업(requested_course_id)이 없어(애초에 매칭되는 그룹 수업이 없어서
     # 개별로 신청한 것) 학생의 현재 수강 목록에서 관리자가 직접 골라야 한다.
     student_courses = []
+    default_source_course_id = None
     if req.category == MAKEUP_INDIVIDUAL_CATEGORY and req.status == 'pending':
         from app.models.course import CourseEnrollment
         student_courses = [e.course for e in CourseEnrollment.query.filter_by(
             student_id=req.student_id, status='active'
         ).all() if e.course]
+        # 이미 한 번 골라둔 게 있으면(제안을 다시 보내는 경우) 그대로, 없으면
+        # 선택지가 하나뿐일 때 자동 선택 - 매번 같은 걸 다시 고르는 반복 작업을
+        # 줄인다(2026-09-29 피드백). 이 값은 요금/시수 산정 기준일 뿐, 실제
+        # 보강 시간은 아래 날짜/시간 입력이 결정한다.
+        if req.proposed_source_course_id:
+            default_source_course_id = req.proposed_source_course_id
+        elif len(student_courses) == 1:
+            default_source_course_id = student_courses[0].course_id
 
     return render_template('consultation_request/admin_detail.html',
                             req=req, teachers=teachers, internal_messages=internal_messages,
-                            parent_messages=parent_messages, student_courses=student_courses)
+                            parent_messages=parent_messages, student_courses=student_courses,
+                            default_source_course_id=default_source_course_id)
 
 
 @consultation_request_bp.route('/admin/<request_id>/parent-reply', methods=['POST'])
