@@ -360,6 +360,35 @@ def badge_sweep_job(app):
             logger.exception('[BadgeSweep] 오류')
 
 
+def terminate_finished_makeup_courses_job(app):
+    """매주 월요일 00:02: 종료일이 지난 보강 수업을 자동으로 종료(is_terminated=True)
+    처리한다. 보강수업은 1회성(start_date==end_date)이라 종료일이 지나면 사실상
+    끝난 수업인데, 예전엔 관리자가 일일이 수동으로 종료 처리해야 해서 지난
+    보강 수업이 계속 "진행 중"인 상태로 남아있었다 - 수업명이 "[보강] ..."으로
+    시작해 정렬 순서상 항상 위로 떠서 학생 출결 화면에서 최근 출결 확인이
+    불편하다는 피드백으로 이어졌다(2026-09-29)."""
+    from datetime import date, datetime
+    with app.app_context():
+        logger.info('[MakeupTerminate] job 시작')
+        job_start = datetime.utcnow()
+        try:
+            from app.models import db, Course
+            today = date.today()
+            courses = Course.query.filter(
+                Course.course_type.like('보강%'),
+                Course.is_terminated == False,
+                Course.end_date < today,
+            ).all()
+            for c in courses:
+                c.is_terminated = True
+            db.session.commit()
+            elapsed = (datetime.utcnow() - job_start).total_seconds()
+            logger.info('[MakeupTerminate] job 종료 - %d개 보강 수업 종료 처리, 소요 %.1f초',
+                       len(courses), elapsed)
+        except Exception:
+            logger.exception('[MakeupTerminate] 오류')
+
+
 def init_scheduler(app):
     """스케줄러 초기화 및 시작 (단일 워커에서만 실행)"""
     if scheduler.running:
@@ -442,6 +471,13 @@ def init_scheduler(app):
         args=[app],
         trigger=CronTrigger(hour=3, minute=0, timezone='Asia/Seoul'),
         id='badge_sweep',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        func=terminate_finished_makeup_courses_job,
+        args=[app],
+        trigger=CronTrigger(day_of_week='mon', hour=0, minute=2, timezone='Asia/Seoul'),
+        id='makeup_course_terminate',
         replace_existing=True
     )
 

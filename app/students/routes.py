@@ -275,6 +275,7 @@ def detail(student_id):
             'enrollment': enrollment,
             'course': enrollment.course,
             'records': records[:10],  # 최근 10회만
+            'recent_date': records[0].session.session_date if records else None,
             'attended': attended,
             'late': late,
             'absent': absent,
@@ -282,6 +283,17 @@ def detail(student_id):
             'total': total,
             'rate': rate,
         })
+
+    # active 그룹/dropped·inactive 그룹 구분은 유지하되, 그룹 안에서는
+    # 수업명(가나다) 대신 가장 최근 출결일 순으로 정렬한다. 보강 수업명이
+    # "[보강] ..."으로 시작해 대괄호가 한글보다 정렬 순위가 앞서다 보니,
+    # 예전엔 끝난 지 오래된 보강 수업이 항상 최상단에 떠서 최근 출결 확인이
+    # 불편하다는 피드백을 반영(2026-09-29).
+    def _attendance_sort_key(item):
+        status_priority = 0 if item['enrollment'].status == 'active' else 1
+        recent = item['recent_date']
+        return (status_priority, -(recent.toordinal() if recent else -1))
+    attendance_by_course.sort(key=_attendance_sort_key)
 
     from app.models import User
     student_user = User.query.filter_by(email=student.email).first() if student.email else None

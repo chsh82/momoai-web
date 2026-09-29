@@ -2935,8 +2935,12 @@ def student_attendance_report():
                     'absent_makeup': c_absent_makeup, 'rate': c_rate
                 }
             })
-        # 수업명 정렬
-        course_data.sort(key=lambda x: x['course'].course_name)
+        # 최근 수업이 위로 오도록 정렬 - 각 수업 그룹의 records는 이미
+        # session_date desc로 정렬돼 있으므로 records[0]이 그 수업의 가장
+        # 최근 출결일이다. 예전엔 수업명(가나다) 순이라 "[보강] ..."처럼
+        # 이름이 앞서는 과거 보강 수업이 최근 정규 수업보다 위에 떠서
+        # 출결 확인이 불편하다는 피드백을 반영(2026-09-29).
+        course_data.sort(key=lambda x: x['records'][0].session.session_date, reverse=True)
 
     # 연도 목록 (최근 3년)
     years = list(range(today.year - 2, today.year + 1))
