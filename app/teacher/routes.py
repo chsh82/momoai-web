@@ -471,8 +471,9 @@ def makeup_confirm(request_id):
     # 관리자가 특정 시간을 지목했으면(admin_ask_date) 강사가 그대로 "가능합니다"만
     # 눌러도 되고, 폼에 다른 날짜/시간을 입력하면 그걸 대신 제안한 걸로 처리한다.
     # 관리자가 자유롭게 물어본 경우엔 날짜 입력이 필수다.
+    from app.utils.course_utils import parse_hm_time
+
     teacher_date_str = request.form.get('teacher_date', '').strip()
-    teacher_time_str = request.form.get('teacher_time', '').strip()
     note = request.form.get('note', '').strip()
 
     if teacher_date_str:
@@ -481,12 +482,7 @@ def makeup_confirm(request_id):
         except ValueError:
             flash('날짜 형식이 올바르지 않습니다.', 'error')
             return redirect(url_for('teacher.makeup_confirm_detail', request_id=request_id))
-        teacher_time = None
-        if teacher_time_str:
-            try:
-                teacher_time = datetime.strptime(teacher_time_str, '%H:%M').time()
-            except ValueError:
-                pass
+        teacher_time = parse_hm_time(request.form, 'teacher_time')
     elif makeup_request.admin_ask_date:
         teacher_date = makeup_request.admin_ask_date
         teacher_time = makeup_request.admin_ask_time
@@ -607,8 +603,9 @@ def consult_confirm(request_id):
         flash('이미 처리된 신청입니다.', 'warning')
         return redirect(url_for('teacher.consult_confirm_list'))
 
+    from app.utils.course_utils import parse_hm_time
+
     teacher_date_str = request.form.get('teacher_date', '').strip()
-    teacher_time_str = request.form.get('teacher_time', '').strip()
     note = request.form.get('note', '').strip()
 
     if teacher_date_str:
@@ -617,12 +614,7 @@ def consult_confirm(request_id):
         except ValueError:
             flash('날짜 형식이 올바르지 않습니다.', 'error')
             return redirect(url_for('teacher.consult_confirm_detail', request_id=request_id))
-        teacher_time = None
-        if teacher_time_str:
-            try:
-                teacher_time = datetime.strptime(teacher_time_str, '%H:%M').time()
-            except ValueError:
-                pass
+        teacher_time = parse_hm_time(request.form, 'teacher_time')
     elif req.admin_ask_date:
         teacher_date = req.admin_ask_date
         teacher_time = req.admin_ask_time

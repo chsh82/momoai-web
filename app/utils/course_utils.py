@@ -8,6 +8,18 @@ from app.models import db, Course, CourseSession, CourseEnrollment, Attendance
 SESSION_INITIAL_LOOKAHEAD_DAYS = 14
 
 
+def parse_hm_time(form, prefix):
+    """시/분 select 두 개(`{prefix}_hour`, `{prefix}_minute`)로 입력받은 값을
+    time 객체로 조합한다. 브라우저 로케일에 따라 <input type="time">이
+    오전/오후로 표시되는 문제 때문에 강사·관리자 시간 협의 폼은 전부 24시간
+    기준 select로 통일했다. 시가 비어있으면 None(시간 미지정)을 반환한다."""
+    hour = form.get(f'{prefix}_hour', '').strip()
+    if not hour:
+        return None
+    minute = form.get(f'{prefix}_minute', '00').strip() or '00'
+    return time(int(hour), int(minute))
+
+
 def generate_course_sessions(course):
     """
     수업 생성 시 근미래 세션만 생성 (weekly: 약 14일, custom/단일: 변동 없음).
@@ -565,31 +577,38 @@ def finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=N
 
     makeup_start = makeup_course.start_time
     when_label = makeup_date.strftime("%Y년 %m월 %d일")
+    # 위젯 알림 클릭 시 이 신청 스레드로 바로 열리게 한다(그냥 홈으로 가면
+    # 어느 대화인지 다시 찾아야 해서 확인이 어렵다는 피드백을 반영).
+    widget_link = url_for('parent.index', mw=f'makeup:{makeup_request.request_id}')
 
+    # 실제 발송(push 포함)은 create_notification()을 통해서만 이뤄진다 - 직접
+    # db.session.add(Notification(...))로 만들면 웹푸시가 나가지 않는다.
     requester = makeup_request.requester
     if requester:
-        db.session.add(Notification(
+        Notification.create_notification(
             user_id=requester.user_id,
             notification_type='makeup_approved',
             title='보강수업 신청이 승인되었습니다',
             message=f'"{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {when_label}',
             related_entity_type='course',
             related_entity_id=makeup_course.course_id,
-        ))
+            link_url=widget_link,
+        )
         if requester.role == 'student':
             parent_links = ParentStudent.query.filter_by(student_id=student.student_id, is_active=True).all()
             for link in parent_links:
-                db.session.add(Notification(
+                Notification.create_notification(
                     user_id=link.parent_id,
                     notification_type='makeup_approved',
                     title=f'{student.name} 학생의 보강수업 신청 승인',
                     message=f'{student.name} 학생의 "{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {when_label}',
                     related_entity_type='course',
                     related_entity_id=makeup_course.course_id,
-                ))
+                    link_url=widget_link,
+                )
 
     if makeup_course.teacher_id:
-        db.session.add(Notification(
+        Notification.create_notification(
             user_id=makeup_course.teacher_id,
             notification_type='makeup_approved',
             title=f'{student.name} 학생 보강수업이 확정되었습니다',
@@ -597,7 +616,71 @@ def finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=N
             related_entity_type='course',
             related_entity_id=makeup_course.course_id,
             link_url=url_for('admin.course_detail', course_id=makeup_course.course_id),
-        ))
+        )
+
+    return makeup_course
+
+
+def finalize_individual_makeup(consult_request, source_course, makeup_date, makeup_start_override=None,
+                                approved_by=None):
+    """ConsultationRequest(개별보강)를 확정 - 1회 보강수업 개설 + 학생 등록 +
+    상태 갱신 + 학부모/강사 알림. finalize_makeup_request와 같은 패턴이지만,
+    ConsultationRequest는 애초에 매칭되는 그룹 수업이 없어 생긴 신청이라
+    requested_course_id가 없다 - 그래서 "일정 확정" 시점에 관리자가 원 수업
+    (source_course, 시수·요금·강사 산정 기준)을 직접 고른다.
+
+    이 함수가 추가되기 전에는 "일정 확정"을 눌러도 scheduled_date/note만
+    바뀌고 실제 수업(Course/CourseSession)이 개설되지 않는 버그가 있었다.
+
+    Returns:
+        생성된 makeup Course 객체
+    """
+    from flask import url_for
+    from app.models import Notification
+
+    student = consult_request.student
+
+    makeup_course = create_makeup_course_from_source(
+        source_course, student, makeup_date,
+        schedule_id=consult_request.request_id,
+        makeup_start_override=makeup_start_override,
+    )
+    makeup_course.created_by = approved_by
+
+    consult_request.status = 'scheduled'
+    consult_request.scheduled_date = makeup_date
+    if makeup_course.start_time:
+        consult_request.scheduled_note = makeup_course.start_time.strftime('%H:%M')
+    consult_request.responded_by = approved_by
+    consult_request.responded_at = datetime.utcnow()
+    consult_request.created_makeup_course_id = makeup_course.course_id
+
+    when_label = makeup_date.strftime('%Y년 %m월 %d일')
+    time_label = f' {makeup_course.start_time.strftime("%H:%M")}' if makeup_course.start_time else ''
+    widget_link = url_for('parent.index', mw=f'consult:{consult_request.request_id}')
+
+    requester = consult_request.requester
+    if requester:
+        Notification.create_notification(
+            user_id=requester.user_id,
+            notification_type='makeup_approved',
+            title='보강수업 일정이 확정되었습니다',
+            message=f'{student.name} 학생의 보강수업이 확정되었습니다. 보강일: {when_label}{time_label}',
+            related_entity_type='course',
+            related_entity_id=makeup_course.course_id,
+            link_url=widget_link,
+        )
+
+    if makeup_course.teacher_id:
+        Notification.create_notification(
+            user_id=makeup_course.teacher_id,
+            notification_type='makeup_approved',
+            title=f'{student.name} 학생 보강수업이 확정되었습니다',
+            message=f'개별보강 - {when_label}{time_label}',
+            related_entity_type='course',
+            related_entity_id=makeup_course.course_id,
+            link_url=url_for('admin.course_detail', course_id=makeup_course.course_id),
+        )
 
     return makeup_course
 

@@ -21,6 +21,12 @@ from app.models import db
 
 CATEGORY_CHOICES = ['신규상담', '퇴원상담', '분기별상담', '진로진학상담', '기타']
 
+# 개별(1:1) 보강 신청 - 시간표에 맞는 그룹 수업이 없을 때 위젯에서 이 카테고리로
+# 접수된다(chat_widget.quick_makeup_individual). CATEGORY_CHOICES에는 넣지 않는다
+# - 일반 상담 분류 드롭다운에 노출되면 안 되고 위젯 내부 로직에서만 이 값으로
+# 생성된다.
+MAKEUP_INDIVIDUAL_CATEGORY = '개별보강'
+
 # pending(접수대기) -> scheduled(일정확정)/rejected(거절) -> completed(상담기록 연결)
 STATUS_CHOICES = ['pending', 'scheduled', 'rejected', 'completed']
 
@@ -38,6 +44,7 @@ class ConsultationRequest(db.Model):
 
     category = db.Column(db.String(50), nullable=False)
     preferred_date = db.Column(db.Date, nullable=True)
+    preferred_time = db.Column(db.Time, nullable=True)
     preferred_note = db.Column(db.String(200), nullable=True)
     reason = db.Column(db.Text, nullable=False)
 
@@ -76,6 +83,12 @@ class ConsultationRequest(db.Model):
                                 db.ForeignKey('consultation_records.consultation_id', ondelete='SET NULL'),
                                 nullable=True, index=True)
 
+    # category='개별보강'인 건이 일정 확정되면 실제로 생성된 1회 보강수업.
+    # MakeupClassRequest.created_makeup_course_id와 같은 역할 - 이게 없어서
+    # "일정 확정"을 눌러도 실제 수업이 개설되지 않는 문제가 있었다.
+    created_makeup_course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id', ondelete='SET NULL'),
+                                        nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -85,6 +98,7 @@ class ConsultationRequest(db.Model):
     internal_conversation = db.relationship('Conversation', foreign_keys=[internal_conversation_id])
     parent_conversation = db.relationship('Conversation', foreign_keys=[parent_conversation_id])
     consultation_record = db.relationship('ConsultationRecord', foreign_keys=[consultation_id])
+    created_makeup_course = db.relationship('Course', foreign_keys=[created_makeup_course_id])
 
     def __repr__(self):
         return f'<ConsultationRequest {self.request_id}: {self.status}>'

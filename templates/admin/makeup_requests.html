@@ -149,7 +149,7 @@
                             거절
                         </button>
                     </div>
-                    <button onclick="showConsultModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}')"
+                    <button onclick="showConsultModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}')"
                             class="w-full mt-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">
                         💬 강사에게 물어보기
                     </button>
@@ -209,9 +209,18 @@
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label for="makeup_time" class="block text-sm font-medium text-gray-700 mb-2">시간 (선택)</label>
-                    <input type="time" name="makeup_time" id="makeup_time"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">시간 (선택, 24시간 기준)</label>
+                    <div class="flex gap-1">
+                        <select name="makeup_time_hour" id="makeup_time_hour"
+                                class="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">--</option>
+                            {% for h in range(24) %}<option value="{{ '%02d'|format(h) }}">{{ '%02d'|format(h) }}시</option>{% endfor %}
+                        </select>
+                        <select name="makeup_time_minute" id="makeup_time_minute"
+                                class="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {% for m in [0, 10, 20, 30, 40, 50] %}<option value="{{ '%02d'|format(m) }}">{{ '%02d'|format(m) }}분</option>{% endfor %}
+                        </select>
+                    </div>
                 </div>
             </div>
             <p id="requestedDateHint" class="text-xs text-blue-600 -mt-2 mb-4 hidden"></p>
@@ -315,12 +324,20 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">특정 시간을 지목해서 물어보기 (선택)</label>
+                <p id="consultAskHint" class="text-xs text-blue-600 mb-1 hidden"></p>
                 <p class="text-xs text-gray-500 mb-2">비워두면 강사가 직접 날짜/시간을 정해서 알려줍니다. 채우면 강사 화면에 "이 시간 가능한가요?" 확인 버튼이 뜹니다.</p>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="flex gap-2">
                     <input type="date" name="ask_date" id="consult_ask_date"
-                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <input type="time" name="ask_time" id="consult_ask_time"
-                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <select name="ask_time_hour" id="consult_ask_time_hour"
+                            class="px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">--</option>
+                        {% for h in range(24) %}<option value="{{ '%02d'|format(h) }}">{{ '%02d'|format(h) }}시</option>{% endfor %}
+                    </select>
+                    <select name="ask_time_minute" id="consult_ask_time_minute"
+                            class="px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                        {% for m in [0, 10, 20, 30, 40, 50] %}<option value="{{ '%02d'|format(m) }}">{{ '%02d'|format(m) }}분</option>{% endfor %}
+                    </select>
                 </div>
             </div>
 
@@ -375,6 +392,19 @@
 <script>
 let approveRequestId = null;
 
+// name="{prefix}_hour"/"{prefix}_minute" select 쌍에 "HH:MM" 문자열을 채우거나
+// 비운다 - 시간 입력을 전부 24시간 기준 select로 통일했기 때문에 여러
+// 화면에서 반복 사용한다.
+function setHmSelect(prefix, hhmm) {
+    const hourSel = document.getElementById(`${prefix}_hour`);
+    const minSel = document.getElementById(`${prefix}_minute`);
+    if (!hourSel) return;
+    if (!hhmm) { hourSel.value = ''; if (minSel) minSel.value = '00'; return; }
+    const [h, m] = hhmm.split(':');
+    hourSel.value = h;
+    if (minSel) minSel.value = m || '00';
+}
+
 function showApproveModal(requestId, studentName, courseName, requestedDate, hasConversation, teacherDate, teacherTime) {
     const modal = document.getElementById('approveModal');
     const form = document.getElementById('approveForm');
@@ -383,7 +413,7 @@ function showApproveModal(requestId, studentName, courseName, requestedDate, has
     form.action = `/admin/makeup-requests/${requestId}/approve`;
     document.getElementById('approveStudentName').textContent = studentName;
     document.getElementById('approveCourseName').textContent = courseName;
-    document.getElementById('makeup_time').value = '';
+    setHmSelect('makeup_time', '');
 
     const extractBox = document.getElementById('approveExtractBox');
     const extractNote = document.getElementById('extractNote');
@@ -394,7 +424,7 @@ function showApproveModal(requestId, studentName, courseName, requestedDate, has
     if (teacherDate) {
         // 강사가 직접 확인/제안한 날짜·시간을 최우선으로 채운다
         document.getElementById('makeup_date').value = teacherDate;
-        if (teacherTime) document.getElementById('makeup_time').value = teacherTime;
+        if (teacherTime) setHmSelect('makeup_time', teacherTime);
         hint.textContent = `✨ 강사 확인 일정: ${teacherDate}${teacherTime ? ' ' + teacherTime : ''}`;
         hint.classList.remove('hidden');
     } else if (requestedDate) {
@@ -443,7 +473,7 @@ async function extractProposedTime() {
         if (data.found) {
             document.getElementById('makeup_date').value = data.date;
             if (data.time) {
-                document.getElementById('makeup_time').value = data.time;
+                setHmSelect('makeup_time', data.time);
             }
             note.textContent = `✨ AI 제안: ${data.date}${data.time ? ' ' + data.time : ''} — ${data.note || ''} (확인 후 승인해주세요)`;
         } else {
@@ -476,7 +506,7 @@ function closeRejectModal() {
 
 let consultRequestId = null;
 
-function showConsultModal(requestId, studentName, teacherName) {
+function showConsultModal(requestId, studentName, teacherName, requestedDate) {
     const modal = document.getElementById('consultModal');
     const form = document.getElementById('consultForm');
     consultRequestId = requestId;
@@ -485,6 +515,16 @@ function showConsultModal(requestId, studentName, teacherName) {
     document.getElementById('consultStudentName').textContent = studentName;
     document.getElementById('consultTeacherName').textContent = teacherName;
 
+    const hint = document.getElementById('consultAskHint');
+    if (requestedDate) {
+        // 학부모가 지목한 희망 날짜를 강사에게 물어볼 날짜로 그대로 이어서 전달
+        document.getElementById('consult_ask_date').value = requestedDate;
+        hint.textContent = `📅 학부모 희망 날짜: ${requestedDate}`;
+        hint.classList.remove('hidden');
+    } else {
+        hint.classList.add('hidden');
+    }
+
     modal.classList.remove('hidden');
 }
 
@@ -492,7 +532,7 @@ function closeConsultModal() {
     document.getElementById('consultModal').classList.add('hidden');
     document.getElementById('consult_body').value = '';
     document.getElementById('consult_ask_date').value = '';
-    document.getElementById('consult_ask_time').value = '';
+    setHmSelect('consult_ask_time', '');
 }
 
 async function draftConsultMessage() {

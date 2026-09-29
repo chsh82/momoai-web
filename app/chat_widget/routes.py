@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 
 from app.chat_widget import chat_widget_bp
 from app.models import db, User, Notification, Course, Student
-from app.models.consultation_request import ConsultationRequest, CATEGORY_CHOICES
+from app.models.consultation_request import ConsultationRequest, CATEGORY_CHOICES, MAKEUP_INDIVIDUAL_CATEGORY
 from app.models.refund_request import RefundRequest
 from app.models.makeup_request import MakeupClassRequest
 from app.models.conversation import Conversation, ConversationMessage
@@ -26,14 +26,6 @@ from app.utils.decorators import requires_role
 
 KST_FMT = '%Y-%m-%d %H:%M'
 WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일']
-
-# 개별(1:1) 보강 신청은 requested_course_id를 요구하는 MakeupClassRequest로
-# 표현할 수 없어(참조할 그룹 수업이 애초에 없음) ConsultationRequest를 그대로
-# 재사용한다 - 실제로도 지금까지 이 경우는 관리자가 강사와 수동으로 시간을
-# 협의해 처리해왔다(그룹 수업처럼 자동으로 1:1 수업이 생성되지 않음).
-# CATEGORY_CHOICES에는 넣지 않는다 - 일반 상담 분류 드롭다운에 노출되면
-# 안 되고, 아래 quick_makeup_individual()에서만 이 값으로 생성한다.
-MAKEUP_INDIVIDUAL_CATEGORY = '개별보강'
 
 # app.messages._save_attachment와 같은 규칙(허용 확장자/저장 위치)을 그대로
 # 따른다 - 다만 파일 서빙은 별도 라우트(attachment())로 둔다. 일반 메신저의
@@ -292,10 +284,21 @@ def _build_timeline(kind, obj):
 def _fields(kind, obj):
     if kind == 'consult':
         f = {'자녀': obj.student.display_name if obj.student else '', '분류': obj.category}
-        if obj.status == 'scheduled':
-            f['확정 일정'] = obj.scheduled_date.strftime('%Y-%m-%d') if obj.scheduled_date else ''
+        if obj.status in ('scheduled', 'completed') and obj.scheduled_date:
+            when = obj.scheduled_date.strftime('%Y-%m-%d')
+            if obj.scheduled_note:
+                when += f' {obj.scheduled_note}'
+            f['확정 일정'] = when
+        elif obj.teacher_proposed_date:
+            when = obj.teacher_proposed_date.strftime('%Y-%m-%d')
+            if obj.teacher_proposed_time:
+                when += ' ' + obj.teacher_proposed_time.strftime('%H:%M')
+            f['제안된 일정'] = when
         elif obj.preferred_date:
-            f['희망일'] = obj.preferred_date.strftime('%Y-%m-%d')
+            when = obj.preferred_date.strftime('%Y-%m-%d')
+            if obj.preferred_time:
+                when += ' ' + obj.preferred_time.strftime('%H:%M')
+            f['희망일'] = when
         return f
     if kind == 'makeup':
         f = {
@@ -586,6 +589,7 @@ def quick_makeup_individual():
     student_id = data.get('student_id', '')
     reason = (data.get('reason') or '').strip()
     preferred_date_str = (data.get('preferred_date') or '').strip()
+    preferred_time_str = (data.get('preferred_time') or '').strip()
     preferred_note = (data.get('preferred_note') or '').strip()
 
     if student_id not in _my_children_ids():
@@ -599,11 +603,18 @@ def quick_makeup_individual():
             preferred_date = datetime.strptime(preferred_date_str, '%Y-%m-%d').date()
         except ValueError:
             pass
+    preferred_time = None
+    if preferred_date and preferred_time_str:
+        try:
+            preferred_time = datetime.strptime(preferred_time_str, '%H:%M').time()
+        except ValueError:
+            pass
 
     req = ConsultationRequest(
         student_id=student_id, requester_id=current_user.user_id,
         category=MAKEUP_INDIVIDUAL_CATEGORY, reason=reason,
-        preferred_date=preferred_date, preferred_note=preferred_note or None,
+        preferred_date=preferred_date, preferred_time=preferred_time,
+        preferred_note=preferred_note or None,
         status='pending',
     )
     db.session.add(req)

@@ -8,12 +8,12 @@
 """
 from datetime import datetime
 
-from flask import render_template, request, redirect, url_for, flash, abort
+from flask import render_template, request, redirect, url_for, flash, abort, current_app
 from flask_login import login_required, current_user
 
 from app.consultation_request import consultation_request_bp
 from app.models import db, User, Student, ParentStudent, Notification
-from app.models.consultation_request import ConsultationRequest, CATEGORY_CHOICES
+from app.models.consultation_request import ConsultationRequest, CATEGORY_CHOICES, MAKEUP_INDIVIDUAL_CATEGORY
 from app.models.conversation import Conversation, ConversationMessage
 from app.utils.decorators import requires_role
 
@@ -51,7 +51,9 @@ def _notify_parent_response(req):
         message = req.reject_reason or ''
     else:
         return
-    db.session.add(Notification(
+    # create_notification()을 통해야 웹푸시도 함께 나간다 - 직접 db.session.add로
+    # 만들면 알림함에만 쌓이고 실제 알림(푸시)은 안 가서 확인이 늦어진다.
+    Notification.create_notification(
         user_id=req.requester_id,
         notification_type='consultation_request',
         title=title,
@@ -59,7 +61,7 @@ def _notify_parent_response(req):
         related_entity_type='consultation_request',
         related_entity_id=req.request_id,
         link_url=url_for('consultation_request.detail', request_id=req.request_id),
-    ))
+    )
 
 
 # ==================== 학부모 ====================
@@ -176,9 +178,20 @@ def admin_detail(request_id):
         parent_messages = ConversationMessage.query.filter_by(
             conversation_id=req.parent_conversation_id
         ).order_by(ConversationMessage.created_at).all()
+
+    # 개별보강은 일정 확정 시 실제 보강수업을 개설해야 하는데, 참조할 원
+    # 수업(requested_course_id)이 없어(애초에 매칭되는 그룹 수업이 없어서
+    # 개별로 신청한 것) 학생의 현재 수강 목록에서 관리자가 직접 골라야 한다.
+    student_courses = []
+    if req.category == MAKEUP_INDIVIDUAL_CATEGORY and req.status == 'pending':
+        from app.models.course import CourseEnrollment
+        student_courses = [e.course for e in CourseEnrollment.query.filter_by(
+            student_id=req.student_id, status='active'
+        ).all() if e.course]
+
     return render_template('consultation_request/admin_detail.html',
                             req=req, teachers=teachers, internal_messages=internal_messages,
-                            parent_messages=parent_messages)
+                            parent_messages=parent_messages, student_courses=student_courses)
 
 
 @consultation_request_bp.route('/admin/<request_id>/parent-reply', methods=['POST'])
@@ -248,8 +261,9 @@ def internal_consult(request_id):
         flash('강사에게 전달할 내용을 입력해주세요.', 'error')
         return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
 
+    from app.utils.course_utils import parse_hm_time
+
     ask_date_str = request.form.get('ask_date', '').strip()
-    ask_time_str = request.form.get('ask_time', '').strip()
     ask_date = None
     ask_time = None
     if ask_date_str:
@@ -257,11 +271,8 @@ def internal_consult(request_id):
             ask_date = datetime.strptime(ask_date_str, '%Y-%m-%d').date()
         except ValueError:
             pass
-    if ask_date and ask_time_str:
-        try:
-            ask_time = datetime.strptime(ask_time_str, '%H:%M').time()
-        except ValueError:
-            pass
+    if ask_date:
+        ask_time = parse_hm_time(request.form, 'ask_time')
 
     req.admin_ask_date = ask_date
     req.admin_ask_time = ask_time
@@ -294,15 +305,16 @@ def internal_consult(request_id):
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
-    db.session.add(Notification(
+    db.session.commit()
+
+    Notification.create_notification(
         user_id=teacher_id,
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
         message=(prefix + body)[:80],
         link_url=url_for('teacher.consult_confirm_detail', request_id=req.request_id),
         related_user_id=uid,
-    ))
-    db.session.commit()
+    )
 
     flash('강사에게 내부 협의를 요청했습니다.', 'success')
     return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
@@ -311,23 +323,57 @@ def internal_consult(request_id):
 @consultation_request_bp.route('/admin/<request_id>/schedule', methods=['POST'])
 @requires_role('admin')
 def schedule(request_id):
-    """학부모와 일정 확정"""
+    """학부모와 일정 확정.
+
+    category가 개별보강이면 단순히 날짜/메모만 기록하는 게 아니라 실제
+    1회 보강수업(Course/CourseSession)까지 함께 개설한다(finalize_individual_makeup).
+    예전엔 이 분기가 없어서 "일정 확정"을 눌러도 수업이 열리지 않는 문제가
+    있었다."""
     req = ConsultationRequest.query.get_or_404(request_id)
     date_raw = request.form.get('scheduled_date', '').strip()
-    note = request.form.get('scheduled_note', '').strip()
     try:
         scheduled_date = datetime.strptime(date_raw, '%Y-%m-%d').date()
     except ValueError:
         flash('일정을 올바르게 입력해주세요.', 'error')
         return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
 
+    if req.category == MAKEUP_INDIVIDUAL_CATEGORY:
+        from app.models import Course
+        from app.utils.course_utils import finalize_individual_makeup, parse_hm_time
+
+        if req.created_makeup_course_id:
+            flash('이미 보강수업이 개설되어 있습니다.', 'warning')
+            return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+        source_course_id = request.form.get('source_course_id', '').strip()
+        source_course = Course.query.get(source_course_id) if source_course_id else None
+        if not source_course:
+            flash('보강 시수/요금 산정 기준이 될 원 수업을 선택해주세요.', 'error')
+            return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+        makeup_time = parse_hm_time(request.form, 'scheduled_time')
+        try:
+            makeup_course = finalize_individual_makeup(
+                req, source_course, scheduled_date,
+                makeup_start_override=makeup_time,
+                approved_by=current_user.user_id,
+            )
+            db.session.commit()
+            flash(f'보강 일정을 확정하고 수업을 개설했습니다: {makeup_course.course_name}', 'success')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'[개별보강 확정] 오류 request_id={request_id}: {e}', exc_info=True)
+            flash(f'보강수업 개설 중 오류가 발생했습니다. (오류: {type(e).__name__})', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+    note = request.form.get('scheduled_note', '').strip()
     req.status = 'scheduled'
     req.scheduled_date = scheduled_date
     req.scheduled_note = note or None
     req.responded_by = current_user.user_id
     req.responded_at = datetime.utcnow()
-    _notify_parent_response(req)
     db.session.commit()
+    _notify_parent_response(req)
 
     flash('상담 일정을 확정했습니다.', 'success')
     return redirect(url_for('consultation_request.admin_detail', request_id=request_id))

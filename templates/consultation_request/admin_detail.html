@@ -31,7 +31,7 @@
             <div><span class="text-gray-400">자녀</span><br>{{ req.student.display_name if req.student else '' }}</div>
             <div><span class="text-gray-400">신청자(학부모)</span><br>{{ req.requester.name if req.requester else '' }}</div>
             <div><span class="text-gray-400">희망 일정</span><br>
-                {{ req.preferred_date.strftime('%Y-%m-%d') if req.preferred_date else '-' }} {{ req.preferred_note or '' }}</div>
+                {{ req.preferred_date.strftime('%Y-%m-%d') if req.preferred_date else '-' }}{% if req.preferred_time %} {{ req.preferred_time.strftime('%H:%M') }}{% endif %} {{ req.preferred_note or '' }}</div>
             <div><span class="text-gray-400">접수일</span><br>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
         </div>
         <div>
@@ -41,7 +41,10 @@
 
         {% if req.status == 'scheduled' %}
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-            ✅ {{ req.scheduled_date.strftime('%Y-%m-%d') }} 로 확정됨 ({{ req.responder.name if req.responder else '' }} 처리)
+            ✅ {{ req.scheduled_date.strftime('%Y-%m-%d') }}{% if req.scheduled_note %} {{ req.scheduled_note }}{% endif %} 로 확정됨 ({{ req.responder.name if req.responder else '' }} 처리)
+            {% if req.created_makeup_course_id %}
+            · <a href="{{ url_for('admin.course_detail', course_id=req.created_makeup_course_id) }}" class="underline">보강수업 보기 →</a>
+            {% endif %}
         </div>
         {% elif req.status == 'rejected' %}
         <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
@@ -133,9 +136,24 @@
                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"></textarea>
             <div>
                 <p class="text-xs text-gray-500 mb-1">특정 시간을 지목해서 물어보기 (선택 · 비워두면 강사가 직접 날짜/시간을 정해서 알려줍니다)</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="date" name="ask_date" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
-                    <input type="time" name="ask_time" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
+                {% if req.preferred_date %}
+                <p class="text-xs text-blue-600 mb-1">📅 학부모 희망: {{ req.preferred_date.strftime('%Y-%m-%d') }}{% if req.preferred_time %} {{ req.preferred_time.strftime('%H:%M') }}{% endif %} (아래에 자동으로 채워져 있어요)</p>
+                {% endif %}
+                <div class="flex gap-2">
+                    <input type="date" name="ask_date"
+                           value="{{ req.preferred_date.strftime('%Y-%m-%d') if req.preferred_date else '' }}"
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm">
+                    <select name="ask_time_hour" class="px-2 py-2 border border-gray-300 rounded-md text-sm">
+                        <option value="">--</option>
+                        {% for h in range(24) %}
+                        <option value="{{ '%02d'|format(h) }}" {% if req.preferred_time and req.preferred_time.hour == h %}selected{% endif %}>{{ '%02d'|format(h) }}시</option>
+                        {% endfor %}
+                    </select>
+                    <select name="ask_time_minute" class="px-2 py-2 border border-gray-300 rounded-md text-sm">
+                        {% for m in [0, 10, 20, 30, 40, 50] %}
+                        <option value="{{ '%02d'|format(m) }}" {% if req.preferred_time and req.preferred_time.minute == m %}selected{% endif %}>{{ '%02d'|format(m) }}분</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <button type="submit" class="px-4 py-2 bg-gray-700 text-white text-sm rounded-md hover:bg-gray-800 transition duration-200">
@@ -154,6 +172,50 @@
                 ✨ 강사가 {{ req.teacher_proposed_date.strftime('%Y-%m-%d') }}{% if req.teacher_proposed_time %} {{ req.teacher_proposed_time.strftime('%H:%M') }}{% endif %}에 가능하다고 확인했습니다. 아래 값이 자동으로 채워져 있어요.
             </p>
             {% endif %}
+            {% if req.category == '개별보강' %}
+            <p class="text-xs text-gray-500 mb-2">개별보강은 여기서 확정하면 실제 1회 보강수업이 함께 개설됩니다. 시수·요금 산정 기준이 될 원 수업을 선택해주세요.</p>
+            <form method="post" action="{{ url_for('consultation_request.schedule', request_id=req.request_id) }}"
+                  class="flex flex-wrap gap-2 items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="w-full">
+                    <label class="block text-xs text-gray-500 mb-1">원 수업 (시수/요금 기준) <span class="text-red-500">*</span></label>
+                    <select name="source_course_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                        <option value="">-- 선택 --</option>
+                        {% for c in student_courses %}
+                        <option value="{{ c.course_id }}">{{ c.course_name }} ({{ c.course_type }})</option>
+                        {% endfor %}
+                    </select>
+                    {% if not student_courses %}
+                    <p class="text-xs text-red-500 mt-1">이 학생의 현재 재원 중인 수업을 찾을 수 없습니다.</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">확정 일자</label>
+                    <input type="date" name="scheduled_date" required
+                           value="{{ req.scheduled_date.strftime('%Y-%m-%d') if req.scheduled_date else (req.teacher_proposed_date.strftime('%Y-%m-%d') if req.teacher_proposed_date else '') }}"
+                           class="px-3 py-2 border border-gray-300 rounded-md text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">시간 (24시간 기준)</label>
+                    <div class="flex gap-1">
+                        <select name="scheduled_time_hour" class="px-2 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="">--</option>
+                            {% for h in range(24) %}
+                            <option value="{{ '%02d'|format(h) }}" {% if req.teacher_proposed_time and req.teacher_proposed_time.hour == h %}selected{% endif %}>{{ '%02d'|format(h) }}시</option>
+                            {% endfor %}
+                        </select>
+                        <select name="scheduled_time_minute" class="px-2 py-2 border border-gray-300 rounded-md text-sm">
+                            {% for m in [0, 10, 20, 30, 40, 50] %}
+                            <option value="{{ '%02d'|format(m) }}" {% if req.teacher_proposed_time and req.teacher_proposed_time.minute == m %}selected{% endif %}>{{ '%02d'|format(m) }}분</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition duration-200">
+                    일정 확정 + 수업 개설
+                </button>
+            </form>
+            {% else %}
             <form method="post" action="{{ url_for('consultation_request.schedule', request_id=req.request_id) }}"
                   class="flex flex-wrap gap-2 items-end">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -173,6 +235,7 @@
                     일정 확정
                 </button>
             </form>
+            {% endif %}
         </div>
 
         {% if req.status == 'pending' %}

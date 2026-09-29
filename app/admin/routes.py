@@ -3184,12 +3184,11 @@ def approve_makeup_request(request_id):
         makeup_date = today + timedelta(days=days_ahead)
     
     try:
-        from app.utils.course_utils import finalize_makeup_request
+        from app.utils.course_utils import finalize_makeup_request, parse_hm_time
 
         # 시간은 기본적으로 원 수업 시간을 그대로 쓰되, 강사와 협의해 다른
         # 시간으로 정했다면 폼에서 넘어온 makeup_time으로 덮어쓴다.
-        makeup_time_str = request.form.get('makeup_time', '').strip()
-        makeup_start_override = datetime.strptime(makeup_time_str, '%H:%M').time() if makeup_time_str else None
+        makeup_start_override = parse_hm_time(request.form, 'makeup_time')
 
         makeup_course = finalize_makeup_request(
             makeup_request, makeup_date,
@@ -3299,8 +3298,9 @@ def makeup_internal_consult(request_id):
         flash('강사에게 전달할 내용을 입력해주세요.', 'error')
         return redirect(url_for('admin.makeup_requests'))
 
+    from app.utils.course_utils import parse_hm_time
+
     ask_date_str = request.form.get('ask_date', '').strip()
-    ask_time_str = request.form.get('ask_time', '').strip()
     ask_date = None
     ask_time = None
     if ask_date_str:
@@ -3308,11 +3308,8 @@ def makeup_internal_consult(request_id):
             ask_date = datetime.strptime(ask_date_str, '%Y-%m-%d').date()
         except ValueError:
             pass
-    if ask_date and ask_time_str:
-        try:
-            ask_time = datetime.strptime(ask_time_str, '%H:%M').time()
-        except ValueError:
-            pass
+    if ask_date:
+        ask_time = parse_hm_time(request.form, 'ask_time')
 
     makeup_request.admin_ask_date = ask_date
     makeup_request.admin_ask_time = ask_time
@@ -3337,15 +3334,16 @@ def makeup_internal_consult(request_id):
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
-    db.session.add(Notification(
+    db.session.commit()
+
+    Notification.create_notification(
         user_id=teacher.user_id,
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
         message=(prefix + body)[:80],
         link_url=url_for('teacher.makeup_confirm_detail', request_id=makeup_request.request_id),
         related_user_id=uid,
-    ))
-    db.session.commit()
+    )
 
     flash('강사에게 보강 가능 시간을 문의했습니다.', 'success')
     return redirect(url_for('admin.makeup_requests'))
@@ -3670,8 +3668,9 @@ def makeup_propose_to_parent(request_id):
         flash('담당 강사가 아직 확인하지 않았습니다. "강사에게 물어보기"로 먼저 협의해주세요.', 'error')
         return redirect(url_for('admin.makeup_requests'))
 
+    from app.utils.course_utils import parse_hm_time
+
     date_str = request.form.get('makeup_date', '').strip()
-    time_str = request.form.get('makeup_time', '').strip()
     if not date_str:
         flash('학부모에게 제안할 날짜를 입력해주세요.', 'error')
         return redirect(url_for('admin.makeup_requests'))
@@ -3680,7 +3679,7 @@ def makeup_propose_to_parent(request_id):
     except ValueError:
         flash('날짜 형식이 올바르지 않습니다.', 'error')
         return redirect(url_for('admin.makeup_requests'))
-    proposed_time = datetime.strptime(time_str, '%H:%M').time() if time_str else makeup_request.requested_course.start_time
+    proposed_time = parse_hm_time(request.form, 'makeup_time') or makeup_request.requested_course.start_time
 
     parent_id = makeup_request.requested_by
     if not parent_id:
@@ -3708,14 +3707,16 @@ def makeup_propose_to_parent(request_id):
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
-    db.session.add(Notification(
+    db.session.commit()
+
+    Notification.create_notification(
         user_id=parent_id,
         notification_type='dm',
         title='🔄 보강 일정을 확인해주세요',
         message=body,
         related_user_id=uid,
-    ))
-    db.session.commit()
+        link_url=url_for('parent.index', mw=f'makeup:{makeup_request.request_id}'),
+    )
 
     flash('학부모에게 일정 확인을 요청했습니다.', 'success')
     return redirect(url_for('admin.makeup_requests'))
