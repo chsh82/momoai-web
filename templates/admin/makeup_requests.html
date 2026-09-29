@@ -134,7 +134,7 @@
                     {% if req.status == 'pending' %}
                     <div class="flex gap-2">
                         {% if req.teacher_confirmed %}
-                        <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}', {{ 'true' if req.internal_conversation_id else 'false' }})"
+                        <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}', {{ 'true' if req.internal_conversation_id else 'false' }}, '{{ req.teacher_proposed_date.strftime('%Y-%m-%d') if req.teacher_proposed_date else '' }}', '{{ req.teacher_proposed_time.strftime('%H:%M') if req.teacher_proposed_time else '' }}')"
                                 class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">
                             승인
                         </button>
@@ -313,6 +313,17 @@
                 <p class="text-xs text-gray-500 mt-1">강사가 회신하면 쪽지함에서 확인할 수 있습니다. 회신 받은 시간으로 위 "승인" 버튼에서 보강수업을 생성해주세요.</p>
             </div>
 
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">특정 시간을 지목해서 물어보기 (선택)</label>
+                <p class="text-xs text-gray-500 mb-2">비워두면 강사가 직접 날짜/시간을 정해서 알려줍니다. 채우면 강사 화면에 "이 시간 가능한가요?" 확인 버튼이 뜹니다.</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" name="ask_date" id="consult_ask_date"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <input type="time" name="ask_time" id="consult_ask_time"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+            </div>
+
             <div class="flex gap-3">
                 <button type="submit"
                         class="flex-1 bg-gray-700 hover:bg-gray-800 text-white font-medium py-3 rounded-lg transition duration-200">
@@ -364,7 +375,7 @@
 <script>
 let approveRequestId = null;
 
-function showApproveModal(requestId, studentName, courseName, requestedDate, hasConversation) {
+function showApproveModal(requestId, studentName, courseName, requestedDate, hasConversation, teacherDate, teacherTime) {
     const modal = document.getElementById('approveModal');
     const form = document.getElementById('approveForm');
     approveRequestId = requestId;
@@ -380,7 +391,13 @@ function showApproveModal(requestId, studentName, courseName, requestedDate, has
     extractBox.classList.toggle('hidden', !hasConversation);
 
     const hint = document.getElementById('requestedDateHint');
-    if (requestedDate) {
+    if (teacherDate) {
+        // 강사가 직접 확인/제안한 날짜·시간을 최우선으로 채운다
+        document.getElementById('makeup_date').value = teacherDate;
+        if (teacherTime) document.getElementById('makeup_time').value = teacherTime;
+        hint.textContent = `✨ 강사 확인 일정: ${teacherDate}${teacherTime ? ' ' + teacherTime : ''}`;
+        hint.classList.remove('hidden');
+    } else if (requestedDate) {
         // 학생이 희망한 날짜를 기본값으로 설정
         document.getElementById('makeup_date').value = requestedDate;
         hint.textContent = `📅 학생 희망 날짜: ${requestedDate}`;
@@ -474,6 +491,8 @@ function showConsultModal(requestId, studentName, teacherName) {
 function closeConsultModal() {
     document.getElementById('consultModal').classList.add('hidden');
     document.getElementById('consult_body').value = '';
+    document.getElementById('consult_ask_date').value = '';
+    document.getElementById('consult_ask_time').value = '';
 }
 
 async function draftConsultMessage() {

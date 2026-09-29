@@ -227,7 +227,16 @@ def parent_reply(request_id):
 @consultation_request_bp.route('/admin/<request_id>/internal-consult', methods=['POST'])
 @requires_role('admin')
 def internal_consult(request_id):
-    """강사에게 내부 협의 요청 - 기존 강사<->관리자 메신저(Conversation) 재사용"""
+    """강사에게 내부 협의 요청.
+
+    ask_date를 지정하면 특정 시간을 컨펌받는 질문이 되고(admin_ask_date/time
+    저장, 강사 화면에 확인 버튼만 노출), 비워두면 자유롭게 물어본 것으로
+    취급해 강사가 직접 날짜/시간을 정해 입력하는 폼이 노출된다
+    (teacher.consult_confirm_detail에서 분기).
+
+    신청 건마다 독립된 Conversation을 새로 만든다(기존 대화 재사용 금지) -
+    재사용하면 이 강사와 나눈 다른 무관한 대화에 새 문의가 묻혀버리는
+    문제가 실제로 있었다(2026-09-29, 최진우 학생 건에서 발견)."""
     req = ConsultationRequest.query.get_or_404(request_id)
     teacher_id = request.form.get('teacher_id', '')
     body = request.form.get('body', '').strip()
@@ -239,33 +248,58 @@ def internal_consult(request_id):
         flash('강사에게 전달할 내용을 입력해주세요.', 'error')
         return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
 
+    ask_date_str = request.form.get('ask_date', '').strip()
+    ask_time_str = request.form.get('ask_time', '').strip()
+    ask_date = None
+    ask_time = None
+    if ask_date_str:
+        try:
+            ask_date = datetime.strptime(ask_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    if ask_date and ask_time_str:
+        try:
+            ask_time = datetime.strptime(ask_time_str, '%H:%M').time()
+        except ValueError:
+            pass
+
+    req.admin_ask_date = ask_date
+    req.admin_ask_time = ask_time
+    # 강사를 새로 바꿔서 다시 물어보는 경우를 대비해 이전 컨펌 상태는 초기화
+    req.teacher_confirmed = False
+    req.teacher_confirmed_at = None
+    req.teacher_proposed_date = None
+    req.teacher_proposed_time = None
+
     uid = current_user.user_id
-    conv = Conversation.query.filter(
-        db.or_(
-            db.and_(Conversation.user1_id == uid, Conversation.user2_id == teacher_id),
-            db.and_(Conversation.user1_id == teacher_id, Conversation.user2_id == uid),
-        )
-    ).first()
-    if conv is None:
+    # 관리자가 매번 다른 강사를 고를 수 있으므로(강사 고정인 그룹 보강과 달리),
+    # 이전에 연결된 대화가 있어도 상대(강사)가 바뀌었으면 새로 만든다.
+    existing_conv = Conversation.query.get(req.internal_conversation_id) if req.internal_conversation_id else None
+    if existing_conv and teacher_id in (existing_conv.user1_id, existing_conv.user2_id):
+        conv = existing_conv
+    else:
         conv = Conversation(user1_id=uid, user2_id=teacher_id)
         db.session.add(conv)
         db.session.flush()
+        req.internal_conversation_id = conv.conversation_id
 
     student_name = req.student.display_name if req.student else ''
     prefix = f'[상담 신청 - {student_name} / {req.category}]\n'
+    if ask_date:
+        when_label = ask_date.strftime('%Y-%m-%d')
+        if ask_time:
+            when_label += f' {ask_time.strftime("%H:%M")}'
+        body = f'{body}\n\n➡️ 이 시간에 가능하신가요? {when_label}'
     msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=prefix + body)
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
-
-    if not req.internal_conversation_id:
-        req.internal_conversation_id = conv.conversation_id
 
     db.session.add(Notification(
         user_id=teacher_id,
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
         message=(prefix + body)[:80],
-        link_url=url_for('messages.conversation', conv_id=conv.conversation_id),
+        link_url=url_for('teacher.consult_confirm_detail', request_id=req.request_id),
         related_user_id=uid,
     ))
     db.session.commit()

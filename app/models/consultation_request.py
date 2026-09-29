@@ -47,6 +47,17 @@ class ConsultationRequest(db.Model):
     scheduled_date = db.Column(db.Date, nullable=True)
     scheduled_note = db.Column(db.String(200), nullable=True)
 
+    # 강사 협의(개별보강 등) - MakeupClassRequest와 같은 패턴. admin_ask_date가
+    # 있으면 관리자가 특정 날짜/시간을 지목해 물어본 것이고, 강사 화면에는
+    # "이 시간 가능한가요?" 확인 버튼만 보여준다. 없으면 자유롭게 물어본
+    # 것이라 강사가 직접 날짜/시간을 입력하는 폼을 보여준다.
+    admin_ask_date = db.Column(db.Date, nullable=True)
+    admin_ask_time = db.Column(db.Time, nullable=True)
+    teacher_proposed_date = db.Column(db.Date, nullable=True)
+    teacher_proposed_time = db.Column(db.Time, nullable=True)
+    teacher_confirmed = db.Column(db.Boolean, default=False, nullable=False)
+    teacher_confirmed_at = db.Column(db.DateTime, nullable=True)
+
     responded_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
     responded_at = db.Column(db.DateTime, nullable=True)
 

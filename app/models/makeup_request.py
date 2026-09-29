@@ -50,6 +50,12 @@ class MakeupClassRequest(db.Model):
                                        db.ForeignKey('conversations.conversation_id', ondelete='SET NULL'),
                                        nullable=True)
 
+    # 관리자가 강사에게 물어볼 때 특정 날짜/시간을 지목했는지 - 지목했다면
+    # 강사 확인 화면에 "이 시간 가능한가요?" 확인 버튼을, 지목하지 않았다면
+    # (자유롭게 물어본 경우) 강사가 직접 날짜/시간을 입력하는 폼을 보여준다.
+    admin_ask_date = db.Column(db.Date, nullable=True)
+    admin_ask_time = db.Column(db.Time, nullable=True)
+
     # 강사 최종 컨펌 - 담당 강사 본인이 직접 확인해야 승인 가능하다(approve_makeup_request
     # 에서 이 값을 강제로 확인함). 관리자가 대신 체크하는 게 아니라 강사 전용 화면
     # (teacher.makeup_confirm)에서 강사 계정으로만 True가 될 수 있다.

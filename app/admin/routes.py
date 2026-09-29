@@ -3273,8 +3273,17 @@ def reject_makeup_request(request_id):
 @login_required
 @requires_permission_level(2)
 def makeup_internal_consult(request_id):
-    """담당 강사에게 보강 가능 시간을 물어보기 - 기존 강사<->관리자 메신저 재사용.
-    강사 스케줄이 매번 달라 사전 등록 풀 대신 요청 건마다 즉석으로 물어본다."""
+    """담당 강사에게 보강 가능 시간을 물어보기.
+
+    ask_date를 지정하면 "이 시간 가능한가요?"처럼 특정 시간을 컨펌받는
+    질문이 되고(admin_ask_date/time 저장, 강사 화면에 확인 버튼만 노출),
+    비워두면 자유롭게 물어본 것으로 취급해 강사가 직접 날짜/시간을 정해
+    입력하는 폼이 노출된다(teacher.makeup_confirm_detail에서 분기).
+
+    신청 건마다 독립된 Conversation을 새로 만든다(기존 대화 재사용 금지) -
+    재사용하면 이 강사와 나눈 다른 무관한 대화(예전 잡담, 다른 학생 건)에
+    새 문의가 묻혀버리는 문제가 실제로 있었다(학부모 쪽 대화는 이미 이
+    원칙으로 되어 있었는데 강사 쪽만 빠져 있었음)."""
     from app.models.makeup_request import MakeupClassRequest
     from app.models.conversation import Conversation, ConversationMessage
 
@@ -3290,26 +3299,43 @@ def makeup_internal_consult(request_id):
         flash('강사에게 전달할 내용을 입력해주세요.', 'error')
         return redirect(url_for('admin.makeup_requests'))
 
+    ask_date_str = request.form.get('ask_date', '').strip()
+    ask_time_str = request.form.get('ask_time', '').strip()
+    ask_date = None
+    ask_time = None
+    if ask_date_str:
+        try:
+            ask_date = datetime.strptime(ask_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    if ask_date and ask_time_str:
+        try:
+            ask_time = datetime.strptime(ask_time_str, '%H:%M').time()
+        except ValueError:
+            pass
+
+    makeup_request.admin_ask_date = ask_date
+    makeup_request.admin_ask_time = ask_time
+
     uid = current_user.user_id
-    conv = Conversation.query.filter(
-        db.or_(
-            db.and_(Conversation.user1_id == uid, Conversation.user2_id == teacher.user_id),
-            db.and_(Conversation.user1_id == teacher.user_id, Conversation.user2_id == uid),
-        )
-    ).first()
-    if conv is None:
+    if not makeup_request.internal_conversation_id:
         conv = Conversation(user1_id=uid, user2_id=teacher.user_id)
         db.session.add(conv)
         db.session.flush()
+        makeup_request.internal_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(makeup_request.internal_conversation_id)
 
     student = makeup_request.student
     prefix = f'[보강 신청 - {student.display_name if student else ""} / {course.course_name}]\n'
+    if ask_date:
+        when_label = ask_date.strftime('%Y-%m-%d')
+        if ask_time:
+            when_label += f' {ask_time.strftime("%H:%M")}'
+        body = f'{body}\n\n➡️ 이 시간에 가능하신가요? {when_label}'
     msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=prefix + body)
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
-
-    if not makeup_request.internal_conversation_id:
-        makeup_request.internal_conversation_id = conv.conversation_id
 
     db.session.add(Notification(
         user_id=teacher.user_id,

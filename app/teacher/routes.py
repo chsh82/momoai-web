@@ -468,14 +468,44 @@ def makeup_confirm(request_id):
         flash('이미 처리된 신청입니다.', 'warning')
         return redirect(url_for('teacher.makeup_confirm_list'))
 
+    # 관리자가 특정 시간을 지목했으면(admin_ask_date) 강사가 그대로 "가능합니다"만
+    # 눌러도 되고, 폼에 다른 날짜/시간을 입력하면 그걸 대신 제안한 걸로 처리한다.
+    # 관리자가 자유롭게 물어본 경우엔 날짜 입력이 필수다.
+    teacher_date_str = request.form.get('teacher_date', '').strip()
+    teacher_time_str = request.form.get('teacher_time', '').strip()
     note = request.form.get('note', '').strip()
+
+    if teacher_date_str:
+        try:
+            teacher_date = datetime.strptime(teacher_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('날짜 형식이 올바르지 않습니다.', 'error')
+            return redirect(url_for('teacher.makeup_confirm_detail', request_id=request_id))
+        teacher_time = None
+        if teacher_time_str:
+            try:
+                teacher_time = datetime.strptime(teacher_time_str, '%H:%M').time()
+            except ValueError:
+                pass
+    elif makeup_request.admin_ask_date:
+        teacher_date = makeup_request.admin_ask_date
+        teacher_time = makeup_request.admin_ask_time
+    else:
+        flash('가능한 날짜를 입력해주세요.', 'error')
+        return redirect(url_for('teacher.makeup_confirm_detail', request_id=request_id))
+
     makeup_request.teacher_confirmed = True
     makeup_request.teacher_confirmed_at = datetime.utcnow()
+    makeup_request.teacher_proposed_date = teacher_date
+    makeup_request.teacher_proposed_time = teacher_time
 
     # 컨펌 사실을 내부 협의 대화에도 남겨서 관리자가 대화 기록만 봐도 알 수 있게 한다
     if makeup_request.internal_conversation_id:
         conv = Conversation.query.get(makeup_request.internal_conversation_id)
-        body = '✅ 이 보강 가능합니다. 확인했습니다.'
+        when_label = teacher_date.strftime('%Y-%m-%d')
+        if teacher_time:
+            when_label += f' {teacher_time.strftime("%H:%M")}'
+        body = f'✅ {when_label}에 가능합니다.'
         if note:
             body += f' ({note})'
         msg = CM(conversation_id=conv.conversation_id, sender_id=current_user.user_id, body=body)
@@ -495,6 +525,141 @@ def makeup_confirm(request_id):
     db.session.commit()
     flash('보강 신청을 확인했습니다. 관리자가 최종 승인하면 보강수업이 생성됩니다.', 'success')
     return redirect(url_for('teacher.makeup_confirm_list'))
+
+
+# ==================== 개별 상담/보강 협의 확인 (강사) ====================
+# ConsultationRequest(개별보강 등)는 그룹 보강(MakeupClassRequest)과 달리
+# 원래 담당 강사가 고정돼 있지 않고 관리자가 매번 다른 강사를 골라 물어볼
+# 수 있다 - 그래서 course.teacher_id 대신 internal_conversation_id의
+# 상대방(참여자)으로 접근 권한을 확인한다.
+
+@teacher_bp.route('/consult-requests')
+@login_required
+@requires_role('teacher', 'admin')
+def consult_confirm_list():
+    """내가 확인해야 할 상담/개별보강 협의 목록"""
+    from app.models.consultation_request import ConsultationRequest
+    from app.models.conversation import Conversation
+
+    conv_ids = [c.conversation_id for c in Conversation.query.filter(
+        db.or_(Conversation.user1_id == current_user.user_id,
+               Conversation.user2_id == current_user.user_id)
+    ).all()]
+
+    query = ConsultationRequest.query.filter(
+        ConsultationRequest.internal_conversation_id.in_(conv_ids) if conv_ids else False,
+        ConsultationRequest.status == 'pending',
+    )
+    requests = query.order_by(ConsultationRequest.teacher_confirmed.asc(),
+                              ConsultationRequest.created_at.desc()).all()
+    pending_count = sum(1 for r in requests if not r.teacher_confirmed)
+
+    return render_template('teacher/consult_confirm_list.html', requests=requests, pending_count=pending_count)
+
+
+def _consult_teacher_access_ok(req):
+    if current_user.role == 'admin':
+        return True
+    if not req.internal_conversation_id:
+        return False
+    from app.models.conversation import Conversation
+    conv = Conversation.query.get(req.internal_conversation_id)
+    return bool(conv) and current_user.user_id in (conv.user1_id, conv.user2_id)
+
+
+@teacher_bp.route('/consult-requests/<request_id>')
+@login_required
+@requires_role('teacher', 'admin')
+def consult_confirm_detail(request_id):
+    """상담/개별보강 협의 확인 상세 - 관리자와 나눈 협의 내용 + 컨펌 폼"""
+    from app.models.consultation_request import ConsultationRequest
+    from app.models.conversation import ConversationMessage
+
+    req = ConsultationRequest.query.get_or_404(request_id)
+    if not _consult_teacher_access_ok(req):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.consult_confirm_list'))
+
+    messages = []
+    if req.internal_conversation_id:
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=req.internal_conversation_id
+        ).order_by(ConversationMessage.created_at).all()
+
+    return render_template('teacher/consult_confirm_detail.html', req=req, messages=messages)
+
+
+@teacher_bp.route('/consult-requests/<request_id>/confirm', methods=['POST'])
+@login_required
+@requires_role('teacher', 'admin')
+def consult_confirm(request_id):
+    """강사가 상담/개별보강 협의를 컨펌 - 이후 관리자가 학부모와 직접
+    일정을 확정한다(강사 컨펌만으로 학부모에게 자동 전달되지 않음)."""
+    from app.models.consultation_request import ConsultationRequest
+    from app.models.conversation import Conversation, ConversationMessage as CM
+
+    req = ConsultationRequest.query.get_or_404(request_id)
+    if not _consult_teacher_access_ok(req):
+        flash('접근 권한이 없습니다.', 'error')
+        return redirect(url_for('teacher.consult_confirm_list'))
+
+    if req.status != 'pending':
+        flash('이미 처리된 신청입니다.', 'warning')
+        return redirect(url_for('teacher.consult_confirm_list'))
+
+    teacher_date_str = request.form.get('teacher_date', '').strip()
+    teacher_time_str = request.form.get('teacher_time', '').strip()
+    note = request.form.get('note', '').strip()
+
+    if teacher_date_str:
+        try:
+            teacher_date = datetime.strptime(teacher_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('날짜 형식이 올바르지 않습니다.', 'error')
+            return redirect(url_for('teacher.consult_confirm_detail', request_id=request_id))
+        teacher_time = None
+        if teacher_time_str:
+            try:
+                teacher_time = datetime.strptime(teacher_time_str, '%H:%M').time()
+            except ValueError:
+                pass
+    elif req.admin_ask_date:
+        teacher_date = req.admin_ask_date
+        teacher_time = req.admin_ask_time
+    else:
+        flash('가능한 날짜를 입력해주세요.', 'error')
+        return redirect(url_for('teacher.consult_confirm_detail', request_id=request_id))
+
+    req.teacher_confirmed = True
+    req.teacher_confirmed_at = datetime.utcnow()
+    req.teacher_proposed_date = teacher_date
+    req.teacher_proposed_time = teacher_time
+
+    if req.internal_conversation_id:
+        conv = Conversation.query.get(req.internal_conversation_id)
+        when_label = teacher_date.strftime('%Y-%m-%d')
+        if teacher_time:
+            when_label += f' {teacher_time.strftime("%H:%M")}'
+        body = f'✅ {when_label}에 가능합니다.'
+        if note:
+            body += f' ({note})'
+        msg = CM(conversation_id=conv.conversation_id, sender_id=current_user.user_id, body=body)
+        conv.last_message_at = datetime.utcnow()
+        db.session.add(msg)
+
+        admin_id = conv.user2_id if conv.user1_id == current_user.user_id else conv.user1_id
+        db.session.add(Notification(
+            user_id=admin_id,
+            notification_type='dm',
+            title=f'✅ {current_user.name}님이 협의를 확인했습니다',
+            message=body,
+            link_url=url_for('consultation_request.admin_detail', request_id=req.request_id),
+            related_user_id=current_user.user_id,
+        ))
+
+    db.session.commit()
+    flash('협의를 확인했습니다. 관리자가 학부모와 일정을 확정합니다.', 'success')
+    return redirect(url_for('teacher.consult_confirm_list'))
 
 
 @teacher_bp.route('/absence-notices/create', methods=['POST'])
