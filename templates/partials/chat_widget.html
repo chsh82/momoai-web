@@ -381,7 +381,7 @@
         <div class="mw-confirm-card">
           <p>선생님과 협의한 결과 아래 일정으로 보강이 가능해요.</p>
           <b>${escapeHtml(data.proposed_date || '')}${data.proposed_time ? ' ' + escapeHtml(data.proposed_time) : ''}</b>
-          <button class="mw-submit" onclick="momoWidgetConfirmMakeupSchedule()">이 시간으로 확정할게요</button>
+          <button class="mw-submit" onclick="momoWidgetConfirmSchedule()">이 시간으로 확정할게요</button>
         </div>` : '';
 
     const body = document.getElementById('momoWidgetBody');
@@ -646,15 +646,22 @@
   };
 
   // 강사와 협의된 제안 일정에 학부모가 직접 동의 - 관리자의 별도 승인 없이
-  // 바로 보강수업이 개설된다(finalize_makeup_request, 서버가 처리).
-  window.momoWidgetConfirmMakeupSchedule = async function(){
-    if(!mwCurrentThread || mwCurrentThread.type !== 'makeup') return;
+  // 바로 보강수업이 개설된다(finalize_makeup_request/finalize_individual_makeup,
+  // 서버가 처리). 그룹 보강(makeup)과 개별보강(consult) 둘 다 같은 버튼을
+  // 쓰되 엔드포인트만 종류별로 다르다.
+  window.momoWidgetConfirmSchedule = async function(){
+    if(!mwCurrentThread) return;
+    const type = mwCurrentThread.type;
+    const endpoint = type === 'makeup' ? `/widget/makeup/${mwCurrentThread.id}/confirm-schedule`
+                    : type === 'consult' ? `/widget/consult/${mwCurrentThread.id}/confirm-schedule`
+                    : null;
+    if(!endpoint) return;
     if(!confirm('이 시간으로 보강 일정을 확정할까요?')) return;
     try{
-      const res = await fetch(`/widget/makeup/${mwCurrentThread.id}/confirm-schedule`, { method: 'POST' });
+      const res = await fetch(endpoint, { method: 'POST' });
       const data = await res.json();
       if(data.error){ alert(data.error); return; }
-      momoWidgetThread('makeup', mwCurrentThread.id);
+      momoWidgetThread(type, mwCurrentThread.id);
     }catch(e){
       alert('확정 처리에 실패했습니다.');
     }

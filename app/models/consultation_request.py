@@ -65,6 +65,14 @@ class ConsultationRequest(db.Model):
     teacher_confirmed = db.Column(db.Boolean, default=False, nullable=False)
     teacher_confirmed_at = db.Column(db.DateTime, nullable=True)
 
+    # 강사 확인 후 관리자가 학부모에게 "이 시간 괜찮으세요?"로 제안할 때 함께
+    # 골라두는 원 수업(시수/요금 기준) - 학부모가 위젯에서 직접 동의하면 관리자
+    # 클릭 없이 이 값으로 바로 보강수업을 개설한다(MakeupClassRequest의
+    # teacher_proposed_date/time + parent_confirmed_at과 같은 패턴).
+    proposed_source_course_id = db.Column(db.String(36), db.ForeignKey('courses.course_id', ondelete='SET NULL'),
+                                          nullable=True)
+    parent_confirmed_at = db.Column(db.DateTime, nullable=True)
+
     responded_by = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
     responded_at = db.Column(db.DateTime, nullable=True)
 
@@ -99,6 +107,7 @@ class ConsultationRequest(db.Model):
     parent_conversation = db.relationship('Conversation', foreign_keys=[parent_conversation_id])
     consultation_record = db.relationship('ConsultationRecord', foreign_keys=[consultation_id])
     created_makeup_course = db.relationship('Course', foreign_keys=[created_makeup_course_id])
+    proposed_source_course = db.relationship('Course', foreign_keys=[proposed_source_course_id])
 
     def __repr__(self):
         return f'<ConsultationRequest {self.request_id}: {self.status}>'

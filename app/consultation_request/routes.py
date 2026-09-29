@@ -223,15 +223,16 @@ def parent_reply(request_id):
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
+    db.session.commit()
+
     if req.requester_id:
-        db.session.add(Notification(
+        Notification.create_notification(
             user_id=req.requester_id,
             notification_type='dm',
             title=f'💬 {current_user.name}님의 새 메시지',
             message=f'[상담 신청] {body[:80]}',
             related_user_id=uid,
-        ))
-    db.session.commit()
+        )
 
     flash('답장을 보냈습니다.', 'success')
     return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
@@ -317,6 +318,85 @@ def internal_consult(request_id):
     )
 
     flash('강사에게 내부 협의를 요청했습니다.', 'success')
+    return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+
+@consultation_request_bp.route('/admin/<request_id>/propose-to-parent', methods=['POST'])
+@requires_role('admin')
+def propose_to_parent(request_id):
+    """개별보강 강사 확인 일정을 학부모에게 확인 요청으로 보낸다 - 바로
+    수업을 개설하지 않고, 학부모가 위젯에서 직접 동의 버튼을 눌러야
+    확정된다(chat_widget.confirm_consult_schedule). 그룹 보강
+    (admin.makeup_propose_to_parent)과 같은 패턴이지만, 개별보강은 참조할
+    원 수업이 없어 여기서 관리자가 직접 골라 함께 저장해둔다."""
+    from app.models import Course
+    from app.utils.course_utils import parse_hm_time
+
+    req = ConsultationRequest.query.get_or_404(request_id)
+    if req.category != MAKEUP_INDIVIDUAL_CATEGORY:
+        flash('개별보강 신청만 사용할 수 있습니다.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+    if req.status != 'pending':
+        flash('이미 처리된 신청입니다.', 'warning')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+    if not req.teacher_confirmed:
+        flash('담당 강사가 아직 확인하지 않았습니다. "강사에게 물어보기"로 먼저 협의해주세요.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+    source_course_id = request.form.get('source_course_id', '').strip()
+    source_course = Course.query.get(source_course_id) if source_course_id else None
+    if not source_course:
+        flash('보강 시수/요금 산정 기준이 될 원 수업을 선택해주세요.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+    date_str = request.form.get('scheduled_date', '').strip()
+    if not date_str:
+        flash('학부모에게 제안할 날짜를 입력해주세요.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+    try:
+        proposed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('날짜 형식이 올바르지 않습니다.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+    proposed_time = parse_hm_time(request.form, 'scheduled_time')
+
+    if not req.requester_id:
+        flash('신청자 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
+
+    req.teacher_proposed_date = proposed_date
+    req.teacher_proposed_time = proposed_time
+    req.proposed_source_course_id = source_course.course_id
+    req.parent_confirmed_at = None  # 다시 제안하는 경우 이전 동의를 초기화
+
+    when_label = proposed_date.strftime('%Y년 %m월 %d일')
+    time_label = f' {proposed_time.strftime("%H:%M")}' if proposed_time else ''
+    body = f'선생님과 협의한 결과 {when_label}{time_label}에 보강이 가능해요. 이 시간으로 진행할까요?'
+
+    uid = current_user.user_id
+    if not req.parent_conversation_id:
+        conv = Conversation(user1_id=uid, user2_id=req.requester_id)
+        db.session.add(conv)
+        db.session.flush()
+        req.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(req.parent_conversation_id)
+
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+    db.session.commit()
+
+    Notification.create_notification(
+        user_id=req.requester_id,
+        notification_type='dm',
+        title='🔄 보강 일정을 확인해주세요',
+        message=body,
+        related_user_id=uid,
+        link_url=url_for('parent.index', mw=f'consult:{req.request_id}'),
+    )
+
+    flash('학부모에게 일정 확인을 요청했습니다.', 'success')
     return redirect(url_for('consultation_request.admin_detail', request_id=request_id))
 
 

@@ -173,8 +173,8 @@
             </p>
             {% endif %}
             {% if req.category == '개별보강' %}
-            <p class="text-xs text-gray-500 mb-2">개별보강은 여기서 확정하면 실제 1회 보강수업이 함께 개설됩니다. 시수·요금 산정 기준이 될 원 수업을 선택해주세요.</p>
-            <form method="post" action="{{ url_for('consultation_request.schedule', request_id=req.request_id) }}"
+            <p class="text-xs text-gray-500 mb-2">시수·요금 산정 기준이 될 원 수업을 선택해주세요. "일정 확정"은 바로 수업을 개설하고, "학부모에게 확인 요청"은 위젯으로 먼저 제안해 학부모가 직접 동의해야 개설됩니다.</p>
+            <form id="consultScheduleForm" method="post" action="{{ url_for('consultation_request.schedule', request_id=req.request_id) }}"
                   class="flex flex-wrap gap-2 items-end">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="w-full">
@@ -214,6 +214,13 @@
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition duration-200">
                     일정 확정 + 수업 개설
                 </button>
+                {% if req.status == 'pending' %}
+                <button type="button"
+                        onclick="if(!document.getElementById('consultScheduleForm').reportValidity()) return; document.getElementById('consultScheduleForm').action='{{ url_for('consultation_request.propose_to_parent', request_id=req.request_id) }}'; document.getElementById('consultScheduleForm').submit();"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition duration-200">
+                    🔄 학부모에게 확인 요청
+                </button>
+                {% endif %}
             </form>
             {% else %}
             <form method="post" action="{{ url_for('consultation_request.schedule', request_id=req.request_id) }}"

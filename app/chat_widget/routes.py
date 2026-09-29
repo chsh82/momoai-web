@@ -342,12 +342,23 @@ def thread(kind, request_id):
     consult_title = '보강 신청' if (kind == 'consult' and obj.category == MAKEUP_INDIVIDUAL_CATEGORY) else '상담 신청'
 
     # 강사와 협의된 일정이 제안됐지만 학부모가 아직 동의하지 않은 상태에서만
-    # 위젯에 "이 시간으로 확정할게요" 버튼을 보여준다.
-    can_confirm_schedule = (
-        kind == 'makeup' and obj.status == 'pending'
-        and obj.teacher_proposed_date is not None
-        and obj.parent_confirmed_at is None
-    )
+    # 위젯에 "이 시간으로 확정할게요" 버튼을 보여준다. 개별보강(consult)은
+    # proposed_source_course_id까지 있어야 실제로 확정 가능한 상태다.
+    if kind == 'makeup':
+        can_confirm_schedule = (
+            obj.status == 'pending'
+            and obj.teacher_proposed_date is not None
+            and obj.parent_confirmed_at is None
+        )
+    elif kind == 'consult' and obj.category == MAKEUP_INDIVIDUAL_CATEGORY:
+        can_confirm_schedule = (
+            obj.status == 'pending'
+            and obj.teacher_proposed_date is not None
+            and obj.proposed_source_course_id is not None
+            and obj.parent_confirmed_at is None
+        )
+    else:
+        can_confirm_schedule = False
 
     return jsonify({
         'type': kind,
@@ -400,17 +411,20 @@ def reply(kind, request_id):
         'refund': lambda: url_for('refund_request.admin_detail', request_id=obj.request_id),
     }[kind]()
 
-    # 이 스레드에 이미 참여 중인 상대(관리자든 다른 참여자든)에게 알림
+    db.session.commit()
+
+    # 이 스레드에 이미 참여 중인 상대(관리자든 다른 참여자든)에게 알림.
+    # 이 엔드포인트는 학부모 위젯과 관리자의 통합 대화 화면(conversation_history)
+    # 양쪽에서 다 쓰이므로 상대가 학부모/강사/관리자 어느 쪽이든 push가 나가야 한다.
     other_id = conv.user2_id if conv.user1_id == current_user.user_id else conv.user1_id
-    db.session.add(Notification(
+    Notification.create_notification(
         user_id=other_id,
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
         message=f'[{type_label}] {(body or msg.body)[:80]}',
         link_url=detail_url,
         related_user_id=current_user.user_id,
-    ))
-    db.session.commit()
+    )
 
     return jsonify({'ok': True})
 
@@ -677,6 +691,57 @@ def confirm_makeup_schedule(request_id):
     except Exception:
         db.session.rollback()
         current_app.logger.exception('[chat_widget.confirm_makeup_schedule] 자동 확정 실패 (request_id=%s)', request_id)
+        return jsonify({'error': '확정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'}), 500
+
+    return jsonify({'ok': True})
+
+
+@chat_widget_bp.route('/widget/consult/<request_id>/confirm-schedule', methods=['POST'])
+@requires_role('parent', 'admin')
+def confirm_consult_schedule(request_id):
+    """개별보강(ConsultationRequest) 제안 일정에 학부모가 위젯 버튼으로 직접
+    동의 - confirm_makeup_schedule과 같은 패턴. 참조할 원 수업이 없어(애초에
+    매칭되는 그룹 수업이 없어서 개별로 신청한 것) 관리자가 propose_to_parent
+    시점에 골라둔 proposed_source_course_id를 그대로 쓴다."""
+    from app.models.consultation_request import ConsultationRequest
+    from app.utils.course_utils import finalize_individual_makeup
+
+    req = ConsultationRequest.query.get_or_404(request_id)
+    if req.student_id not in _my_children_ids():
+        return jsonify({'error': '접근 권한이 없습니다.'}), 403
+    if req.status != 'pending':
+        return jsonify({'error': '이미 처리된 신청입니다.'}), 400
+    if not req.teacher_proposed_date or not req.proposed_source_course_id:
+        return jsonify({'error': '아직 제안된 일정이 없습니다.'}), 400
+
+    source_course = Course.query.get(req.proposed_source_course_id)
+    if not source_course:
+        return jsonify({'error': '원 수업 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.'}), 400
+
+    req.parent_confirmed_at = datetime.utcnow()
+
+    try:
+        finalize_individual_makeup(
+            req, source_course, req.teacher_proposed_date,
+            makeup_start_override=req.teacher_proposed_time,
+            approved_by=None,
+        )
+
+        admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+        student = req.student
+        for admin in admins:
+            db.session.add(Notification(
+                user_id=admin.user_id, notification_type='makeup_approved',
+                title='✅ 학부모가 보강 일정에 동의했습니다',
+                message=f'{student.display_name if student else ""} · 보강수업이 자동으로 생성되었습니다.',
+                related_entity_type='consultation_request', related_entity_id=req.request_id,
+                link_url=url_for('consultation_request.admin_detail', request_id=req.request_id),
+            ))
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('[chat_widget.confirm_consult_schedule] 자동 확정 실패 (request_id=%s)', request_id)
         return jsonify({'error': '확정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'}), 500
 
     return jsonify({'ok': True})

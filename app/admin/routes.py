@@ -3384,14 +3384,15 @@ def makeup_parent_reply(request_id):
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
-    db.session.add(Notification(
+    db.session.commit()
+
+    Notification.create_notification(
         user_id=parent_id,
         notification_type='dm',
         title=f'💬 {current_user.name}님의 새 메시지',
         message=f'[보강 신청] {body[:80]}',
         related_user_id=uid,
-    ))
-    db.session.commit()
+    )
 
     flash('답장을 보냈습니다.', 'success')
     return redirect(url_for('admin.makeup_requests'))

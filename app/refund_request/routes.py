@@ -48,7 +48,8 @@ def _notify_requester_response(req):
         message = req.admin_notes or ''
     else:
         return
-    db.session.add(Notification(
+    # create_notification()을 거쳐야 웹푸시도 함께 나간다.
+    Notification.create_notification(
         user_id=req.requester_id,
         notification_type='refund_request',
         title=title,
@@ -56,7 +57,7 @@ def _notify_requester_response(req):
         related_entity_type='refund_request',
         related_entity_id=req.request_id,
         link_url=url_for('refund_request.detail', request_id=req.request_id),
-    ))
+    )
 
 
 # ==================== 학부모 ====================
@@ -179,15 +180,16 @@ def parent_reply(request_id):
     conv.last_message_at = datetime.utcnow()
     db.session.add(msg)
 
+    db.session.commit()
+
     if req.requester_id:
-        db.session.add(Notification(
+        Notification.create_notification(
             user_id=req.requester_id,
             notification_type='dm',
             title=f'💬 {current_user.name}님의 새 메시지',
             message=f'[환불 요청] {body[:80]}',
             related_user_id=uid,
-        ))
-    db.session.commit()
+        )
 
     flash('답장을 보냈습니다.', 'success')
     return redirect(url_for('refund_request.admin_detail', request_id=request_id))
