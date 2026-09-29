@@ -308,6 +308,11 @@ def _fields(kind, obj):
             if course.start_time:
                 when += ' ' + course.start_time.strftime('%H:%M')
             f['확정 일정'] = when
+        elif obj.teacher_proposed_date:
+            when = obj.teacher_proposed_date.strftime('%Y-%m-%d')
+            if obj.teacher_proposed_time:
+                when += ' ' + obj.teacher_proposed_time.strftime('%H:%M')
+            f['제안된 일정'] = when
         else:
             f['희망일'] = obj.requested_date.strftime('%Y-%m-%d') if obj.requested_date else '특별히 없음'
             f['강사 확인'] = '완료' if obj.teacher_confirmed else '대기중'
@@ -332,6 +337,15 @@ def thread(kind, request_id):
 
     label_fn = {'consult': _consult_status_label, 'makeup': _makeup_status_label, 'refund': _refund_status_label}[kind]
     consult_title = '보강 신청' if (kind == 'consult' and obj.category == MAKEUP_INDIVIDUAL_CATEGORY) else '상담 신청'
+
+    # 강사와 협의된 일정이 제안됐지만 학부모가 아직 동의하지 않은 상태에서만
+    # 위젯에 "이 시간으로 확정할게요" 버튼을 보여준다.
+    can_confirm_schedule = (
+        kind == 'makeup' and obj.status == 'pending'
+        and obj.teacher_proposed_date is not None
+        and obj.parent_confirmed_at is None
+    )
+
     return jsonify({
         'type': kind,
         'title': {'consult': consult_title, 'makeup': '보강 신청', 'refund': '환불 요청'}[kind],
@@ -340,6 +354,10 @@ def thread(kind, request_id):
         'fields': _fields(kind, obj),
         'reason': getattr(obj, 'reason', None),
         'timeline': _build_timeline(kind, obj),
+        'can_confirm_schedule': can_confirm_schedule,
+        'proposed_date': obj.teacher_proposed_date.strftime('%Y-%m-%d') if can_confirm_schedule else None,
+        'proposed_time': (obj.teacher_proposed_time.strftime('%H:%M')
+                          if can_confirm_schedule and obj.teacher_proposed_time else None),
     })
 
 
@@ -603,6 +621,54 @@ def quick_makeup_individual():
     db.session.commit()
 
     return jsonify({'ok': True, 'id': req.request_id})
+
+
+@chat_widget_bp.route('/widget/makeup/<request_id>/confirm-schedule', methods=['POST'])
+@requires_role('parent', 'admin')
+def confirm_makeup_schedule(request_id):
+    """강사와 협의된 제안 일정(teacher_proposed_date/time)에 학부모가 위젯
+    버튼으로 직접 동의 - 이 클릭 자체가 확정이라 관리자가 별도로 "승인하기"를
+    누르지 않아도 곧바로 보강수업이 개설된다. 날짜/시간은 관리자가 이미
+    입력해둔 값을 그대로 쓸 뿐, 여기서 LLM이 새로 채우거나 해석하지 않는다."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.utils.course_utils import finalize_makeup_request
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    if makeup_request.student_id not in _my_children_ids():
+        return jsonify({'error': '접근 권한이 없습니다.'}), 403
+    if makeup_request.status != 'pending':
+        return jsonify({'error': '이미 처리된 신청입니다.'}), 400
+    if not makeup_request.teacher_proposed_date:
+        return jsonify({'error': '아직 제안된 일정이 없습니다.'}), 400
+
+    makeup_request.parent_confirmed_at = datetime.utcnow()
+
+    try:
+        finalize_makeup_request(
+            makeup_request, makeup_request.teacher_proposed_date,
+            makeup_start_override=makeup_request.teacher_proposed_time,
+            approved_by=None,
+            admin_notes='학부모가 위젯에서 제안 일정에 직접 동의해 자동 확정됨',
+        )
+
+        admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+        student = makeup_request.student
+        for admin in admins:
+            db.session.add(Notification(
+                user_id=admin.user_id, notification_type='makeup_approved',
+                title='✅ 학부모가 보강 일정에 동의했습니다',
+                message=f'{student.display_name if student else ""} · 보강수업이 자동으로 생성되었습니다.',
+                related_entity_type='makeup_request', related_entity_id=makeup_request.request_id,
+                link_url=url_for('admin.makeup_requests'),
+            ))
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('[chat_widget.confirm_makeup_schedule] 자동 확정 실패 (request_id=%s)', request_id)
+        return jsonify({'error': '확정 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'}), 500
+
+    return jsonify({'ok': True})
 
 
 # ==================== 대화형 진입 - 자유 텍스트 의도 분류 ====================

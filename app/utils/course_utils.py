@@ -449,8 +449,13 @@ def enroll_student_to_course(course_id, student_id):
     return enrollment
 
 
-def create_makeup_course_from_source(source_course, student, makeup_date, schedule_id=None):
+def create_makeup_course_from_source(source_course, student, makeup_date, schedule_id=None,
+                                      makeup_start_override=None):
     """EnrollmentSchedule(makeup) 또는 기타 용도로 1회 보강수업 생성 후 학생 등록.
+
+    Args:
+        makeup_start_override: 지정하면 원 수업 시간 대신 이 시간을 쓴다(강사가
+            협의로 다른 시간을 제안한 경우 등). 없으면 원 수업 시간 그대로.
 
     Returns:
         생성된 makeup Course 객체
@@ -477,7 +482,7 @@ def create_makeup_course_from_source(source_course, student, makeup_date, schedu
     else:  # 프리미엄, 보강(프리미엄), 기타
         duration_min = 60
 
-    makeup_start = source_course.start_time
+    makeup_start = makeup_start_override or source_course.start_time
     if makeup_start:
         makeup_end = (_dt.combine(_d.today(), makeup_start) + _td(minutes=duration_min)).time()
     else:
@@ -522,6 +527,78 @@ def create_makeup_course_from_source(source_course, student, makeup_date, schedu
     db.session.flush()
 
     enroll_student_to_course(makeup_course.course_id, student.student_id)
+    return makeup_course
+
+
+def finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=None,
+                             approved_by=None, admin_notes=None):
+    """MakeupClassRequest(그룹 보강)를 확정 - 1회 보강수업 개설 + 학생 등록 +
+    신청 상태 갱신 + 학생/학부모/강사 알림. 관리자가 수동으로 승인할 때
+    (admin.approve_makeup_request)와, 강사가 제안한 일정에 학부모가 위젯에서
+    명시적으로 동의했을 때(chat_widget.confirm_makeup, 관리자 클릭 없이 자동
+    확정) 양쪽에서 공용으로 쓴다 - 두 경로 모두 날짜/시간은 항상 구조화된 값
+    (폼 입력 또는 teacher_proposed_date/time)으로만 들어오고, LLM이 채우지
+    않는다.
+
+    Returns:
+        생성된 makeup Course 객체
+    """
+    from flask import url_for
+    from app.models import Notification
+    from app.models.parent_student import ParentStudent
+
+    original_course = makeup_request.requested_course
+    student = makeup_request.student
+
+    makeup_course = create_makeup_course_from_source(
+        original_course, student, makeup_date,
+        schedule_id=makeup_request.request_id,
+        makeup_start_override=makeup_start_override,
+    )
+    makeup_course.created_by = approved_by
+
+    makeup_request.status = 'approved'
+    makeup_request.admin_response_date = datetime.utcnow()
+    makeup_request.admin_response_by = approved_by
+    makeup_request.admin_notes = admin_notes
+    makeup_request.created_makeup_course_id = makeup_course.course_id
+
+    makeup_start = makeup_course.start_time
+    when_label = makeup_date.strftime("%Y년 %m월 %d일")
+
+    requester = makeup_request.requester
+    if requester:
+        db.session.add(Notification(
+            user_id=requester.user_id,
+            notification_type='makeup_approved',
+            title='보강수업 신청이 승인되었습니다',
+            message=f'"{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {when_label}',
+            related_entity_type='course',
+            related_entity_id=makeup_course.course_id,
+        ))
+        if requester.role == 'student':
+            parent_links = ParentStudent.query.filter_by(student_id=student.student_id, is_active=True).all()
+            for link in parent_links:
+                db.session.add(Notification(
+                    user_id=link.parent_id,
+                    notification_type='makeup_approved',
+                    title=f'{student.name} 학생의 보강수업 신청 승인',
+                    message=f'{student.name} 학생의 "{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {when_label}',
+                    related_entity_type='course',
+                    related_entity_id=makeup_course.course_id,
+                ))
+
+    if makeup_course.teacher_id:
+        db.session.add(Notification(
+            user_id=makeup_course.teacher_id,
+            notification_type='makeup_approved',
+            title=f'{student.name} 학생 보강수업이 확정되었습니다',
+            message=f'"{original_course.course_name}" 보강 - {when_label} {makeup_start.strftime("%H:%M") if makeup_start else ""}',
+            related_entity_type='course',
+            related_entity_id=makeup_course.course_id,
+            link_url=url_for('admin.course_detail', course_id=makeup_course.course_id),
+        ))
+
     return makeup_course
 
 

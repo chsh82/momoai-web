@@ -56,6 +56,17 @@ class MakeupClassRequest(db.Model):
     teacher_confirmed = db.Column(db.Boolean, default=False, nullable=False)
     teacher_confirmed_at = db.Column(db.DateTime, nullable=True)
 
+    # 강사가 컨펌하면서 직접 지정한 날짜/시간(자유 채팅이 아니라 버튼+입력으로
+    # 확정 - LLM이 대화 내용에서 날짜를 추론해 자동으로 채우지 않는다). 이 값이
+    # 있으면 학부모 확인 요청과 최종 보강수업 개설에 그대로 쓰인다.
+    teacher_proposed_date = db.Column(db.Date, nullable=True)
+    teacher_proposed_time = db.Column(db.Time, nullable=True)
+
+    # 학부모가 강사 제안 일정에 위젯 버튼으로 명시적으로 동의한 시각. 이 값이
+    # 찍히면(=강사 제안 + 학부모 동의 둘 다 구조화된 확정) 관리자의 별도 승인
+    # 클릭 없이 자동으로 보강수업이 개설된다(finalize_makeup_request 재사용).
+    parent_confirmed_at = db.Column(db.DateTime, nullable=True)
+
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

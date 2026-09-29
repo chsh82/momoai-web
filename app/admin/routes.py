@@ -3184,131 +3184,19 @@ def approve_makeup_request(request_id):
         makeup_date = today + timedelta(days=days_ahead)
     
     try:
-        # 1회 보강수업 생성
-        # 고유한 course_code 생성 (날짜 + 요청ID 일부)
-        unique_code = f"MAKEUP{makeup_date.strftime('%y%m%d')}{makeup_request.request_id[:8]}"
-
-        # 원 수업 타입으로 보강 타입 결정
-        orig_type = original_course.course_type or ''
-        if orig_type in ('하크니스', '보강(하크니스)'):
-            derived_makeup_type = '보강(하크니스)'
-        elif orig_type in ('정규반', '체험단', '베이직', '보강수업', '보강(정규반)'):
-            derived_makeup_type = '보강(정규반)'
-        elif orig_type in ('프리미엄', '시그니처', '보강(프리미엄)'):
-            derived_makeup_type = '보강(프리미엄)'
-        else:
-            derived_makeup_type = '보강(정규반)'  # 알 수 없는 타입은 정규반으로 처리
-
-        # 보강 타입 + 학년별 수업 시간 자동 설정 (orig_type 직접 참조)
-        grade_str = original_course.grade or ''
-        if orig_type in ('시그니처',):
-            duration_min = 180
-        elif orig_type in ('하크니스', '보강(하크니스)'):
-            duration_min = 150
-        elif orig_type in ('정규반', '체험단', '베이직', '보강수업', '보강(정규반)'):
-            duration_min = 120 if grade_str.startswith('초') else 150
-        else:  # 프리미엄, 보강(프리미엄), 기타
-            duration_min = 60
+        from app.utils.course_utils import finalize_makeup_request
 
         # 시간은 기본적으로 원 수업 시간을 그대로 쓰되, 강사와 협의해 다른
         # 시간으로 정했다면 폼에서 넘어온 makeup_time으로 덮어쓴다.
         makeup_time_str = request.form.get('makeup_time', '').strip()
-        if makeup_time_str:
-            makeup_start = datetime.strptime(makeup_time_str, '%H:%M').time()
-        else:
-            makeup_start = original_course.start_time
-        if makeup_start:
-            from datetime import datetime as _dt
-            makeup_end = (_dt.combine(date.today(), makeup_start) + timedelta(minutes=duration_min)).time()
-        else:
-            makeup_end = original_course.end_time
+        makeup_start_override = datetime.strptime(makeup_time_str, '%H:%M').time() if makeup_time_str else None
 
-        makeup_course = Course(
-            course_name=f"[보강] {original_course.course_name} - {student.name}",
-            course_code=unique_code,
-            grade=original_course.grade,
-            course_type=derived_makeup_type,
-            teacher_id=original_course.teacher_id,
-            weekday=makeup_date.weekday(),
-            start_time=makeup_start,
-            end_time=makeup_end,
-            duration_minutes=duration_min,
-            start_date=makeup_date,
-            end_date=makeup_date,
-            availability_status='available',
-            makeup_class_allowed=False,
-            schedule_type='custom',
-            max_students=1,
-            price_per_session=65000,
-            status='active',
-            created_by=current_user.user_id,
-            description=f"{student.name} 학생의 보강수업 (원수업: {original_course.course_name})"
+        makeup_course = finalize_makeup_request(
+            makeup_request, makeup_date,
+            makeup_start_override=makeup_start_override,
+            approved_by=current_user.user_id,
+            admin_notes=request.form.get('admin_notes', '').strip(),
         )
-
-        db.session.add(makeup_course)
-        db.session.flush()
-
-        # 1회 세션 생성
-        makeup_session = CourseSession(
-            course_id=makeup_course.course_id,
-            session_number=1,
-            session_date=makeup_date,
-            start_time=makeup_start,
-            end_time=makeup_end,
-            topic=f"{student.name} 보강수업",
-            status='scheduled'
-        )
-
-        db.session.add(makeup_session)
-        db.session.flush()
-
-        # 학생 자동 등록
-        from app.utils.course_utils import enroll_student_to_course
-        enroll_student_to_course(makeup_course.course_id, student.student_id)
-
-        # 신청 상태 업데이트
-        makeup_request.status = 'approved'
-        makeup_request.admin_response_date = datetime.utcnow()
-        makeup_request.admin_response_by = current_user.user_id
-        makeup_request.created_makeup_course_id = makeup_course.course_id
-        makeup_request.admin_notes = request.form.get('admin_notes', '').strip()
-
-        # 학생/학부모에게 알림
-        requester = makeup_request.requester
-        if requester:
-            db.session.add(Notification(
-                user_id=requester.user_id,
-                notification_type='makeup_approved',
-                title='보강수업 신청이 승인되었습니다',
-                message=f'"{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {makeup_date.strftime("%Y년 %m월 %d일")}',
-                related_entity_type='course',
-                related_entity_id=makeup_course.course_id
-            ))
-
-        if requester and requester.role == 'student':
-            from app.models.parent_student import ParentStudent
-            parent_links = ParentStudent.query.filter_by(student_id=student.student_id).all()
-            for link in parent_links:
-                db.session.add(Notification(
-                    user_id=link.parent_id,
-                    notification_type='makeup_approved',
-                    title=f'{student.name} 학생의 보강수업 신청 승인',
-                    message=f'{student.name} 학생의 "{original_course.course_name}" 보강수업 신청이 승인되었습니다. 보강일: {makeup_date.strftime("%Y년 %m월 %d일")}',
-                    related_entity_type='course',
-                    related_entity_id=makeup_course.course_id
-                ))
-
-        # 담당 강사에게도 확정 알림 (예전엔 학부모/학생에게만 가고 강사는 못 받았음)
-        if makeup_course.teacher_id:
-            db.session.add(Notification(
-                user_id=makeup_course.teacher_id,
-                notification_type='makeup_approved',
-                title=f'{student.name} 학생 보강수업이 확정되었습니다',
-                message=f'"{original_course.course_name}" 보강 - {makeup_date.strftime("%Y년 %m월 %d일")} {makeup_start.strftime("%H:%M") if makeup_start else ""}',
-                related_entity_type='course',
-                related_entity_id=makeup_course.course_id,
-                link_url=url_for('admin.course_detail', course_id=makeup_course.course_id),
-            ))
 
         db.session.commit()
 
@@ -3734,6 +3622,77 @@ def makeup_extract_proposed_time(request_id):
         'time': parsed.get('time'),
         'note': parsed.get('note', ''),
     })
+
+
+@admin_bp.route('/makeup-requests/<request_id>/propose-to-parent', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def makeup_propose_to_parent(request_id):
+    """강사와 협의된 날짜/시간을 학부모에게 확인 요청으로 보낸다 - 바로
+    승인(수업 개설)하지 않고, 학부모가 위젯에서 직접 동의 버튼을 눌러야
+    확정된다(chat_widget.confirm_makeup_schedule). 강사 쪽과 마찬가지로
+    날짜/시간은 이 폼(관리자가 대화 내용을 보고 직접 입력/확인한 값)에서만
+    가져오고, 여기서 LLM이 새로 채우지 않는다."""
+    from app.models.makeup_request import MakeupClassRequest
+    from app.models.conversation import Conversation, ConversationMessage
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    if makeup_request.status != 'pending':
+        flash('이미 처리된 신청입니다.', 'warning')
+        return redirect(url_for('admin.makeup_requests'))
+    if not makeup_request.teacher_confirmed:
+        flash('담당 강사가 아직 확인하지 않았습니다. "강사에게 물어보기"로 먼저 협의해주세요.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
+    date_str = request.form.get('makeup_date', '').strip()
+    time_str = request.form.get('makeup_time', '').strip()
+    if not date_str:
+        flash('학부모에게 제안할 날짜를 입력해주세요.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+    try:
+        proposed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('날짜 형식이 올바르지 않습니다.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+    proposed_time = datetime.strptime(time_str, '%H:%M').time() if time_str else makeup_request.requested_course.start_time
+
+    parent_id = makeup_request.requested_by
+    if not parent_id:
+        flash('신청자 정보를 찾을 수 없습니다.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
+    makeup_request.teacher_proposed_date = proposed_date
+    makeup_request.teacher_proposed_time = proposed_time
+    makeup_request.parent_confirmed_at = None  # 다시 제안하는 경우 이전 동의를 초기화
+
+    when_label = proposed_date.strftime('%Y년 %m월 %d일')
+    time_label = f' {proposed_time.strftime("%H:%M")}' if proposed_time else ''
+    body = f'선생님과 협의한 결과 {when_label}{time_label}에 보강이 가능해요. 이 시간으로 진행할까요?'
+
+    uid = current_user.user_id
+    if not makeup_request.parent_conversation_id:
+        conv = Conversation(user1_id=uid, user2_id=parent_id)
+        db.session.add(conv)
+        db.session.flush()
+        makeup_request.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(makeup_request.parent_conversation_id)
+
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=uid, body=body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+
+    db.session.add(Notification(
+        user_id=parent_id,
+        notification_type='dm',
+        title='🔄 보강 일정을 확인해주세요',
+        message=body,
+        related_user_id=uid,
+    ))
+    db.session.commit()
+
+    flash('학부모에게 일정 확인을 요청했습니다.', 'success')
+    return redirect(url_for('admin.makeup_requests'))
 
 
 # ============================================================================

@@ -86,6 +86,9 @@
 .mw-status-card .grid2 div b{ font-size:13.5px; color:var(--text); }
 .mw-chip{ font-size:12px; font-weight:700; padding:2px 8px; border-radius:var(--radius-badge); display:inline-block; }
 .mw-chip.pending{ background:#FFFBEB; color:#D97706; } .mw-chip.ok{ background:#ECFDF5; color:#059669; } .mw-chip.bad{ background:#FEF2F2; color:#DC2626; }
+.mw-confirm-card{ margin:10px 14px 0; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:12px; padding:12px 13px; }
+.mw-confirm-card p{ margin:0 0 8px; font-size:13px; color:var(--text); }
+.mw-confirm-card b{ display:block; font-size:14.5px; color:var(--blue); margin-bottom:2px; }
 
 .mw-scroll{ flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
 .mw-msg{ max-width:82%; font-size:13.5px; line-height:1.5; padding:8px 11px; border-radius:13px; }
@@ -374,6 +377,13 @@
       return `<div class="mw-msg ${cls}">${escapeHtml(m.text)}${attHtml(m)}</div>`;
     }).join('');
 
+    const confirmHtml = data.can_confirm_schedule ? `
+        <div class="mw-confirm-card">
+          <p>선생님과 협의한 결과 아래 일정으로 보강이 가능해요.</p>
+          <b>${escapeHtml(data.proposed_date || '')}${data.proposed_time ? ' ' + escapeHtml(data.proposed_time) : ''}</b>
+          <button class="mw-submit" onclick="momoWidgetConfirmMakeupSchedule()">이 시간으로 확정할게요</button>
+        </div>` : '';
+
     const body = document.getElementById('momoWidgetBody');
     body.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100%">
@@ -381,6 +391,7 @@
           <span class="mw-chip ${chipClass(data.status)}">${data.status_label}</span>
           <div class="grid2">${fieldsHtml}</div>
         </div>
+        ${confirmHtml}
         <div class="mw-scroll" id="momoWidgetScroll">${msgHtml}</div>
         <div class="mw-composer">
           <div class="mw-file-chip" id="momoWidgetFileChip" hidden>
@@ -611,6 +622,21 @@
       momoWidgetThread('consult', data.id);
     }catch(e){
       alert('신청에 실패했습니다.');
+    }
+  };
+
+  // 강사와 협의된 제안 일정에 학부모가 직접 동의 - 관리자의 별도 승인 없이
+  // 바로 보강수업이 개설된다(finalize_makeup_request, 서버가 처리).
+  window.momoWidgetConfirmMakeupSchedule = async function(){
+    if(!mwCurrentThread || mwCurrentThread.type !== 'makeup') return;
+    if(!confirm('이 시간으로 보강 일정을 확정할까요?')) return;
+    try{
+      const res = await fetch(`/widget/makeup/${mwCurrentThread.id}/confirm-schedule`, { method: 'POST' });
+      const data = await res.json();
+      if(data.error){ alert(data.error); return; }
+      momoWidgetThread('makeup', mwCurrentThread.id);
+    }catch(e){
+      alert('확정 처리에 실패했습니다.');
     }
   };
 

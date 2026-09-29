@@ -224,16 +224,21 @@
                           placeholder="승인 메모를 입력하세요"></textarea>
             </div>
 
-            <div class="flex gap-3">
+            <div class="flex gap-3 mb-2">
                 <button type="submit"
                         class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200">
-                    승인하기
+                    승인하기 (바로 수업 개설)
                 </button>
-                <button type="button" onclick="closeApproveModal()"
-                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
-                    취소
+                <button type="button" onclick="proposeToParent()"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
+                    🔄 학부모에게 확인 요청
                 </button>
             </div>
+            <p class="text-xs text-gray-500 mb-3">"학부모에게 확인 요청"은 수업을 바로 만들지 않고, 위 날짜/시간을 위젯으로 먼저 제안합니다. 학부모가 위젯에서 동의하면 그때 자동으로 수업이 개설됩니다.</p>
+            <button type="button" onclick="closeApproveModal()"
+                    class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-lg transition duration-200 text-sm">
+                취소
+            </button>
         </form>
     </div>
 </div>
@@ -394,6 +399,17 @@ function showApproveModal(requestId, studentName, courseName, requestedDate, has
 function closeApproveModal() {
     document.getElementById('approveModal').classList.add('hidden');
     document.getElementById('admin_notes').value = '';
+}
+
+function proposeToParent() {
+    if (!approveRequestId) return;
+    if (!document.getElementById('makeup_date').value) {
+        alert('학부모에게 제안할 날짜를 입력해주세요.');
+        return;
+    }
+    const form = document.getElementById('approveForm');
+    form.action = `/admin/makeup-requests/${approveRequestId}/propose-to-parent`;
+    form.submit();
 }
 
 async function extractProposedTime() {
