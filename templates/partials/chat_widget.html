@@ -111,9 +111,10 @@
 .mw-form p.hint{ margin:0 0 12px; font-size:12px; color:var(--text3); }
 .mw-fgroup{ margin-bottom:10px; }
 .mw-fgroup label{ display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--text2); }
-.mw-fgroup select, .mw-fgroup textarea{ width:100%; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-size:13.5px; font-family:inherit; outline:none; }
-.mw-fgroup select:focus, .mw-fgroup textarea:focus{ border-color:var(--blue); }
+.mw-fgroup select, .mw-fgroup textarea, .mw-fgroup input{ width:100%; border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-size:13.5px; font-family:inherit; outline:none; box-sizing:border-box; }
+.mw-fgroup select:focus, .mw-fgroup textarea:focus, .mw-fgroup input:focus{ border-color:var(--blue); }
 .mw-submit{ width:100%; padding:10px; border:none; border-radius:10px; background:var(--blue); color:#fff; font-weight:700; font-size:14px; cursor:pointer; }
+.mw-submit-secondary{ width:100%; padding:9px; margin-top:8px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--text2); font-weight:600; font-size:13px; cursor:pointer; }
 
 @media (max-width:480px){
   #momoWidgetPanel{ right:8px; left:8px; width:auto; bottom:8px; height:min(78vh, 600px); }
@@ -251,24 +252,31 @@
 
   const INTENT_LABEL = { consult:'📋 상담 신청', makeup:'🔄 보강 신청', refund:'💰 결제·환불', inquiry:'💬 문의하기' };
   const ROUTE_CTA = {
-    makeup: { label: '🔄 보강 신청 페이지로 이동', href: '{{ url_for("parent.makeup_classes_index") }}' },
     refund: { label: '💰 결제·환불 내역 보기', href: '{{ url_for("parent.all_payments") }}' },
   };
 
-  // 버튼(퀵리플라이)으로 의도가 이미 확실한 경우 - 기존처럼 바로 이동/전환.
+  // 보강은 그룹 시간표 확인 -> (없으면) 개별 협의 순서로 위젯 안에서 바로
+  // 판단해야 하므로 makeup도 consult/inquiry처럼 페이지 이동 없이 내부 폼으로
+  // 전환한다(과거엔 곧장 parent.makeup_classes_index로 이동시켜서 그룹/개별
+  // 구분 없이 아무 목록이나 골라야 했음).
+  function formForIntent(intent){
+    if(intent === 'makeup') return momoWidgetMakeupForm;
+    return momoWidgetConsultForm;
+  }
+
+  // 버튼(퀵리플라이)으로 의도가 이미 확실한 경우 - 기존처럼 바로 전환.
   function routeIntent(intent, replyText){
     if(!INTENT_LABEL[intent]) intent = 'inquiry';
     appendHomeBubble('them', replyText || '네, 확인해볼게요.');
     setTimeout(()=>{
-      if(intent === 'makeup'){ location.href = '{{ url_for("parent.makeup_classes_index") }}'; }
-      else if(intent === 'refund'){ location.href = '{{ url_for("parent.all_payments") }}'; }
-      else { momoWidgetConsultForm(); }
+      if(intent === 'refund'){ location.href = '{{ url_for("parent.all_payments") }}'; }
+      else { formForIntent(intent)(); }
     }, 500);
   }
 
   // 자유 텍스트로 들어온 경우 - LLM 분류가 틀렸거나 사용자 메시지에 예외
   // 상황(예: "목록에 없는 반")이 섞여 있을 수 있으므로 자동 이동하지 않고
-  // 안내 버튼만 보여준다. consult/inquiry는 원래도 페이지 이동이 아니라
+  // 안내 버튼만 보여준다. makeup/consult/inquiry는 원래도 페이지 이동이 아니라
   // 위젯 내부 폼 전환이라 그대로 유지.
   function routeIntentFromText(intent, replyText){
     if(!INTENT_LABEL[intent]) intent = 'inquiry';
@@ -277,7 +285,7 @@
     if(cta){
       appendHomeCta(cta.label, () => { location.href = cta.href; });
     } else {
-      setTimeout(()=>{ momoWidgetConsultForm(); }, 500);
+      setTimeout(()=>{ formForIntent(intent)(); }, 500);
     }
   }
 
@@ -285,7 +293,7 @@
     appendHomeBubble('me', INTENT_LABEL[intent] || intent);
     const canned = {
       consult: '네, 상담 신청 도와드릴게요.',
-      makeup: '네, 보강 신청 페이지로 안내해드릴게요.',
+      makeup: '네, 몇 가지만 확인할게요.',
       refund: '네, 결제·환불 내역으로 안내해드릴게요.',
       inquiry: '네, 문의 내용을 남겨주세요.',
     };
@@ -325,6 +333,7 @@
   }
 
   let mwCurrentThread = null;
+  let mwMakeupCtx = null;
 
   window.momoWidgetThread = async function(type, id){
     mwCurrentThread = {type, id};
@@ -336,6 +345,9 @@
       const res = await fetch(`/widget/thread/${type}/${id}`);
       const data = await res.json();
       if(data.error){ body.innerHTML = `<div class="mw-empty">${escapeHtml(data.error)}</div>`; return; }
+      // 개별보강은 kind='consult'로 저장되지만 표시 제목은 서버가 카테고리를
+      // 보고 '보강 신청'으로 내려준다 - titleMap(kind 기준)만으론 구분 못 함.
+      if(data.title) setHead(data.title, '', true);
       renderThread(data);
     }catch(e){
       body.innerHTML = '<div class="mw-empty">불러오지 못했습니다.</div>';
@@ -465,6 +477,134 @@
       const res = await fetch('{{ url_for("chat_widget.quick_consult") }}', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({student_id, category, reason})
+      });
+      const data = await res.json();
+      if(data.error){ alert(data.error); return; }
+      momoWidgetThread('consult', data.id);
+    }catch(e){
+      alert('신청에 실패했습니다.');
+    }
+  };
+
+  // ==================== 보강 신청 (그룹 확인 -> 없으면 개별) ====================
+
+  window.momoWidgetMakeupForm = function(){
+    setHead('보강 신청', '자녀와 상황을 확인할게요', true);
+    const body = document.getElementById('momoWidgetBody');
+    const children = (mwSummaryCache && mwSummaryCache.children) || [];
+    if(!children.length){
+      body.innerHTML = '<div class="mw-empty">연결된 자녀가 없습니다. 먼저 자녀 연결을 완료해주세요.</div>';
+      return;
+    }
+    if(children.length === 1){
+      momoWidgetMakeupOptions(children[0].id);
+      return;
+    }
+    body.innerHTML = `
+      <div class="mw-form">
+        <h3>어느 자녀의 보강 신청인가요?</h3>
+        <div class="mw-fgroup">
+          <select id="mwMakeupStudent">${children.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>
+        </div>
+        <button class="mw-submit" onclick="momoWidgetMakeupOptions(document.getElementById('mwMakeupStudent').value)">다음</button>
+      </div>
+    `;
+  };
+
+  // 그룹 시간표 확인: 같은 학년의 보강신청 가능한 정규반/하크니스 중
+  // 시간이 맞는 게 있는지 먼저 보여준다. 없으면 곧장 개별 신청 폼으로.
+  window.momoWidgetMakeupOptions = async function(studentId){
+    const body = document.getElementById('momoWidgetBody');
+    body.innerHTML = '<div class="mw-empty">가능한 보강 시간을 확인하고 있어요...</div>';
+    let data;
+    try{
+      const res = await fetch(`{{ url_for('chat_widget.makeup_options') }}?student_id=${encodeURIComponent(studentId)}`);
+      data = await res.json();
+    }catch(e){
+      body.innerHTML = '<div class="mw-empty">불러오지 못했습니다.</div>';
+      return;
+    }
+    if(data.error){ body.innerHTML = `<div class="mw-empty">${escapeHtml(data.error)}</div>`; return; }
+    mwMakeupCtx = { studentId };
+    if(data.courses && data.courses.length){
+      body.innerHTML = `
+        <div class="mw-form">
+          <h3>${escapeHtml(data.student_name)} 학생 - 시간표상 가능한 수업</h3>
+          <p class="hint">그 반 시간에 맞춰 함께 듣되, 출결은 보강으로 별도 처리돼요</p>
+          <div class="mw-fgroup">
+            <label>그룹 수업 선택</label>
+            <select id="mwMakeupCourse">
+              ${data.courses.map(c=>`<option value="${c.course_id}">${escapeHtml(c.weekday_label)} ${escapeHtml(c.time_label)} · ${escapeHtml(c.course_name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="mw-fgroup">
+            <label>희망 보강일</label>
+            <input type="date" id="mwMakeupDate">
+          </div>
+          <div class="mw-fgroup">
+            <label>사유</label>
+            <textarea id="mwMakeupReason" rows="2" placeholder="결석 사유 등을 적어주세요"></textarea>
+          </div>
+          <button class="mw-submit" onclick="momoWidgetSubmitMakeup()">이 시간으로 신청하기</button>
+          <button class="mw-submit-secondary" onclick="momoWidgetMakeupIndividualForm()">원하는 시간대가 없어요</button>
+        </div>
+      `;
+    } else {
+      momoWidgetMakeupIndividualForm(`${escapeHtml(data.student_name)} 학생 학년에 맞는 그룹 수업 시간이 없어요.`);
+    }
+  };
+
+  window.momoWidgetSubmitMakeup = async function(){
+    const course_id = document.getElementById('mwMakeupCourse').value;
+    const requested_date = document.getElementById('mwMakeupDate').value;
+    const reason = document.getElementById('mwMakeupReason').value.trim();
+    if(!reason){ alert('사유를 입력해주세요.'); return; }
+    try{
+      const res = await fetch('{{ url_for("chat_widget.quick_makeup") }}', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({student_id: mwMakeupCtx.studentId, course_id, reason, requested_date})
+      });
+      const data = await res.json();
+      if(data.error){ alert(data.error); return; }
+      momoWidgetThread('makeup', data.id);
+    }catch(e){
+      alert('신청에 실패했습니다.');
+    }
+  };
+
+  // 매칭되는 그룹 수업이 없을 때 - 관리자·강사가 수동으로 시간을 협의한다.
+  window.momoWidgetMakeupIndividualForm = function(notice){
+    const body = document.getElementById('momoWidgetBody');
+    body.innerHTML = `
+      <div class="mw-form">
+        <h3>개별 보강 신청</h3>
+        <p class="hint">${notice ? notice + ' ' : ''}관리자가 담당 강사와 협의해 별도 시간을 잡아드려요</p>
+        <div class="mw-fgroup">
+          <label>희망 날짜</label>
+          <input type="date" id="mwMakeupIndDate">
+        </div>
+        <div class="mw-fgroup">
+          <label>희망 시간대</label>
+          <input type="text" id="mwMakeupIndNote" placeholder="예: 평일 저녁 7시 이후">
+        </div>
+        <div class="mw-fgroup">
+          <label>사유</label>
+          <textarea id="mwMakeupIndReason" rows="3" placeholder="결석 사유 등을 적어주세요"></textarea>
+        </div>
+        <button class="mw-submit" onclick="momoWidgetSubmitMakeupIndividual()">개별로 신청하기</button>
+      </div>
+    `;
+  };
+
+  window.momoWidgetSubmitMakeupIndividual = async function(){
+    const reason = document.getElementById('mwMakeupIndReason').value.trim();
+    const preferred_date = document.getElementById('mwMakeupIndDate').value;
+    const preferred_note = document.getElementById('mwMakeupIndNote').value.trim();
+    if(!reason){ alert('사유를 입력해주세요.'); return; }
+    try{
+      const res = await fetch('{{ url_for("chat_widget.quick_makeup_individual") }}', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({student_id: mwMakeupCtx.studentId, reason, preferred_date, preferred_note})
       });
       const data = await res.json();
       if(data.error){ alert(data.error); return; }

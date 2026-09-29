@@ -16,7 +16,7 @@ from flask_login import current_user
 from werkzeug.utils import secure_filename
 
 from app.chat_widget import chat_widget_bp
-from app.models import db, User, Notification
+from app.models import db, User, Notification, Course, Student
 from app.models.consultation_request import ConsultationRequest, CATEGORY_CHOICES
 from app.models.refund_request import RefundRequest
 from app.models.makeup_request import MakeupClassRequest
@@ -25,6 +25,15 @@ from app.models.parent_student import ParentStudent
 from app.utils.decorators import requires_role
 
 KST_FMT = '%Y-%m-%d %H:%M'
+WEEKDAY_KO = ['월', '화', '수', '목', '금', '토', '일']
+
+# 개별(1:1) 보강 신청은 requested_course_id를 요구하는 MakeupClassRequest로
+# 표현할 수 없어(참조할 그룹 수업이 애초에 없음) ConsultationRequest를 그대로
+# 재사용한다 - 실제로도 지금까지 이 경우는 관리자가 강사와 수동으로 시간을
+# 협의해 처리해왔다(그룹 수업처럼 자동으로 1:1 수업이 생성되지 않음).
+# CATEGORY_CHOICES에는 넣지 않는다 - 일반 상담 분류 드롭다운에 노출되면
+# 안 되고, 아래 quick_makeup_individual()에서만 이 값으로 생성한다.
+MAKEUP_INDIVIDUAL_CATEGORY = '개별보강'
 
 # app.messages._save_attachment와 같은 규칙(허용 확장자/저장 위치)을 그대로
 # 따른다 - 다만 파일 서빙은 별도 라우트(attachment())로 둔다. 일반 메신저의
@@ -137,7 +146,8 @@ def summary():
     for c in consults:
         threads.append({
             'type': 'consult', 'id': c.request_id,
-            'title': '상담 신청', 'who': c.student.display_name if c.student else '',
+            'title': '보강 신청' if c.category == MAKEUP_INDIVIDUAL_CATEGORY else '상담 신청',
+            'who': c.student.display_name if c.student else '',
             'status': c.status, 'status_label': _consult_status_label(c),
             'preview': _consult_preview(c),
             'time': c.updated_at.strftime(KST_FMT),
@@ -321,9 +331,10 @@ def thread(kind, request_id):
     _mark_read(conv_id)
 
     label_fn = {'consult': _consult_status_label, 'makeup': _makeup_status_label, 'refund': _refund_status_label}[kind]
+    consult_title = '보강 신청' if (kind == 'consult' and obj.category == MAKEUP_INDIVIDUAL_CATEGORY) else '상담 신청'
     return jsonify({
         'type': kind,
-        'title': {'consult': '상담 신청', 'makeup': '보강 신청', 'refund': '환불 요청'}[kind],
+        'title': {'consult': consult_title, 'makeup': '보강 신청', 'refund': '환불 요청'}[kind],
         'status': obj.status,
         'status_label': label_fn(obj),
         'fields': _fields(kind, obj),
@@ -434,6 +445,158 @@ def quick_consult():
             user_id=admin.user_id, notification_type='consultation_request',
             title=f'📋 새 상담 신청: {req.student.display_name if req.student else ""}',
             message=f'{req.category} · {req.reason[:60]}',
+            related_entity_type='consultation_request', related_entity_id=req.request_id,
+            link_url=url_for('consultation_request.admin_detail', request_id=req.request_id),
+        ))
+    db.session.commit()
+
+    return jsonify({'ok': True, 'id': req.request_id})
+
+
+# ==================== 보강 신청 (위젯 안에서 바로 작성) ====================
+# "그룹 보강"(시간표상 이미 진행 중인 정규반/하크니스 시간에 맞춰 별도 출결로
+# 참여) 우선 확인 -> 맞는 시간이 없으면 "개별 보강"(관리자·강사가 수동으로
+# 시간 협의)으로 분기한다. parent_portal.makeup_classes()와 동일한 기준으로
+# 그룹 수업 후보를 계산한다(위젯 진입점 하나뿐이라 지금은 그대로 복제).
+_MAKEUP_EXCLUDED_TYPES = ('프리미엄', '시그니처', '보강수업', '보강(정규반)', '보강(프리미엄)', '보강(하크니스)')
+
+
+@chat_widget_bp.route('/widget/makeup/options')
+@requires_role('parent', 'admin')
+def makeup_options():
+    student_id = request.args.get('student_id', '')
+    if student_id not in _my_children_ids():
+        return jsonify({'error': '자녀를 올바르게 선택해주세요.'}), 400
+
+    student = Student.query.get_or_404(student_id)
+
+    courses = Course.query.filter(
+        Course.grade == student.grade,
+        Course.makeup_class_allowed == True,
+        Course.status == 'active',
+        Course.is_terminated == False,
+        ~Course.course_type.in_(_MAKEUP_EXCLUDED_TYPES)
+    ).order_by(Course.weekday, Course.start_time).all()
+
+    return jsonify({
+        'student_name': student.display_name,
+        'courses': [{
+            'course_id': c.course_id,
+            'course_name': c.course_name,
+            'weekday_label': (WEEKDAY_KO[c.weekday] + '요일') if c.weekday is not None else '',
+            'time_label': c.start_time.strftime('%H:%M') if c.start_time else '',
+        } for c in courses],
+    })
+
+
+@chat_widget_bp.route('/widget/quick/makeup', methods=['POST'])
+@requires_role('parent', 'admin')
+def quick_makeup():
+    """그룹 보강 신청 - 기존 parent_portal.request_makeup_class와 같은 규칙."""
+    data = request.get_json(silent=True) or {}
+    student_id = data.get('student_id', '')
+    course_id = data.get('course_id', '')
+    reason = (data.get('reason') or '').strip()
+    requested_date_str = (data.get('requested_date') or '').strip()
+
+    if student_id not in _my_children_ids():
+        return jsonify({'error': '자녀를 올바르게 선택해주세요.'}), 400
+    if not reason:
+        return jsonify({'error': '사유를 입력해주세요.'}), 400
+
+    student = Student.query.get_or_404(student_id)
+    course = Course.query.get_or_404(course_id)
+
+    if not course.makeup_class_allowed or course.grade != student.grade:
+        return jsonify({'error': '신청할 수 없는 수업입니다.'}), 400
+
+    existing_request = MakeupClassRequest.query.filter_by(
+        student_id=student_id, requested_course_id=course_id, status='pending'
+    ).first()
+    if existing_request:
+        return jsonify({'error': '이미 해당 수업에 대한 보강신청이 진행 중입니다.'}), 400
+
+    requested_date = None
+    if requested_date_str:
+        try:
+            requested_date = datetime.strptime(requested_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    req = MakeupClassRequest(
+        student_id=student_id, requested_course_id=course_id,
+        reason=reason, requested_date=requested_date,
+        requested_by=current_user.user_id, status='pending',
+    )
+    db.session.add(req)
+    db.session.flush()
+
+    admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+    for admin in admins:
+        db.session.add(Notification(
+            user_id=admin.user_id, notification_type='makeup_request',
+            title=f'🔄 새로운 보강수업 신청: {student.display_name}',
+            message=f'{course.course_name} · {reason[:60]}',
+            related_entity_type='makeup_request', related_entity_id=req.request_id,
+            link_url=url_for('admin.makeup_requests'),
+        ))
+
+    if course.teacher_id:
+        reason_text = f' 사유: {reason}' if reason else ''
+        Notification.create_notification(
+            user_id=course.teacher_id,
+            notification_type='makeup_request',
+            title=f'[보강 신청] {student.display_name} 학생',
+            message=(f'{student.display_name} 학생의 학부모가 {course.course_name} 보강수업을 신청했습니다.'
+                     f'{reason_text} (관리자 승인 후 확정됩니다)'),
+            link_url='/teacher/upcoming-changes'
+        )
+
+    db.session.commit()
+
+    return jsonify({'ok': True, 'id': req.request_id})
+
+
+@chat_widget_bp.route('/widget/quick/makeup-individual', methods=['POST'])
+@requires_role('parent', 'admin')
+def quick_makeup_individual():
+    """개별(1:1) 보강 신청 - 시간표에 맞는 그룹 수업이 없을 때. 참조할 그룹
+    수업이 없어 MakeupClassRequest(requested_course_id NOT NULL)로 표현할 수
+    없으므로 ConsultationRequest를 재사용해 관리자에게 접수만 하고, 실제 시간
+    협의는 지금까지처럼 관리자·강사가 수동으로 처리한다."""
+    data = request.get_json(silent=True) or {}
+    student_id = data.get('student_id', '')
+    reason = (data.get('reason') or '').strip()
+    preferred_date_str = (data.get('preferred_date') or '').strip()
+    preferred_note = (data.get('preferred_note') or '').strip()
+
+    if student_id not in _my_children_ids():
+        return jsonify({'error': '자녀를 올바르게 선택해주세요.'}), 400
+    if not reason:
+        return jsonify({'error': '사유를 입력해주세요.'}), 400
+
+    preferred_date = None
+    if preferred_date_str:
+        try:
+            preferred_date = datetime.strptime(preferred_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    req = ConsultationRequest(
+        student_id=student_id, requester_id=current_user.user_id,
+        category=MAKEUP_INDIVIDUAL_CATEGORY, reason=reason,
+        preferred_date=preferred_date, preferred_note=preferred_note or None,
+        status='pending',
+    )
+    db.session.add(req)
+    db.session.flush()
+
+    admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+    for admin in admins:
+        db.session.add(Notification(
+            user_id=admin.user_id, notification_type='consultation_request',
+            title=f'🔄 개별 보강 신청: {req.student.display_name if req.student else ""}',
+            message=reason[:60],
             related_entity_type='consultation_request', related_entity_id=req.request_id,
             link_url=url_for('consultation_request.admin_detail', request_id=req.request_id),
         ))
