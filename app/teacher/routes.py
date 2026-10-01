@@ -799,12 +799,15 @@ def schedule():
         session_course_ids_this_week.add(session.course_id)
 
     # 이번 주 세션이 없는 활성 수업 → Course.weekday 기준으로 표시 (weekly_courses_only)
+    # 수업의 실제 기간(start_date~end_date)이 이번 주와 겹치지 않으면 제외
+    # (1회성 보강수업처럼 이미 끝난 수업이 종료 처리 누락으로 매주 유령 일정으로 계속 보이는 문제 방지)
     weekly_courses_only = {i: [] for i in range(7)}
     for course in active_courses:
         if (course.course_id not in session_course_ids_this_week
                 and course.weekday is not None
                 and not course.is_terminated
-                and course.status == 'active'):
+                and course.status == 'active'
+                and (course.end_date is None or course.end_date >= week_start)):
             weekly_courses_only[course.weekday].append(course)
 
     # 시간대 범위 (8:00 ~ 24:00)
