@@ -2658,9 +2658,15 @@ def attendance_status():
     month_end = today.replace(day=cal_module.monthrange(today.year, today.month)[1])
 
     def _calc_stats(d_from, d_to):
+        # 결석률의 모집단은 개설된 모든 세션이 아니라 강사가 실제로 출결 체크를
+        # 클릭한 레코드(checked_at IS NOT NULL)만으로 계산한다.
         q = Attendance.query\
             .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
-            .filter(CourseSession.session_date >= d_from, CourseSession.session_date <= d_to)
+            .filter(
+                CourseSession.session_date >= d_from,
+                CourseSession.session_date <= d_to,
+                Attendance.checked_at.isnot(None)
+            )
         t = q.count()
         p = q.filter(Attendance.status == 'present').count()
         l = q.filter(Attendance.status == 'late').count()
@@ -2724,11 +2730,12 @@ def attendance_status():
     ).paginate(page=page, per_page=100, error_out=False)
     attendances = pagination.items
 
-    # 전체 통계
+    # 전체 통계 — 결석률 모집단은 강사가 실제로 체크한 레코드만 집계
     total_query = Attendance.query\
         .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
         .join(Course, CourseSession.course_id == Course.course_id)\
-        .join(Student, Attendance.student_id == Student.student_id)
+        .join(Student, Attendance.student_id == Student.student_id)\
+        .filter(Attendance.checked_at.isnot(None))
     if date_from:
         total_query = total_query.filter(CourseSession.session_date >= date_from)
     if date_to:
@@ -2759,7 +2766,8 @@ def attendance_status():
             func.sum(case((Attendance.status == 'late', 1), else_=0)).label('late'),
             func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
         ).join(CourseSession, Course.course_id == CourseSession.course_id)\
-         .join(Attendance, CourseSession.session_id == Attendance.session_id)
+         .join(Attendance, CourseSession.session_id == Attendance.session_id)\
+         .filter(Attendance.checked_at.isnot(None))
 
         if date_from:
             course_stats_query = course_stats_query.filter(CourseSession.session_date >= date_from)
@@ -2782,7 +2790,8 @@ def attendance_status():
             func.sum(case((Attendance.status == 'late', 1), else_=0)).label('late'),
             func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
         ).join(Attendance, Student.student_id == Attendance.student_id)\
-         .join(CourseSession, Attendance.session_id == CourseSession.session_id)
+         .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
+         .filter(Attendance.checked_at.isnot(None))
 
         if date_from:
             student_stats_query = student_stats_query.filter(CourseSession.session_date >= date_from)

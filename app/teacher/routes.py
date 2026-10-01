@@ -159,7 +159,8 @@ def index():
      .filter(
          Course.teacher_id == current_user.user_id,
          CourseSession.session_date >= six_months_ago_date,
-         CourseSession.session_date <= today
+         CourseSession.session_date <= today,
+         Attendance.checked_at.isnot(None)
      ).group_by('year', 'month')\
      .order_by('year', 'month').all()
 
@@ -178,7 +179,10 @@ def index():
      .join(Attendance, CourseEnrollment.enrollment_id == Attendance.enrollment_id)\
      .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
      .join(Course, CourseSession.course_id == Course.course_id)\
-     .filter(Course.teacher_id == current_user.user_id)\
+     .filter(
+         Course.teacher_id == current_user.user_id,
+         Attendance.checked_at.isnot(None)
+     )\
      .group_by(Student.student_id, Student.name)\
      .order_by(func.sum(case((Attendance.status == 'absent', 1), else_=0)).desc())\
      .limit(10).all()
@@ -992,14 +996,15 @@ def attendance_list():
                              weekday_filter=weekday_filter,
                              course_type_filter=course_type_filter)
 
-    # 보강수업 세션 (과거 30일 ~ 다음주까지) — 그 이후는 미리 생성돼 있어도 혼동을 줄이기 위해 숨김
-    end_of_next_week = today + timedelta(days=(6 - today.weekday()) + 7)
+    # 보강수업 세션 (과거 30일 ~ 이번 주까지) — 다음 주 이후는 미리 생성돼 있어도
+    # 아직 해당 주차가 아니므로 숨김(강사가 다음 주 출결표를 미리 볼 수 없어야 함)
+    end_of_this_week = today + timedelta(days=(6 - today.weekday()))
     makeup_sessions_raw = []
     if makeup_course_ids:
         makeup_sessions_raw = CourseSession.query.filter(
             CourseSession.course_id.in_(makeup_course_ids),
             CourseSession.session_date >= today - timedelta(days=30),
-            CourseSession.session_date <= end_of_next_week,
+            CourseSession.session_date <= end_of_this_week,
             CourseSession.status != 'cancelled'
         ).all()
 
