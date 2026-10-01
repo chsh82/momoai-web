@@ -34,6 +34,34 @@ def _save_essay_error(essay_id: str, error_msg: str) -> None:
         pass
 
 
+def _revision_note_path(essay_id: str) -> str:
+    note_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'revision_notes')
+    os.makedirs(note_dir, exist_ok=True)
+    return os.path.join(note_dir, f'{secure_filename(essay_id)}.txt')
+
+
+def _save_pending_revision_note(essay_id: str, revision_note: str) -> None:
+    """재생성 요청 시 입력한 revision_note를 서버 파일에 임시 저장."""
+    with open(_revision_note_path(essay_id), 'w', encoding='utf-8') as f:
+        f.write(revision_note)
+
+
+def _pop_pending_revision_note(essay_id: str):
+    """저장된 revision_note를 읽고 파일을 삭제."""
+    path = _revision_note_path(essay_id)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    return content
+
+
 def _can_access_essay(essay):
     """
     현재 로그인 유저가 해당 essay에 접근 가능한지 확인.
@@ -800,8 +828,6 @@ def result(essay_id):
 @login_required
 def regenerate(essay_id):
     """첨삭 재생성 초기화"""
-    from flask import session
-
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
@@ -821,8 +847,10 @@ def regenerate(essay_id):
         new_guide = request.form.get('teacher_guide', '').strip()
         essay.teacher_guide = new_guide or None
 
-        # 세션에 revision_note 저장
-        session[f'revision_note_{essay_id}'] = revision_note
+        # revision_note는 쿠키 세션이 아니라 서버 파일에 저장
+        # (길이 제한이 없는 사용자 입력을 쿠키에 담으면 응답 헤더가 커져
+        #  nginx가 502 "upstream sent too big header"로 끊는 문제가 있었음)
+        _save_pending_revision_note(essay_id, revision_note)
 
         # 상태를 processing으로 변경
         essay.status = 'processing'
@@ -857,21 +885,16 @@ def api_cancel(essay_id):
 @login_required
 def api_regenerate(essay_id):
     """첨삭 재생성 API (AJAX용)"""
-    from flask import session
-
     essay = Essay.query.get_or_404(essay_id)
 
     # 권한 확인
     if not _can_access_essay(essay):
         return jsonify({'error': '접근 권한이 없습니다.'}), 403
 
-    # 세션에서 revision_note 가져오기
-    revision_note = session.get(f'revision_note_{essay_id}')
+    # 서버 파일에서 revision_note 가져오기 (미리 값 추출, 스레드는 요청 컨텍스트 없음)
+    revision_note = _pop_pending_revision_note(essay_id)
     if not revision_note:
         return jsonify({'error': '수정 요청 내용을 찾을 수 없습니다.'}), 400
-
-    # 세션에서 미리 값 추출 (스레드는 요청 컨텍스트 없음)
-    session.pop(f'revision_note_{essay_id}', None)
 
     student_name = essay.student.name
     teacher_name = current_user.name
