@@ -2659,13 +2659,16 @@ def attendance_status():
 
     def _calc_stats(d_from, d_to):
         # 결석률의 모집단은 개설된 모든 세션이 아니라 강사가 실제로 출결 체크를
-        # 클릭한 레코드(checked_at IS NOT NULL)만으로 계산한다.
+        # 완료/확인보류 처리한 세션(CourseSession.attendance_checked=True)의
+        # 레코드만으로 계산한다. 개별 Attendance.checked_at은 상태를 바꾼
+        # 레코드에만 찍혀서(정상 출석은 기본값이라 안 건드리는 경우가 많음)
+        # 모집단 기준으로 쓸 수 없다 — 세션을 "완료" 처리했는지가 기준이어야 한다.
         q = Attendance.query\
             .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
             .filter(
                 CourseSession.session_date >= d_from,
                 CourseSession.session_date <= d_to,
-                Attendance.checked_at.isnot(None)
+                CourseSession.attendance_checked == True
             )
         t = q.count()
         p = q.filter(Attendance.status == 'present').count()
@@ -2730,12 +2733,14 @@ def attendance_status():
     ).paginate(page=page, per_page=100, error_out=False)
     attendances = pagination.items
 
-    # 전체 통계 — 결석률 모집단은 강사가 실제로 체크한 레코드만 집계
+    # 전체 통계 — 결석률 모집단은 강사가 출결 체크를 완료/확인보류 처리한
+    # 세션(attendance_checked=True)의 레코드만 집계 (레코드별 checked_at은
+    # 상태를 바꾼 경우에만 찍혀서 모집단 기준으로 쓸 수 없음)
     total_query = Attendance.query\
         .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
         .join(Course, CourseSession.course_id == Course.course_id)\
         .join(Student, Attendance.student_id == Student.student_id)\
-        .filter(Attendance.checked_at.isnot(None))
+        .filter(CourseSession.attendance_checked == True)
     if date_from:
         total_query = total_query.filter(CourseSession.session_date >= date_from)
     if date_to:
@@ -2767,7 +2772,7 @@ def attendance_status():
             func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
         ).join(CourseSession, Course.course_id == CourseSession.course_id)\
          .join(Attendance, CourseSession.session_id == Attendance.session_id)\
-         .filter(Attendance.checked_at.isnot(None))
+         .filter(CourseSession.attendance_checked == True)
 
         if date_from:
             course_stats_query = course_stats_query.filter(CourseSession.session_date >= date_from)
@@ -2791,7 +2796,7 @@ def attendance_status():
             func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
         ).join(Attendance, Student.student_id == Attendance.student_id)\
          .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
-         .filter(Attendance.checked_at.isnot(None))
+         .filter(CourseSession.attendance_checked == True)
 
         if date_from:
             student_stats_query = student_stats_query.filter(CourseSession.session_date >= date_from)

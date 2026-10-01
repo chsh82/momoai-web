@@ -160,7 +160,7 @@ def index():
          Course.teacher_id == current_user.user_id,
          CourseSession.session_date >= six_months_ago_date,
          CourseSession.session_date <= today,
-         Attendance.checked_at.isnot(None)
+         CourseSession.attendance_checked == True
      ).group_by('year', 'month')\
      .order_by('year', 'month').all()
 
@@ -181,7 +181,7 @@ def index():
      .join(Course, CourseSession.course_id == Course.course_id)\
      .filter(
          Course.teacher_id == current_user.user_id,
-         Attendance.checked_at.isnot(None)
+         CourseSession.attendance_checked == True
      )\
      .group_by(Student.student_id, Student.name)\
      .order_by(func.sum(case((Attendance.status == 'absent', 1), else_=0)).desc())\
