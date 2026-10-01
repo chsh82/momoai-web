@@ -361,10 +361,13 @@ def badge_sweep_job(app):
 
 
 def terminate_finished_makeup_courses_job(app):
-    """매주 월요일 00:02: 종료일이 지난 보강 수업을 자동으로 종료(is_terminated=True)
-    처리한다. 보강수업은 1회성(start_date==end_date)이라 종료일이 지나면 사실상
-    끝난 수업인데, 예전엔 관리자가 일일이 수동으로 종료 처리해야 해서 지난
-    보강 수업이 계속 "진행 중"인 상태로 남아있었다 - 수업명이 "[보강] ..."으로
+    """매주 월요일 00:02: 종료일이 지난 수업을 자동으로 종료(is_terminated=True)
+    처리한다. 원래는 보강수업(1회성, start_date==end_date라 종료일이 지나면
+    사실상 끝난 수업)만 대상이었는데, 보강이 아닌 수업(예: 짧게 끝나는 프리미엄
+    단기반, 체험단)도 종료일이 지나도록 종료 처리가 안 돼 강사 주간 시간표에
+    매주 유령 일정으로 계속 뜨는 문제가 동일하게 발견되어(2026-10-01) 전체
+    course_type으로 확장함. 예전엔 관리자가 일일이 수동으로 종료 처리해야 해서
+    지난 수업이 계속 "진행 중"인 상태로 남아있었다 - 수업명이 "[보강] ..."으로
     시작해 정렬 순서상 항상 위로 떠서 학생 출결 화면에서 최근 출결 확인이
     불편하다는 피드백으로 이어졌다(2026-09-29)."""
     from datetime import date, datetime
@@ -375,7 +378,6 @@ def terminate_finished_makeup_courses_job(app):
             from app.models import db, Course
             today = date.today()
             courses = Course.query.filter(
-                Course.course_type.like('보강%'),
                 Course.is_terminated == False,
                 Course.end_date < today,
             ).all()
@@ -383,7 +385,7 @@ def terminate_finished_makeup_courses_job(app):
                 c.is_terminated = True
             db.session.commit()
             elapsed = (datetime.utcnow() - job_start).total_seconds()
-            logger.info('[MakeupTerminate] job 종료 - %d개 보강 수업 종료 처리, 소요 %.1f초',
+            logger.info('[MakeupTerminate] job 종료 - %d개 수업 종료 처리, 소요 %.1f초',
                        len(courses), elapsed)
         except Exception:
             logger.exception('[MakeupTerminate] 오류')
