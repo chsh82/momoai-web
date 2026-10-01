@@ -453,7 +453,8 @@ def child_attendance(student_id):
                 student_id=student_id
             ).first()
 
-            if attendance:
+            # 미확인(과거 데이터 오류) 레코드는 학부모 화면에 노출하지 않음
+            if attendance and attendance.status != 'unconfirmed':
                 attendance_data.append({
                     'course': enrollment.course,
                     'session': session,
@@ -1954,7 +1955,9 @@ def export_child_attendance(student_id):
     for enrollment in enrollments:
         attendances = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
-        ).join(CourseSession).order_by(CourseSession.session_date.desc()).all()
+        ).join(CourseSession).filter(
+            Attendance.status != 'unconfirmed'
+        ).order_by(CourseSession.session_date.desc()).all()
 
         for attendance in attendances:
             session = CourseSession.query.get(attendance.session_id)
@@ -2138,7 +2141,8 @@ def export_child_attendance_certificate(student_id):
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession).filter(
             CourseSession.session_date >= start_date.date(),
-            CourseSession.session_date <= end_date.date()
+            CourseSession.session_date <= end_date.date(),
+            Attendance.status != 'unconfirmed'
         ).order_by(CourseSession.session_date).all()
 
         for attendance in attendances:

@@ -104,7 +104,7 @@ def index():
                 session_id=session.session_id
             ).first()
 
-            if attendance:
+            if attendance and attendance.status != 'unconfirmed':
                 this_week_sessions.append({
                     'session': session,
                     'attendance': attendance,
@@ -252,7 +252,8 @@ def courses():
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
-            CourseSession.session_date <= today
+            CourseSession.session_date <= today,
+            Attendance.status != 'unconfirmed'
         ).all()
         attended = sum(1 for a in records if a.status == 'present')
         absent = sum(1 for a in records if a.status == 'absent')
@@ -317,7 +318,8 @@ def course_detail(course_id):
     attendances = Attendance.query.filter_by(
         enrollment_id=enrollment.enrollment_id
     ).join(CourseSession).filter(
-        CourseSession.session_date <= date.today()
+        CourseSession.session_date <= date.today(),
+        Attendance.status != 'unconfirmed'
     ).order_by(desc(CourseSession.session_date)).all()
 
     # 진행된 세션 기준 출석 통계 (미래 세션 제외)
@@ -2299,7 +2301,9 @@ def export_my_attendance():
     for enrollment in enrollments:
         attendances = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
-        ).join(CourseSession).order_by(CourseSession.session_date.desc()).all()
+        ).join(CourseSession).filter(
+            Attendance.status != 'unconfirmed'
+        ).order_by(CourseSession.session_date.desc()).all()
 
         for attendance in attendances:
             session = CourseSession.query.get(attendance.session_id)

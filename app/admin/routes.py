@@ -2668,7 +2668,8 @@ def attendance_status():
             .filter(
                 CourseSession.session_date >= d_from,
                 CourseSession.session_date <= d_to,
-                CourseSession.attendance_checked == True
+                CourseSession.attendance_checked == True,
+                Attendance.status != 'unconfirmed'
             )
         t = q.count()
         p = q.filter(Attendance.status == 'present').count()
@@ -2740,7 +2741,10 @@ def attendance_status():
         .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
         .join(Course, CourseSession.course_id == Course.course_id)\
         .join(Student, Attendance.student_id == Student.student_id)\
-        .filter(CourseSession.attendance_checked == True)
+        .filter(
+            CourseSession.attendance_checked == True,
+            Attendance.status != 'unconfirmed'
+        )
     if date_from:
         total_query = total_query.filter(CourseSession.session_date >= date_from)
     if date_to:
@@ -2772,7 +2776,10 @@ def attendance_status():
             func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
         ).join(CourseSession, Course.course_id == CourseSession.course_id)\
          .join(Attendance, CourseSession.session_id == Attendance.session_id)\
-         .filter(CourseSession.attendance_checked == True)
+         .filter(
+             CourseSession.attendance_checked == True,
+             Attendance.status != 'unconfirmed'
+         )
 
         if date_from:
             course_stats_query = course_stats_query.filter(CourseSession.session_date >= date_from)
@@ -2796,7 +2803,10 @@ def attendance_status():
             func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
         ).join(Attendance, Student.student_id == Attendance.student_id)\
          .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
-         .filter(CourseSession.attendance_checked == True)
+         .filter(
+             CourseSession.attendance_checked == True,
+             Attendance.status != 'unconfirmed'
+         )
 
         if date_from:
             student_stats_query = student_stats_query.filter(CourseSession.session_date >= date_from)
