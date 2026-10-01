@@ -2663,13 +2663,16 @@ def attendance_status():
         # 레코드만으로 계산한다. 개별 Attendance.checked_at은 상태를 바꾼
         # 레코드에만 찍혀서(정상 출석은 기본값이라 안 건드리는 경우가 많음)
         # 모집단 기준으로 쓸 수 없다 — 세션을 "완료" 처리했는지가 기준이어야 한다.
+        # unconfirmed(과거 버그 레코드)와 absent_makeup(원 수업 결석이지만 보강
+        # 수업에 참여해 그 보강 세션에서 별도로 출석 카운트됨 - 여기서도 포함하면
+        # 중복 반영됨)는 분모/분자 모두에서 제외.
         q = Attendance.query\
             .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
             .filter(
                 CourseSession.session_date >= d_from,
                 CourseSession.session_date <= d_to,
                 CourseSession.attendance_checked == True,
-                Attendance.status != 'unconfirmed'
+                Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
             )
         t = q.count()
         p = q.filter(Attendance.status == 'present').count()
@@ -2743,7 +2746,7 @@ def attendance_status():
         .join(Student, Attendance.student_id == Student.student_id)\
         .filter(
             CourseSession.attendance_checked == True,
-            Attendance.status != 'unconfirmed'
+            Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
         )
     if date_from:
         total_query = total_query.filter(CourseSession.session_date >= date_from)
@@ -2778,7 +2781,7 @@ def attendance_status():
          .join(Attendance, CourseSession.session_id == Attendance.session_id)\
          .filter(
              CourseSession.attendance_checked == True,
-             Attendance.status != 'unconfirmed'
+             Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
          )
 
         if date_from:
@@ -2805,7 +2808,7 @@ def attendance_status():
          .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
          .filter(
              CourseSession.attendance_checked == True,
-             Attendance.status != 'unconfirmed'
+             Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
          )
 
         if date_from:

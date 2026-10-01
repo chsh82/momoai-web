@@ -161,7 +161,7 @@ def index():
          CourseSession.session_date >= six_months_ago_date,
          CourseSession.session_date <= today,
          CourseSession.attendance_checked == True,
-         Attendance.status != 'unconfirmed'
+         Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
      ).group_by('year', 'month')\
      .order_by('year', 'month').all()
 
@@ -183,7 +183,7 @@ def index():
      .filter(
          Course.teacher_id == current_user.user_id,
          CourseSession.attendance_checked == True,
-         Attendance.status != 'unconfirmed'
+         Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
      )\
      .group_by(Student.student_id, Student.name)\
      .order_by(func.sum(case((Attendance.status == 'absent', 1), else_=0)).desc())\
