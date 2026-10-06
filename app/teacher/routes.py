@@ -152,8 +152,9 @@ def index():
     monthly_attendance = db.session.query(
         extract('year', CourseSession.session_date).label('year'),
         extract('month', CourseSession.session_date).label('month'),
-        func.count(Attendance.attendance_id).label('total_records'),
-        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present_count')
+        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present_count'),
+        func.sum(case((Attendance.status == 'late', 1), else_=0)).label('late_count'),
+        func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent_count')
     ).join(Attendance, CourseSession.session_id == Attendance.session_id)\
      .join(Course, CourseSession.course_id == Course.course_id)\
      .filter(
@@ -167,7 +168,8 @@ def index():
 
     attendance_labels = [f"{int(row.year)}-{int(row.month):02d}" for row in monthly_attendance]
     attendance_data = [
-        round((row.present_count / row.total_records * 100), 1) if row.total_records > 0 else 0
+        round((row.present_count + row.late_count) / (row.present_count + row.late_count + row.absent_count) * 100, 1)
+        if (row.present_count + row.late_count + row.absent_count) > 0 else 0
         for row in monthly_attendance
     ]
 
@@ -1508,6 +1510,12 @@ def api_complete_session(session_id):
         session.status = 'scheduled'
 
     db.session.commit()
+
+    enrollment_ids = {a.enrollment_id for a in Attendance.query.filter_by(session_id=session_id).all()}
+    for eid in enrollment_ids:
+        update_enrollment_attendance_stats(eid)
+    db.session.commit()
+
     return jsonify({'success': True, 'session_id': session_id, 'checked': checked})
 
 
@@ -1541,6 +1549,11 @@ def complete_session(session_id):
     session.attendance_checked_by = current_user.user_id
     session.status = 'completed'
 
+    db.session.commit()
+
+    enrollment_ids = {a.enrollment_id for a in Attendance.query.filter_by(session_id=session.session_id).all()}
+    for eid in enrollment_ids:
+        update_enrollment_attendance_stats(eid)
     db.session.commit()
 
     # 확인보류 → 완료 전환 시: 결석/지각 학생에게 일괄 알림 발송
@@ -1606,6 +1619,11 @@ def hold_session(session_id):
     session.attendance_checked_by = current_user.user_id
     session.status = 'pending_review'
 
+    db.session.commit()
+
+    enrollment_ids = {a.enrollment_id for a in Attendance.query.filter_by(session_id=session.session_id).all()}
+    for eid in enrollment_ids:
+        update_enrollment_attendance_stats(eid)
     db.session.commit()
 
     flash('출석 정보가 확인보류 상태로 저장되었습니다. 나중에 완료 처리하면 학부모 알림이 발송됩니다.', 'warning')
@@ -3937,18 +3955,23 @@ def export_my_students():
                     'courses': [],
                     'attendance_rate': 0,
                     'total_sessions': 0,
-                    'attended_sessions': 0
+                    'attended_sessions': 0,
+                    'late_sessions': 0
                 }
 
             student_data[student.student_id]['courses'].append(course.course_name)
-            student_data[student.student_id]['total_sessions'] += enrollment.course.total_sessions
+            # 분모는 수업 전체 회차수가 아니라 실제로 체크 완료된 세션 수만 사용
+            student_data[student.student_id]['total_sessions'] += (
+                enrollment.attended_sessions + enrollment.absent_sessions + enrollment.late_sessions
+            )
             student_data[student.student_id]['attended_sessions'] += enrollment.attended_sessions
+            student_data[student.student_id]['late_sessions'] += enrollment.late_sessions
 
-    # 출석률 계산
+    # 출석률 계산 (지각은 출석과 동일 인정)
     for student_id in student_data:
         data = student_data[student_id]
         if data['total_sessions'] > 0:
-            data['attendance_rate'] = (data['attended_sessions'] / data['total_sessions']) * 100
+            data['attendance_rate'] = ((data['attended_sessions'] + data['late_sessions']) / data['total_sessions']) * 100
 
     wb, ws = create_excel_workbook("내 학생 목록")
 
@@ -4084,12 +4107,12 @@ def export_student_report(student_id):
         student_id=student_id
     ).order_by(Essay.created_at.desc()).all()
 
-    # 출석 통계
-    total_sessions = sum(e.total_sessions for e in all_enrollments)
+    # 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모에서 제외)
     attended = sum(e.attended_sessions for e in all_enrollments)
     late = sum(e.late_sessions for e in all_enrollments)
     absent = sum(e.absent_sessions for e in all_enrollments)
-    attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+    total_sessions = attended + late + absent
+    attendance_rate = ((attended + late) / total_sessions * 100) if total_sessions > 0 else 0
 
     attendance_stats = {
         'total_sessions': total_sessions,
@@ -4138,12 +4161,12 @@ def export_student_report_pdf(student_id):
         student_id=student_id
     ).order_by(Essay.created_at.desc()).all()
 
-    # 출석 통계
-    total_sessions = sum(e.total_sessions for e in all_enrollments)
+    # 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모에서 제외)
     attended = sum(e.attended_sessions for e in all_enrollments)
     late = sum(e.late_sessions for e in all_enrollments)
     absent = sum(e.absent_sessions for e in all_enrollments)
-    attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+    total_sessions = attended + late + absent
+    attendance_rate = ((attended + late) / total_sessions * 100) if total_sessions > 0 else 0
 
     attendance_stats = {
         'total_sessions': total_sessions,

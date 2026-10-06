@@ -71,40 +71,51 @@ class ReportGenerator:
         }
 
     def _get_attendance_statistics(self):
-        """출석 통계"""
+        """출석 통계 (강사가 실제 체크 완료한 세션만, 지각은 출석과 동일 인정,
+        출석인정결석·보강처리결석·과거 버그 레코드는 분모에서 제외)"""
+        from app.models.course import CourseSession
+
         # 학생의 모든 수강 신청
         enrollments = CourseEnrollment.query.filter_by(
             student_id=self.student.student_id
         ).all()
 
-        total_sessions = 0
         attended = 0
         absent = 0
         late = 0
+        excused = 0
 
         for enrollment in enrollments:
-            attendances = Attendance.query.filter(
+            attendances = Attendance.query.join(
+                CourseSession, Attendance.session_id == CourseSession.session_id
+            ).filter(
                 Attendance.enrollment_id == enrollment.enrollment_id,
-                Attendance.session_date >= self.start_date,
-                Attendance.session_date <= self.end_date
+                CourseSession.session_date >= self.start_date,
+                CourseSession.session_date <= self.end_date,
+                CourseSession.attendance_checked == True,
+                Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
             ).all()
 
             for att in attendances:
-                total_sessions += 1
                 if att.status == 'present':
                     attended += 1
                 elif att.status == 'absent':
                     absent += 1
                 elif att.status == 'late':
                     late += 1
+                elif att.status == 'excused':
+                    excused += 1
 
-        attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+        total_sessions = attended + absent + late + excused
+        rate_denominator = attended + absent + late
+        attendance_rate = ((attended + late) / rate_denominator * 100) if rate_denominator > 0 else 0
 
         return {
             'total_sessions': total_sessions,
             'attended': attended,
             'absent': absent,
             'late': late,
+            'excused': excused,
             'attendance_rate': round(attendance_rate, 1)
         }
 

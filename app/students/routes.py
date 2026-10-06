@@ -249,8 +249,6 @@ def detail(student_id):
     # 퇴반(dropped) / 전반에 따른 비활성(inactive) 수강의 과거 출결도 보존하여 표시 — 뱃지로 구분
     from app.models.course import CourseSession
     from app.models.attendance import Attendance
-    from datetime import date
-    today = date.today()
     enrollments_for_attendance = CourseEnrollment.query.filter(
         CourseEnrollment.student_id == student_id,
         CourseEnrollment.status.in_(['active', 'dropped', 'inactive'])
@@ -263,14 +261,16 @@ def detail(student_id):
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
-            CourseSession.session_date <= today
+            CourseSession.attendance_checked == True
         ).order_by(CourseSession.session_date.desc()).all()
         attended = sum(1 for a in records if a.status == 'present')
         late = sum(1 for a in records if a.status == 'late')
         absent = sum(1 for a in records if a.status == 'absent')
         excused = sum(1 for a in records if a.status == 'excused')
         total = attended + late + absent + excused
-        rate = round((attended + late * 0.5) / total * 100, 1) if total > 0 else 0
+        # 출석률 계산 (지각은 출석과 동일 인정, 출석인정결석은 분모에서도 제외)
+        rate_denominator = attended + late + absent
+        rate = round((attended + late) / rate_denominator * 100, 1) if rate_denominator > 0 else 0
         attendance_by_course.append({
             'enrollment': enrollment,
             'course': enrollment.course,

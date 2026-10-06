@@ -245,21 +245,20 @@ def courses():
         Course.is_terminated == False
     ).all()
 
-    # 진행된 세션(오늘 이전)만으로 출결 통계 계산
+    # 강사가 실제 출결 체크를 완료/확인보류 처리한 세션만으로 출결 통계 계산
     enrollment_stats = {}
-    today = date.today()
     for enrollment in enrollments:
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
-            CourseSession.session_date <= today,
+            CourseSession.attendance_checked == True,
             Attendance.status != 'unconfirmed'
         ).all()
         attended = sum(1 for a in records if a.status == 'present')
         absent = sum(1 for a in records if a.status == 'absent')
         late = sum(1 for a in records if a.status == 'late')
         total = attended + absent + late
-        rate = round((attended + late * 0.5) / total * 100, 1) if total > 0 else 0
+        rate = round((attended + late) / total * 100, 1) if total > 0 else 0
         enrollment_stats[enrollment.enrollment_id] = {
             'attended': attended,
             'absent': absent,
@@ -314,20 +313,20 @@ def course_detail(course_id):
         flash('수강하지 않는 수업입니다.', 'error')
         return redirect(url_for('student.courses'))
 
-    # 출석 기록 조회 (오늘 이전 과거 이력만, 최신순)
+    # 출석 기록 조회 (강사가 실제 출결 체크를 완료/확인보류 처리한 세션만, 최신순)
     attendances = Attendance.query.filter_by(
         enrollment_id=enrollment.enrollment_id
     ).join(CourseSession).filter(
-        CourseSession.session_date <= date.today(),
+        CourseSession.attendance_checked == True,
         Attendance.status != 'unconfirmed'
     ).order_by(desc(CourseSession.session_date)).all()
 
-    # 진행된 세션 기준 출석 통계 (미래 세션 제외)
+    # 체크된 세션 기준 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모 제외)
     attended_count = sum(1 for a in attendances if a.status == 'present')
     absent_count   = sum(1 for a in attendances if a.status == 'absent')
     late_count     = sum(1 for a in attendances if a.status == 'late')
     total_checked  = attended_count + absent_count + late_count
-    attendance_rate = round((attended_count + late_count * 0.5) / total_checked * 100, 1) if total_checked > 0 else 0
+    attendance_rate = round((attended_count + late_count) / total_checked * 100, 1) if total_checked > 0 else 0
     attendance_stats = {
         'attended': attended_count,
         'absent': absent_count,
@@ -631,8 +630,6 @@ def attendance():
     ).order_by(CourseEnrollment.enrolled_at.desc()).all()
 
     # 수업별 통계 (카드용) - 실제 진행된 출결 기록만
-    from datetime import date
-    today = date.today()
     DONE_STATUSES = ['present', 'late', 'absent', 'excused']
     course_attendance_data = []
     all_records = []  # 전체 합산용 (페이지네이션)
@@ -640,11 +637,11 @@ def attendance():
     for enrollment in enrollments:
         course = enrollment.course
 
-        # 실제 진행된 수업만: 오늘 이전 세션(날짜 기준)
+        # 실제 진행된 수업만: 강사가 출결 체크를 완료/확인보류 처리한 세션
         records = Attendance.query.filter_by(
             enrollment_id=enrollment.enrollment_id
         ).join(CourseSession).filter(
-            CourseSession.session_date <= today,
+            CourseSession.attendance_checked == True,
             Attendance.status.in_(DONE_STATUSES)
         ).order_by(CourseSession.session_date.desc()).all()
 
@@ -654,9 +651,11 @@ def attendance():
         excused_count = sum(1 for a in records if a.status == 'excused')
         total_sessions = len(records)
 
+        # 출석률 계산 (지각은 출석과 동일 인정, 출석인정결석은 분모에서도 제외)
+        rate_denominator = present_count + late_count + absent_count
         attendance_rate = 0
-        if total_sessions > 0:
-            attendance_rate = (present_count + late_count * 0.5) / total_sessions * 100
+        if rate_denominator > 0:
+            attendance_rate = (present_count + late_count) / rate_denominator * 100
 
         course_attendance_data.append({
             'enrollment': enrollment,
@@ -2350,12 +2349,12 @@ def export_my_report():
         Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
-    # 출석 통계
-    total_sessions = sum(e.total_sessions for e in enrollments)
+    # 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모에서 제외)
     attended = sum(e.attended_sessions for e in enrollments)
     late = sum(e.late_sessions for e in enrollments)
     absent = sum(e.absent_sessions for e in enrollments)
-    attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+    total_sessions = attended + late + absent
+    attendance_rate = ((attended + late) / total_sessions * 100) if total_sessions > 0 else 0
 
     attendance_stats = {
         'total_sessions': total_sessions,
@@ -2400,12 +2399,12 @@ def export_my_report_pdf():
         Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
-    # 출석 통계
-    total_sessions = sum(e.total_sessions for e in enrollments)
+    # 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모에서 제외)
     attended = sum(e.attended_sessions for e in enrollments)
     late = sum(e.late_sessions for e in enrollments)
     absent = sum(e.absent_sessions for e in enrollments)
-    attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+    total_sessions = attended + late + absent
+    attendance_rate = ((attended + late) / total_sessions * 100) if total_sessions > 0 else 0
 
     attendance_stats = {
         'total_sessions': total_sessions,

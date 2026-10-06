@@ -180,7 +180,8 @@
         {% if course_stats %}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {% for stat in course_stats %}
-            {% set rate = (stat.present / stat.total * 100) if stat.total > 0 else 0 %}
+            {% set rate_denom = stat.present + stat.late + stat.absent %}
+            {% set rate = ((stat.present + stat.late) / rate_denom * 100) if rate_denom > 0 else 0 %}
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-start justify-between mb-2">
                     <a href="{{ url_for('admin.attendance_status', course_id=stat.course_id, date_from=date_from, date_to=date_to) }}"
@@ -217,7 +218,8 @@
         {% if student_stats %}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {% for stat in student_stats %}
-            {% set rate = (stat.present / stat.total * 100) if stat.total > 0 else 0 %}
+            {% set rate_denom = stat.present + stat.late + stat.absent %}
+            {% set rate = ((stat.present + stat.late) / rate_denom * 100) if rate_denom > 0 else 0 %}
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-center justify-between mb-2">
                     <div>

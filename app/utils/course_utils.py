@@ -279,13 +279,13 @@ def update_enrollment_attendance_stats(enrollment_id):
     if not enrollment:
         return None
 
-    # 출석 레코드 조회 (오늘 이전 진행된 세션만)
+    # 출석 레코드 조회 (강사가 실제로 출결 체크를 완료/확인보류 처리한
+    # 세션만 — 날짜만으로는 아직 체크 안 된 세션까지 포함돼 모집단이 틀어진다)
     from app.models.course import CourseSession
-    from datetime import date
     attendance_records = Attendance.query.filter_by(
         enrollment_id=enrollment_id
     ).join(CourseSession, Attendance.session_id == CourseSession.session_id).filter(
-        CourseSession.session_date <= date.today()
+        CourseSession.attendance_checked == True
     ).all()
 
     attended = sum(1 for a in attendance_records if a.status == 'present')
@@ -369,10 +369,12 @@ def get_course_statistics(course_id):
     # 예정된 세션 수
     scheduled_sessions = len([s for s in course.sessions if s.status == 'scheduled'])
 
-    # 전체 출석률
+    # 전체 출석률 (강사가 실제 체크 완료한 세션만, 지각은 출석과 동일 인정,
+    # 출석인정결석·보강처리결석·과거 버그 레코드는 분모에서 제외)
     total_attendance_records = Attendance.query.join(CourseSession).filter(
         CourseSession.course_id == course_id,
-        CourseSession.status == 'completed'
+        CourseSession.attendance_checked == True,
+        Attendance.status.notin_(['unconfirmed', 'absent_makeup', 'excused'])
     ).all()
 
     if total_attendance_records:

@@ -80,19 +80,24 @@ def index():
         CourseSession.status == 'scheduled'
     ).count()
 
-    # 5. 이번 주 평균 출석률 (출석체크 완료된 세션만, 아직 진행 전 세션 제외)
+    # 5. 이번 주 평균 출석률 (출석체크 완료된 세션만, 아직 진행 전 세션 제외.
+    # 지각은 출석과 동일 인정, 출석인정결석·보강처리결석·과거 버그 레코드는 분모에서 제외)
     weekly_attendance = db.session.query(
-        func.count(Attendance.attendance_id).label('total'),
-        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present')
+        func.sum(case((Attendance.status == 'present', 1), else_=0)).label('present'),
+        func.sum(case((Attendance.status == 'late', 1), else_=0)).label('late'),
+        func.sum(case((Attendance.status == 'absent', 1), else_=0)).label('absent')
     ).join(CourseSession).filter(
         CourseSession.session_date >= week_start,
         CourseSession.session_date <= today,
-        CourseSession.attendance_checked == True
+        CourseSession.attendance_checked == True,
+        Attendance.status.notin_(['unconfirmed', 'absent_makeup'])
     ).first()
 
     attendance_rate = 0
-    if weekly_attendance and weekly_attendance.total > 0:
-        attendance_rate = round((weekly_attendance.present / weekly_attendance.total) * 100, 1)
+    if weekly_attendance:
+        _w_denom = (weekly_attendance.present or 0) + (weekly_attendance.late or 0) + (weekly_attendance.absent or 0)
+        if _w_denom > 0:
+            attendance_rate = round(((weekly_attendance.present or 0) + (weekly_attendance.late or 0)) / _w_denom * 100, 1)
 
     # 6. 대기 중 알림
     pending_parent_links = ParentLinkRequest.query.filter_by(status='pending').count()
@@ -2679,8 +2684,10 @@ def attendance_status():
         l = q.filter(Attendance.status == 'late').count()
         a = q.filter(Attendance.status == 'absent').count()
         e = q.filter(Attendance.status == 'excused').count()
+        # 출석률: 지각은 출석과 동일 인정, 출석인정결석은 분모에서도 제외
+        rate_denominator = p + l + a
         return {'total': t, 'present': p, 'late': l, 'absent': a, 'excused': e,
-                'rate': round(p / t * 100, 1) if t > 0 else 0}
+                'rate': round((p + l) / rate_denominator * 100, 1) if rate_denominator > 0 else 0}
 
     weekly_stats = _calc_stats(week_start, week_end)
     monthly_stats = _calc_stats(month_start, month_end)
@@ -2765,7 +2772,9 @@ def attendance_status():
     absent_count = total_query.filter(Attendance.status == 'absent').count()
     excused_count = total_query.filter(Attendance.status == 'excused').count()
 
-    attendance_rate = (present_count / total_count * 100) if total_count > 0 else 0
+    # 출석률: 지각은 출석과 동일 인정, 출석인정결석은 분모에서도 제외
+    rate_denominator = present_count + late_count + absent_count
+    attendance_rate = ((present_count + late_count) / rate_denominator * 100) if rate_denominator > 0 else 0
 
     # 반별 통계 (course_filter가 없을 때만)
     course_stats = []
@@ -2907,7 +2916,9 @@ def student_attendance_report():
     if student:
         DONE_STATUSES = ['present', 'late', 'absent', 'excused', 'absent_makeup']
 
-        # 해당 기간 내 해당 학생의 출석 기록 전체
+        # 해당 기간 내 해당 학생의 출석 기록 전체 (강사가 실제 출결 체크를
+        # 완료/확인보류 처리한 세션만 — 날짜 범위만으로는 아직 체크 안 된
+        # 세션까지 포함돼 모집단이 틀어진다)
         records = (Attendance.query
                    .join(CourseSession, Attendance.session_id == CourseSession.session_id)
                    .join(Course, CourseSession.course_id == Course.course_id)
@@ -2915,20 +2926,21 @@ def student_attendance_report():
                        Attendance.student_id == student_id,
                        CourseSession.session_date >= date_from,
                        CourseSession.session_date <= date_to,
-                       CourseSession.status != 'cancelled',
+                       CourseSession.attendance_checked == True,
                        Attendance.status.in_(DONE_STATUSES)
                    )
                    .order_by(CourseSession.session_date.desc(), CourseSession.start_time)
                    .all())
 
-        # 전체 통계
+        # 전체 통계 (지각은 출석과 동일 인정, 출석인정결석·보강처리결석은 분모에서도 제외)
         total = len(records)
         present = sum(1 for r in records if r.status == 'present')
         late = sum(1 for r in records if r.status == 'late')
         absent = sum(1 for r in records if r.status == 'absent')
         excused = sum(1 for r in records if r.status == 'excused')
         absent_makeup = sum(1 for r in records if r.status == 'absent_makeup')
-        rate = round((present + late) / total * 100, 1) if total > 0 else 0
+        rate_denominator = present + late + absent
+        rate = round((present + late) / rate_denominator * 100, 1) if rate_denominator > 0 else 0
 
         overall_stats = {
             'total': total, 'present': present, 'late': late,
@@ -2952,7 +2964,8 @@ def student_attendance_report():
             c_absent = sum(1 for r in rs if r.status == 'absent')
             c_excused = sum(1 for r in rs if r.status == 'excused')
             c_absent_makeup = sum(1 for r in rs if r.status == 'absent_makeup')
-            c_rate = round((c_present + c_late) / c_total * 100, 1) if c_total > 0 else 0
+            c_rate_denominator = c_present + c_late + c_absent
+            c_rate = round((c_present + c_late) / c_rate_denominator * 100, 1) if c_rate_denominator > 0 else 0
             course_data.append({
                 'course': data['course'],
                 'records': rs,
@@ -6464,19 +6477,23 @@ def export_monthly_report():
     top_courses = sorted_courses[:5]
 
     for course in top_courses:
-        # 출석률 계산
-        total_attendance = db.session.query(func.count(Attendance.attendance_id))\
-            .join(CourseEnrollment)\
-            .filter(CourseEnrollment.course_id == course.course_id).scalar() or 0
-
-        present_count = db.session.query(func.count(Attendance.attendance_id))\
-            .join(CourseEnrollment)\
+        # 출석률 계산 (강사가 실제 체크 완료한 세션만, 지각은 출석과 동일 인정,
+        # 출석인정결석·보강처리결석·과거 버그 레코드는 분모에서 제외)
+        _course_att_q = db.session.query(Attendance)\
+            .join(CourseEnrollment, Attendance.enrollment_id == CourseEnrollment.enrollment_id)\
+            .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
             .filter(
                 CourseEnrollment.course_id == course.course_id,
-                Attendance.status == 'present'
-            ).scalar() or 0
+                CourseSession.attendance_checked == True,
+                Attendance.status.notin_(['unconfirmed', 'absent_makeup', 'excused'])
+            )
 
-        attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
+        present_count = _course_att_q.filter(Attendance.status == 'present').count()
+        late_count = _course_att_q.filter(Attendance.status == 'late').count()
+        absent_count = _course_att_q.filter(Attendance.status == 'absent').count()
+        _course_rate_denom = present_count + late_count + absent_count
+
+        attendance_rate = ((present_count + late_count) / _course_rate_denom * 100) if _course_rate_denom > 0 else 0
 
         ws.append([
             course.course_name,
@@ -6552,18 +6569,23 @@ def export_monthly_report_pdf():
 
     top_courses_data = []
     for course in top_courses:
-        total_attendance = db.session.query(func.count(Attendance.attendance_id))\
-            .join(CourseEnrollment)\
-            .filter(CourseEnrollment.course_id == course.course_id).scalar() or 0
-
-        present_count = db.session.query(func.count(Attendance.attendance_id))\
-            .join(CourseEnrollment)\
+        # 출석률 계산 (강사가 실제 체크 완료한 세션만, 지각은 출석과 동일 인정,
+        # 출석인정결석·보강처리결석·과거 버그 레코드는 분모에서 제외)
+        _course_att_q = db.session.query(Attendance)\
+            .join(CourseEnrollment, Attendance.enrollment_id == CourseEnrollment.enrollment_id)\
+            .join(CourseSession, Attendance.session_id == CourseSession.session_id)\
             .filter(
                 CourseEnrollment.course_id == course.course_id,
-                Attendance.status == 'present'
-            ).scalar() or 0
+                CourseSession.attendance_checked == True,
+                Attendance.status.notin_(['unconfirmed', 'absent_makeup', 'excused'])
+            )
 
-        attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
+        present_count = _course_att_q.filter(Attendance.status == 'present').count()
+        late_count = _course_att_q.filter(Attendance.status == 'late').count()
+        absent_count = _course_att_q.filter(Attendance.status == 'absent').count()
+        _course_rate_denom = present_count + late_count + absent_count
+
+        attendance_rate = ((present_count + late_count) / _course_rate_denom * 100) if _course_rate_denom > 0 else 0
 
         top_courses_data.append({
             'name': course.course_name,

@@ -16,7 +16,7 @@ def calculate_attendance_rate(enrollments):
     for enrollment in enrollments:
         total = enrollment.attended_sessions + enrollment.late_sessions + enrollment.absent_sessions
         total_sessions += total
-        attended_sessions += enrollment.attended_sessions
+        attended_sessions += enrollment.attended_sessions + enrollment.late_sessions
 
     if total_sessions == 0:
         return 0
@@ -25,31 +25,42 @@ def calculate_attendance_rate(enrollments):
 
 
 def get_recent_attendance_trend(student_id):
-    """최근 출석 추이 분석 (최근 2주 vs 전체)"""
+    """최근 출석 추이 분석 (최근 2주 vs 전체) — 지각은 출석과 동일 인정,
+    출석인정결석·보강처리결석·과거 버그 레코드(unconfirmed)는 분모에서 제외"""
     from app.models.attendance import Attendance
     from app.models.course import CourseSession
     from app import db
 
+    EXCLUDED_STATUSES = ['unconfirmed', 'absent_makeup', 'excused']
     two_weeks_ago = datetime.now() - timedelta(days=14)
 
-    # 최근 2주 출석 데이터
+    def _rate(attendances):
+        total = len(attendances)
+        if total == 0:
+            return None
+        attended = sum(1 for a in attendances if a.status in ('present', 'late'))
+        return round((attended / total) * 100, 1)
+
+    # 최근 2주 출석 데이터 (강사가 실제 체크 완료한 세션만)
     recent_attendances = db.session.query(Attendance).join(CourseSession).filter(
         Attendance.student_id == student_id,
-        CourseSession.session_date >= two_weeks_ago
+        CourseSession.session_date >= two_weeks_ago,
+        CourseSession.attendance_checked == True,
+        Attendance.status.notin_(EXCLUDED_STATUSES)
     ).all()
 
     if not recent_attendances:
         return None, None
 
-    recent_total = len(recent_attendances)
-    recent_attended = sum(1 for a in recent_attendances if a.status == 'present')
-    recent_rate = round((recent_attended / recent_total) * 100, 1) if recent_total > 0 else 0
+    recent_rate = _rate(recent_attendances)
 
     # 전체 출석률
-    all_attendances = Attendance.query.filter_by(student_id=student_id).all()
-    all_total = len(all_attendances)
-    all_attended = sum(1 for a in all_attendances if a.status == 'present')
-    all_rate = round((all_attended / all_total) * 100, 1) if all_total > 0 else 0
+    all_attendances = Attendance.query.join(CourseSession).filter(
+        Attendance.student_id == student_id,
+        CourseSession.attendance_checked == True,
+        Attendance.status.notin_(EXCLUDED_STATUSES)
+    ).all()
+    all_rate = _rate(all_attendances)
 
     return recent_rate, all_rate
 

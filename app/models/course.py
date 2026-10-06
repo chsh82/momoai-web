@@ -152,11 +152,11 @@ class CourseEnrollment(db.Model):
 
     @property
     def attendance_rate(self):
-        """출석률 계산"""
+        """출석률 계산 (지각은 출석과 동일하게 인정, 출석인정결석은 분모에서 제외)"""
         total = self.attended_sessions + self.absent_sessions + self.late_sessions
         if total == 0:
             return 0
-        return round((self.attended_sessions / total) * 100, 1)
+        return round(((self.attended_sessions + self.late_sessions) / total) * 100, 1)
 
     @property
     def remaining_payment(self):

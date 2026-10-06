@@ -100,11 +100,14 @@ def index():
         ).all()
 
         if enrollments:
-            total_sessions = sum(e.course.total_sessions for e in enrollments if e.course and e.course.total_sessions and e.course.total_sessions > 0)
+            # 분모는 수업 전체 회차수가 아니라 실제로 체크 완료된 세션 수만 사용
+            # (안 그러면 막 시작한 수업은 출석률이 비정상적으로 낮게 나온다)
             attended_sessions = sum(e.attended_sessions for e in enrollments)
+            late_sessions = sum(e.late_sessions for e in enrollments)
+            total_sessions = attended_sessions + late_sessions + sum(e.absent_sessions for e in enrollments)
 
             if total_sessions > 0:
-                rate = (attended_sessions / total_sessions) * 100
+                rate = ((attended_sessions + late_sessions) / total_sessions) * 100
                 child_names.append(child.name)
                 child_attendance_rates.append(round(rate, 1))
 
@@ -1136,9 +1139,11 @@ def attendance(student_id):
         absent_count = sum(1 for a in attendance_records if a.status == 'absent')
         excused_count = sum(1 for a in attendance_records if a.status == 'excused')
 
-        # 출석률 계산
-        if total_sessions > 0:
-            attendance_rate = (present_count + late_count * 0.5) / total_sessions * 100
+        # 출석률 계산 (지각은 출석과 동일하게 인정, 출석인정결석은 분모에서도 제외
+        # — CourseEnrollment.attendance_rate와 동일 기준)
+        rate_denominator = present_count + late_count + absent_count
+        if rate_denominator > 0:
+            attendance_rate = (present_count + late_count) / rate_denominator * 100
         else:
             attendance_rate = 0
 
@@ -2036,12 +2041,12 @@ def export_child_report(student_id):
         Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
-    # 출석 통계
-    total_sessions = sum(e.total_sessions for e in enrollments)
+    # 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모에서 제외)
     attended = sum(e.attended_sessions for e in enrollments)
     late = sum(e.late_sessions for e in enrollments)
     absent = sum(e.absent_sessions for e in enrollments)
-    attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+    total_sessions = attended + late + absent
+    attendance_rate = ((attended + late) / total_sessions * 100) if total_sessions > 0 else 0
 
     attendance_stats = {
         'total_sessions': total_sessions,
@@ -2088,12 +2093,12 @@ def export_child_report_pdf(student_id):
         Essay.student_id.in_(get_essay_student_ids(student))
     ).order_by(Essay.created_at.desc()).all()
 
-    # 출석 통계
-    total_sessions = sum(e.total_sessions for e in enrollments)
+    # 출석 통계 (지각은 출석과 동일 인정, 출석인정결석은 분모에서 제외)
     attended = sum(e.attended_sessions for e in enrollments)
     late = sum(e.late_sessions for e in enrollments)
     absent = sum(e.absent_sessions for e in enrollments)
-    attendance_rate = (attended / total_sessions * 100) if total_sessions > 0 else 0
+    total_sessions = attended + late + absent
+    attendance_rate = ((attended + late) / total_sessions * 100) if total_sessions > 0 else 0
 
     attendance_stats = {
         'total_sessions': total_sessions,
