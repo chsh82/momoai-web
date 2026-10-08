@@ -77,9 +77,17 @@
         <p class="text-xs text-gray-400 mb-3">아직 대화가 없습니다.</p>
         {% endif %}
 
+        <div data-response-template-group="parent-reply" class="mb-2 flex flex-wrap gap-2">
+            <button type="button" onclick="insertResponseTemplate('refundParentReplyBody', '환불/금액 조정 문의 확인했습니다. 이 건은 관리자 확인이 필요한 항목이라 확인 후 안내드리겠습니다.')"
+                    class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200">환불 접수</button>
+            <button type="button" onclick="insertResponseTemplate('refundParentReplyBody', '정확한 안내를 위해 결제/수강 상태를 먼저 확인하겠습니다. 확인 전에는 금액이나 환불 가능 여부를 확정해서 안내드리기 어렵습니다.')"
+                    class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200">확답 보류</button>
+            <button type="button" onclick="insertResponseTemplate('refundParentReplyBody', '관리자 확인이 완료되었습니다. 처리 내용은 아래와 같습니다.\n- 처리 구분: [환불/조정/유지]\n- 금액: [금액]\n- 적용일: [날짜]')"
+                    class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200">승인 후 안내</button>
+        </div>
         <form method="post" action="{{ url_for('refund_request.parent_reply', request_id=req.request_id) }}" class="flex gap-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="text" name="body" required placeholder="학부모에게 답장하기..."
+            <input id="refundParentReplyBody" type="text" name="body" required placeholder="학부모에게 답장하기..."
                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm">
             <button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition duration-200">
                 보내기
@@ -120,4 +128,12 @@
     </div>
     {% endif %}
 </div>
+<script>
+function insertResponseTemplate(targetId, text) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    target.value = text;
+    target.focus();
+}
+</script>
 {% endblock %}
