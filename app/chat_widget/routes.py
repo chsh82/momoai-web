@@ -17,6 +17,7 @@ from werkzeug.utils import secure_filename
 
 from app.chat_widget import chat_widget_bp
 from app.models import db, User, Notification, Course, Student
+from app.models.action_item import ActionItem
 from app.models.consultation_request import ConsultationRequest, CATEGORY_CHOICES, MAKEUP_INDIVIDUAL_CATEGORY
 from app.models.refund_request import RefundRequest
 from app.models.makeup_request import MakeupClassRequest
@@ -219,6 +220,57 @@ def _refund_preview(r):
     if r.status == 'rejected':
         return f'반려: {r.admin_notes or ""}'
     return r.reason[:60] if r.reason else ''
+
+
+def _pick_action_item_creator_id(admins):
+    """관리자 업무함에 보이는 계정을 ActionItem creator로 선택한다."""
+    for admin in admins:
+        if getattr(admin, 'role', None) in ('admin', 'master_admin'):
+            return admin.user_id
+    return admins[0].user_id if admins else None
+
+
+def _build_makeup_action_item_kwargs(kind, student, creator_id, reason, course=None,
+                                     preferred_date=None, preferred_time=None,
+                                     preferred_note=None):
+    """보강 신청 후속 확인용 ActionItem 생성 인자.
+
+    ActionItem은 관리자 업무함에서 `created_by` 기준으로 노출되므로 학부모가
+    아니라 관리자 계정 ID를 creator로 넣는다. 실제 완료/확정은 사람이 처리한다.
+    """
+    student_name = getattr(student, 'display_name', None) or getattr(student, 'name', '') or '학생'
+    is_individual = kind == 'individual'
+    title_kind = '개별보강' if is_individual else '그룹 보강'
+    title = f'[{title_kind} 확인] {student_name} 학생 보강 신청 확인 필요'
+
+    lines = [
+        f'학생: {student_name}',
+        f'신청 유형: {title_kind}',
+    ]
+    if course is not None:
+        course_name = getattr(course, 'course_name', None)
+        if course_name:
+            lines.append(f'수업: {course_name}')
+    if preferred_date:
+        lines.append(f'희망 날짜: {preferred_date}')
+    if preferred_time:
+        lines.append(f'희망 시간: {preferred_time}')
+    if preferred_note:
+        lines.append(f'추가 메모: {preferred_note}')
+    if reason:
+        lines.append(f'사유: {reason}')
+    lines.append('다음 액션: 담당 강사 가능 시간 확인 후 학부모에게 안내')
+
+    return {
+        'title': title,
+        'content': '\n'.join(lines),
+        'category': '상담처리',
+        'priority': 'medium',
+        'status': 'pending',
+        'created_by': creator_id,
+        'assigned_to': None,
+        'student_id': getattr(student, 'student_id', None),
+    }
 
 
 # ==================== 스레드 상세 ====================
@@ -567,6 +619,12 @@ def quick_makeup():
     db.session.flush()
 
     admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+    action_item_creator_id = _pick_action_item_creator_id(admins)
+    if action_item_creator_id:
+        db.session.add(ActionItem(**_build_makeup_action_item_kwargs(
+            kind='group', student=student, creator_id=action_item_creator_id,
+            reason=reason, course=course,
+        )))
     for admin in admins:
         db.session.add(Notification(
             user_id=admin.user_id, notification_type='makeup_request',
@@ -635,6 +693,13 @@ def quick_makeup_individual():
     db.session.flush()
 
     admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+    action_item_creator_id = _pick_action_item_creator_id(admins)
+    if action_item_creator_id:
+        db.session.add(ActionItem(**_build_makeup_action_item_kwargs(
+            kind='individual', student=req.student, creator_id=action_item_creator_id,
+            reason=reason, preferred_date=preferred_date_str,
+            preferred_time=preferred_time_str, preferred_note=preferred_note,
+        )))
     for admin in admins:
         db.session.add(Notification(
             user_id=admin.user_id, notification_type='consultation_request',
