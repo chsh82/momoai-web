@@ -823,10 +823,14 @@ def makeup_classes(student_id):
         student_id=student_id
     ).order_by(MakeupClassRequest.request_date.desc()).limit(5).all()
 
+    from app.utils.makeup_workflow import get_makeup_workflow_state, get_parent_makeup_workflow_steps
+
     return render_template('parent/makeup_classes.html',
                          student=student,
                          available_courses=available_courses,
-                         student_requests=student_requests)
+                         student_requests=student_requests,
+                         makeup_workflow_state=get_makeup_workflow_state,
+                         makeup_workflow_steps=get_parent_makeup_workflow_steps)
 
 
 @parent_bp.route('/makeup-classes/<student_id>/request/<course_id>', methods=['POST'])
@@ -875,6 +879,9 @@ def request_makeup_class(student_id, course_id):
     
     # 신청 사유 및 희망 날짜
     reason = request.form.get('reason', '').strip()
+    if not reason:
+        flash('보강 신청 사유를 입력해주세요.', 'error')
+        return redirect(url_for('parent.makeup_classes', student_id=student_id))
     requested_date_str = request.form.get('requested_date', '').strip()
     requested_date = None
     if requested_date_str:
@@ -897,7 +904,6 @@ def request_makeup_class(student_id, course_id):
     db.session.add(makeup_request)
     
     # 관리자에게 알림
-    from flask import url_for
     admins = User.query.filter(User.role_level <= 2).all()
     for admin in admins:
         notification = Notification(
@@ -1015,12 +1021,16 @@ def makeup_classes_history(student_id):
     approved_count = sum(1 for r in all_requests if r.status == 'approved')
     rejected_count = sum(1 for r in all_requests if r.status == 'rejected')
 
+    from app.utils.makeup_workflow import get_makeup_workflow_state, get_parent_makeup_workflow_steps
+
     return render_template('parent/makeup_classes_history.html',
                          student=student,
                          all_requests=all_requests,
                          pending_count=pending_count,
                          approved_count=approved_count,
-                         rejected_count=rejected_count)
+                         rejected_count=rejected_count,
+                         makeup_workflow_state=get_makeup_workflow_state,
+                         makeup_workflow_steps=get_parent_makeup_workflow_steps)
 
 
 # ==================== 수업 목록 ====================

@@ -83,18 +83,17 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
-                                {% if req.status == 'pending' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-                                    ⏳ 대기 중
-                                </span>
-                                {% elif req.status == 'approved' %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-                                    ✓ 승인됨
-                                </span>
+                                {% set wf = makeup_workflow_state(req) %}
+                                {% if wf.tone == 'green' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">✓ {{ wf.parent_label }}</span>
+                                {% elif wf.tone == 'red' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">✗ {{ wf.parent_label }}</span>
+                                {% elif wf.tone == 'blue' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">🔔 {{ wf.parent_label }}</span>
+                                {% elif wf.tone == 'yellow' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">⏳ {{ wf.parent_label }}</span>
                                 {% else %}
-                                <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
-                                    ✗ 거절됨
-                                </span>
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">{{ wf.parent_label }}</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
