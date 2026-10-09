@@ -3167,26 +3167,42 @@ def makeup_requests():
     """보강수업 신청 관리"""
     from app.models.makeup_request import MakeupClassRequest
     
-    # 필터
+    from app.utils.makeup_workflow import (
+        ADMIN_QUEUE_LABELS,
+        build_admin_makeup_queue_counts,
+        filter_makeup_requests_by_queue,
+        get_admin_makeup_queue_key,
+        get_makeup_workflow_state,
+    )
+
+    # 필터: 기존 status 필터는 유지하고, 운영용 queue 필터를 추가한다.
     status_filter = request.args.get('status', '').strip()
-    
+    queue_filter = request.args.get('queue', '').strip()
+
     query = MakeupClassRequest.query
-    
+
     if status_filter:
         query = query.filter_by(status=status_filter)
-    
+
     # 신청 목록 조회
-    requests = query.order_by(MakeupClassRequest.request_date.desc()).all()
-    
+    all_requests = query.order_by(MakeupClassRequest.request_date.desc()).all()
+    requests = filter_makeup_requests_by_queue(all_requests, queue_filter)
+
     # 통계
     total_requests = MakeupClassRequest.query.count()
     pending_requests = MakeupClassRequest.query.filter_by(status='pending').count()
     approved_requests = MakeupClassRequest.query.filter_by(status='approved').count()
     rejected_requests = MakeupClassRequest.query.filter_by(status='rejected').count()
-    
+    queue_counts = build_admin_makeup_queue_counts(all_requests)
+
     return render_template('admin/makeup_requests.html',
                          requests=requests,
                          status_filter=status_filter,
+                         queue_filter=queue_filter or 'all',
+                         queue_counts=queue_counts,
+                         queue_labels=ADMIN_QUEUE_LABELS,
+                         makeup_queue_key=get_admin_makeup_queue_key,
+                         makeup_workflow_state=get_makeup_workflow_state,
                          total_requests=total_requests,
                          pending_requests=pending_requests,
                          approved_requests=approved_requests,

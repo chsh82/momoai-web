@@ -40,9 +40,23 @@
         </div>
     </div>
 
+    <!-- 작업 큐 탭 -->
+    <div class="bg-white rounded-lg shadow p-3 mb-4 overflow-x-auto">
+        <div class="flex gap-2 min-w-max">
+            {% for key, label in queue_labels %}
+            <a href="{{ url_for('admin.makeup_requests', queue=key, status=status_filter) }}"
+               class="px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition {% if queue_filter == key %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                {{ label }}
+                <span class="ml-1 {% if queue_filter == key %}text-blue-100{% else %}text-gray-500{% endif %}">{{ queue_counts.get(key, 0) }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- 필터 -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
         <form method="GET" action="" class="flex gap-3">
+            <input type="hidden" name="queue" value="{{ queue_filter }}">
             <select name="status" class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">전체 상태</option>
                 <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>대기 중</option>
@@ -60,16 +74,22 @@
     <p class="text-sm text-gray-500 mb-3">신청 목록 ({{ requests|length }}건)</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for req in requests %}
+        {% set wf = makeup_workflow_state(req) %}
+        {% set qkey = makeup_queue_key(req) %}
         <div class="bg-white rounded-lg shadow hover:shadow-md transition duration-200">
             <div class="p-4">
                 <!-- 상태 + 날짜 -->
                 <div class="flex items-start justify-between mb-2">
-                    {% if req.status == 'pending' %}
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">⏳ 대기 중</span>
-                    {% elif req.status == 'approved' %}
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">✓ 승인됨</span>
+                    {% if wf.tone == 'green' %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">✓ {{ wf.admin_label }}</span>
+                    {% elif wf.tone == 'red' %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800">✗ {{ wf.admin_label }}</span>
+                    {% elif wf.tone == 'blue' %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">● {{ wf.admin_label }}</span>
+                    {% elif wf.tone == 'yellow' %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">⏳ {{ wf.admin_label }}</span>
                     {% else %}
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800">✗ 거절됨</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">{{ wf.admin_label }}</span>
                     {% endif %}
                     <span class="text-xs text-gray-400">{{ req.request_date | kst('%y.%m.%d %H:%M') }}</span>
                 </div>
@@ -127,6 +147,32 @@
                         <span class="text-gray-400 shrink-0">👤</span>
                         <span class="text-xs text-green-700">학부모와 대화중 (위젯에서 확인)</span>
                     </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3 rounded-lg border border-blue-100 bg-blue-50 p-2 text-xs text-blue-900">
+                    <div class="font-semibold mb-1">다음 작업: {{ wf.admin_action }}</div>
+                    {% if qkey == 'needs_teacher_consult' %}
+                    <button onclick="showConsultModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}')"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
+                        강사에게 문의하기
+                    </button>
+                    {% elif qkey == 'waiting_teacher' %}
+                    <a href="{{ url_for('messages.conversation', conv_id=req.internal_conversation_id) }}"
+                       class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
+                        강사 대화 확인하기
+                    </a>
+                    {% elif qkey == 'waiting_parent' %}
+                    <button onclick="showParentReplyModal('{{ req.request_id }}', '{{ req.student.name }}')"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
+                        학부모 확인 요청하기
+                    </button>
+                    {% elif qkey == 'ready_to_approve' %}
+                    <button onclick="showApproveModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.course_name }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}', {{ 'true' if req.internal_conversation_id else 'false' }}, '{{ req.teacher_proposed_date.strftime('%Y-%m-%d') if req.teacher_proposed_date else '' }}', '{{ req.teacher_proposed_time.strftime('%H:%M') if req.teacher_proposed_time else '' }}')"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
+                        승인 처리하기
+                    </button>
+                    {% else %}
+                    <div class="text-gray-600">추가 조치가 필요하면 상세 버튼을 사용하세요.</div>
                     {% endif %}
                 </div>
                 <!-- 버튼 -->

@@ -12,6 +12,9 @@ spec.loader.exec_module(makeup_workflow)
 get_makeup_workflow_state = makeup_workflow.get_makeup_workflow_state
 get_makeup_workflow_steps = makeup_workflow.get_makeup_workflow_steps
 get_parent_makeup_workflow_steps = makeup_workflow.get_parent_makeup_workflow_steps
+get_admin_makeup_queue_key = makeup_workflow.get_admin_makeup_queue_key
+build_admin_makeup_queue_counts = makeup_workflow.build_admin_makeup_queue_counts
+filter_makeup_requests_by_queue = makeup_workflow.filter_makeup_requests_by_queue
 
 
 def req(**overrides):
@@ -104,6 +107,40 @@ class MakeupWorkflowStateTest(unittest.TestCase):
         self.assertEqual(steps[1]['status'], 'done')
         self.assertEqual(steps[2]['status'], 'current')
         self.assertEqual(steps[3]['status'], 'todo')
+
+    def test_admin_queue_keys_match_operational_work(self):
+        self.assertEqual(get_admin_makeup_queue_key(req()), 'needs_teacher_consult')
+        self.assertEqual(get_admin_makeup_queue_key(req(internal_conversation_id=1)), 'waiting_teacher')
+        self.assertEqual(get_admin_makeup_queue_key(req(teacher_confirmed=True)), 'ready_to_approve')
+        self.assertEqual(get_admin_makeup_queue_key(req(
+            teacher_confirmed=True,
+            teacher_proposed_date='2026-10-15',
+            parent_conversation_id=2,
+        )), 'waiting_parent')
+        self.assertEqual(get_admin_makeup_queue_key(req(status='approved')), 'done')
+        self.assertEqual(get_admin_makeup_queue_key(req(status='rejected')), 'rejected')
+
+    def test_admin_queue_counts_and_filtering(self):
+        requests = [
+            req(),
+            req(internal_conversation_id=1),
+            req(teacher_confirmed=True),
+            req(teacher_confirmed=True, teacher_proposed_date='2026-10-15', parent_conversation_id=2),
+            req(status='approved'),
+            req(status='rejected'),
+        ]
+
+        counts = build_admin_makeup_queue_counts(requests)
+
+        self.assertEqual(counts['all'], 6)
+        self.assertEqual(counts['needs_teacher_consult'], 1)
+        self.assertEqual(counts['waiting_teacher'], 1)
+        self.assertEqual(counts['ready_to_approve'], 1)
+        self.assertEqual(counts['waiting_parent'], 1)
+        self.assertEqual(counts['done'], 1)
+        self.assertEqual(counts['rejected'], 1)
+        self.assertEqual(len(filter_makeup_requests_by_queue(requests, 'waiting_teacher')), 1)
+        self.assertEqual(len(filter_makeup_requests_by_queue(requests, '')), 6)
 
 
 if __name__ == '__main__':

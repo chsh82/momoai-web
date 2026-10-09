@@ -127,6 +127,45 @@ def get_makeup_workflow_steps(makeup_request):
     return steps
 
 
+ADMIN_QUEUE_LABELS = [
+    ("all", "전체"),
+    ("needs_teacher_consult", "강사 문의 필요"),
+    ("waiting_teacher", "강사 회신 대기"),
+    ("waiting_parent", "학부모 확인 대기"),
+    ("ready_to_approve", "승인 가능"),
+    ("done", "완료"),
+    ("rejected", "반려/취소"),
+]
+
+
+def get_admin_makeup_queue_key(makeup_request):
+    """관리자 작업 큐용 상태 키를 반환한다."""
+    state = get_makeup_workflow_state(makeup_request)
+    if state.key == "received":
+        return "needs_teacher_consult"
+    if state.key == "approved":
+        return "done"
+    return state.key
+
+
+def build_admin_makeup_queue_counts(makeup_requests):
+    """관리자 작업 큐 탭별 건수를 계산한다."""
+    counts = {key: 0 for key, _ in ADMIN_QUEUE_LABELS}
+    items = list(makeup_requests)
+    counts["all"] = len(items)
+    for item in items:
+        key = get_admin_makeup_queue_key(item)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def filter_makeup_requests_by_queue(makeup_requests, queue_key):
+    """큐 키로 보강 신청 목록을 필터링한다. 빈 값/all은 전체 반환."""
+    if not queue_key or queue_key == "all":
+        return list(makeup_requests)
+    return [item for item in makeup_requests if get_admin_makeup_queue_key(item) == queue_key]
+
+
 def get_parent_makeup_workflow_steps(makeup_request):
     """학부모 화면용 4단계 타임라인을 반환한다.
 
