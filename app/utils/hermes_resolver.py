@@ -23,19 +23,39 @@ def resolve_teacher(name_hint):
     return None, matches
 
 
-def resolve_student(name_hint):
-    """(student_or_none, candidates) 반환. candidates는 0건 또는 2건 이상일 때만 채워진다."""
+def _active_courses_for_student(student, teacher_scope_id=None):
+    """학생의 활성 수강 수업 목록. teacher_scope_id가 주어지면(강사 본인
+    조회 - 2026-10-13 강사 공유 추가) 그 강사가 담당하는 수업으로만 좁힌다 -
+    master_admin/manager/staff는 None을 넘겨 전체 범위를 그대로 본다."""
+    enrollments = CourseEnrollment.query.filter_by(
+        student_id=student.student_id, status='active',
+    ).all()
+    courses = [e.course for e in enrollments if e.course]
+    if teacher_scope_id:
+        courses = [c for c in courses if c.teacher_id == teacher_scope_id]
+    return courses
+
+
+def resolve_student(name_hint, teacher_scope_id=None):
+    """(student_or_none, candidates) 반환. candidates는 0건 또는 2건 이상일 때만 채워진다.
+
+    teacher_scope_id가 주어지면 그 강사가 담당하는 수업에 등록된 학생만
+    후보로 본다 - 이름만으로 전체 학생을 검색하게 두면, 강사가 자기 반이
+    아닌 학생의 존재(이름/학년/학교)까지 알게 되는 정보 노출이 생긴다."""
     if not name_hint:
         return None, []
     matches = search_students_by_name(name_hint, limit=10)
+    if teacher_scope_id:
+        matches = [s for s in matches if _active_courses_for_student(s, teacher_scope_id)]
     if len(matches) == 1:
         return matches[0], []
     return None, matches
 
 
-def resolve_course_for_student(student, course_hint=None):
+def resolve_course_for_student(student, course_hint=None, teacher_scope_id=None):
     """학생의 활성 수강 수업 중 course_hint로 좁혀 하나를 찾는다.
-    (course_or_none, candidates) 반환.
+    (course_or_none, candidates) 반환. teacher_scope_id는 resolve_student와
+    동일하게 그 강사가 담당하는 수업으로만 후보를 제한한다.
 
     기본적으로 보강(course_type이 '보강'으로 시작) 수업은 후보에서 제외한다 -
     헤르메스 지시("결석 처리", "보강 잡아줘")는 거의 항상 학생의 원래 정규
@@ -43,10 +63,7 @@ def resolve_course_for_student(student, course_hint=None):
     (예: "[보강] 국어정규반 - 김민준") 제외하지 않으면 보강을 한 번이라도
     받은 학생은 영원히 "수업이 여러 개" 모호함에 걸린다. 정규 수업이 하나도
     없는 예외 상황(보강만 남아있는 경우)에서만 보강 수업도 후보로 돌아온다."""
-    enrollments = CourseEnrollment.query.filter_by(
-        student_id=student.student_id, status='active',
-    ).all()
-    courses = [e.course for e in enrollments if e.course]
+    courses = _active_courses_for_student(student, teacher_scope_id)
     regular_courses = [c for c in courses if not (c.course_type or '').startswith('보강')]
     if regular_courses:
         courses = regular_courses

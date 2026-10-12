@@ -723,6 +723,12 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.attendance_list' %}text-blue-600 bg-blue-50{% endif %}">
                                 출석 체크
                             </a>
+                            {% if current_user.is_teacher %}
+                            <a href="{{ url_for('admin.hermes') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.hermes' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                🤖 모모 에이전트
+                            </a>
+                            {% endif %}
                             <a href="{{ url_for('teacher.makeup_confirm_list') }}"
                                class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.makeup_confirm' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 <span>🔄 보강 신청 확인</span>
@@ -2161,7 +2167,7 @@
     {% include "partials/chat_widget.html" %}
     {% endif %}
 
-    {% if current_user.is_authenticated and current_user.is_master_admin %}
+    {% if current_user.is_authenticated and current_user.role_level <= 4 %}
     {% include "partials/momo_agent_widget.html" %}
     {% endif %}
 

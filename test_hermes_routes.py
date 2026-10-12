@@ -223,15 +223,23 @@ check(f"응답 status=needs_clarification (실제: {data3.get('status')})",
       data3.get('status') == 'needs_clarification')
 check("날짜를 물어보는 질문", '날짜' in (data3.get('reply_text') or ''))
 
-print("\n[4] master_admin이 아니면 403")
+print("\n[4] teacher(role_level 4)도 접근 가능하지만, 담당 범위 밖 학생은 못 봄")
 teacher2 = None
 with app.app_context():
     teacher2 = make_user('_hermes_teacher2', 'teacher', 4)
     db.session.commit()
-    teacher2_id = teacher2.user_id
+    teacher2_id, teacher2_name = teacher2.user_id, teacher2.name
 login_as(teacher2_id)
-resp4 = client.post('/admin/hermes/message', json={'text': '아무 말'})
-check(f"teacher 권한으로는 302/403 (실제: {resp4.status_code})", resp4.status_code in (302, 403))
+hermes_agent.parse_hermes_command = fake_parse(
+    'schedule_makeup', student_name='_hermes_김민준', date=makeup_date.isoformat(),
+)
+resp4 = client.post('/admin/hermes/message', json={'text': '_hermes_김민준 학생 보강'})
+check(f"teacher 권한으로도 200 (실제: {resp4.status_code})", resp4.status_code == 200)
+data4 = resp4.get_json()
+check(f"응답 status=needs_clarification (실제: {data4.get('status')})",
+      data4.get('status') == 'needs_clarification')
+check("담당 수업에 등록되어 있지 않다는 범위 안내",
+      '담당하는 수업에 등록되어 있지 않습니다' in (data4.get('reply_text') or ''))
 
 login_as(admin_id)
 
@@ -510,10 +518,79 @@ created_student_ids.append(student5_id)
 created_user_ids.append(parent5_id)
 created_course_ids.append(course5_id)
 
+print("\n[16] teacher 본인 담당 학생/수업은 정상 처리됨(위임 없이)")
+with app.app_context():
+    student16 = make_student('_hermes_정하늘', teacher_id)
+    course16 = make_course('_hermes_과학정규반', teacher_id)
+    db.session.add(CourseEnrollment(course_id=course16.course_id, student_id=student16.student_id, status='active'))
+    db.session.commit()
+    student16_id, course16_id = student16.student_id, course16.course_id
+
+login_as(teacher_id)
+makeup_date16 = date.today() + timedelta(days=15)
+hermes_agent.parse_hermes_command = fake_parse(
+    'schedule_makeup', student_name='_hermes_정하늘', date=makeup_date16.isoformat(), time='17:00',
+)
+resp16 = client.post('/admin/hermes/message', json={'text': '_hermes_정하늘 학생 보강 잡아줘'})
+data16 = resp16.get_json()
+check(f"teacher 본인 담당 학생은 pending_confirmation까지 정상 진행 (실제: {data16.get('status')})",
+      data16.get('status') == 'pending_confirmation')
+
+confirm16 = confirm(data16['thread_id'])
+check(f"confirm 응답 status=success (실제: {confirm16.get('status')})", confirm16.get('status') == 'success')
+with app.app_context():
+    mc16 = Course.query.filter(Course.course_name.like('%_hermes_정하늘%'), Course.course_id != course16_id).first()
+    check("teacher 본인 담당 보강 Course가 실제 생성됨", mc16 is not None)
+    if mc16:
+        created_course_ids.append(mc16.course_id)
+
+print("\n[17] teacher가 다른 강사에게 위임 시도하면 거부(관리자만 가능)")
+hermes_agent.parse_hermes_command = fake_parse(
+    'schedule_makeup', student_name='_hermes_정하늘', course_hint='_hermes_과학정규반',
+    date=makeup_date16.isoformat(), teacher_name=teacher2_name,
+)
+resp17 = client.post('/admin/hermes/message', json={'text': f'_hermes_정하늘 학생 {teacher2_name} 강사와 보강'})
+data17 = resp17.get_json()
+check(f"응답 status=needs_clarification (실제: {data17.get('status')})",
+      data17.get('status') == 'needs_clarification')
+check("관리자만 위임 가능하다는 안내",
+      '관리자만' in (data17.get('reply_text') or ''))
+
+login_as(admin_id)
+
+print("\n[18] manager/staff는 master_admin과 동일하게 전체 범위(위임도 가능)")
+with app.app_context():
+    manager = make_user('_hermes_manager', 'manager', 2)
+    staff = make_user('_hermes_staff', 'staff', 3)
+    db.session.commit()
+    manager_id, staff_id = manager.user_id, staff.user_id
+
+for role_label, role_user_id in (('manager', manager_id), ('staff', staff_id)):
+    login_as(role_user_id)
+    hermes_agent.parse_hermes_command = fake_parse(
+        'schedule_makeup', student_name='_hermes_정하늘', course_hint='_hermes_과학정규반',
+        date=makeup_date16.isoformat(), teacher_name=teacher2_name,
+    )
+    resp18 = client.post('/admin/hermes/message', json={'text': f'_hermes_정하늘 학생 {teacher2_name} 강사와 보강'})
+    data18 = resp18.get_json()
+    check(f"{role_label}은 teacher 담당 학생도 바로 pending_confirmation (실제: {data18.get('status')})",
+          data18.get('status') == 'pending_confirmation')
+    check(f"{role_label}은 위임(teacher_name)도 미리보기에 반영됨",
+          teacher2_name in (data18.get('reply_text') or ''))
+    cancel18 = cancel(data18['thread_id'])
+    check(f"{role_label} 테스트는 취소로 정리(실행 안 함, 실제: {cancel18.get('status')})",
+          cancel18.get('status') == 'cancelled')
+
+login_as(admin_id)
+
+created_student_ids.append(student16_id)
+created_course_ids.append(course16_id)
+created_user_ids.extend([manager_id, staff_id])
+
 print("\n정리: 테스트 데이터 삭제")
 with app.app_context():
     from app.models.absence_notice import AbsenceNotice
-    HermesCommandLog.query.filter(HermesCommandLog.admin_user_id == admin_id).delete(synchronize_session=False)
+    HermesCommandLog.query.filter(HermesCommandLog.admin_user_id.in_(created_user_ids)).delete(synchronize_session=False)
     AbsenceNotice.query.filter(AbsenceNotice.student_id.in_(created_student_ids)).delete(synchronize_session=False)
     Attendance.query.filter(Attendance.student_id.in_(created_student_ids)).delete(synchronize_session=False)
     CourseEnrollment.query.filter(CourseEnrollment.course_id.in_(created_course_ids)).delete(synchronize_session=False)

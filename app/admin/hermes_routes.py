@@ -4,8 +4,15 @@
 CLAUDE.md의 표준 "확인 후 실행" 원칙을 그대로 따른다: 자연어 지시를 해석해
 실행 계획을 세우고(schedule_makeup/mark_absence), **매니저가 확인 버튼을
 눌러야 비로소 실행·발송**한다(2026-10-12, 실사용 피드백으로 무확인 실행
-방식에서 전환). master_admin 전용으로 시작한다(결석 처리가 학생 출결/시수
-집계에 영향을 주는 민감한 기능이라 - 나중에 신뢰가 쌓이면 낮출 수 있음).
+방식에서 전환).
+
+권한 범위(2026-10-13, 강사 공유 추가): master_admin/manager/staff
+(role_level 1~3)는 지금까지처럼 전체 학생/수업 범위를 그대로 본다. teacher
+(role_level 4)는 **본인이 담당하는 수업에 등록된 학생으로만 범위가 좁혀진다**
+(`_teacher_scope_id()` - app/utils/hermes_resolver.py의 resolve_student/
+resolve_course_for_student가 이 scope로 필터링). 보강을 다른 강사에게
+위임(`teacher_name` 지정)하는 건 관리자만 가능 - 강사가 남의 시간을 동의
+없이 커밋하는 걸 막기 위함(사용자 확인, 2026-10-13).
 
 기존 admin/routes.py가 이미 3900줄+로 커서, 새로 만드는 민감한 기능은 이
 파일로 분리해 리뷰/롤백을 쉽게 한다.
@@ -80,6 +87,14 @@ def _write_log(**kwargs):
     return log
 
 
+def _teacher_scope_id():
+    """None이면 전체 범위(master_admin/manager/staff, role_level 1~3) - 지금까지
+    처럼 모든 학생/수업을 본다. 그 외(teacher, role_level 4)는 current_user.user_id를
+    돌려줘서 본인이 담당하는 수업에 등록된 학생으로만 조회 범위를 좁힌다
+    (2026-10-13 강사 공유 추가, 사용자 확인)."""
+    return None if current_user.role_level <= 3 else current_user.user_id
+
+
 def _respond_clarification(thread_id, raw_text, actions, question):
     log = _write_log(
         thread_id=thread_id, admin_user_id=current_user.user_id, raw_text=raw_text,
@@ -93,7 +108,7 @@ def _respond_clarification(thread_id, raw_text, actions, question):
 
 @admin_bp.route('/hermes')
 @login_required
-@requires_permission_level(1)
+@requires_permission_level(4)
 def hermes():
     """모모 에이전트 대화 화면 - 슬랙처럼 왼쪽 스레드 목록 + 오른쪽 대화창인
     전용 페이지(2026-10-12, 좁은 팝업 대신 전환). 화면 자체는 빈 틀만
@@ -106,7 +121,7 @@ def hermes():
 
 @admin_bp.route('/hermes/threads')
 @login_required
-@requires_permission_level(1)
+@requires_permission_level(4)
 def hermes_threads():
     """최근 스레드 목록(히스토리) - 팝업 위젯 홈 화면용."""
     logs = (
@@ -139,7 +154,7 @@ def hermes_threads():
 
 @admin_bp.route('/hermes/thread/<thread_id>')
 @login_required
-@requires_permission_level(1)
+@requires_permission_level(4)
 def hermes_thread_detail(thread_id):
     """한 스레드의 로그 전부(시간순) - 팝업 위젯의 대화 렌더링용."""
     logs = (
@@ -165,7 +180,7 @@ def hermes_thread_detail(thread_id):
 
 @admin_bp.route('/hermes/message', methods=['POST'])
 @login_required
-@requires_permission_level(1)
+@requires_permission_level(4)
 def hermes_message():
     """자연어 명령 한 턴을 처리한다 - 파싱 → (액션별) 엔티티 해석+필드 검증 →
     전부 통과하면 "실행"이 아니라 "미리보기 + 확인 대기"로 응답한다. 실제
@@ -205,6 +220,7 @@ def hermes_message():
         current_app.logger.exception('[admin.hermes_message] 사용량 로그 저장 실패')
 
     actions = parsed['actions']
+    scope_id = _teacher_scope_id()
 
     # 1단계: 전부 검증(엔티티 해석 + 필드 검증)만 하고 아무것도 실행하지 않는다.
     plans = []
@@ -213,27 +229,31 @@ def hermes_message():
             question = action.get('unclear_reason') or '무엇을 해야 할지 이해하지 못했습니다. 다시 말씀해 주시겠어요?'
             return _respond_clarification(thread_id, text, actions, question)
 
-        student, student_candidates = resolve_student(action.get('student_name'))
+        student, student_candidates = resolve_student(action.get('student_name'), teacher_scope_id=scope_id)
         if student is None:
             if student_candidates:
                 listing = ', '.join(f"{s.name}({s.grade or '학년 미상'}, {s.school or '학교 미상'})"
                                     for s in student_candidates)
                 question = f"이름이 같은 학생이 여러 명입니다: {listing}. 어느 학생인지 학년이나 학교로 알려주세요."
+            elif scope_id:
+                question = f"'{action.get('student_name') or ''}' 학생은 선생님이 담당하는 수업에 등록되어 있지 않습니다."
             else:
                 question = f"이름이 '{action.get('student_name') or ''}'인 학생을 찾을 수 없습니다. 정확한 이름을 알려주세요."
             return _respond_clarification(thread_id, text, actions, question)
 
-        course, course_candidates = resolve_course_for_student(student, action.get('course_hint'))
+        course, course_candidates = resolve_course_for_student(student, action.get('course_hint'), teacher_scope_id=scope_id)
         if course is None:
             if course_candidates:
                 listing = ', '.join(c.course_name for c in course_candidates)
                 question = f"{student.name} 학생이 수강 중인 수업이 여러 개입니다: {listing}. 어느 수업 기준인가요?"
+            elif scope_id:
+                question = f"{student.name} 학생은 선생님이 담당하는 수업에 등록되어 있지 않습니다."
             else:
                 question = f"{student.name} 학생의 활성 수강 수업을 찾을 수 없습니다."
             return _respond_clarification(thread_id, text, actions, question)
 
         if action['action_type'] == 'schedule_makeup':
-            plan, error = _validate_schedule_makeup(action)
+            plan, error = _validate_schedule_makeup(action, teacher_scope_id=scope_id)
         else:
             plan, error = _validate_mark_absence(course, action)
         if error:
@@ -272,7 +292,7 @@ def hermes_message():
 
 @admin_bp.route('/hermes/thread/<thread_id>/confirm', methods=['POST'])
 @login_required
-@requires_permission_level(1)
+@requires_permission_level(4)
 def hermes_thread_confirm(thread_id):
     """해당 thread의 pending_confirmation 로그 전부를 실제로 실행한다."""
     from app.models import Course, Student
@@ -340,7 +360,7 @@ def hermes_thread_confirm(thread_id):
 
 @admin_bp.route('/hermes/thread/<thread_id>/cancel', methods=['POST'])
 @login_required
-@requires_permission_level(1)
+@requires_permission_level(4)
 def hermes_thread_cancel(thread_id):
     """해당 thread의 pending_confirmation 로그 전부를 취소한다 - 아무것도 실행하지 않는다."""
     pending_logs = HermesCommandLog.query.filter_by(thread_id=thread_id, status='pending_confirmation').all()
@@ -408,8 +428,12 @@ def _rehydrate_plan(action_type, params):
     return plan
 
 
-def _validate_schedule_makeup(action):
-    """(plan_dict, None) 또는 (None, error_message) 반환. 아무것도 실행하지 않는다."""
+def _validate_schedule_makeup(action, teacher_scope_id=None):
+    """(plan_dict, None) 또는 (None, error_message) 반환. 아무것도 실행하지 않는다.
+
+    teacher_scope_id가 주어지면(강사 본인) 다른 강사에게 보강을 위임하는
+    기능(teacher_name)은 막는다 - 본인 동의 없이 남의 시간을 커밋하게 되는
+    셈이라 관리자 전용으로 둔다(사용자 확인, 2026-10-13)."""
     from app.utils.hermes_resolver import resolve_teacher
 
     date_str = action.get('date')
@@ -431,6 +455,8 @@ def _validate_schedule_makeup(action):
     teacher = None
     teacher_name = action.get('teacher_name')
     if teacher_name:
+        if teacher_scope_id:
+            return None, '다른 강사에게 보강을 맡기는 건 관리자만 할 수 있습니다. 관리자에게 요청해주세요.'
         teacher, teacher_candidates = resolve_teacher(teacher_name)
         if teacher is None:
             if teacher_candidates:
