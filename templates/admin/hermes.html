@@ -11,10 +11,19 @@
 {% block content %}
 <style>
 /* 메시지가 쌓여 스크롤이 생기는 순간 스크롤바 폭(약 15px)만큼 콘텐츠
-   영역이 줄어들면서 스레드 목록과의 경계가 흔들리는 문제(2026-10-13
-   사용자 신고) - 스크롤 필요 여부와 무관하게 항상 스크롤바 자리를
-   미리 확보해서 폭이 바뀌지 않게 한다. */
-#hermesThreadList, #hermesMessages { scrollbar-gutter: stable; }
+   영역이 줄어들면서 레이아웃이 흔들리는 문제(2026-10-13 사용자 신고).
+   scrollbar-gutter: stable로 공간을 "항상" 미리 확보해봤지만, 그러면
+   스크롤이 필요 없을 때도 늘 그 폭만큼 좁은 상태가 되어 버려 오히려
+   더 좁아 보인다는 재신고를 받았다 - 공간을 예약하는 대신 스크롤바
+   자체를 시각적으로 숨겨서(스크롤 동작은 그대로 유지) 어떤 경우에도
+   폭이 바뀌지 않게 한다. */
+#hermesThreadList, #hermesMessages {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* 구형 Edge/IE */
+}
+#hermesThreadList::-webkit-scrollbar, #hermesMessages::-webkit-scrollbar {
+  display: none;              /* Chrome/Edge/Safari */
+}
 </style>
 <div class="flex h-[calc(100vh-180px)] min-h-[480px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
     <!-- 왼쪽: 스레드 목록(슬랙 채널 목록처럼) -->
