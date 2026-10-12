@@ -42,9 +42,6 @@ _STATUS_DISPLAY_LABEL = {
     'needs_clarification': '답변 필요', 'pending_confirmation': '확인 대기',
     'success': '완료', 'failed': '실패', 'cancelled': '취소됨',
 }
-# 날짜가 아예 없어서 나는 질문만 정확히 매칭한다(형식이 틀렸다거나 세션을
-# 못 찾는 등 다른 날짜 관련 에러까지 날짜 선택 UI로 잘못 유도하지 않기 위함).
-_DATE_CLARIFICATION_ERRORS = {'보강 날짜를 알려주세요.', '결석/지각 날짜를 알려주세요.'}
 
 
 def _hermes_llm_rate_limited():
@@ -275,11 +272,10 @@ def hermes_message():
             return _respond_clarification(thread_id, text, actions, question, clarification=clarification)
 
         if action['action_type'] == 'schedule_makeup':
-            plan, error = _validate_schedule_makeup(action, teacher_scope_id=scope_id)
+            plan, error, clarification = _validate_schedule_makeup(action, teacher_scope_id=scope_id)
         else:
-            plan, error = _validate_mark_absence(course, action)
+            plan, error, clarification = _validate_mark_absence(course, action)
         if error:
-            clarification = {'type': 'date'} if error in _DATE_CLARIFICATION_ERRORS else None
             return _respond_clarification(thread_id, text, actions, error, clarification=clarification)
 
         plans.append({'action': action, 'student': student, 'course': course, 'plan': plan})
@@ -452,20 +448,24 @@ def _rehydrate_plan(action_type, params):
 
 
 def _validate_schedule_makeup(action, teacher_scope_id=None):
-    """(plan_dict, None) 또는 (None, error_message) 반환. 아무것도 실행하지 않는다.
+    """(plan_dict, error_message, clarification) 반환. plan_dict가 None이면
+    error_message가 채워진다. 아무것도 실행하지 않는다.
 
     teacher_scope_id가 주어지면(강사 본인) 다른 강사에게 보강을 위임하는
     기능(teacher_name)은 막는다 - 본인 동의 없이 남의 시간을 커밋하게 되는
-    셈이라 관리자 전용으로 둔다(사용자 확인, 2026-10-13)."""
+    셈이라 관리자 전용으로 둔다(사용자 확인, 2026-10-13). 보강 날짜는 원
+    정규 수업 일정에서 추론할 수 없는 값이라(원래 "보강"이 기존 시간과
+    다른 새 슬롯을 잡는 것) _validate_mark_absence와 달리 날짜를 추측하지
+    않고 빈 날짜 선택기만 띄운다."""
     from app.utils.hermes_resolver import resolve_teacher
 
     date_str = action.get('date')
     if not date_str:
-        return None, '보강 날짜를 알려주세요.'
+        return None, '보강 날짜를 알려주세요.', {'type': 'date'}
     try:
         makeup_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
-        return None, f"날짜 '{date_str}'를 이해하지 못했습니다. YYYY-MM-DD로 다시 알려주세요."
+        return None, f"날짜 '{date_str}'를 이해하지 못했습니다. YYYY-MM-DD로 다시 알려주세요.", None
 
     time_str = action.get('time')
     makeup_time = None
@@ -473,21 +473,21 @@ def _validate_schedule_makeup(action, teacher_scope_id=None):
         try:
             makeup_time = datetime.strptime(time_str, '%H:%M').time()
         except ValueError:
-            return None, f"시간 '{time_str}'을 이해하지 못했습니다. HH:MM로 다시 알려주세요."
+            return None, f"시간 '{time_str}'을 이해하지 못했습니다. HH:MM로 다시 알려주세요.", None
 
     teacher = None
     teacher_name = action.get('teacher_name')
     if teacher_name:
         if teacher_scope_id:
-            return None, '다른 강사에게 보강을 맡기는 건 관리자만 할 수 있습니다. 관리자에게 요청해주세요.'
+            return None, '다른 강사에게 보강을 맡기는 건 관리자만 할 수 있습니다. 관리자에게 요청해주세요.', None
         teacher, teacher_candidates = resolve_teacher(teacher_name)
         if teacher is None:
             if teacher_candidates:
                 listing = ', '.join(t.name for t in teacher_candidates)
-                return None, f"강사 이름이 같은 분이 여러 명입니다: {listing}. 누구인지 더 알려주세요."
-            return None, f"'{teacher_name}' 강사를 찾을 수 없습니다. 정확한 이름을 알려주세요."
+                return None, f"강사 이름이 같은 분이 여러 명입니다: {listing}. 누구인지 더 알려주세요.", None
+            return None, f"'{teacher_name}' 강사를 찾을 수 없습니다. 정확한 이름을 알려주세요.", None
 
-    return {'makeup_date': makeup_date, 'makeup_time': makeup_time, 'teacher': teacher}, None
+    return {'makeup_date': makeup_date, 'makeup_time': makeup_time, 'teacher': teacher}, None, None
 
 
 def _preview_schedule_makeup(student, course, plan):
@@ -524,8 +524,29 @@ def _execute_schedule_makeup(student, source_course, plan):
     return (reply, 'success', ('course', makeup_course.course_id))
 
 
+def _suggest_absence_date(course):
+    """"이번주 결석 예정"처럼 날짜를 아예 안 준 경우, 수업의 요일(course.weekday)
+    기준으로 이번주 그 요일 날짜를 추정해 매니저에게 확인받을 수 있게 한다
+    (빈 날짜 선택기를 띄워 사람이 직접 찾게 하는 대신 - 2026-10-13 사용자
+    요청). 실제로 그 날짜에 CourseSession이 있는지까지 확인해서, 휴강/일정
+    변경으로 세션이 없으면 추측하지 않고 None을 돌려준다 - 틀린 추측을
+    확인 없이 내놓는 것보다 평범한 질문이 낫다."""
+    from app.utils.hermes_resolver import resolve_session_for_date
+
+    if course.weekday is None:
+        return None
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    candidate = this_monday + timedelta(days=course.weekday)
+    if resolve_session_for_date(course, candidate) is None:
+        return None
+    weekday_names = ['월', '화', '수', '목', '금', '토', '일']
+    return candidate, f'{weekday_names[course.weekday]}요일'
+
+
 def _validate_mark_absence(course, action):
-    """(plan_dict, None) 또는 (None, error_message) 반환. 아무것도 실행하지 않는다.
+    """(plan_dict, error_message, clarification) 반환. plan_dict가 None이면
+    error_message가 채워진다. 아무것도 실행하지 않는다.
 
     plan_dict['branch']가 'past'면 Attendance 경로(session 포함), 'future'면
     결석 예고(AbsenceNotice) 경로다."""
@@ -534,29 +555,35 @@ def _validate_mark_absence(course, action):
     date_str = action.get('date')
     status = action.get('status')
     if not date_str:
-        return None, '결석/지각 날짜를 알려주세요.'
+        suggestion = _suggest_absence_date(course)
+        if suggestion:
+            sug_date, sug_label = suggestion
+            question = (f'{course.course_name}는 이번주 {sug_label}({sug_date.strftime("%m/%d")})에 수업이 있는데, '
+                        f'그 수업 기준으로 결석 처리할까요? 다른 날짜면 아래에서 선택해주세요.')
+            return None, question, {'type': 'date', 'suggested_date': sug_date.isoformat()}
+        return None, '결석/지각 날짜를 알려주세요.', {'type': 'date'}
     if not status:
-        return None, '결석/지각/인정결석 중 어떤 상태로 처리할까요?'
+        return None, '결석/지각/인정결석 중 어떤 상태로 처리할까요?', None
     try:
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
-        return None, f"날짜 '{date_str}'를 이해하지 못했습니다. YYYY-MM-DD로 다시 알려주세요."
+        return None, f"날짜 '{date_str}'를 이해하지 못했습니다. YYYY-MM-DD로 다시 알려주세요.", None
 
     reason = action.get('reason')
 
     if target_date > date.today():
         if status not in ('absent', 'late'):
             return None, ('인정결석(excused)은 출결 체크 시점에 교사가 판단하는 항목이라 '
-                          '미래 날짜로 미리 지정할 수 없습니다. 결석 또는 지각으로 다시 알려주세요.')
+                          '미래 날짜로 미리 지정할 수 없습니다. 결석 또는 지각으로 다시 알려주세요.'), None
         if not reason:
-            return None, f'{target_date.strftime("%m/%d")} 결석/지각하는 사유를 알려주세요.'
-        return {'branch': 'future', 'target_date': target_date, 'status': status, 'reason': reason}, None
+            return None, f'{target_date.strftime("%m/%d")} 결석/지각하는 사유를 알려주세요.', None
+        return {'branch': 'future', 'target_date': target_date, 'status': status, 'reason': reason}, None, None
 
     session = resolve_session_for_date(course, target_date)
     if session is None:
         return None, (f'{course.course_name}에 {target_date.strftime("%m/%d")} 세션을 찾을 수 없습니다. '
-                      f'날짜를 다시 확인해 주세요.')
-    return {'branch': 'past', 'session': session, 'target_date': target_date, 'status': status, 'reason': reason}, None
+                      f'날짜를 다시 확인해 주세요.'), None
+    return {'branch': 'past', 'session': session, 'target_date': target_date, 'status': status, 'reason': reason}, None, None
 
 
 def _preview_mark_absence(student, course, plan):

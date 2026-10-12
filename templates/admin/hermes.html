@@ -9,6 +9,13 @@
 {% endblock %}
 
 {% block content %}
+<style>
+/* 메시지가 쌓여 스크롤이 생기는 순간 스크롤바 폭(약 15px)만큼 콘텐츠
+   영역이 줄어들면서 스레드 목록과의 경계가 흔들리는 문제(2026-10-13
+   사용자 신고) - 스크롤 필요 여부와 무관하게 항상 스크롤바 자리를
+   미리 확보해서 폭이 바뀌지 않게 한다. */
+#hermesThreadList, #hermesMessages { scrollbar-gutter: stable; }
+</style>
 <div class="flex h-[calc(100vh-180px)] min-h-[480px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
     <!-- 왼쪽: 스레드 목록(슬랙 채널 목록처럼) -->
     <aside class="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50">
@@ -202,7 +209,7 @@
             if(latest.clarification && latest.clarification.type === 'course_choice'){
                 renderChoiceComposer(latest.clarification.options);
             } else if(latest.clarification && latest.clarification.type === 'date'){
-                renderDateComposer();
+                renderDateComposer(latest.clarification.suggested_date);
             } else {
                 renderComposer('답변을 입력하세요', sendMessage);
             }
@@ -231,14 +238,17 @@
     }
 
     // "날짜를 알려주세요" 질문에 날짜 입력기를 바로 띄운다(위와 같은 이유).
-    function renderDateComposer(){
+    // suggestedDate가 있으면(모모봇이 수업 요일 기준으로 추정한 날짜,
+    // 2026-10-13) 그 날짜를 미리 채워서 사실상 "이 날짜 맞나요?" 확인만
+    // 하면 되게 한다 - 비어있으면 오늘 날짜로 기본값을 둔다.
+    function renderDateComposer(suggestedDate){
         const today = new Date().toISOString().slice(0, 10);
         footerEl.innerHTML = `
             <div class="flex gap-2">
-                <input id="hermesDateInput" type="date" value="${today}"
+                <input id="hermesDateInput" type="date" value="${suggestedDate || today}"
                     class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button id="hermesDateSend"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">전송</button>
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">확인</button>
             </div>`;
         document.getElementById('hermesDateSend').addEventListener('click', () => {
             const val = document.getElementById('hermesDateInput').value;

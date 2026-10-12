@@ -255,6 +255,46 @@ option_ids = {o.get('course_id') for o in clar3c.get('options', [])}
 check(f"options에 수업 2개 모두 포함됨 (실제: {option_ids})",
       {course3c_a_id, course3c_b_id} <= option_ids)
 
+print("\n[3d] 결석 날짜를 안 주면 수업 요일 기준 이번주 날짜를 추정해 제안함")
+with app.app_context():
+    student3d = make_student('_hermes_오지훈', teacher_id)
+    course3d = make_course('_hermes_사회정규반', teacher_id)  # make_course 기본값 weekday=0(월요일)
+    db.session.add(CourseEnrollment(course_id=course3d.course_id, student_id=student3d.student_id, status='active'))
+    this_monday = date.today() - timedelta(days=date.today().weekday())
+    session3d = CourseSession(course_id=course3d.course_id, session_number=1,
+                              session_date=this_monday, status='scheduled')
+    db.session.add(session3d)
+    db.session.commit()
+
+hermes_agent.parse_hermes_command = fake_parse(
+    'mark_absence', student_name='_hermes_오지훈', status='absent', date=None,
+)
+resp3d = client.post('/admin/hermes/message', json={'text': '_hermes_오지훈 학생 이번주 수업 결석 예정'})
+data3d = resp3d.get_json()
+check(f"응답 status=needs_clarification (실제: {data3d.get('status')})",
+      data3d.get('status') == 'needs_clarification')
+clar3d = data3d.get('clarification') or {}
+check(f"clarification.type=date (실제: {clar3d.get('type')})", clar3d.get('type') == 'date')
+check(f"이번주 월요일 날짜를 제안함 (실제: {clar3d.get('suggested_date')}, 기대: {this_monday.isoformat()})",
+      clar3d.get('suggested_date') == this_monday.isoformat())
+check("안내 문구에 '월요일' 포함", '월요일' in (data3d.get('reply_text') or ''))
+
+print("\n[3e] 추정 날짜에 실제 세션이 없으면(휴강 등) 추측하지 않고 평범한 날짜 질문만")
+with app.app_context():
+    student3e = make_student('_hermes_배수지', teacher_id)
+    course3e = make_course('_hermes_과학정규반B', teacher_id)  # weekday=0이지만 이번주 세션을 안 만들어둠
+    db.session.add(CourseEnrollment(course_id=course3e.course_id, student_id=student3e.student_id, status='active'))
+    db.session.commit()
+
+hermes_agent.parse_hermes_command = fake_parse(
+    'mark_absence', student_name='_hermes_배수지', status='absent', date=None,
+)
+resp3e = client.post('/admin/hermes/message', json={'text': '_hermes_배수지 학생 이번주 결석 예정'})
+data3e = resp3e.get_json()
+clar3e = data3e.get('clarification') or {}
+check(f"clarification.type=date, suggested_date는 없음(세션 없어 추측 안 함) (실제: {clar3e})",
+      clar3e.get('type') == 'date' and 'suggested_date' not in clar3e)
+
 print("\n[4] teacher(role_level 4)도 접근 가능하지만, 담당 범위 밖 학생은 못 봄")
 teacher2 = None
 with app.app_context():
