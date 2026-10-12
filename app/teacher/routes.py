@@ -1207,86 +1207,23 @@ def update_attendance(attendance_id):
 
     data = request.json
     new_status = data.get('status')
-    notes = data.get('notes')  # None이면 기존 notes 유지
-    participation_score = data.get('participation_score')
-    comprehension_score = data.get('comprehension_score')
+    if new_status is not None and new_status not in ['present', 'absent', 'late', 'excused']:
+        return jsonify({'success': False, 'message': '잘못된 상태값입니다.'}), 400
 
-    # status는 선택적 — 없으면 기존 값 유지
-    if new_status is not None:
-        if new_status not in ['present', 'absent', 'late', 'excused']:
-            return jsonify({'success': False, 'message': '잘못된 상태값입니다.'}), 400
-        # 결석 처리 시: 원 수업(보강 아님)에서 결석했고 다른 보강 세션에 입반해 있으면 absent_makeup으로 자동 전환
-        if new_status == 'absent' and not (course.course_type or '').startswith('보강'):
-            from app.models import CourseEnrollment as CE
-            has_future_makeup = (
-                db.session.query(CE)
-                .join(Course, CE.course_id == Course.course_id)
-                .join(CourseSession, Course.course_id == CourseSession.course_id)
-                .filter(
-                    CE.student_id == attendance.student_id,
-                    CE.status == 'active',
-                    Course.course_type.like('보강%'),
-                    Course.course_id != course.course_id,
-                    CourseSession.status != 'completed',
-                )
-                .first()
-            )
-            if has_future_makeup:
-                new_status = 'absent_makeup'
-        attendance.status = new_status
-
-    if notes is not None:
-        attendance.notes = notes
-    if participation_score is not None:
-        attendance.participation_score = int(participation_score)
-    if comprehension_score is not None:
-        attendance.comprehension_score = int(comprehension_score)
-
-    # 점수나 상태 변경이 있을 때만 checked_at 업데이트
-    if new_status is not None or participation_score is not None or comprehension_score is not None:
-        attendance.checked_at = datetime.utcnow()
-        attendance.checked_by = current_user.user_id
-
-    db.session.commit()
-
-    # 출석 통계 업데이트
-    update_enrollment_attendance_stats(attendance.enrollment_id)
-    db.session.commit()
-
-    # 결석/지각 즉시 알림 → 학부모 Push (확인보류 상태에서는 미발송)
-    if new_status in ('absent', 'late') and session.status != 'pending_review':
-        try:
-            from app.models.notification import Notification
-            from app.utils.push_utils import send_push_to_user
-            student = attendance.student
-            status_label = '결석' if new_status == 'absent' else '지각'
-            date_str = session.session_date.strftime('%m/%d')
-            msg = f'{date_str} {course.course_name} 수업에 {status_label} 처리되었습니다.'
-            parents = ParentStudent.query.filter_by(
-                student_id=student.student_id, is_active=True
-            ).all()
-            for ps in parents:
-                db.session.add(Notification(
-                    user_id=ps.parent_id,
-                    notification_type='attendance_absent',
-                    title=f'{student.name} 학생 {status_label} 알림',
-                    message=msg,
-                    link_url='/parent/attendance'
-                ))
-                send_push_to_user(
-                    user_id=ps.parent_id,
-                    title=f'{student.name} 학생 {status_label} 알림',
-                    body=msg,
-                    url='/parent/attendance'
-                )
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.warning(f'[Push] 결석 알림 오류: {e}')
+    from app.utils.course_utils import apply_attendance_update
+    result = apply_attendance_update(
+        attendance,
+        new_status=new_status,
+        notes=data.get('notes'),  # None이면 기존 notes 유지
+        participation_score=data.get('participation_score'),
+        comprehension_score=data.get('comprehension_score'),
+        checked_by=current_user.user_id,
+    )
 
     return jsonify({
         'success': True,
         'attendance_id': attendance_id,
-        'status': attendance.status
+        'status': result['final_status']
     })
 
 

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}헤르메스 - MOMOAI v4.0{% endblock %}
+
+{% block page_title %}🪽 헤르메스{% endblock %}
+
+{% block page_subtitle %}
+<span class="text-sm text-white text-opacity-70 ml-3">확정된 지시를 자연어로 입력하면 즉시 실행합니다</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded-lg p-3">
+        이미 확정된 결정만 입력하세요. 확인 절차 없이 바로 일정에 반영되고
+        학부모/강사에게 알림이 발송됩니다. 예: "김민준 학생 10월 20일 금요일
+        5시로 보강 잡아줘"
+    </div>
+
+    <div id="hermesTranscript" class="bg-white rounded-lg shadow p-4 mb-4 space-y-3 overflow-y-auto" style="max-height: 60vh;">
+        {% for log in recent_logs %}
+        <div class="flex justify-end">
+            <div class="bg-blue-600 text-white rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-line">{{ log.raw_text }}</div>
+        </div>
+        <div class="flex justify-start">
+            <div class="rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-line
+                {% if log.status == 'success' %}bg-green-50 text-green-800
+                {% elif log.status == 'failed' %}bg-red-50 text-red-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ log.result_summary or log.clarification_question or log.error_detail or '(처리 중 오류)' }}
+                <div class="text-[10px] text-gray-400 mt-1">{{ log.created_at.strftime('%m/%d %H:%M') if log.created_at else '' }} · {{ log.status }}</div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 text-center py-8">아직 대화 기록이 없습니다.</p>
+        {% endfor %}
+    </div>
+
+    <form id="hermesForm" class="flex gap-2">
+        <input type="text" id="hermesInput" autocomplete="off" placeholder="예: 이정기 학생 내일 결석 처리"
+               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="submit" id="hermesSendBtn"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition">
+            전송
+        </button>
+    </form>
+</div>
+
+<script>
+(function(){
+    let threadId = null;
+
+    const transcript = document.getElementById('hermesTranscript');
+    const form = document.getElementById('hermesForm');
+    const input = document.getElementById('hermesInput');
+    const sendBtn = document.getElementById('hermesSendBtn');
+
+    transcript.scrollTop = transcript.scrollHeight;
+
+    function appendBubble(text, who, status){
+        const row = document.createElement('div');
+        row.className = 'flex ' + (who === 'user' ? 'justify-end' : 'justify-start');
+        const bubble = document.createElement('div');
+        const toneClass = who === 'user' ? 'bg-blue-600 text-white'
+            : status === 'success' ? 'bg-green-50 text-green-800'
+            : status === 'failed' ? 'bg-red-50 text-red-800'
+            : 'bg-gray-100 text-gray-800';
+        bubble.className = 'rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-line ' + toneClass;
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        transcript.appendChild(row);
+        transcript.scrollTop = transcript.scrollHeight;
+    }
+
+    form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const text = input.value.trim();
+        if(!text) return;
+
+        appendBubble(text, 'user');
+        input.value = '';
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        try {
+            const res = await fetch('{{ url_for("admin.hermes_message") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text, thread_id: threadId}),
+            });
+            const data = await res.json();
+            threadId = data.thread_id || threadId;
+            appendBubble(data.reply_text || '응답이 없습니다.', 'hermes', data.status);
+        } catch (err) {
+            appendBubble('요청 전송에 실패했습니다.', 'hermes', 'failed');
+        } finally {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    });
+})();
+</script>
+{% endblock %}

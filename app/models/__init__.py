@@ -64,6 +64,7 @@ from app.models.absence_notice import AbsenceNotice
 from app.models.enrollment_schedule import EnrollmentSchedule
 from app.models.curriculum import CurriculumWeek
 from app.models.mileage import PointEvent, Badge, StudentBadge, MonthlyRanking, MileageConsent
+from app.models.hermes_log import HermesCommandLog
 
 __all__ = [
     'db',
@@ -144,4 +145,5 @@ __all__ = [
     'StudentBadge',
     'MonthlyRanking',
     'MileageConsent',
+    'HermesCommandLog',
 ]

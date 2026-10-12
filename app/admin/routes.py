@@ -1837,18 +1837,12 @@ def payments():
 @requires_permission_level(2)
 def search_students():
     """학생 검색 API"""
+    from app.utils.student_lookup import search_students_by_name
+
     query = request.args.get('q', '').strip()
     grade = request.args.get('grade', '').strip()
 
-    students_query = Student.query.filter_by(is_temp=False)
-
-    if grade:
-        students_query = students_query.filter_by(grade=grade)
-
-    if query:
-        students_query = students_query.filter(Student.name.ilike(f'%{query}%'))
-
-    students = students_query.order_by(Student.name).limit(20).all()
+    students = search_students_by_name(query, grade=grade or None, limit=20)
 
     results = []
     for student in students:

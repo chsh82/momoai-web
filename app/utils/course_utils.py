@@ -299,6 +299,113 @@ def update_enrollment_attendance_stats(enrollment_id):
     return enrollment
 
 
+def apply_attendance_update(attendance, new_status=None, notes=None,
+                             participation_score=None, comprehension_score=None,
+                             checked_by=None):
+    """출석 레코드 1건의 상태/메모/점수를 바꾸고 통계·알림까지 처리한다.
+
+    app/teacher/routes.py의 update_attendance(PATCH) 본문을 그대로 옮긴 것 -
+    그 라우트와 app/utils/hermes_actions.py가 둘 다 이 함수를 쓴다. 인증/
+    종료수업 체크 같은 권한 로직은 호출부(라우트)의 몫으로 남기고 여기선
+    상태 변경 로직만 담당한다. 기존 라우트 동작과 완전히 동일해야 하므로
+    커밋 순서(상태 반영 커밋 → 통계 재계산 커밋)도 그대로 유지한다.
+
+    Returns:
+        dict: {
+            'attendance': Attendance,
+            'final_status': str,            # absent_makeup 자동전환 가능성 있어 new_status와 다를 수 있음
+            'converted_to_makeup': bool,
+            'notified_parent_ids': list[str],
+        }
+    """
+    session = attendance.session
+    course = session.course
+    requested_status = new_status
+    converted_to_makeup = False
+
+    if new_status is not None:
+        if new_status not in ['present', 'absent', 'late', 'excused']:
+            raise ValueError('잘못된 상태값입니다.')
+        # 결석 처리 시: 원 수업(보강 아님)에서 결석했고 다른 보강 세션에 입반해 있으면 absent_makeup으로 자동 전환
+        if new_status == 'absent' and not (course.course_type or '').startswith('보강'):
+            has_future_makeup = (
+                db.session.query(CourseEnrollment)
+                .join(Course, CourseEnrollment.course_id == Course.course_id)
+                .join(CourseSession, Course.course_id == CourseSession.course_id)
+                .filter(
+                    CourseEnrollment.student_id == attendance.student_id,
+                    CourseEnrollment.status == 'active',
+                    Course.course_type.like('보강%'),
+                    Course.course_id != course.course_id,
+                    CourseSession.status != 'completed',
+                )
+                .first()
+            )
+            if has_future_makeup:
+                new_status = 'absent_makeup'
+                converted_to_makeup = True
+        attendance.status = new_status
+
+    if notes is not None:
+        attendance.notes = notes
+    if participation_score is not None:
+        attendance.participation_score = int(participation_score)
+    if comprehension_score is not None:
+        attendance.comprehension_score = int(comprehension_score)
+
+    # 점수나 상태 변경이 있을 때만 checked_at 업데이트
+    if new_status is not None or participation_score is not None or comprehension_score is not None:
+        attendance.checked_at = datetime.utcnow()
+        attendance.checked_by = checked_by
+
+    db.session.commit()
+
+    # 출석 통계 업데이트
+    update_enrollment_attendance_stats(attendance.enrollment_id)
+    db.session.commit()
+
+    # 결석/지각 즉시 알림 → 학부모 Push (확인보류 상태에서는 미발송)
+    notified_parent_ids = []
+    if requested_status in ('absent', 'late') and session.status != 'pending_review':
+        try:
+            from flask import current_app
+            from app.models.notification import Notification
+            from app.models.parent_student import ParentStudent
+            from app.utils.push_utils import send_push_to_user
+            student = attendance.student
+            status_label = '결석' if requested_status == 'absent' else '지각'
+            date_str = session.session_date.strftime('%m/%d')
+            msg = f'{date_str} {course.course_name} 수업에 {status_label} 처리되었습니다.'
+            parents = ParentStudent.query.filter_by(
+                student_id=student.student_id, is_active=True
+            ).all()
+            for ps in parents:
+                db.session.add(Notification(
+                    user_id=ps.parent_id,
+                    notification_type='attendance_absent',
+                    title=f'{student.name} 학생 {status_label} 알림',
+                    message=msg,
+                    link_url='/parent/attendance'
+                ))
+                send_push_to_user(
+                    user_id=ps.parent_id,
+                    title=f'{student.name} 학생 {status_label} 알림',
+                    body=msg,
+                    url='/parent/attendance'
+                )
+                notified_parent_ids.append(ps.parent_id)
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f'[Push] 결석 알림 오류: {e}')
+
+    return {
+        'attendance': attendance,
+        'final_status': attendance.status,
+        'converted_to_makeup': converted_to_makeup,
+        'notified_parent_ids': notified_parent_ids,
+    }
+
+
 def calculate_tuition_amount(enrollment):
     """
     출석 기반 수업료 계산
