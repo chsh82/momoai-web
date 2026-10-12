@@ -911,11 +911,15 @@ def _widget_llm_rate_limited():
 
 
 def _log_widget_llm_usage(usage):
+    """model_name은 실제 호출 모델(claude-haiku-5-5, 2026-10-13 속도 개선으로
+    교체)과 맞춰 적어둔다 - cost_usd 자체는 calc_claude_cost가 아직 모델별
+    단가를 구분하지 않아 sonnet 단가로 계산되므로 약간 과대평가된다(기존
+    한계, 이 변경으로 새로 생긴 문제는 아님)."""
     from app.models.api_usage_log import ApiUsageLog
     db.session.add(ApiUsageLog(
         user_id=current_user.user_id,
         api_type='claude',
-        model_name='claude-sonnet-4-6',
+        model_name='claude-haiku-5-5',
         usage_type='widget_intent_classify',
         input_tokens=usage['input_tokens'],
         output_tokens=usage['output_tokens'],
@@ -981,12 +985,21 @@ def classify_intent():
         return jsonify(fallback)
 
     prompt = f"""당신은 국어 학원 학부모 채팅창의 안내 담당자입니다.
-학부모가 보낸 메시지 한 줄만 보고 아래 4가지 중 하나로 분류하세요.
+학부모가 보낸 메시지 한 줄만 보고 아래 4가지 중 하나로 분류하세요. 의도가
+섞여 있으면 가장 먼저 처리해야 할 것 하나를 고르세요.
 
 - consult: 신규/퇴원/분기별/진로진학 등 상담 신청
 - makeup: 결석 등으로 인한 보강 수업 신청
 - refund: 결제 내역 확인, 환불 요청
 - inquiry: 위 3가지에 해당하지 않는 그 외 일반 문의
+
+예시:
+"애가 다음 달에 그만두고 싶어해요" -> consult (퇴원 상담)
+"이번주 금요일 수업 못 가는데 보강 가능할까요" -> makeup
+"지난달에 두 번 냈는데 확인 좀 해주세요" -> refund
+"다음 학기 진로 상담도 가능한가요" -> consult
+"선생님이 숙제를 너무 많이 내주셔서요" -> inquiry
+"결석해서 수업을 못 들었는데 환불되나요" -> refund (환불 요청이 핵심)
 
 학부모 메시지: "{text}"
 
@@ -994,7 +1007,10 @@ def classify_intent():
 {{"intent": "consult 또는 makeup 또는 refund 또는 inquiry", "reply": "학부모에게 보여줄 짧고 다정한 한 문장 안내(존댓말, 20자 내외, 이모지 없이)"}}"""
 
     try:
-        raw, usage = call_claude_text(prompt, max_tokens=150)
+        raw, usage = call_claude_text(
+            prompt, max_tokens=200,
+            model='claude-haiku-5-5', thinking={'type': 'disabled'},
+        )
     except Exception:
         current_app.logger.exception('[chat_widget.classify_intent] 호출 실패')
         _log_widget_free_text(text, fallback['intent'])
@@ -1007,7 +1023,11 @@ def classify_intent():
         current_app.logger.exception('[chat_widget.classify_intent] 사용량 로그 저장 실패')
 
     parsed = extract_json_block(raw) or {}
-    intent = parsed.get('intent') if parsed.get('intent') in _WIDGET_INTENTS else 'inquiry'
+    intent = parsed.get('intent') if parsed.get('intent') in _WIDGET_INTENTS else None
+    if intent is None:
+        current_app.logger.warning(
+            '[chat_widget.classify_intent] 응답에서 intent 추출 실패(raw=%r) - inquiry로 폴백', raw[:200])
+        intent = 'inquiry'
     reply = parsed.get('reply') or fallback['reply']
     _log_widget_free_text(text, intent)
     return jsonify({'intent': intent, 'reply': reply})

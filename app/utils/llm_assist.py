@@ -16,25 +16,33 @@ from config import Config
 MODEL_NAME = 'claude-sonnet-4-6'
 
 
-def call_claude_text(prompt, max_tokens=300, system=None):
+def call_claude_text(prompt, max_tokens=300, system=None, model=None, thinking=None):
     """Claude를 호출해 (텍스트, usage) 튜플을 반환한다.
 
     usage는 {'input_tokens': int, 'output_tokens': int} 형태 - 호출부에서
     ApiUsageLog에 그대로 남기면 된다. API 키 미설정/호출 실패 시 예외를
     그대로 올린다 - 호출부가 각자 맥락에 맞는 에러 메시지로 감싼다.
-    """
+
+    model을 넘기면 기본 MODEL_NAME 대신 그 모델을 쓴다(가벼운 분류 작업처럼
+    더 빠른 모델이 필요한 호출부용, 2026-10-13 추가). Claude 5 계열 모델은
+    기본적으로 extended thinking을 켠 채로 응답해서 max_tokens를 생각하는 데
+    다 써버리고 실제 텍스트가 빈 채로 돌아올 수 있다(stop_reason=max_tokens) -
+    thinking={'type': 'disabled'}를 넘겨 끄지 않으면 분류 결과가 통째로
+    비어버리는 걸 직접 재현해서 확인했다."""
     if not Config.ANTHROPIC_API_KEY:
         raise RuntimeError('ANTHROPIC_API_KEY 미설정')
 
     client = anthropic.Anthropic(api_key=Config.ANTHROPIC_API_KEY)
     kwargs = {
-        'model': MODEL_NAME,
+        'model': model or MODEL_NAME,
         'max_tokens': max_tokens,
         'timeout': 60.0,
         'messages': [{'role': 'user', 'content': prompt}],
     }
     if system:
         kwargs['system'] = system
+    if thinking:
+        kwargs['thinking'] = thinking
 
     response = client.messages.create(**kwargs)
     text = ''.join(

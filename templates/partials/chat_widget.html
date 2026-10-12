@@ -11,8 +11,7 @@
 }
 #momoWidgetFab:hover{ transform:translateY(-2px) scale(1.03); }
 #momoWidgetFab .mark{
-  width:28px; height:28px; border-radius:8px; background:#fff; color:var(--blue);
-  display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;
+  width:40px; height:40px; border-radius:50%; object-fit:contain;
 }
 #momoWidgetFab .badge{
   position:absolute; top:-3px; right:-3px; min-width:19px; height:19px; padding:0 5px;
@@ -38,8 +37,7 @@
   background:linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%); color:#fff;
   padding:16px 16px 14px; flex-shrink:0; display:flex; align-items:center; gap:10px;
 }
-.mw-head .mark{ width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.18);
-  display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; }
+.mw-head .mark{ width:34px; height:34px; border-radius:50%; object-fit:contain; flex-shrink:0; }
 .mw-head .name{ font-weight:800; font-size:15.5px; }
 .mw-head .sub{ font-size:12.5px; opacity:.8; margin-top:1px; }
 .mw-head button{
@@ -127,14 +125,14 @@
 
 <div id="momoWidgetScrim" onclick="momoWidgetClose()"></div>
 <button id="momoWidgetFab" onclick="momoWidgetToggle()" aria-label="대화 위젯 열기">
-  <span class="mark">m</span>
+  <img class="mark" src="{{ url_for('static', filename='img/momo_mascot.png') }}" alt="모모">
   <span class="badge" id="momoWidgetBadge" hidden>0</span>
 </button>
 
 <div id="momoWidgetPanel">
   <div class="mw-head">
     <button id="momoWidgetBack" onclick="momoWidgetHome()" hidden>‹</button>
-    <div class="mark">m</div>
+    <img class="mark" src="{{ url_for('static', filename='img/momo_mascot.png') }}" alt="모모">
     <div style="flex:1;min-width:0">
       <div class="name" id="momoWidgetHeadName">모모의 책장</div>
       <div class="sub" id="momoWidgetHeadSub">보통 몇 분 안에 답변드려요</div>
