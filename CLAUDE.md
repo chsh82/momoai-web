@@ -92,14 +92,14 @@
 
 이 원칙을 깨지 말고 확장한다.
 
-**예외(2026-10-12, 사용자 승인)**: 헤르메스(`/admin/hermes`, master_admin
-전용)의 `schedule_makeup`/`mark_absence` 두 액션은 위 "확인 후 수행" 원칙의
-의도적 예외다 — 관리자가 이미 확정한 지시를 문자로 받아 즉시 실행·발송한다.
-확인 게이트를 다시 추가하지 말 것(목적 자체가 무확인 실행). 대신 모든 명령은
-`HermesCommandLog`에 전부 기록해 사후 검증 가능하게 한다. LLM은 여전히
-student_id/course_id/session_id 같은 실제 엔티티를 직접 확정하지 않는다 — 자연어
-필드 추출까지만 하고, 엔티티 매칭은 결정적 Python 코드(`app/utils/hermes_resolver.py`)가
-담당한다.
+**모모 에이전트(2026-10-12, 내부 코드명 헤르메스, master_admin 전용)**: 관리자가
+자연어로 입력한 지시(보강 일정 확정 `schedule_makeup`, 결석/지각/인정결석
+처리 `mark_absence`)를 해석해 실행 계획을 세우고, **매니저가 확인 버튼을
+눌러야 비로소 실행·발송**한다 - 위 원칙을 그대로 따르는 표준 확인-게이트
+구현이다(예외 아님). LLM은 student_id/course_id/session_id 같은 실제
+엔티티를 직접 확정하지 않는다 - 자연어 필드 추출까지만 하고, 엔티티 매칭은
+결정적 Python 코드(`app/utils/hermes_resolver.py`)가 담당한다. 모든 명령(대기/
+확인/취소/실패 전부)은 `HermesCommandLog`에 기록해 사후 검증 가능하게 한다.
 
 ## 권장 확장 방향
 

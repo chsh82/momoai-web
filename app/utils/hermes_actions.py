@@ -13,14 +13,20 @@ class HermesActionError(Exception):
     (예: 해당 날짜에 세션이 아예 없음) - 호출부가 그대로 재질문 문구로 쓴다."""
 
 
-def execute_schedule_makeup(student, source_course, makeup_date, makeup_time=None, created_by=None):
+def execute_schedule_makeup(student, source_course, makeup_date, makeup_time=None,
+                             teacher=None, created_by=None):
     """1회 보강수업을 만들고 학생을 등록한다.
+
+    teacher를 지정하면 원 수업 강사 대신 그 강사가 보강을 맡는다(다른 강사가
+    대신 봐주기로 한 경우 - 2026-10-12 실사용에서 "최성호 강사와 보강" 같은
+    지시가 들어와 추가함).
 
     create_makeup_course_from_source -> enroll_student_to_course가 이미
     강사/학부모 알림과 최근 결석의 absent_makeup 자동전환까지 전부 처리한다
     (app/utils/course_utils.py 확인됨) - 여기서 추가로 알림을 보낼 필요 없음."""
     makeup_course = create_makeup_course_from_source(
         source_course, student, makeup_date, makeup_start_override=makeup_time,
+        teacher_override=teacher.user_id if teacher else None,
     )
     if created_by:
         makeup_course.created_by = created_by

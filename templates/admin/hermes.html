@@ -1,103 +1,212 @@
 {% extends "base.html" %}
 
-{% block title %}헤르메스 - MOMOAI v4.0{% endblock %}
+{% block title %}모모 에이전트 - MOMOAI v4.0{% endblock %}
 
-{% block page_title %}🪽 헤르메스{% endblock %}
+{% block page_title %}🤖 모모 에이전트{% endblock %}
 
 {% block page_subtitle %}
-<span class="text-sm text-white text-opacity-70 ml-3">확정된 지시를 자연어로 입력하면 즉시 실행합니다</span>
+<span class="text-sm text-white text-opacity-70 ml-3">확정된 지시를 입력하면 확인 후 실행합니다</span>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-    <div class="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded-lg p-3">
-        이미 확정된 결정만 입력하세요. 확인 절차 없이 바로 일정에 반영되고
-        학부모/강사에게 알림이 발송됩니다. 예: "김민준 학생 10월 20일 금요일
-        5시로 보강 잡아줘"
-    </div>
-
-    <div id="hermesTranscript" class="bg-white rounded-lg shadow p-4 mb-4 space-y-3 overflow-y-auto" style="max-height: 60vh;">
-        {% for log in recent_logs %}
-        <div class="flex justify-end">
-            <div class="bg-blue-600 text-white rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-line">{{ log.raw_text }}</div>
+<div class="flex h-[calc(100vh-180px)] min-h-[480px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <!-- 왼쪽: 스레드 목록(슬랙 채널 목록처럼) -->
+    <aside class="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50">
+        <div class="p-3 border-b border-gray-100">
+            <button id="hermesNewThreadBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg transition">
+                + 새 대화
+            </button>
         </div>
-        <div class="flex justify-start">
-            <div class="rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-line
-                {% if log.status == 'success' %}bg-green-50 text-green-800
-                {% elif log.status == 'failed' %}bg-red-50 text-red-800
-                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                {{ log.result_summary or log.clarification_question or log.error_detail or '(처리 중 오류)' }}
-                <div class="text-[10px] text-gray-400 mt-1">{{ log.created_at.strftime('%m/%d %H:%M') if log.created_at else '' }} · {{ log.status }}</div>
-            </div>
-        </div>
-        {% else %}
-        <p class="text-sm text-gray-400 text-center py-8">아직 대화 기록이 없습니다.</p>
-        {% endfor %}
-    </div>
+        <div id="hermesThreadList" class="flex-1 overflow-y-auto"></div>
+    </aside>
 
-    <form id="hermesForm" class="flex gap-2">
-        <input type="text" id="hermesInput" autocomplete="off" placeholder="예: 이정기 학생 내일 결석 처리"
-               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button type="submit" id="hermesSendBtn"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition">
-            전송
-        </button>
-    </form>
+    <!-- 오른쪽: 선택한 스레드의 대화 -->
+    <section class="flex-1 flex flex-col min-w-0">
+        <div id="hermesMessages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+        <div id="hermesFooter" class="border-t border-gray-100 p-3"></div>
+    </section>
 </div>
 
 <script>
 (function(){
-    let threadId = null;
+    let currentThreadId = null;
 
-    const transcript = document.getElementById('hermesTranscript');
-    const form = document.getElementById('hermesForm');
-    const input = document.getElementById('hermesInput');
-    const sendBtn = document.getElementById('hermesSendBtn');
+    const threadListEl = document.getElementById('hermesThreadList');
+    const messagesEl = document.getElementById('hermesMessages');
+    const footerEl = document.getElementById('hermesFooter');
+    const newThreadBtn = document.getElementById('hermesNewThreadBtn');
 
-    transcript.scrollTop = transcript.scrollHeight;
+    const STATUS_TONE = {
+        needs_clarification: 'bg-amber-100 text-amber-700',
+        pending_confirmation: 'bg-blue-100 text-blue-700',
+        success: 'bg-green-100 text-green-700',
+        failed: 'bg-red-100 text-red-700',
+        cancelled: 'bg-gray-200 text-gray-600',
+    };
 
-    function appendBubble(text, who, status){
-        const row = document.createElement('div');
-        row.className = 'flex ' + (who === 'user' ? 'justify-end' : 'justify-start');
-        const bubble = document.createElement('div');
-        const toneClass = who === 'user' ? 'bg-blue-600 text-white'
-            : status === 'success' ? 'bg-green-50 text-green-800'
-            : status === 'failed' ? 'bg-red-50 text-red-800'
-            : 'bg-gray-100 text-gray-800';
-        bubble.className = 'rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-line ' + toneClass;
-        bubble.textContent = text;
-        row.appendChild(bubble);
-        transcript.appendChild(row);
-        transcript.scrollTop = transcript.scrollHeight;
+    function esc(s){
+        const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
     }
 
-    form.addEventListener('submit', async function(e){
-        e.preventDefault();
-        const text = input.value.trim();
-        if(!text) return;
+    async function loadThreadList(){
+        try{
+            const res = await fetch('{{ url_for("admin.hermes_threads") }}');
+            const data = await res.json();
+            const threads = data.threads || [];
+            if(!threads.length){
+                threadListEl.innerHTML = '<p class="text-xs text-gray-400 text-center py-6 px-3">아직 대화 기록이 없습니다.</p>';
+                return;
+            }
+            threadListEl.innerHTML = threads.map(t => `
+                <button class="w-full text-left px-3 py-2.5 border-b border-gray-100 hover:bg-gray-100 transition
+                    ${t.thread_id === currentThreadId ? 'bg-blue-50' : ''}" data-thread-id="${t.thread_id}">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-800 truncate flex-1">${esc(t.preview)}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_TONE[t.status] || 'bg-gray-100 text-gray-600'}">${esc(t.status_label)}</span>
+                    </div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">${esc(t.time)}</div>
+                </button>
+            `).join('');
+            threadListEl.querySelectorAll('[data-thread-id]').forEach(btn => {
+                btn.addEventListener('click', () => openThread(btn.dataset.threadId));
+            });
+        }catch(e){
+            threadListEl.innerHTML = '<p class="text-xs text-red-400 text-center py-6 px-3">목록을 불러오지 못했습니다.</p>';
+        }
+    }
 
-        appendBubble(text, 'user');
-        input.value = '';
-        input.disabled = true;
-        sendBtn.disabled = true;
+    function renderComposer(placeholder, onSend){
+        footerEl.innerHTML = `
+            <div class="flex gap-2">
+                <textarea id="hermesComposerInput" rows="1" placeholder="${esc(placeholder)}"
+                    class="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <button id="hermesComposerSend"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">전송</button>
+            </div>`;
+        const input = document.getElementById('hermesComposerInput');
+        const btn = document.getElementById('hermesComposerSend');
+        const send = async () => {
+            const text = input.value.trim();
+            if(!text) return;
+            input.disabled = true; btn.disabled = true;
+            await onSend(text);
+            input.disabled = false; btn.disabled = false;
+        };
+        btn.addEventListener('click', send);
+        input.addEventListener('keydown', e => {
+            if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+        });
+        input.focus();
+    }
 
-        try {
+    function renderConfirmCard(){
+        footerEl.innerHTML = `
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p class="text-sm text-gray-700 mb-2">위 내용으로 실행할까요?</p>
+                <div class="flex gap-2">
+                    <button id="hermesConfirmBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">확인</button>
+                    <button id="hermesCancelBtn" class="flex-1 bg-white border border-gray-300 text-gray-600 font-medium py-2 rounded-lg hover:bg-gray-50 transition">취소</button>
+                </div>
+            </div>`;
+        document.getElementById('hermesConfirmBtn').addEventListener('click', async () => {
+            await fetch(`/admin/hermes/thread/${currentThreadId}/confirm`, {method: 'POST'});
+            openThread(currentThreadId);
+            loadThreadList();
+        });
+        document.getElementById('hermesCancelBtn').addEventListener('click', async () => {
+            await fetch(`/admin/hermes/thread/${currentThreadId}/cancel`, {method: 'POST'});
+            openThread(currentThreadId);
+            loadThreadList();
+        });
+    }
+
+    function renderNewThreadButton(){
+        footerEl.innerHTML = `
+            <button id="hermesStartOverBtn"
+                class="w-full border border-gray-300 text-gray-600 font-medium py-2 rounded-lg hover:bg-gray-50 transition">
+                + 새 대화 시작
+            </button>`;
+        document.getElementById('hermesStartOverBtn').addEventListener('click', startNewThread);
+    }
+
+    async function sendMessage(text){
+        try{
             const res = await fetch('{{ url_for("admin.hermes_message") }}', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text, thread_id: threadId}),
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text, thread_id: currentThreadId}),
             });
             const data = await res.json();
-            threadId = data.thread_id || threadId;
-            appendBubble(data.reply_text || '응답이 없습니다.', 'hermes', data.status);
-        } catch (err) {
-            appendBubble('요청 전송에 실패했습니다.', 'hermes', 'failed');
-        } finally {
-            input.disabled = false;
-            sendBtn.disabled = false;
-            input.focus();
+            if(data.thread_id){
+                currentThreadId = data.thread_id;
+                await openThread(currentThreadId);
+                loadThreadList();
+            }
+        }catch(e){
+            messagesEl.insertAdjacentHTML('beforeend',
+                '<div class="text-sm text-red-500">요청 전송에 실패했습니다.</div>');
         }
-    });
+    }
+
+    window.startNewThread = function(){
+        currentThreadId = null;
+        messagesEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-10">확정된 지시를 입력해보세요.<br>예: "김민준 학생 10월 20일 5시 보강", "이정기 학생 오늘 결석 처리"</p>';
+        renderComposer('예: 김민준 학생 10월 20일 5시 보강', sendMessage);
+        threadListEl.querySelectorAll('[data-thread-id]').forEach(b => b.classList.remove('bg-blue-50'));
+    };
+
+    async function openThread(threadId){
+        currentThreadId = threadId;
+        messagesEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-10">불러오는 중...</p>';
+        try{
+            const res = await fetch(`/admin/hermes/thread/${threadId}`);
+            const data = await res.json();
+            if(data.error){
+                messagesEl.innerHTML = `<p class="text-sm text-red-400 text-center py-10">${esc(data.error)}</p>`;
+                return;
+            }
+            renderMessages(data.items);
+        }catch(e){
+            messagesEl.innerHTML = '<p class="text-sm text-red-400 text-center py-10">불러오지 못했습니다.</p>';
+        }
+    }
+
+    function renderMessages(items){
+        // 연속된 같은 raw_text는 사람 말풍선 1개 + agent 말풍선 여러 개로 묶는다
+        // (복합 명령 1번 입력이 액션별로 로그 행을 여러 개 남기기 때문).
+        const groups = [];
+        for(const it of items){
+            const last = groups[groups.length - 1];
+            if(last && last.raw_text === it.raw_text){ last.items.push(it); }
+            else { groups.push({raw_text: it.raw_text, items: [it]}); }
+        }
+
+        messagesEl.innerHTML = groups.map(g => `
+            <div class="flex justify-end">
+                <div class="bg-blue-600 text-white rounded-lg px-3 py-2 max-w-[75%] text-sm whitespace-pre-line">${esc(g.raw_text)}</div>
+            </div>
+            ${g.items.map(it => `
+                <div class="flex justify-start">
+                    <div class="rounded-lg px-3 py-2 max-w-[75%] text-sm whitespace-pre-line
+                        ${it.status === 'success' ? 'bg-green-50 text-green-800' : it.status === 'failed' ? 'bg-red-50 text-red-800' : 'bg-gray-100 text-gray-800'}">
+                        ${esc(it.agent_text || '')}
+                    </div>
+                </div>
+            `).join('')}
+        `).join('');
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        const latest = items[items.length - 1];
+        if(latest.status === 'pending_confirmation'){ renderConfirmCard(); }
+        else if(latest.status === 'needs_clarification'){ renderComposer('답변을 입력하세요', sendMessage); }
+        else { renderNewThreadButton(); }
+    }
+
+    newThreadBtn.addEventListener('click', startNewThread);
+
+    // 초기 로드: 스레드 목록 + 새 대화 상태로 시작
+    loadThreadList();
+    startNewThread();
 })();
 </script>
 {% endblock %}

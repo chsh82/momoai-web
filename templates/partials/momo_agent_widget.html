@@ -1,0 +1,23 @@
+{# 관리자(모모 에이전트) 전용 플로팅 바로가기 - 학부모용 chat_widget.html과
+   같은 위치/스타일의 우측 하단 아이콘이지만, 대화 자체는 팝업이 아니라
+   슬랙처럼 왼쪽 스레드 목록 + 오른쪽 대화창인 전용 페이지(/admin/hermes,
+   templates/admin/hermes.html)에서 한다 - 이 아이콘은 거기로 바로
+   이동시키는 링크 역할만 한다(2026-10-12, 좁은 팝업 UI에서 전환). #}
+<style>
+#agentWidgetFab{
+  position:fixed; right:20px; bottom:20px; width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg, var(--navy-dark) 0%, var(--navy2) 100%);
+  border:none; cursor:pointer; box-shadow:var(--shadow-header);
+  display:flex; align-items:center; justify-content:center; z-index:9998;
+  transition:transform .18s ease; text-decoration:none;
+}
+#agentWidgetFab:hover{ transform:translateY(-2px) scale(1.03); }
+#agentWidgetFab .mark{ font-size:24px; line-height:1; }
+@media (max-width:480px){
+  #agentWidgetFab{ right:16px; bottom:16px; }
+}
+</style>
+
+<a id="agentWidgetFab" href="{{ url_for('admin.hermes') }}" aria-label="모모 에이전트 열기">
+  <span class="mark">🤖</span>
+</a>

@@ -306,12 +306,6 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'absence_notice' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 결석 예고 관리
                             </a>
-                            {% if current_user.is_master_admin %}
-                            <a href="{{ url_for('admin.hermes') }}"
-                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.hermes' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
-                                🪽 헤르메스
-                            </a>
-                            {% endif %}
                             <a href="{{ url_for('admin.enrollment_schedules') }}"
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'enrollment_schedule' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 입반·전반·보강
@@ -320,6 +314,12 @@
                                class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.teacher_hours' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
                                 📊 강사 시수 현황
                             </a>
+                            {% if current_user.is_master_admin %}
+                            <a href="{{ url_for('admin.hermes') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.hermes' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                🤖 모모 에이전트
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -2159,6 +2159,10 @@
 
     {% if current_user.is_authenticated and current_user.role == 'parent' %}
     {% include "partials/chat_widget.html" %}
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.is_master_admin %}
+    {% include "partials/momo_agent_widget.html" %}
     {% endif %}
 
     {% if current_user.is_authenticated and current_user.role == 'student' %}

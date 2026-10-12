@@ -571,12 +571,14 @@ def enroll_student_to_course(course_id, student_id):
 
 
 def create_makeup_course_from_source(source_course, student, makeup_date, schedule_id=None,
-                                      makeup_start_override=None):
+                                      makeup_start_override=None, teacher_override=None):
     """EnrollmentSchedule(makeup) 또는 기타 용도로 1회 보강수업 생성 후 학생 등록.
 
     Args:
         makeup_start_override: 지정하면 원 수업 시간 대신 이 시간을 쓴다(강사가
             협의로 다른 시간을 제안한 경우 등). 없으면 원 수업 시간 그대로.
+        teacher_override: 지정하면 원 수업 담당 강사 대신 이 user_id가 보강을
+            맡는다(다른 강사가 대신 봐주기로 한 경우). 없으면 원 수업 강사 그대로.
 
     Returns:
         생성된 makeup Course 객체
@@ -609,7 +611,12 @@ def create_makeup_course_from_source(source_course, student, makeup_date, schedu
     else:
         makeup_end = source_course.end_time
 
-    suffix = schedule_id[:8] if schedule_id else str(makeup_date).replace('-', '')
+    # schedule_id가 없으면(헤르메스 등 EnrollmentSchedule을 안 거치는 호출)
+    # makeup_date만으로 suffix를 만들면 같은 날짜에 두 번째 보강을 만들 때마다
+    # course_code가 그대로 중복돼 UNIQUE 제약 위반이 난다(2026-10-12 실사용
+    # 중 발견) - uuid로 매번 고유하게 만든다.
+    import uuid as _uuid
+    suffix = schedule_id[:8] if schedule_id else _uuid.uuid4().hex[:8]
     unique_code = f"MAKEUP{makeup_date.strftime('%y%m%d')}{suffix}"
 
     makeup_course = Course(
@@ -617,7 +624,7 @@ def create_makeup_course_from_source(source_course, student, makeup_date, schedu
         course_code=unique_code,
         grade=source_course.grade,
         course_type=derived_type,
-        teacher_id=source_course.teacher_id,
+        teacher_id=teacher_override or source_course.teacher_id,
         weekday=makeup_date.weekday(),
         start_time=makeup_start,
         end_time=makeup_end,
