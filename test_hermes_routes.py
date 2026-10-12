@@ -222,6 +222,38 @@ data3 = resp3.get_json()
 check(f"응답 status=needs_clarification (실제: {data3.get('status')})",
       data3.get('status') == 'needs_clarification')
 check("날짜를 물어보는 질문", '날짜' in (data3.get('reply_text') or ''))
+check(f"clarification.type=date로 날짜 선택 UI 힌트 포함 (실제: {data3.get('clarification')})",
+      (data3.get('clarification') or {}).get('type') == 'date')
+
+print("\n[3b] GET /admin/hermes/thread/<id>에서도 clarification 힌트가 복원됨")
+resp3b = client.get(f"/admin/hermes/thread/{data3['thread_id']}")
+items3b = resp3b.get_json().get('items', [])
+check("스레드 재조회 시에도 마지막 항목에 clarification.type=date 포함",
+      items3b and (items3b[-1].get('clarification') or {}).get('type') == 'date')
+
+print("\n[3c] 활성 수업이 여러 개면 clarification.type=course_choice로 버튼 선택 힌트 제공")
+with app.app_context():
+    student3c = make_student('_hermes_한지민', teacher_id)
+    course3c_a = make_course('_hermes_영어정규반A', teacher_id)
+    course3c_b = make_course('_hermes_영어정규반B', teacher_id)
+    db.session.add(CourseEnrollment(course_id=course3c_a.course_id, student_id=student3c.student_id, status='active'))
+    db.session.add(CourseEnrollment(course_id=course3c_b.course_id, student_id=student3c.student_id, status='active'))
+    db.session.commit()
+    student3c_id = student3c.student_id
+    course3c_a_id, course3c_b_id = course3c_a.course_id, course3c_b.course_id
+
+hermes_agent.parse_hermes_command = fake_parse(
+    'schedule_makeup', student_name='_hermes_한지민', date=makeup_date.isoformat(),
+)
+resp3c = client.post('/admin/hermes/message', json={'text': '_hermes_한지민 학생 보강 잡아줘'})
+data3c = resp3c.get_json()
+check(f"응답 status=needs_clarification (실제: {data3c.get('status')})",
+      data3c.get('status') == 'needs_clarification')
+clar3c = data3c.get('clarification') or {}
+check(f"clarification.type=course_choice (실제: {clar3c.get('type')})", clar3c.get('type') == 'course_choice')
+option_ids = {o.get('course_id') for o in clar3c.get('options', [])}
+check(f"options에 수업 2개 모두 포함됨 (실제: {option_ids})",
+      {course3c_a_id, course3c_b_id} <= option_ids)
 
 print("\n[4] teacher(role_level 4)도 접근 가능하지만, 담당 범위 밖 학생은 못 봄")
 teacher2 = None

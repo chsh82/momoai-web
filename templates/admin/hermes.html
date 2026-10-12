@@ -198,8 +198,52 @@
 
         const latest = items[items.length - 1];
         if(latest.status === 'pending_confirmation'){ renderConfirmCard(); }
-        else if(latest.status === 'needs_clarification'){ renderComposer('답변을 입력하세요', sendMessage); }
+        else if(latest.status === 'needs_clarification'){
+            if(latest.clarification && latest.clarification.type === 'course_choice'){
+                renderChoiceComposer(latest.clarification.options);
+            } else if(latest.clarification && latest.clarification.type === 'date'){
+                renderDateComposer();
+            } else {
+                renderComposer('답변을 입력하세요', sendMessage);
+            }
+        }
         else { renderNewThreadButton(); }
+    }
+
+    // "어느 수업인가요?" 질문에 자유 텍스트 대신 버튼으로 바로 고르게 한다
+    // (2026-10-13, 직관적인 선택 UI 요청) - 클릭하면 그 수업 이름을 그대로
+    // 답변 텍스트로 보내 기존 재파싱 흐름을 그대로 탄다(백엔드 변경 없음).
+    function renderChoiceComposer(options){
+        footerEl.innerHTML = `
+            <div class="flex flex-wrap gap-2">
+                ${options.map(o => `
+                    <button class="hermes-choice-btn px-3 py-2 rounded-lg border border-gray-300 text-sm
+                        text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition"
+                        data-label="${esc(o.label)}">${esc(o.label)}</button>
+                `).join('')}
+            </div>`;
+        footerEl.querySelectorAll('.hermes-choice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                footerEl.querySelectorAll('.hermes-choice-btn').forEach(b => b.disabled = true);
+                sendMessage(btn.dataset.label);
+            });
+        });
+    }
+
+    // "날짜를 알려주세요" 질문에 날짜 입력기를 바로 띄운다(위와 같은 이유).
+    function renderDateComposer(){
+        const today = new Date().toISOString().slice(0, 10);
+        footerEl.innerHTML = `
+            <div class="flex gap-2">
+                <input id="hermesDateInput" type="date" value="${today}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="hermesDateSend"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">전송</button>
+            </div>`;
+        document.getElementById('hermesDateSend').addEventListener('click', () => {
+            const val = document.getElementById('hermesDateInput').value;
+            if(val) sendMessage(val);
+        });
     }
 
     newThreadBtn.addEventListener('click', startNewThread);

@@ -42,6 +42,9 @@ _STATUS_DISPLAY_LABEL = {
     'needs_clarification': '답변 필요', 'pending_confirmation': '확인 대기',
     'success': '완료', 'failed': '실패', 'cancelled': '취소됨',
 }
+# 날짜가 아예 없어서 나는 질문만 정확히 매칭한다(형식이 틀렸다거나 세션을
+# 못 찾는 등 다른 날짜 관련 에러까지 날짜 선택 UI로 잘못 유도하지 않기 위함).
+_DATE_CLARIFICATION_ERRORS = {'보강 날짜를 알려주세요.', '결석/지각 날짜를 알려주세요.'}
 
 
 def _hermes_llm_rate_limited():
@@ -95,15 +98,25 @@ def _teacher_scope_id():
     return None if current_user.role_level <= 3 else current_user.user_id
 
 
-def _respond_clarification(thread_id, raw_text, actions, question):
+def _respond_clarification(thread_id, raw_text, actions, question, clarification=None):
+    """clarification이 주어지면({'type': 'course_choice', 'options': [...]} 또는
+    {'type': 'date'}) 프론트가 자유 텍스트 입력 대신 버튼/날짜 선택 UI를
+    보여줄 수 있게 함께 내려준다(2026-10-13, "직관적으로 선택하게" 요청).
+    resolved_params는 pending_confirmation 전용이 아니라 범용 JSON 저장칸이라
+    needs_clarification 행에도 그대로 재사용한다 - thread 재조회 시에도 같은
+    선택 UI를 복원하기 위함(hermes_thread_detail 참고)."""
     log = _write_log(
         thread_id=thread_id, admin_user_id=current_user.user_id, raw_text=raw_text,
         parsed_action=json.dumps(actions, ensure_ascii=False),
         action_type=actions[0]['action_type'] if actions else None,
         status='needs_clarification', clarification_question=question,
+        resolved_params=json.dumps(clarification, ensure_ascii=False) if clarification else None,
     )
-    return jsonify({'reply_text': question, 'status': 'needs_clarification',
-                    'log_id': log.log_id, 'thread_id': thread_id})
+    payload = {'reply_text': question, 'status': 'needs_clarification',
+               'log_id': log.log_id, 'thread_id': thread_id}
+    if clarification:
+        payload['clarification'] = clarification
+    return jsonify(payload)
 
 
 @admin_bp.route('/hermes')
@@ -166,15 +179,20 @@ def hermes_thread_detail(thread_id):
     if not logs:
         return jsonify({'error': '스레드를 찾을 수 없습니다.'}), 404
 
-    items = [{
-        'log_id': log.log_id,
-        'raw_text': log.raw_text,
-        'status': log.status,
-        'status_label': _STATUS_DISPLAY_LABEL.get(log.status, log.status),
-        'agent_text': log.clarification_question or log.result_summary or log.error_detail,
-        'action_type': log.action_type,
-        'created_at': log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '',
-    } for log in logs]
+    items = []
+    for log in logs:
+        item = {
+            'log_id': log.log_id,
+            'raw_text': log.raw_text,
+            'status': log.status,
+            'status_label': _STATUS_DISPLAY_LABEL.get(log.status, log.status),
+            'agent_text': log.clarification_question or log.result_summary or log.error_detail,
+            'action_type': log.action_type,
+            'created_at': log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '',
+        }
+        if log.status == 'needs_clarification' and log.resolved_params:
+            item['clarification'] = json.loads(log.resolved_params)
+        items.append(item)
     return jsonify({'thread_id': thread_id, 'items': items})
 
 
@@ -243,21 +261,26 @@ def hermes_message():
 
         course, course_candidates = resolve_course_for_student(student, action.get('course_hint'), teacher_scope_id=scope_id)
         if course is None:
+            clarification = None
             if course_candidates:
                 listing = ', '.join(c.course_name for c in course_candidates)
                 question = f"{student.name} 학생이 수강 중인 수업이 여러 개입니다: {listing}. 어느 수업 기준인가요?"
+                clarification = {'type': 'course_choice', 'options': [
+                    {'course_id': c.course_id, 'label': c.course_name} for c in course_candidates
+                ]}
             elif scope_id:
                 question = f"{student.name} 학생은 선생님이 담당하는 수업에 등록되어 있지 않습니다."
             else:
                 question = f"{student.name} 학생의 활성 수강 수업을 찾을 수 없습니다."
-            return _respond_clarification(thread_id, text, actions, question)
+            return _respond_clarification(thread_id, text, actions, question, clarification=clarification)
 
         if action['action_type'] == 'schedule_makeup':
             plan, error = _validate_schedule_makeup(action, teacher_scope_id=scope_id)
         else:
             plan, error = _validate_mark_absence(course, action)
         if error:
-            return _respond_clarification(thread_id, text, actions, error)
+            clarification = {'type': 'date'} if error in _DATE_CLARIFICATION_ERRORS else None
+            return _respond_clarification(thread_id, text, actions, error, clarification=clarification)
 
         plans.append({'action': action, 'student': student, 'course': course, 'plan': plan})
 
