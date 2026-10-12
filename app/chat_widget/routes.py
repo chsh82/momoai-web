@@ -397,11 +397,17 @@ def thread(kind, request_id):
     # 위젯에 "이 시간으로 확정할게요" 버튼을 보여준다. 개별보강(consult)은
     # proposed_source_course_id까지 있어야 실제로 확정 가능한 상태다.
     if kind == 'makeup':
+        reschedule_pending = bool(getattr(obj, 'parent_reschedule_requested_at', None)) and (
+            not getattr(obj, 'parent_reschedule_admin_acted_at', None)
+            or str(obj.parent_reschedule_admin_acted_at) < str(obj.parent_reschedule_requested_at)
+        )
         can_confirm_schedule = (
             obj.status == 'pending'
             and obj.teacher_proposed_date is not None
             and obj.parent_confirmed_at is None
+            and not reschedule_pending
         )
+        can_request_reschedule = can_confirm_schedule
     elif kind == 'consult' and obj.category == MAKEUP_INDIVIDUAL_CATEGORY:
         can_confirm_schedule = (
             obj.status == 'pending'
@@ -409,8 +415,10 @@ def thread(kind, request_id):
             and obj.proposed_source_course_id is not None
             and obj.parent_confirmed_at is None
         )
+        can_request_reschedule = False
     else:
         can_confirm_schedule = False
+        can_request_reschedule = False
 
     return jsonify({
         'type': kind,
@@ -421,6 +429,7 @@ def thread(kind, request_id):
         'reason': getattr(obj, 'reason', None),
         'timeline': _build_timeline(kind, obj),
         'can_confirm_schedule': can_confirm_schedule,
+        'can_request_reschedule': can_request_reschedule,
         'proposed_date': obj.teacher_proposed_date.strftime('%Y-%m-%d') if can_confirm_schedule else None,
         'proposed_time': (obj.teacher_proposed_time.strftime('%H:%M')
                           if can_confirm_schedule and obj.teacher_proposed_time else None),
@@ -711,6 +720,73 @@ def quick_makeup_individual():
     db.session.commit()
 
     return jsonify({'ok': True, 'id': req.request_id})
+
+
+@chat_widget_bp.route('/widget/makeup/<request_id>/request-reschedule', methods=['POST'])
+@requires_role('parent', 'admin')
+def request_makeup_reschedule(request_id):
+    """학부모가 제안 일정을 확정하지 않고 다른 일정을 요청한다.
+
+    자동 확정 대신 관리자 작업 큐의 `재조율 필요`로 올리고, 모모/관리자가
+    강사에게 다시 문의할 수 있도록 구조화된 사유를 저장한다.
+    """
+    from app.models.makeup_request import MakeupClassRequest
+
+    data = request.get_json(silent=True) or {}
+    reason = (data.get('reason') or '').strip()
+    if not reason:
+        return jsonify({'error': '다른 일정이 필요한 이유나 가능한 시간을 입력해주세요.'}), 400
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    if makeup_request.student_id not in _my_children_ids():
+        return jsonify({'error': '접근 권한이 없습니다.'}), 403
+    if makeup_request.status != 'pending':
+        return jsonify({'error': '이미 처리된 신청입니다.'}), 400
+    if not makeup_request.teacher_proposed_date:
+        return jsonify({'error': '아직 제안된 일정이 없습니다.'}), 400
+
+    admin_id = _any_admin_id()
+    if not admin_id:
+        return jsonify({'error': '문의 받을 관리자가 없습니다.'}), 500
+
+    makeup_request.parent_reschedule_requested_at = datetime.utcnow()
+    makeup_request.parent_reschedule_reason = reason
+    makeup_request.parent_reschedule_admin_acted_at = None
+    makeup_request.parent_confirmed_at = None
+    # 기존 제안은 기록으로 남기되, 새 강사 확인이 필요하므로 승인 가능 플래그를 내린다.
+    makeup_request.teacher_confirmed = False
+    makeup_request.teacher_confirmed_at = None
+
+    if not makeup_request.parent_conversation_id:
+        conv = _get_or_create_parent_conversation(admin_id)
+        makeup_request.parent_conversation_id = conv.conversation_id
+    else:
+        conv = Conversation.query.get(makeup_request.parent_conversation_id)
+
+    proposed = makeup_request.teacher_proposed_date.strftime('%Y-%m-%d')
+    if makeup_request.teacher_proposed_time:
+        proposed += ' ' + makeup_request.teacher_proposed_time.strftime('%H:%M')
+    body = f'[일정 재조율 요청]\n기존 제안 일정: {proposed}\n요청 내용: {reason}'
+    msg = ConversationMessage(conversation_id=conv.conversation_id, sender_id=current_user.user_id, body=body)
+    conv.last_message_at = datetime.utcnow()
+    db.session.add(msg)
+
+    admins = User.query.filter(User.role_level <= 2, User.is_active == True).all()
+    student = makeup_request.student
+    for admin in admins:
+        db.session.add(Notification(
+            user_id=admin.user_id,
+            notification_type='makeup_reschedule_requested',
+            title='🔁 보강 일정 재조율 요청',
+            message=f'{student.display_name if student else ""} · {reason[:80]}',
+            related_entity_type='makeup_request',
+            related_entity_id=makeup_request.request_id,
+            link_url=url_for('admin.makeup_requests', queue='reschedule_requested'),
+            related_user_id=current_user.user_id,
+        ))
+
+    db.session.commit()
+    return jsonify({'ok': True})
 
 
 @chat_widget_bp.route('/widget/makeup/<request_id>/confirm-schedule', methods=['POST'])

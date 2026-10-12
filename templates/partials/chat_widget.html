@@ -382,6 +382,7 @@
           <p>선생님과 협의한 결과 아래 일정으로 보강이 가능해요.</p>
           <b>${escapeHtml(data.proposed_date || '')}${data.proposed_time ? ' ' + escapeHtml(data.proposed_time) : ''}</b>
           <button class="mw-submit" onclick="momoWidgetConfirmSchedule()">이 시간으로 확정할게요</button>
+          ${data.can_request_reschedule ? '<button class="mw-submit-secondary" onclick="momoWidgetRescheduleForm()">다른 일정 요청하기</button>' : ''}
         </div>` : '';
 
     const body = document.getElementById('momoWidgetBody');
@@ -664,6 +665,42 @@
       momoWidgetThread(type, mwCurrentThread.id);
     }catch(e){
       alert('확정 처리에 실패했습니다.');
+    }
+  };
+
+  window.momoWidgetRescheduleForm = function(){
+    const scroll = document.getElementById('momoWidgetScroll');
+    if(!scroll) return;
+    const existing = document.getElementById('momoWidgetRescheduleBox');
+    if(existing){ existing.scrollIntoView({behavior:'smooth', block:'center'}); return; }
+    const box = document.createElement('div');
+    box.id = 'momoWidgetRescheduleBox';
+    box.className = 'mw-msg them';
+    box.style.maxWidth = '100%';
+    box.innerHTML = `
+      <div style="font-weight:700;margin-bottom:6px">다른 일정 요청</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">가능한 요일/시간을 2개 이상 적어주시면 더 빠르게 조율할 수 있어요.</div>
+      <textarea id="momoWidgetRescheduleReason" rows="3" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:9px;padding:8px;font-family:inherit" placeholder="예: 그날은 어렵고 금요일 5시 이후, 토요일 오전 가능합니다."></textarea>
+      <button class="mw-submit" style="margin-top:8px" onclick="momoWidgetSubmitReschedule()">재조율 요청 보내기</button>
+    `;
+    scroll.appendChild(box);
+    scroll.scrollTop = scroll.scrollHeight;
+  };
+
+  window.momoWidgetSubmitReschedule = async function(){
+    if(!mwCurrentThread || mwCurrentThread.type !== 'makeup') return;
+    const input = document.getElementById('momoWidgetRescheduleReason');
+    const reason = (input && input.value || '').trim();
+    if(!reason){ alert('가능한 시간이나 요청 사유를 입력해주세요.'); return; }
+    try{
+      const res = await fetch(`/widget/makeup/${mwCurrentThread.id}/request-reschedule`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({reason})
+      });
+      const data = await res.json();
+      if(data.error){ alert(data.error); return; }
+      momoWidgetThread('makeup', mwCurrentThread.id);
+    }catch(e){
+      alert('재조율 요청 전송에 실패했습니다.');
     }
   };
 

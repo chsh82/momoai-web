@@ -3379,6 +3379,8 @@ def makeup_internal_consult(request_id):
 
     makeup_request.admin_ask_date = ask_date
     makeup_request.admin_ask_time = ask_time
+    if makeup_request.parent_reschedule_requested_at:
+        makeup_request.parent_reschedule_admin_acted_at = datetime.utcnow()
 
     uid = current_user.user_id
     if not makeup_request.internal_conversation_id:
@@ -3589,6 +3591,7 @@ def makeup_draft_message(request_id):
     전송한다(자동 발송 아님). 판단은 전부 사람이 함, LLM은 문구만 돕는다."""
     from app.models.makeup_request import MakeupClassRequest
     from app.utils.llm_assist import call_claude_text
+    from app.utils.makeup_workflow import build_teacher_consult_draft
 
     if _llm_rate_limited('makeup_consult_draft'):
         return jsonify({'error': '잠시 후 다시 시도해 주세요.'}), 429
@@ -3619,7 +3622,11 @@ def makeup_draft_message(request_id):
         text, usage = call_claude_text(prompt, max_tokens=200)
     except Exception:
         current_app.logger.exception('[admin.makeup_draft_message] 생성 실패 (request_id=%s)', request_id)
-        return jsonify({'error': '초안 생성에 실패했습니다.'}), 500
+        return jsonify({
+            'text': build_teacher_consult_draft(makeup_request),
+            'source': 'fallback',
+            'notice': 'AI 초안 생성에 실패해 기본 운영 초안을 불러왔습니다.',
+        })
 
     try:
         _log_llm_usage('makeup_consult_draft', usage)
@@ -3627,7 +3634,23 @@ def makeup_draft_message(request_id):
     except Exception:
         current_app.logger.exception('[admin.makeup_draft_message] 사용량 로그 저장 실패')
 
-    return jsonify({'text': text.strip()})
+    return jsonify({'text': text.strip(), 'source': 'ai'})
+
+
+@admin_bp.route('/makeup-requests/<request_id>/parent-reply-draft', methods=['POST'])
+@login_required
+@requires_permission_level(2)
+def makeup_parent_reply_draft(request_id):
+    """학부모에게 보낼 답장 초안을 생성한다.
+
+    자동 발송하지 않고 parentReplyBody에만 채운다. 운영자가 확인·수정 후
+    `parent-reply` 폼으로 직접 전송한다.
+    """
+    from app.models.makeup_request import MakeupClassRequest
+    from app.utils.makeup_workflow import build_parent_reply_draft
+
+    makeup_request = MakeupClassRequest.query.get_or_404(request_id)
+    return jsonify({'text': build_parent_reply_draft(makeup_request), 'source': 'template'})
 
 
 @admin_bp.route('/makeup-requests/<request_id>/extract-proposed-time', methods=['POST'])

@@ -120,6 +120,12 @@
                         <span class="line-clamp-2">{{ req.reason }}</span>
                     </div>
                     {% endif %}
+                    {% if req.parent_reschedule_reason %}
+                    <div class="flex items-start gap-2 pt-1 rounded bg-yellow-50 p-2">
+                        <span class="text-yellow-500 shrink-0">🔁</span>
+                        <span class="text-yellow-800 line-clamp-3">재조율 요청: {{ req.parent_reschedule_reason }}</span>
+                    </div>
+                    {% endif %}
                     {% if req.status == 'rejected' and req.admin_notes %}
                     <div class="flex items-start gap-2 pt-1">
                         <span class="text-gray-400 shrink-0">📝</span>
@@ -161,6 +167,11 @@
                        class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
                         강사 대화 확인하기
                     </a>
+                    {% elif qkey == 'reschedule_requested' %}
+                    <button onclick="showConsultModal('{{ req.request_id }}', '{{ req.student.name }}', '{{ req.requested_course.teacher.name if req.requested_course.teacher else '미배정' }}', '{{ req.requested_date.strftime('%Y-%m-%d') if req.requested_date else '' }}')"
+                            class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
+                        강사에게 다시 문의하기
+                    </button>
                     {% elif qkey == 'waiting_parent' %}
                     <button onclick="showParentReplyModal('{{ req.request_id }}', '{{ req.student.name }}')"
                             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg transition">
@@ -425,6 +436,15 @@
                         class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200">보강 확정</button>
             </div>
             <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="parentReplyBody" class="block text-sm font-medium text-gray-700">
+                        답장 내용 <span class="text-red-500">*</span>
+                    </label>
+                    <button type="button" onclick="draftParentReply()" id="parentDraftBtn"
+                            class="text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded-md transition border border-purple-200">
+                        ✨ 초안 작성
+                    </button>
+                </div>
                 <textarea id="parentReplyBody" name="body" rows="4" required
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="학부모에게 전달할 내용을 입력하세요."></textarea>
@@ -559,6 +579,7 @@ function closeRejectModal() {
 }
 
 let consultRequestId = null;
+let parentReplyRequestId = null;
 
 function showConsultModal(requestId, studentName, teacherName, requestedDate) {
     const modal = document.getElementById('consultModal');
@@ -601,6 +622,7 @@ async function draftConsultMessage() {
         const data = await res.json();
         if (data.text) {
             textarea.value = data.text;
+            if (data.notice) alert(data.notice);
         } else {
             alert(data.error || '초안 생성에 실패했습니다.');
         }
@@ -654,8 +676,10 @@ function renderParentHistory(timeline) {
 async function showParentReplyModal(requestId, studentName) {
     const modal = document.getElementById('parentReplyModal');
     const form = document.getElementById('parentReplyForm');
+    parentReplyRequestId = requestId;
     form.action = `/admin/makeup-requests/${requestId}/parent-reply`;
     document.getElementById('parentReplyStudentName').textContent = studentName;
+    document.getElementById('parentReplyBody').value = '';
     document.getElementById('parentReplyHistory').innerHTML = '<p class="text-xs text-gray-400">불러오는 중...</p>';
     modal.classList.remove('hidden');
 
@@ -674,6 +698,32 @@ async function showParentReplyModal(requestId, studentName) {
 
 function closeParentReplyModal() {
     document.getElementById('parentReplyModal').classList.add('hidden');
+    document.getElementById('parentReplyBody').value = '';
+    parentReplyRequestId = null;
+}
+
+async function draftParentReply() {
+    if (!parentReplyRequestId) return;
+    const btn = document.getElementById('parentDraftBtn');
+    const textarea = document.getElementById('parentReplyBody');
+    btn.disabled = true;
+    btn.textContent = '작성 중...';
+
+    try {
+        const res = await fetch(`/admin/makeup-requests/${parentReplyRequestId}/parent-reply-draft`, { method: 'POST' });
+        const data = await res.json();
+        if (data.text) {
+            textarea.value = data.text;
+            textarea.focus();
+        } else {
+            alert(data.error || '초안 생성에 실패했습니다.');
+        }
+    } catch (e) {
+        alert('초안 생성 요청에 실패했습니다.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ 초안 작성';
+    }
 }
 
 // ESC 키로 모달 닫기

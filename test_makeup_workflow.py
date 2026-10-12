@@ -15,6 +15,8 @@ get_parent_makeup_workflow_steps = makeup_workflow.get_parent_makeup_workflow_st
 get_admin_makeup_queue_key = makeup_workflow.get_admin_makeup_queue_key
 build_admin_makeup_queue_counts = makeup_workflow.build_admin_makeup_queue_counts
 filter_makeup_requests_by_queue = makeup_workflow.filter_makeup_requests_by_queue
+build_teacher_consult_draft = makeup_workflow.build_teacher_consult_draft
+build_parent_reply_draft = makeup_workflow.build_parent_reply_draft
 
 
 def req(**overrides):
@@ -26,6 +28,9 @@ def req(**overrides):
         'teacher_proposed_time': None,
         'parent_conversation_id': None,
         'parent_confirmed_at': None,
+        'parent_reschedule_requested_at': None,
+        'parent_reschedule_admin_acted_at': None,
+        'parent_reschedule_reason': None,
     }
     data.update(overrides)
     return SimpleNamespace(**data)
@@ -60,6 +65,32 @@ class MakeupWorkflowStateTest(unittest.TestCase):
         self.assertEqual(state.parent_label, '학부모 확인 필요')
         self.assertEqual(state.admin_action, '학부모 재안내')
         self.assertEqual(state.step_index, 3)
+
+    def test_parent_reschedule_request_needs_admin_recoordination(self):
+        state = get_makeup_workflow_state(req(
+            internal_conversation_id=12,
+            parent_conversation_id=34,
+            teacher_confirmed=True,
+            teacher_proposed_date='2026-10-15',
+            parent_reschedule_requested_at='2026-10-09 12:00:00',
+            parent_reschedule_reason='그날은 어렵고 금요일 오후가 가능합니다.',
+        ))
+
+        self.assertEqual(state.key, 'reschedule_requested')
+        self.assertEqual(state.parent_label, '다른 일정 요청됨')
+        self.assertEqual(state.admin_label, '재조율 필요')
+        self.assertEqual(state.admin_action, '강사에게 다시 문의')
+        self.assertEqual(get_admin_makeup_queue_key(req(parent_reschedule_requested_at='x')), 'reschedule_requested')
+
+    def test_reschedule_request_after_admin_action_waits_for_teacher_again(self):
+        state = get_makeup_workflow_state(req(
+            internal_conversation_id=12,
+            parent_conversation_id=34,
+            parent_reschedule_requested_at='2026-10-09 12:00:00',
+            parent_reschedule_admin_acted_at='2026-10-09 12:05:00',
+        ))
+
+        self.assertEqual(state.key, 'waiting_teacher')
 
     def test_teacher_confirmed_without_parent_request_is_ready_to_approve(self):
         state = get_makeup_workflow_state(req(
@@ -126,21 +157,54 @@ class MakeupWorkflowStateTest(unittest.TestCase):
             req(internal_conversation_id=1),
             req(teacher_confirmed=True),
             req(teacher_confirmed=True, teacher_proposed_date='2026-10-15', parent_conversation_id=2),
+            req(parent_reschedule_requested_at='2026-10-09 12:00:00'),
             req(status='approved'),
             req(status='rejected'),
         ]
 
         counts = build_admin_makeup_queue_counts(requests)
 
-        self.assertEqual(counts['all'], 6)
+        self.assertEqual(counts['all'], 7)
         self.assertEqual(counts['needs_teacher_consult'], 1)
         self.assertEqual(counts['waiting_teacher'], 1)
         self.assertEqual(counts['ready_to_approve'], 1)
         self.assertEqual(counts['waiting_parent'], 1)
+        self.assertEqual(counts['reschedule_requested'], 1)
         self.assertEqual(counts['done'], 1)
         self.assertEqual(counts['rejected'], 1)
         self.assertEqual(len(filter_makeup_requests_by_queue(requests, 'waiting_teacher')), 1)
-        self.assertEqual(len(filter_makeup_requests_by_queue(requests, '')), 6)
+        self.assertEqual(len(filter_makeup_requests_by_queue(requests, '')), 7)
+
+    def test_teacher_consult_draft_includes_reason_and_requested_date(self):
+        student = SimpleNamespace(name='김민준', grade='초5')
+        course = SimpleNamespace(course_name='독서논술 A', weekday=2, start_time=None, end_time=None)
+        draft = build_teacher_consult_draft(req(
+            student=student,
+            requested_course=course,
+            reason='학교 행사로 결석',
+            requested_date='2026-10-15',
+        ))
+
+        self.assertIn('김민준', draft)
+        self.assertIn('독서논술 A', draft)
+        self.assertIn('학교 행사로 결석', draft)
+        self.assertIn('2026-10-15', draft)
+        self.assertIn('가능한 보강 후보 일정', draft)
+
+    def test_parent_reply_draft_changes_by_queue_state(self):
+        waiting_teacher = build_parent_reply_draft(req(internal_conversation_id=1))
+        waiting_parent = build_parent_reply_draft(req(
+            teacher_confirmed=True,
+            teacher_proposed_date='2026-10-15',
+            teacher_proposed_time='15:30',
+            parent_conversation_id=1,
+        ))
+        approved = build_parent_reply_draft(req(status='approved'))
+
+        self.assertIn('담당 선생님께 확인 중', waiting_teacher)
+        self.assertIn('2026-10-15', waiting_parent)
+        self.assertIn('15:30', waiting_parent)
+        self.assertIn('확정', approved)
 
 
 if __name__ == '__main__':

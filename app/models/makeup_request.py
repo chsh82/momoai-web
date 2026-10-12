@@ -73,6 +73,13 @@ class MakeupClassRequest(db.Model):
     # 클릭 없이 자동으로 보강수업이 개설된다(finalize_makeup_request 재사용).
     parent_confirmed_at = db.Column(db.DateTime, nullable=True)
 
+    # 학부모가 제안 일정을 확정하지 않고 다른 일정을 요청한 경우.
+    # status는 기존 pending/approved/rejected를 유지하고, 이 필드 조합으로
+    # 관리자 작업 큐에서 `재조율 필요`를 파생한다.
+    parent_reschedule_requested_at = db.Column(db.DateTime, nullable=True)
+    parent_reschedule_reason = db.Column(db.Text, nullable=True)
+    parent_reschedule_admin_acted_at = db.Column(db.DateTime, nullable=True)
+
     # 메타 정보
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -65,6 +65,21 @@ def get_makeup_workflow_state(makeup_request):
     teacher_confirmed = bool(getattr(makeup_request, "teacher_confirmed", False))
     teacher_proposed = _truthy_attr(makeup_request, "teacher_proposed_date")
     internal_conversation_exists = _truthy_attr(makeup_request, "internal_conversation_id")
+    reschedule_requested_at = getattr(makeup_request, "parent_reschedule_requested_at", None)
+    reschedule_admin_acted_at = getattr(makeup_request, "parent_reschedule_admin_acted_at", None)
+    reschedule_pending = bool(reschedule_requested_at) and (
+        not reschedule_admin_acted_at or str(reschedule_admin_acted_at) < str(reschedule_requested_at)
+    )
+
+    if reschedule_pending:
+        return MakeupWorkflowState(
+            key="reschedule_requested",
+            parent_label="다른 일정 요청됨",
+            admin_label="재조율 필요",
+            admin_action="강사에게 다시 문의",
+            step_index=3,
+            tone="yellow",
+        )
 
     if teacher_proposed and parent_conversation_exists and not parent_confirmed:
         return MakeupWorkflowState(
@@ -131,6 +146,7 @@ ADMIN_QUEUE_LABELS = [
     ("all", "전체"),
     ("needs_teacher_consult", "강사 문의 필요"),
     ("waiting_teacher", "강사 회신 대기"),
+    ("reschedule_requested", "재조율 필요"),
     ("waiting_parent", "학부모 확인 대기"),
     ("ready_to_approve", "승인 가능"),
     ("done", "완료"),
@@ -166,6 +182,75 @@ def filter_makeup_requests_by_queue(makeup_requests, queue_key):
     return [item for item in makeup_requests if get_admin_makeup_queue_key(item) == queue_key]
 
 
+def _display_attr(obj, attr, default=""):
+    target = getattr(obj, attr, None)
+    if target is None:
+        return default
+    if hasattr(target, "strftime"):
+        return target.strftime("%Y-%m-%d")
+    return str(target)
+
+
+def _display_time(value):
+    if value is None:
+        return ""
+    if hasattr(value, "strftime"):
+        return value.strftime("%H:%M")
+    return str(value)
+
+
+def build_teacher_consult_draft(makeup_request):
+    """강사 문의 모달에 넣을 기본 초안 문구를 만든다.
+
+    자동 발송하지 않고 운영자가 확인·수정 후 전송하는 본문이다.
+    """
+    student = getattr(makeup_request, "student", None)
+    course = getattr(makeup_request, "requested_course", None)
+    student_name = getattr(student, "name", None) or getattr(student, "display_name", None) or "학생"
+    student_grade = getattr(student, "grade", "") or ""
+    course_name = getattr(course, "course_name", "수업") or "수업"
+    reason = getattr(makeup_request, "reason", None) or "사유 미기재"
+    requested_date = _display_attr(makeup_request, "requested_date", "특정 희망일 없음")
+
+    return (
+        f"{student_name}({student_grade}) 학생의 {course_name} 보강 신청 건입니다.\n"
+        f"신청 사유: {reason}\n"
+        f"학부모 희망일: {requested_date}\n"
+        f"{('재조율 요청: ' + getattr(makeup_request, 'parent_reschedule_reason', '') + chr(10)) if getattr(makeup_request, 'parent_reschedule_reason', None) else ''}\n"
+        "가능한 보강 후보 일정을 확인해서 회신 부탁드립니다. "
+        "가능하시면 날짜와 시간을 함께 알려주세요."
+    )
+
+
+def build_parent_reply_draft(makeup_request):
+    """학부모 답장 모달에 넣을 상태별 기본 초안 문구를 만든다."""
+    state = get_makeup_workflow_state(makeup_request)
+    proposed_date = _display_attr(makeup_request, "teacher_proposed_date", "")
+    proposed_time = _display_time(getattr(makeup_request, "teacher_proposed_time", None))
+    when = proposed_date + (f" {proposed_time}" if proposed_time else "")
+
+    if state.key == "received":
+        return "보강 신청이 접수되었습니다. 담당 선생님께 가능 일정을 확인한 뒤 후보 일정을 안내드리겠습니다."
+    if state.key == "waiting_teacher":
+        return "현재 담당 선생님께 확인 중입니다. 가능한 보강 후보 일정이 확인되는 대로 바로 안내드리겠습니다."
+    if state.key == "ready_to_approve":
+        if when:
+            return f"담당 선생님 확인 결과 {when}에 보강 진행이 가능합니다. 이 일정으로 확정해드릴까요?"
+        return "담당 선생님 확인이 완료되었습니다. 가능한 보강 후보 일정을 정리해 다시 안내드리겠습니다."
+    if state.key == "waiting_parent":
+        if when:
+            return f"안내드린 보강 후보 일정은 {when}입니다. 이 일정으로 진행 가능하실지 확인 부탁드립니다."
+        return "안내드린 보강 후보 일정으로 진행 가능하실지 확인 부탁드립니다."
+    if state.key == "reschedule_requested":
+        reason = getattr(makeup_request, "parent_reschedule_reason", None) or "학부모님이 다른 일정을 요청하셨습니다."
+        return f"재조율 요청 확인했습니다. 남겨주신 내용({reason})을 바탕으로 담당 선생님께 다시 확인한 뒤 후보 일정을 안내드리겠습니다."
+    if state.key == "approved":
+        return "보강 일정이 확정되었습니다. 앱의 수업 일정에서 다시 확인 부탁드립니다."
+    if state.key == "rejected":
+        return "이번 보강 신청은 진행이 어려운 것으로 확인되었습니다. 필요하시면 다른 후보 일정으로 다시 문의해주세요."
+    return "보강 신청 건 확인 후 다시 안내드리겠습니다."
+
+
 def get_parent_makeup_workflow_steps(makeup_request):
     """학부모 화면용 4단계 타임라인을 반환한다.
 
@@ -184,6 +269,7 @@ def get_parent_makeup_workflow_steps(makeup_request):
         "waiting_teacher": 1,
         "ready_to_approve": 2,
         "waiting_parent": 2,
+        "reschedule_requested": 2,
         "approved": 3,
         "rejected": 0,
     }
