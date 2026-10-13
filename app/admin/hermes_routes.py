@@ -549,7 +549,10 @@ def _validate_mark_absence(course, action):
     error_message가 채워진다. 아무것도 실행하지 않는다.
 
     plan_dict['branch']가 'past'면 Attendance 경로(session 포함), 'future'면
-    결석 예고(AbsenceNotice) 경로다."""
+    결석 예고(AbsenceNotice, 담당 강사에게 알림) 경로다. 오늘 날짜는 future로
+    취급한다 - 수업이 아직 안 끝났을 수 있어 그 자리에서 바로 출결을
+    확정(Attendance 직접 생성)하지 않고, 강사에게 "결석 예정" 알림만 보낸다.
+    실제 출결 체크는 항상 강사가 직접 한다(2026-10-13 사용자 확인)."""
     from app.utils.hermes_resolver import resolve_session_for_date
 
     date_str = action.get('date')
@@ -558,8 +561,9 @@ def _validate_mark_absence(course, action):
         suggestion = _suggest_absence_date(course)
         if suggestion:
             sug_date, sug_label = suggestion
+            verb = '예고를 등록' if sug_date >= date.today() else '결석 처리'
             question = (f'{course.course_name}는 이번주 {sug_label}({sug_date.strftime("%m/%d")})에 수업이 있는데, '
-                        f'그 수업 기준으로 결석 처리할까요? 다른 날짜면 아래에서 선택해주세요.')
+                        f'그 수업 기준으로 {verb}할까요? 다른 날짜면 아래에서 선택해주세요.')
             return None, question, {'type': 'date', 'suggested_date': sug_date.isoformat()}
         return None, '결석/지각 날짜를 알려주세요.', {'type': 'date'}
     if not status:
@@ -571,10 +575,10 @@ def _validate_mark_absence(course, action):
 
     reason = action.get('reason')
 
-    if target_date > date.today():
+    if target_date >= date.today():
         if status not in ('absent', 'late'):
             return None, ('인정결석(excused)은 출결 체크 시점에 교사가 판단하는 항목이라 '
-                          '미래 날짜로 미리 지정할 수 없습니다. 결석 또는 지각으로 다시 알려주세요.'), None
+                          '오늘/미래 날짜로 미리 지정할 수 없습니다. 결석 또는 지각으로 다시 알려주세요.'), None
         if not reason:
             return None, f'{target_date.strftime("%m/%d")} 결석/지각하는 사유를 알려주세요.', None
         return {'branch': 'future', 'target_date': target_date, 'status': status, 'reason': reason}, None, None

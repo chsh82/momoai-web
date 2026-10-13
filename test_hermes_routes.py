@@ -315,7 +315,10 @@ check("담당 수업에 등록되어 있지 않다는 범위 안내",
 
 login_as(admin_id)
 
-print("\n[5] mark_absence 정상 경로(오늘) - 출결 레코드 생성+결석 처리+알림")
+print("\n[5] mark_absence - 오늘 날짜는 출결 직접 체크 대신 결석 예고(강사 알림)")
+# 2026-10-13 사용자 확인: 오늘은 수업이 아직 안 끝났을 수 있어, 그 자리에서
+# 바로 Attendance를 만들어 출결을 확정하지 않는다 - 미래 날짜와 똑같이
+# AbsenceNotice로 담당 강사에게만 알리고, 실제 출결 체크는 강사가 한다.
 with app.app_context():
     student5 = make_student('_hermes_이정기', teacher_id)
     parent5 = make_user('_hermes_parent5', 'parent', 5)
@@ -332,25 +335,34 @@ with app.app_context():
         student5.student_id, parent5.user_id, course5.course_id, session5.session_id)
 
 hermes_agent.parse_hermes_command = fake_parse(
-    'mark_absence', student_name='_hermes_이정기', date=date.today().isoformat(), status='absent',
+    'mark_absence', student_name='_hermes_이정기', date=date.today().isoformat(),
+    status='absent', reason='몸살',
 )
-resp5 = client.post('/admin/hermes/message', json={'text': '_hermes_이정기 학생 오늘 결석 처리'})
+resp5 = client.post('/admin/hermes/message', json={'text': '_hermes_이정기 학생 오늘 결석 예정'})
 data5 = resp5.get_json()
 check(f"응답 status=pending_confirmation (실제: {data5.get('status')})", data5.get('status') == 'pending_confirmation')
+check("미리보기 문구에 '예고'와 '강사' 포함(출결 처리가 아니라 예고임을 알림)",
+      '예고' in (data5.get('reply_text') or '') and '강사' in (data5.get('reply_text') or ''))
 with app.app_context():
-    check("확인 전엔 Attendance 레코드가 없음",
+    from app.models.absence_notice import AbsenceNotice
+    check("확인 전엔 AbsenceNotice가 없음",
+          AbsenceNotice.query.filter_by(student_id=student5_id, course_id=course5_id).first() is None)
+    check("확인 전엔 당연히 Attendance도 없음",
           Attendance.query.filter_by(session_id=session5_id, student_id=student5_id).first() is None)
 
 confirm5 = confirm(data5['thread_id'])
 check(f"confirm 응답 status=success (실제: {confirm5.get('status')})", confirm5.get('status') == 'success')
 
 with app.app_context():
-    att5 = Attendance.query.filter_by(session_id=session5_id, student_id=student5_id).first()
-    check("Attendance 레코드가 새로 생성됨", att5 is not None)
-    check(f"status=absent로 반영됨 (실제: {att5.status if att5 else None})",
-          att5 is not None and att5.status == 'absent')
-    notif5 = Notification.query.filter_by(user_id=parent5_id, notification_type='attendance_absent').first()
-    check("학부모 알림 생성됨", notif5 is not None)
+    from app.models.absence_notice import AbsenceNotice
+    notice5 = AbsenceNotice.query.filter_by(student_id=student5_id, course_id=course5_id).first()
+    check("AbsenceNotice가 생성됨(오늘 날짜도 예고 경로)", notice5 is not None)
+    check(f"날짜가 오늘로 반영됨 (실제: {notice5.absence_date if notice5 else None})",
+          notice5 is not None and notice5.absence_date == date.today())
+    check("오늘 결석이어도 Attendance는 직접 생성되지 않음(출결은 강사 몫)",
+          Attendance.query.filter_by(session_id=session5_id, student_id=student5_id).first() is None)
+    teacher_notif5 = Notification.query.filter_by(user_id=teacher_id, notification_type='absence_notice').first()
+    check("담당 강사에게 결석예고 알림 발송됨", teacher_notif5 is not None)
 
 print("\n[6] mark_absence - 미래 날짜는 결석 예고(AbsenceNotice)로 처리")
 tomorrow = date.today() + timedelta(days=1)
@@ -362,16 +374,20 @@ resp6 = client.post('/admin/hermes/message', json={'text': '_hermes_이정기 �
 data6 = resp6.get_json()
 check(f"응답 status=pending_confirmation (실제: {data6.get('status')})", data6.get('status') == 'pending_confirmation')
 with app.app_context():
+    # student5/course5는 [5]번에서 이미 "오늘" 결석 예고를 하나 만들어놔서,
+    # 여기서는 "내일" 날짜(tomorrow)로 특정해서 그것과 구분한다.
     from app.models.absence_notice import AbsenceNotice
-    check("확인 전엔 AbsenceNotice가 없음",
-          AbsenceNotice.query.filter_by(student_id=student5_id, course_id=course5_id).first() is None)
+    check("확인 전엔 내일자 AbsenceNotice가 없음",
+          AbsenceNotice.query.filter_by(student_id=student5_id, course_id=course5_id,
+                                        absence_date=tomorrow).first() is None)
 
 confirm6 = confirm(data6['thread_id'])
 check(f"confirm 응답 status=success (실제: {confirm6.get('status')})", confirm6.get('status') == 'success')
 
 with app.app_context():
     from app.models.absence_notice import AbsenceNotice
-    notice = AbsenceNotice.query.filter_by(student_id=student5_id, course_id=course5_id).first()
+    notice = AbsenceNotice.query.filter_by(student_id=student5_id, course_id=course5_id,
+                                           absence_date=tomorrow).first()
     check("AbsenceNotice가 생성됨", notice is not None)
     if notice:
         check(f"notice_type=absent (실제: {notice.notice_type})", notice.notice_type == 'absent')
@@ -469,7 +485,7 @@ with app.app_context():
 makeup_date10 = date.today() + timedelta(days=10)
 hermes_agent.parse_hermes_command = fake_parse_multi(
     {'action_type': 'mark_absence', 'student_name': '_hermes_최선우',
-     'date': date.today().isoformat(), 'status': 'absent'},
+     'date': date.today().isoformat(), 'status': 'absent', 'reason': '감기'},
     {'action_type': 'schedule_makeup', 'student_name': '_hermes_최선우',
      'date': makeup_date10.isoformat(), 'time': '20:00'},
 )
@@ -479,8 +495,9 @@ check(f"응답 status=pending_confirmation (실제: {data10.get('status')})", da
 check(f"미리보기에 결석+보강 두 계획 모두 포함(줄바꿈 2개 이상): {(data10.get('reply_text') or '').count(chr(10))}건",
       (data10.get('reply_text') or '').count('\n') >= 2)
 with app.app_context():
-    check("확인 전엔 결석 처리가 안 됨",
-          Attendance.query.filter_by(session_id=session10_id, student_id=student10_id).first() is None)
+    from app.models.absence_notice import AbsenceNotice
+    check("확인 전엔 AbsenceNotice가 안 생김",
+          AbsenceNotice.query.filter_by(student_id=student10_id, course_id=course10_id).first() is None)
     check("확인 전엔 보강 Course도 안 생김",
           Course.query.filter(Course.course_name.like('%_hermes_최선우%'),
                               Course.course_id != course10_id).count() == 0)
@@ -489,12 +506,14 @@ confirm10 = confirm(data10['thread_id'])
 check(f"confirm 응답 status=success (실제: {confirm10.get('status')})", confirm10.get('status') == 'success')
 
 with app.app_context():
-    att10 = Attendance.query.filter_by(session_id=session10_id, student_id=student10_id).first()
-    # 결석 처리(액션1) 후 보강 일정 생성(액션2)이 enroll_student_to_course의
-    # _mark_recent_absent_as_makeup()을 거쳐 방금 그 결석을 소급으로
-    # absent_makeup으로 바꾼다 - 결석+보강 복합 명령의 의도된 상호작용.
-    check(f"결석 처리 실제 반영됨(보강 연결로 absent_makeup까지 전환, 실제: {att10.status if att10 else None})",
-          att10 is not None and att10.status in ('absent', 'absent_makeup'))
+    from app.models.absence_notice import AbsenceNotice
+    # 2026-10-13: 오늘 날짜도 결석 예고(AbsenceNotice) 경로로 바뀌어서, 바로
+    # 이어지는 보강 개설이 _mark_recent_absent_as_makeup()으로 소급 전환할
+    # Attendance 레코드 자체가 없다 - 출결은 여전히 강사 몫으로 남는다.
+    notice10 = AbsenceNotice.query.filter_by(student_id=student10_id, course_id=course10_id).first()
+    check("결석 예고(AbsenceNotice)가 실제 생성됨", notice10 is not None)
+    check("오늘 결석이어도 Attendance는 생성되지 않음(출결은 강사가 직접)",
+          Attendance.query.filter_by(session_id=session10_id, student_id=student10_id).first() is None)
     mc10 = Course.query.filter(Course.course_name.like('%_hermes_최선우%'), Course.course_id != course10_id).first()
     check("보강 Course도 실제 생성됨", mc10 is not None)
     if mc10:
@@ -504,12 +523,14 @@ with app.app_context():
 
 print("\n[11] 복합 명령 - 한 액션이 모호하면 둘 다 실행 안 함(전부 검증 후 전부 실행)")
 with app.app_context():
+    from app.models.absence_notice import AbsenceNotice
     before11_att = Attendance.query.filter_by(student_id=student10_id).count()
+    before11_notice = AbsenceNotice.query.filter_by(student_id=student10_id).count()
     before11_course = Course.query.filter(Course.course_name.like('%_hermes_최선우%')).count()
 
 hermes_agent.parse_hermes_command = fake_parse_multi(
     {'action_type': 'mark_absence', 'student_name': '_hermes_최선우',
-     'date': date.today().isoformat(), 'status': 'absent'},
+     'date': date.today().isoformat(), 'status': 'absent', 'reason': '감기'},
     {'action_type': 'schedule_makeup', 'student_name': '존재하지않는학생',
      'date': makeup_date10.isoformat()},
 )
@@ -519,15 +540,19 @@ check(f"응답 status=needs_clarification (실제: {data11.get('status')})",
       data11.get('status') == 'needs_clarification')
 with app.app_context():
     after11_att = Attendance.query.filter_by(student_id=student10_id).count()
+    after11_notice = AbsenceNotice.query.filter_by(student_id=student10_id).count()
     after11_course = Course.query.filter(Course.course_name.like('%_hermes_최선우%')).count()
     check(f"결석 처리가 실행되지 않음(Attendance 개수 불변: {before11_att} -> {after11_att})",
           before11_att == after11_att)
+    check(f"결석 예고도 생성되지 않음(AbsenceNotice 개수 불변: {before11_notice} -> {after11_notice})",
+          before11_notice == after11_notice)
     check(f"보강도 생성되지 않음(Course 개수 불변: {before11_course} -> {after11_course})",
           before11_course == after11_course)
 
 print("\n[12] 취소(cancel) - pending_confirmation을 취소하면 아무것도 실행 안 됨")
 hermes_agent.parse_hermes_command = fake_parse(
-    'mark_absence', student_name='_hermes_박서연', date=date.today().isoformat(), status='absent',
+    'mark_absence', student_name='_hermes_박서연', date=date.today().isoformat(),
+    status='absent', reason='개인 사정',
 )
 with app.app_context():
     student3_session = CourseSession(course_id=course3_id, session_number=1,
@@ -543,8 +568,11 @@ check(f"응답 status=pending_confirmation (실제: {data12.get('status')})", da
 cancel12 = cancel(data12['thread_id'])
 check(f"cancel 응답 status=cancelled (실제: {cancel12.get('status')})", cancel12.get('status') == 'cancelled')
 with app.app_context():
+    from app.models.absence_notice import AbsenceNotice
     check("취소했으니 Attendance가 생성되지 않음",
           Attendance.query.filter_by(session_id=student3_session_id, student_id=student3_id).first() is None)
+    check("취소했으니 AbsenceNotice도 생성되지 않음",
+          AbsenceNotice.query.filter_by(student_id=student3_id, course_id=course3_id).first() is None)
     log12 = HermesCommandLog.query.filter_by(thread_id=data12['thread_id']).first()
     check(f"로그 status=cancelled로 기록됨 (실제: {log12.status if log12 else None})",
           log12 is not None and log12.status == 'cancelled')
