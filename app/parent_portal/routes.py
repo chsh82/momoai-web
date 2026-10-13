@@ -837,22 +837,28 @@ def makeup_classes(student_id):
 @login_required
 @requires_role('parent', 'admin')
 def request_makeup_class(student_id, course_id):
-    """자녀의 보강수업 신청"""
+    """자녀의 보강수업 신청 - permission_level='full'인 학부모만 제출 가능
+    (조회 전용 보호자는 신청 같은 상태 변경 액션은 할 수 없다 -
+    app/refund_request/routes.py의 new()와 같은 패턴, 2026-10-13)."""
     from app.models.makeup_request import MakeupClassRequest
     from app.models import Course, User
     from app.models.notification import Notification
-    
+
     # 권한 확인
     relation = ParentStudent.query.filter_by(
         parent_id=current_user.user_id,
         student_id=student_id,
         is_active=True
     ).first()
-    
+
     if not relation and current_user.role != 'admin':
         flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('parent.index'))
-    
+
+    if relation is not None and relation.permission_level == 'view_only':
+        flash('조회 권한만 있어 보강 신청을 제출할 수 없습니다.', 'error')
+        return redirect(url_for('parent.makeup_classes', student_id=student_id))
+
     student = Student.query.get_or_404(student_id)
     course = Course.query.get_or_404(course_id)
     
