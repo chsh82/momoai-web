@@ -75,10 +75,22 @@ def index():
 @refund_request_bp.route('/new/<payment_id>', methods=['GET', 'POST'])
 @requires_role('parent', 'admin')
 def new(payment_id):
-    """환불 요청서 작성"""
+    """환불 요청서 작성 - permission_level='full'인 학부모만 제출 가능.
+
+    조회 전용(view_only) 보호자는 결제 내역을 볼 수는 있지만(조회는 막지
+    않음) 새 환불 요청처럼 상태를 바꾸는 액션은 할 수 없다 -
+    child_mileage_nickname/child_mileage_consent와 같은 기존 패턴을 그대로
+    따름(2026-10-13, 지금까지 이 라우트만 이 체크가 빠져 있었음)."""
     payment = Payment.query.get_or_404(payment_id)
     if not _can_access_payment(payment):
         abort(403)
+    if current_user.role == 'parent':
+        relation = ParentStudent.query.filter_by(
+            parent_id=current_user.user_id, student_id=payment.student_id, is_active=True
+        ).first()
+        if relation is not None and relation.permission_level == 'view_only':
+            flash('조회 권한만 있어 환불 요청을 제출할 수 없습니다.', 'error')
+            return redirect(url_for('parent.all_payments'))
     if payment.status != 'completed':
         flash('납부 완료된 결제 건만 환불을 요청할 수 있습니다.', 'error')
         return redirect(url_for('parent.all_payments'))
