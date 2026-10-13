@@ -24,10 +24,19 @@
 #hermesThreadList::-webkit-scrollbar, #hermesMessages::-webkit-scrollbar {
   display: none;              /* Chrome/Edge/Safari */
 }
+/* 모바일(슬랙 앱 패턴, 2026-10-13 요청): 좁은 화면에서는 스레드 목록과
+   대화를 동시에 욱여넣지 않고, 한 번에 한 화면만 보여준다 - 목록에서
+   스레드를 고르면 대화 화면으로 전환되고, 뒤로가기(‹)로 목록으로
+   돌아간다. 데스크톱(768px 이상)에서는 이 규칙이 전혀 적용되지 않아
+   기존처럼 둘 다 동시에 보인다. */
+@media (max-width: 767.98px){
+  #hermesLayout[data-view="list"] #hermesThreadPane{ display: none; }
+  #hermesLayout[data-view="thread"] #hermesListPane{ display: none; }
+}
 </style>
-<div class="flex h-[calc(100vh-180px)] min-h-[480px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+<div id="hermesLayout" data-view="list" class="flex h-[calc(100vh-180px)] min-h-[480px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
     <!-- 왼쪽: 스레드 목록(슬랙 채널 목록처럼) -->
-    <aside class="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50">
+    <aside id="hermesListPane" class="w-full md:w-72 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50">
         <div class="p-3 border-b border-gray-100">
             <button id="hermesNewThreadBtn"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg transition">
@@ -38,7 +47,11 @@
     </aside>
 
     <!-- 오른쪽: 선택한 스레드의 대화 -->
-    <section class="flex-1 flex flex-col min-w-0">
+    <section id="hermesThreadPane" class="flex-1 flex flex-col min-w-0">
+        <div class="md:hidden flex items-center gap-2 px-3 py-2 border-b border-gray-100 flex-shrink-0">
+            <button id="hermesBackBtn" class="text-gray-500 hover:text-gray-800 text-xl leading-none w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 transition" aria-label="목록으로">‹</button>
+            <span class="text-sm font-medium text-gray-600">모모 에이전트</span>
+        </div>
         <div id="hermesMessages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
         <div id="hermesFooter" class="border-t border-gray-100 p-3"></div>
     </section>
@@ -52,6 +65,13 @@
     const messagesEl = document.getElementById('hermesMessages');
     const footerEl = document.getElementById('hermesFooter');
     const newThreadBtn = document.getElementById('hermesNewThreadBtn');
+    const layoutEl = document.getElementById('hermesLayout');
+    const backBtn = document.getElementById('hermesBackBtn');
+
+    // 모바일 전용 화면 전환('list' | 'thread') - 데스크톱 폭에서는
+    // CSS 미디어쿼리가 적용 안 돼서 아무 시각적 효과가 없다.
+    function setMobileView(view){ layoutEl.dataset.view = view; }
+    backBtn.addEventListener('click', () => setMobileView('list'));
 
     const STATUS_TONE = {
         needs_clarification: 'bg-amber-100 text-amber-700',
@@ -173,6 +193,7 @@
 
     async function openThread(threadId){
         currentThreadId = threadId;
+        setMobileView('thread');
         messagesEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-10">불러오는 중...</p>';
         try{
             const res = await fetch(`/admin/hermes/thread/${threadId}`);
@@ -265,7 +286,7 @@
         });
     }
 
-    newThreadBtn.addEventListener('click', startNewThread);
+    newThreadBtn.addEventListener('click', () => { startNewThread(); setMobileView('thread'); });
 
     // 초기 로드: 스레드 목록 + 새 대화 상태로 시작
     loadThreadList();
