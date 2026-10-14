@@ -89,6 +89,9 @@ class Config:
     GEMINI_API_KEY = GEMINI_API_KEY
     APROLABS_API_KEY = APROLABS_API_KEY
     APROLABS_API_BASE = APROLABS_API_BASE
+    # 개발 완료 후 대표님 재개 지시 전까지 학부모/학생 공개 모모봇 위젯을 비공개로 둔다.
+    # 운영에서 되돌릴 때는 MOMOBOT_PARENT_WIDGET_ENABLED=true 로 명시한다.
+    MOMOBOT_PARENT_WIDGET_ENABLED = os.environ.get('MOMOBOT_PARENT_WIDGET_ENABLED', 'false').lower() == 'true'
     MOMOAI_DOC_PATH = str(MOMOAI_DOC_PATH)
     MOMOAI_STANDARD_DOC_PATH = str(MOMOAI_STANDARD_DOC_PATH)
     MOMOAI_ELEM_DOC_PATH = str(MOMOAI_ELEM_DOC_PATH)

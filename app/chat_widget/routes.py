@@ -35,6 +35,31 @@ _ALLOWED_ATTACHMENT_EXT = {'jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'h
 _IMAGE_EXT = {'jpg', 'jpeg', 'png', 'gif'}
 
 
+def _public_momobot_enabled():
+    return bool(current_app.config.get('MOMOBOT_PARENT_WIDGET_ENABLED'))
+
+
+def _momobot_disabled_response():
+    return jsonify({
+        'error': '모모봇은 개발 완료 전까지 임시 중단 중입니다. 필요한 상담/보강/환불 신청은 기존 메뉴를 이용해주세요.',
+        'disabled': True,
+    }), 503
+
+
+@chat_widget_bp.before_request
+def _block_parent_student_widget_while_private():
+    """대표님 재개 지시 전까지 학생/학부모 공개 모모봇 경로를 서버에서 차단한다.
+
+    관리자 통합 대화/개발 확인 경로는 유지하되, 이미 열린 학부모 화면에서
+    직접 /widget API를 호출해도 신규 사용·답장·자동 확정이 진행되지 않게 한다.
+    """
+    if _public_momobot_enabled():
+        return None
+    if current_user.is_authenticated and current_user.role in ('parent', 'student'):
+        return _momobot_disabled_response()
+    return None
+
+
 def _save_attachment(file):
     if not file or not file.filename:
         return None, None

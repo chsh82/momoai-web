@@ -2163,7 +2163,7 @@
     {% endif %}
     </script>
 
-    {% if current_user.is_authenticated and current_user.role == 'parent' %}
+    {% if current_user.is_authenticated and current_user.role == 'parent' and config.get('MOMOBOT_PARENT_WIDGET_ENABLED') %}
     {% include "partials/chat_widget.html" %}
     {% endif %}
 
