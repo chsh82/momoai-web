@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+MultipleResultsFound: Multiple rows were found when exactly one was required
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\d07d871e9fdb48ceba90900184836a2b_checkpoint.json FAILED

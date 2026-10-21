@@ -1,0 +1,17 @@
+{
+  "c2a_source8_match": true,
+  "c2a_source8": {
+    "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_current_scope.py": "a5ece489a942bdcbcae45a1ddab025072966aa373978ea42b00451e668129390",
+    "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_capture_commands.py": "f4ee144b4f737550fd9a3dbb96e19d0d974fcbd16b1b729d94672823f1929c29",
+    "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_capture_http.py": "02c0c992aa5147a12d407b290c04e1eca5999a2b09a8b9f897b0c51bc15806bd",
+    "C:\\Users\\aproa\\momoai_web\\tests\\student_hub\\test_p3_current_scope.py": "9bc12448e00d6a8cb53dcc2ae74c346d26073bcd689f949bee60a679179cccad",
+    "C:\\Users\\aproa\\momoai_web\\tests\\student_hub\\test_p3_capture_http.py": "978bdcb77a234cbaff892e097790bd6a3d0069a075cb15293e0ac5bdc4cb6d54",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\c2_guard_run.py": "39ba3e21fdd70e77d05812824c59b8d3ab7018d67becd75d2090e8135f3a5480",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\c2_session_harness.py": "26e874d0fb0743b6d5d304e772ddb899bffffd2e22c4cc30e542ef3178e4105e",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\c2_cli_cases.py": "eb86a773b2010ef6c03f0084af5a80e1d056c9e61a04bddb5afb08829cdf675f"
+  },
+  "source6_match": true,
+  "parent69_70_match": true,
+  "production_DB_or_retained_owner_reopen": false,
+  "git_mutations": false
+}

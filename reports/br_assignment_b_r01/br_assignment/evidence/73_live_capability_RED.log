@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+AssertionError: F7 live parent registry/pipe child is not implemented
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\31b97890ff4846e4a1abbc4970eb8832_checkpoint.json FAILED

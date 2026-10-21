@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+AssertionError: F7 frozen handed-off owner reopened a writer
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\5ee9b976dd204efa8337ab3443c6afe9_checkpoint.json FAILED

@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+AssertionError: actual Windows junction probe is not implemented
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\f9dbfb08404a4019b810e38075e0c51d_checkpoint.json FAILED

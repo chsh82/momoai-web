@@ -1,0 +1,223 @@
+{
+  "status": "PROPOSED_NOT_EXECUTION_APPROVAL",
+  "models": {
+    "app/models/assignment.py": {
+      "sha256": "61a56d557fa93c0727795bde9d6759aead3092b1c6258553ce1a43200e3fe19c",
+      "classes": [
+        {
+          "name": "Assignment",
+          "line": 8,
+          "end_line": 95,
+          "table": "assignments"
+        },
+        {
+          "name": "AssignmentSubmission",
+          "line": 98,
+          "end_line": 193,
+          "table": "assignment_submissions"
+        }
+      ]
+    },
+    "app/models/student.py": {
+      "sha256": "eb2a025d75368291071ab1e6646258c8bdd8de16d00d30b8fcf425e54d80e784",
+      "classes": [
+        {
+          "name": "Student",
+          "line": 7,
+          "end_line": 126,
+          "table": "students"
+        }
+      ]
+    },
+    "app/models/user.py": {
+      "sha256": "b5b311356ebb26f2d31a7d1bc46c1c50875c2d5ce76f4081efc2110c821239c0",
+      "classes": [
+        {
+          "name": "User",
+          "line": 9,
+          "end_line": 171,
+          "table": "users"
+        }
+      ]
+    },
+    "app/models/course.py": {
+      "sha256": "c6dcf6453830341c2bd578f6710f4f152c33d2ace5e8cfd8be639ee7316b04f0",
+      "classes": [
+        {
+          "name": "Course",
+          "line": 8,
+          "end_line": 100,
+          "table": "courses"
+        },
+        {
+          "name": "CourseEnrollment",
+          "line": 103,
+          "end_line": 168,
+          "table": "course_enrollments"
+        },
+        {
+          "name": "CourseSession",
+          "line": 171,
+          "end_line": 230,
+          "table": "course_sessions"
+        }
+      ]
+    },
+    "app/models/attendance.py": {
+      "sha256": "fe6a1c50b6b422a104c6ee1bfc2c77911c8ad20bcfded123d804b9ece31a1f05",
+      "classes": [
+        {
+          "name": "Attendance",
+          "line": 8,
+          "end_line": 71,
+          "table": "attendance"
+        }
+      ]
+    },
+    "app/models/essay.py": {
+      "sha256": "9c206af262d2236560397d3c1bf3d2268611a6abb019f346b747313601baab7d",
+      "classes": [
+        {
+          "name": "Essay",
+          "line": 17,
+          "end_line": 100,
+          "table": "essays"
+        },
+        {
+          "name": "EssayVersion",
+          "line": 103,
+          "end_line": 130,
+          "table": "essay_versions"
+        },
+        {
+          "name": "EssayResult",
+          "line": 133,
+          "end_line": 161,
+          "table": "essay_results"
+        },
+        {
+          "name": "CorrectionAttachment",
+          "line": 164,
+          "end_line": 191,
+          "table": "correction_attachments"
+        },
+        {
+          "name": "EssayGuideAttachment",
+          "line": 194,
+          "end_line": 226,
+          "table": "essay_guide_attachments"
+        }
+      ]
+    },
+    "app/models/essay_score.py": {
+      "sha256": "ae91916f50208a4428bebc033291d27690020e6845a759718083a141387f1f0f",
+      "classes": [
+        {
+          "name": "EssayScore",
+          "line": 7,
+          "end_line": 29,
+          "table": "essay_scores"
+        },
+        {
+          "name": "EssayNote",
+          "line": 32,
+          "end_line": 47,
+          "table": "essay_notes"
+        }
+      ]
+    },
+    "app/models/notification.py": {
+      "sha256": "9e0f1d935b9e00722bb551f45c21f2c064edebe9f57982a9e0906ed5b0a2e7ef",
+      "classes": [
+        {
+          "name": "Notification",
+          "line": 7,
+          "end_line": 150,
+          "table": "notifications"
+        }
+      ]
+    },
+    "app/models/payment.py": {
+      "sha256": "f9c7b39a88e3d5d2c203f15a838642ab0461eea12e429c6315df4557e811def1",
+      "classes": [
+        {
+          "name": "Payment",
+          "line": 8,
+          "end_line": 123,
+          "table": "payments"
+        }
+      ]
+    },
+    "app/models/payment_period.py": {
+      "sha256": "15d8852cb8e51904e30146d664ce4852f50e5c34def2dd0470a4301938a22863",
+      "classes": [
+        {
+          "name": "PaymentPeriod",
+          "line": 8,
+          "end_line": 135,
+          "table": "payment_periods"
+        },
+        {
+          "name": "HolidayWeek",
+          "line": 138,
+          "end_line": 168,
+          "table": "holiday_weeks"
+        }
+      ]
+    }
+  },
+  "actual_tables": [
+    "assignment_submissions",
+    "assignments",
+    "attendance",
+    "correction_attachments",
+    "course_enrollments",
+    "course_sessions",
+    "courses",
+    "essay_guide_attachments",
+    "essay_notes",
+    "essay_results",
+    "essay_scores",
+    "essay_versions",
+    "essays",
+    "holiday_weeks",
+    "notifications",
+    "payment_periods",
+    "payments",
+    "students",
+    "users"
+  ],
+  "actual_table_count": 19,
+  "new_tables": [
+    "br_assignment_revisions",
+    "br_assignment_heads",
+    "br_assignment_receipts",
+    "br_assignment_outbox"
+  ],
+  "total_proposed_tables": 23,
+  "create_only_repo": [
+    "app/student_portal/assignment_p3_adapter.py",
+    "app/services/p3_assignment_store.py",
+    "app/services/p3_assignment_schema.py"
+  ],
+  "modify_repo": {
+    "app/student_portal/routes.py": "bb416f4e383d856b0afbf6551f61ba42656695666107f3a3a20bdd5057c6e70b",
+    "templates/student/assignment_detail.html": "7899f64c120128f754196c570cb44821752714c1e5a7ce0daa317deb2e36d072"
+  },
+  "create_only_external": [
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\run_br_assignment.py",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\isolation_kernel.py",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\source_loader.py",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\test_assignment_real_route.py",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\readback.py"
+  ],
+  "create_only_conflicts": [],
+  "preflight_scope": "path absence only; ancestor reparse and owner identity must be verified before execution",
+  "head": "edbe273e9c3c36c6b496ad3dabd996142c43d062",
+  "status_unchanged": true,
+  "previous_hash_checks": {
+    "c2_source8_hashes": true,
+    "observed_source_hashes": true,
+    "previous_evidence_hashes": true
+  }
+}

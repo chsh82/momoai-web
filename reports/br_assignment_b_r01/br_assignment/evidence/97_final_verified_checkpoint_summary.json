@@ -1,0 +1,179 @@
+{
+  "status": "B_R01_PARTIAL_NOT_FULL_ACCEPTANCE",
+  "checkpoint": "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\evidence\\d33c55cd19214d4ea7fb8b00c1e37e20_checkpoint.json",
+  "final_frozen_log": "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\evidence\\95_final_frozen_regression.log",
+  "execution_exit": 0,
+  "top_level_scoped_tests": 39,
+  "new_owner_count": 38,
+  "measured_dbapi_connections": 386,
+  "unexpected_denials": [],
+  "source6_frozen_unchanged": true,
+  "parent69_70_preserved": true,
+  "negative_case_counts": {
+    "alternate_unique_matrix": 18,
+    "revision_lineage_matrix": 9,
+    "head_negative_matrix": 15,
+    "independent_fk": 5,
+    "receipt_outbox_fk": 7,
+    "unmasked_restrict": 1,
+    "revision_notnull_check": 25,
+    "receipt_outbox_notnull_check": 30
+  },
+  "negative_case_total": 110,
+  "setup_reference_layers": {
+    "setup_reference_conflict": 4,
+    "not authorized": 12
+  },
+  "independent_trigger_sql": {
+    "count": 14,
+    "test_owned_conditions": true,
+    "sqlite_and_implementation_equal": true
+  },
+  "junction_probe": {
+    "created_reparse_point": true,
+    "ancestor_denied": true,
+    "cleaned": true,
+    "mechanism": "_winapi.CreateJunction actual Windows reparse point",
+    "owner": "C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\davinci\\cache\\scratch\\br_assignment_6079717254fbdc58c450eadb0f879e2d"
+  },
+  "final_live_child": {
+    "status": "READBACK_PASS",
+    "scope": "B-R01_PARTIAL",
+    "issuing_run_id": "d33c55cd19214d4ea7fb8b00c1e37e20",
+    "table_count": 23,
+    "schema_and_all_rows_equal": true,
+    "foreign_key_check": [],
+    "integrity_check": [
+      [
+        "ok"
+      ]
+    ],
+    "database_sha256_unchanged": true,
+    "unexpected_denials": [],
+    "runtime_file_count": 703,
+    "library_file_count": 982,
+    "read_only_controls": [
+      {
+        "case": "ddl",
+        "denied": true
+      },
+      {
+        "case": "dml",
+        "denied": true
+      },
+      {
+        "case": "pragma_write",
+        "denied": true
+      },
+      {
+        "case": "attach",
+        "denied": true
+      },
+      {
+        "case": "other_database",
+        "denied": true,
+        "audit_event": "sqlite3.connect"
+      },
+      {
+        "case": "file_write",
+        "denied": true,
+        "audit_event": "open"
+      },
+      {
+        "case": "other_process",
+        "denied": true,
+        "audit_event": "subprocess.Popen"
+      }
+    ],
+    "schema_sha256": "e4fb0d48ab64aa0a552365b0fc7bc4bfa5c871116e8b58c1599797a9a6e84a30",
+    "protocol": "parent-registry-direct-stdin-challenge-v1",
+    "replay_denied": true,
+    "writers_closed": true,
+    "negative_controls": [
+      {
+        "case": "replay_challenge",
+        "rejected": true,
+        "expected_failure": "live parent/child challenge mismatch or replay"
+      },
+      {
+        "case": "source_hash",
+        "rejected": true,
+        "expected_failure": "frozen source hash drift"
+      },
+      {
+        "case": "schema_hash",
+        "rejected": true,
+        "expected_failure": "schema digest mismatch"
+      },
+      {
+        "case": "file_identity",
+        "rejected": true,
+        "expected_failure": "handoff sentinel/file identity lost"
+      },
+      {
+        "case": "database_hash",
+        "rejected": true,
+        "expected_failure": "database bytes changed since issuance"
+      }
+    ]
+  },
+  "final_live_child_owner": "C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\davinci\\cache\\scratch\\br_assignment_95925a993c3487b8cb0190e56d15333e",
+  "raw23_rows": {
+    "assignment_submissions": 2,
+    "assignments": 2,
+    "attendance": 0,
+    "br_assignment_heads": 1,
+    "br_assignment_outbox": 1,
+    "br_assignment_receipts": 1,
+    "br_assignment_revisions": 2,
+    "correction_attachments": 0,
+    "course_enrollments": 1,
+    "course_sessions": 1,
+    "courses": 1,
+    "essay_guide_attachments": 0,
+    "essay_notes": 0,
+    "essay_results": 0,
+    "essay_scores": 0,
+    "essay_versions": 0,
+    "essays": 0,
+    "holiday_weeks": 0,
+    "notifications": 2,
+    "payment_periods": 0,
+    "payments": 0,
+    "students": 1,
+    "users": 2
+  },
+  "remaining_criteria": [
+    "setup-reference trigger proof remains layered: 12 CASCADE authorizer refusals, not unmasked trigger proof",
+    "complete unmasked per-edge FK/RESTRICT matrix: head/self-parent FK and immutable-sidecar RESTRICT are trigger-masked; independent FK12 and notification RESTRICT1 proven",
+    "three frozen execution orders and later B-R02 through B-R10 not implemented/exercised",
+    "independent review and global closeout not performed"
+  ],
+  "historical_deviation": "--checkpoint accepted untrusted external JSON and reopened retained owner: old evidence preserved, NOT F7 compliant",
+  "tdd_accounting": "New runtime protocol/junction/fixed deletion profile/freeze/fixture behaviors have actual RED->GREEN logs; added matrices/SQL spec first-pass results are regression evidence only, not retrospective RED",
+  "sources": {
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\isolation_kernel.py": "f1fb94bd50b4a20da08583edc1832fe17eb97ed201c3fccaf6fd7c7b9cf4fda6",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\readback.py": "e00bc6f0cf837a14a1c39f0949ac81b54c87fa38e881d7cb0e1b74959ce04ac1",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\run_br_assignment.py": "2b9da5231db93937c9b38ce6766c1d5d0bd16d807c3a8b48361f9964488bb329",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\source_loader.py": "b15687f3534e43c4f57bacb33201c29db7a08c2618d959e830eb83ab7ab56808",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\test_assignment_real_route.py": "dd73449413c0706a5570105c7452408d13eaa109b83e54701cfd401e4db5f0a6",
+    "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_assignment_schema.py": "90f93f37412b68fe6eb8f605c019c3024dadfb0f5ff3f7069e14b92723dbdf02"
+  },
+  "preservation": {
+    "c2a_source8_match": true,
+    "c2a_source8": {
+      "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_current_scope.py": "a5ece489a942bdcbcae45a1ddab025072966aa373978ea42b00451e668129390",
+      "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_capture_commands.py": "f4ee144b4f737550fd9a3dbb96e19d0d974fcbd16b1b729d94672823f1929c29",
+      "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_capture_http.py": "02c0c992aa5147a12d407b290c04e1eca5999a2b09a8b9f897b0c51bc15806bd",
+      "C:\\Users\\aproa\\momoai_web\\tests\\student_hub\\test_p3_current_scope.py": "9bc12448e00d6a8cb53dcc2ae74c346d26073bcd689f949bee60a679179cccad",
+      "C:\\Users\\aproa\\momoai_web\\tests\\student_hub\\test_p3_capture_http.py": "978bdcb77a234cbaff892e097790bd6a3d0069a075cb15293e0ac5bdc4cb6d54",
+      "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\c2_guard_run.py": "39ba3e21fdd70e77d05812824c59b8d3ab7018d67becd75d2090e8135f3a5480",
+      "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\c2_session_harness.py": "26e874d0fb0743b6d5d304e772ddb899bffffd2e22c4cc30e542ef3178e4105e",
+      "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\c2_cli_cases.py": "eb86a773b2010ef6c03f0084af5a80e1d056c9e61a04bddb5afb08829cdf675f"
+    },
+    "source6_match": true,
+    "parent69_70_match": true,
+    "production_DB_or_retained_owner_reopen": false,
+    "git_mutations": false
+  }
+}

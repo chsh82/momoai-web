@@ -1,0 +1,125 @@
+{
+  "status": "B_R01_PARTIAL_NOT_FULL_ACCEPTANCE",
+  "checkpoint": "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\evidence\\835345a504574c9f85e362e4ce2b4bd7_checkpoint.json",
+  "combined_log": "C:/Users/aproa/Documents/Agent-Work/artifacts/p3-momoai6-intake-20261017/phase02b2/br_assignment/evidence/66_combined_frozen_current.log",
+  "combined_execution_exit": 0,
+  "top_level_scoped_tests": 22,
+  "foundation_tests": 5,
+  "foundation_execution_exit": 0,
+  "foundation_log": "C:/Users/aproa/Documents/Agent-Work/artifacts/p3-momoai6-intake-20261017/phase02b2/br_assignment/evidence/67_foundation_frozen_current.log",
+  "measured_dbapi_connections": 145,
+  "new_issued_owners": 21,
+  "runtime_file_count": 703,
+  "library_file_count": 982,
+  "unexpected_denials": [],
+  "independent_readback_log": "C:/Users/aproa/Documents/Agent-Work/artifacts/p3-momoai6-intake-20261017/phase02b2/br_assignment/evidence/68_independent_frozen_readback.log",
+  "independent_readback_execution_exit": 0,
+  "independent_readback": {
+    "status": "READBACK_PASS",
+    "scope": "B-R01_PARTIAL",
+    "issuing_run_id": "835345a504574c9f85e362e4ce2b4bd7",
+    "table_count": 23,
+    "schema_and_all_rows_equal": true,
+    "foreign_key_check": [],
+    "integrity_check": [
+      [
+        "ok"
+      ]
+    ],
+    "database_sha256_unchanged": true,
+    "unexpected_denials": [],
+    "runtime_file_count": 703,
+    "library_file_count": 982
+  },
+  "independent_snapshot_matches_all_checkpoint_rows_schema": true,
+  "row_counts": {
+    "assignment_submissions": 2,
+    "assignments": 2,
+    "attendance": 0,
+    "br_assignment_heads": 1,
+    "br_assignment_outbox": 1,
+    "br_assignment_receipts": 1,
+    "br_assignment_revisions": 2,
+    "correction_attachments": 0,
+    "course_enrollments": 1,
+    "course_sessions": 1,
+    "courses": 1,
+    "essay_guide_attachments": 0,
+    "essay_notes": 0,
+    "essay_results": 0,
+    "essay_scores": 0,
+    "essay_versions": 0,
+    "essays": 0,
+    "holiday_weeks": 0,
+    "notifications": 1,
+    "payment_periods": 0,
+    "payments": 0,
+    "students": 1,
+    "users": 2
+  },
+  "setup_replace_deny_layers": {
+    "setup_reference_conflict": 4,
+    "not authorized": 12
+  },
+  "existing_row_replace_upsert_probe_count": 12,
+  "sentinel_faults": [
+    {
+      "point": "preconnect",
+      "denied": true,
+      "rollback_while_lost": true,
+      "complete23_unchanged": true,
+      "owner": "C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\davinci\\cache\\scratch\\br_assignment_a349ac73ce419a4fb1ca203cc8805c44"
+    },
+    {
+      "point": "presql",
+      "denied": true,
+      "rollback_while_lost": true,
+      "complete23_unchanged": true,
+      "owner": "C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\davinci\\cache\\scratch\\br_assignment_9fb69d5c52edff459c1ca519bfe1dd81"
+    },
+    {
+      "point": "precommit",
+      "denied": true,
+      "rollback_while_lost": true,
+      "complete23_unchanged": true,
+      "owner": "C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\davinci\\cache\\scratch\\br_assignment_7dbe88518bdb5e3fb69b8368f8ac8928"
+    }
+  ],
+  "expected_policy_only_fd_negative": [
+    {
+      "event": "open",
+      "path": "123456789",
+      "reason": "untracked file descriptor"
+    }
+  ],
+  "sources": {
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\isolation_kernel.py": "3637b533e4680f70bd3e8dd82e24f56963c9597e1a59a2161791fd711b1e5a7e",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\readback.py": "edebe73c57a15561a12b2ebc2246a737990df08ed7b8f2c3b09ced5511cf98f2",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\run_br_assignment.py": "fcb112347f2c7bd8fc104e1baa0b4be78eef6d89b3946a080242bdd685b16cc5",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\source_loader.py": "b15687f3534e43c4f57bacb33201c29db7a08c2618d959e830eb83ab7ab56808",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\test_assignment_real_route.py": "a5e8bf96035e0c2800bdbb97ebef4df3d16d8c0ec61acbc8f61efb01f9407a5f",
+    "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_assignment_schema.py": "90f93f37412b68fe6eb8f605c019c3024dadfb0f5ff3f7069e14b92723dbdf02"
+  },
+  "not_accepted": [
+    "complete alternate-unique REPLACE/UPSERT matrix",
+    "complete raw lineage/head negative matrix",
+    "unmasked independent FK/RESTRICT probes",
+    "actual junction/reparse fault probe",
+    "independent exact trigger SQL specification comparison",
+    "B-R02 through B-R10"
+  ],
+  "boundary_note": "Actual CASCADE metadata preauthorizes DELETE (first diagnostic: assignment_submissions) for some setup REPLACE statements before BEFORE INSERT executes. Kept INSERT-only policy; accepts layered denial+complete snapshot equality, NOT an unmasked setup trigger proof.",
+  "history_note": "25_exact23_GREEN.log and40_raw23_GREEN.log are FAILED attempts despite filenames; 49/50 setup diagnostic failures preserved. 51 passed layered rejection only; no capability widening.",
+  "implementation_paths": {
+    "factory": "new_owner(boundary) -> owner.initialize(actual_metadata, sidecar_metadata); NullPool engine; fixed synthetic fixtures only",
+    "raw_constraint_profile": "owner._constraint_connection(): harness-only sidecar UPDATE/DELETE profile, not application authorization",
+    "readback_cli": "python -B readback.py --checkpoint <exact issued checkpoint path>; no caller DB/URI input"
+  },
+  "scope_exclusions": [
+    "normal app/bootstrap/config",
+    "operational data/DB",
+    "network/provider/push/thread/server/browser",
+    "Git mutation/commit/push",
+    "B-R02-B-R10"
+  ]
+}

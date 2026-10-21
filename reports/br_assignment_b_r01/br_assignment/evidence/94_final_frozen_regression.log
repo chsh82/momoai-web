@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\run_br_assignment.py", line 113, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\run_br_assignment.py", line 22, in main
+    inventory = kernel['preflight']()
+  File "C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\isolation_kernel.py", line 246, in preflight
+    raise PermissionError('Required synthetic runtime environment absent')
+PermissionError: Required synthetic runtime environment absent

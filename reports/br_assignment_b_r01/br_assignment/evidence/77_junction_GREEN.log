@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+NameError: name 'ACCEPTANCE' is not defined
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\828c74a4c756431d8ccdf1bf90d5bde0_checkpoint.json FAILED

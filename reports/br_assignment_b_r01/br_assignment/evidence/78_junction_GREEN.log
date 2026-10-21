@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+PASS test_actual_windows_junction_ancestor_is_rejected
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\6f0013f354454427b5a5ac6a91329a48_checkpoint.json MAPPER_PASS_NOT_SCHEMA_ACCEPTED

@@ -1,0 +1,103 @@
+{
+  "status": "PROPOSED_SOURCE_BOUNDARY_NOT_EXECUTED",
+  "sources": {
+    "app/student_portal/routes.py": {
+      "file_sha256": "bb416f4e383d856b0afbf6551f61ba42656695666107f3a3a20bdd5057c6e70b",
+      "slices": [
+        {
+          "symbol": "assignment_detail",
+          "start": 926,
+          "end": 959,
+          "source_sha256": "a3e71d404fc7935aaea06733fe6d34317ee56bf3f82510fce3ebbfa3ce0f9978",
+          "decorators": [
+            "student_bp.route('/assignments/<assignment_id>')",
+            "login_required",
+            "requires_role('student', 'admin')"
+          ]
+        },
+        {
+          "symbol": "submit_assignment",
+          "start": 962,
+          "end": 1036,
+          "source_sha256": "27e244e0dbdca2134a0d8be24e649aa0531640d06525de12847b6dac3a0c9baa",
+          "decorators": [
+            "student_bp.route('/assignments/<assignment_id>/submit', methods=['POST'])",
+            "login_required",
+            "requires_role('student', 'admin')"
+          ]
+        }
+      ]
+    },
+    "app/utils/decorators.py": {
+      "file_sha256": "99980f90a39d8d9cb000d26a4e683463288c512603d1d371a4950715c11e4dd3",
+      "slices": [
+        {
+          "symbol": "requires_role",
+          "start": 8,
+          "end": 34,
+          "source_sha256": "f7c0ea147592425a0553f24996414a7e1a1c1c06337083fc9b84c708e3fd074f",
+          "decorators": []
+        }
+      ]
+    },
+    "app/student_portal/__init__.py": {
+      "file_sha256": "5cb240ca354a6a8b5e2c1eb009f66ce2865d8f15118d8e8ee89ca5eee4f89d7a",
+      "slices": [
+        {
+          "symbol": "check_student_status",
+          "start": 9,
+          "end": 35,
+          "source_sha256": "31f253751ce49b5a328e2562ca0fbe477e6ba6cafbf04a9490b9a5e8489bffe2",
+          "decorators": [
+            "student_bp.before_request"
+          ]
+        }
+      ]
+    },
+    "app/utils/file_utils.py": {
+      "file_sha256": "ed0cf1de1efb70333e395a155cf2758bd3e9310765b9de92f7edd17606388052",
+      "slices": [
+        {
+          "symbol": "safe_original_filename",
+          "start": 5,
+          "end": 22,
+          "source_sha256": "3c3a5aeaa68e8a4d00e9c631cd6314a39dbb77b19c368413341b7c9f45ea4b90",
+          "decorators": []
+        }
+      ]
+    },
+    "app/__init__.py": {
+      "file_sha256": "42aec579cef96775b30362d100779a33f7b01d996c961c36d807f9201b7cfcfb",
+      "slices": [
+        {
+          "symbol": "to_kst_filter",
+          "start": 140,
+          "end": 151,
+          "source_sha256": "7849680bed14de90a60d264926512d0743eb05809fadaf6e8f13a25ff02bec80",
+          "decorators": [
+            "app.template_filter('kst')"
+          ]
+        },
+        {
+          "symbol": "static_versioned",
+          "start": 161,
+          "end": 169,
+          "source_sha256": "01022bdfc719697d21dcbdad0c8d42a0f4deee77394607934c170e5e49c3b00c",
+          "decorators": [
+            "app.template_global('static_v')"
+          ]
+        }
+      ]
+    },
+    "templates/base.html": {
+      "file_sha256": "b4b07ccd79dd8999941fb95a6747739530b7d86cb6f72e7fb63bfa81834db270",
+      "mode": "whole template read only except approved detail change"
+    },
+    "templates/student/assignment_detail.html": {
+      "file_sha256": "7899f64c120128f754196c570cb44821752714c1e5a7ce0daa317deb2e36d072",
+      "mode": "whole template read only except approved detail change"
+    }
+  },
+  "guard": "No normal initializer fallback; source hashes bind original baseline; route/detail final hashes must be frozen after approved edits",
+  "policy": "restricted per-slice globals and import resolver specified in revision2 addendum"
+}

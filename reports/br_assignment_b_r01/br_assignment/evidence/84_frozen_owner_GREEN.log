@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+PASS test_handed_off_owner_cannot_reopen_writer
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\4fea0de9964c4e1996aa2fcfbdf44d65_checkpoint.json B_R01_PARTIAL

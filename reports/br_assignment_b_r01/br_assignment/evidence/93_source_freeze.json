@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_FROZEN_BEFORE_FINAL_RUN",
+  "sources": {
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\run_br_assignment.py": "2b9da5231db93937c9b38ce6766c1d5d0bd16d807c3a8b48361f9964488bb329",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\isolation_kernel.py": "f1fb94bd50b4a20da08583edc1832fe17eb97ed201c3fccaf6fd7c7b9cf4fda6",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\source_loader.py": "b15687f3534e43c4f57bacb33201c29db7a08c2618d959e830eb83ab7ab56808",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\test_assignment_real_route.py": "dd73449413c0706a5570105c7452408d13eaa109b83e54701cfd401e4db5f0a6",
+    "C:\\Users\\aproa\\Documents\\Agent-Work\\artifacts\\p3-momoai6-intake-20261017\\phase02b2\\br_assignment\\readback.py": "e00bc6f0cf837a14a1c39f0949ac81b54c87fa38e881d7cb0e1b74959ce04ac1",
+    "C:\\Users\\aproa\\momoai_web\\app\\services\\p3_assignment_schema.py": "90f93f37412b68fe6eb8f605c019c3024dadfb0f5ff3f7069e14b92723dbdf02"
+  },
+  "preserved_parent_evidence": {
+    "69_parent_verification_summary.json": "030f40068ead030284e9d6963453278714e10b182957fa38ecc83dfd01563b08",
+    "70_parent_combined.log": "4d43b6b323b1c20789ee2badcdb1fcb1cd5dee3e4ef46b17b259c58278fe979b"
+  }
+}

@@ -1,0 +1,3 @@
+PASS test_actual_model_mapper_closure
+PermissionError: Unapproved exact read: c:\users\aproa\documents\agent-work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\00000000000000000000000000000000_checkpoint.json
+CHECKPOINT C:\Users\aproa\Documents\Agent-Work\artifacts\p3-momoai6-intake-20261017\phase02b2\br_assignment\evidence\2578e472c8e4471c8d03141d78eee99c_checkpoint.json BLOCKED
