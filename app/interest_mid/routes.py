@@ -4,20 +4,22 @@
 문항은행(items.json)·채점엔진(scoring.py)은 app/sources/middle_compass/에
 원본 그대로 두고 여기서는 화면(질문/결과/인쇄)만 붙인다. 중등 학생용
 40문항 폼만 다룬다. 저장은 세션에만 하며 DB에는 남기지 않는다 - 아직
-관리자 검토 단계라 momoai_web 데이터 모델과 연동하지 않는다.
+학생 출시 게이트로 제한하며 momoai_web 데이터 모델과 연동하지 않는다.
 """
-from flask import render_template, request, session, redirect, url_for, flash
+from flask import render_template, request, session, redirect, url_for, flash, abort
+from flask_wtf.csrf import validate_csrf
+from wtforms.validators import ValidationError
 
 from app.interest_mid import interest_mid_bp
 from app.sources.middle_compass import scoring as engine
-from app.utils.decorators import requires_role
+from app.utils.student_launch import student_launch_required
 
 FORM = 'mid'
 SESSION_KEY = 'interest_mid_result'
 
 
 @interest_mid_bp.route('/')
-@requires_role('admin')
+@student_launch_required('STUDENT_INTEREST_MID_ENABLED')
 def index():
     """중등 전공 나침반 - 시작 화면."""
     items, _ = engine.load(FORM)
@@ -25,9 +27,9 @@ def index():
 
 
 @interest_mid_bp.route('/quiz')
-@requires_role('admin')
+@student_launch_required('STUDENT_INTEREST_MID_ENABLED')
 def quiz():
-    """40문항(문항은행 순서 그대로) 응답 화면 - 한 화면에 전부 표시 후 일괄 제출."""
+    """40문항(원본 순서)의 5문항 단위 화면. 마지막에 전체를 검증·제출."""
     items, _ = engine.load(FORM)
     view_items = []
     for i, q in enumerate(items):
@@ -41,8 +43,13 @@ def quiz():
 
 
 @interest_mid_bp.route('/submit', methods=['POST'])
-@requires_role('admin')
+@student_launch_required('STUDENT_INTEREST_MID_ENABLED')
 def submit():
+    # This application generates CSRF tokens but has no global CSRFProtect.
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+    except ValidationError:
+        abort(400)
     items, content = engine.load(FORM)
     answers = []
     for i, q in enumerate(items):
@@ -50,7 +57,11 @@ def submit():
         if raw is None:
             flash(f'{i + 1}번 문항에 응답하지 않았습니다.', 'error')
             return redirect(url_for('interest_mid.quiz'))
-        pick = int(raw)
+        try:
+            pick = int(raw)
+        except (ValueError, TypeError):
+            flash(f'{i + 1}번 문항 응답값이 올바르지 않습니다.', 'error')
+            return redirect(url_for('interest_mid.quiz'))
         if not (0 <= pick < len(q['o'])):
             flash(f'{i + 1}번 문항 응답값이 올바르지 않습니다.', 'error')
             return redirect(url_for('interest_mid.quiz'))
@@ -76,7 +87,7 @@ def _result_context():
 
 
 @interest_mid_bp.route('/result')
-@requires_role('admin')
+@student_launch_required('STUDENT_INTEREST_MID_ENABLED')
 def result():
     ctx = _result_context()
     if not ctx:
@@ -86,7 +97,7 @@ def result():
 
 
 @interest_mid_bp.route('/print')
-@requires_role('admin')
+@student_launch_required('STUDENT_INTEREST_MID_ENABLED')
 def print_view():
     ctx = _result_context()
     if not ctx:

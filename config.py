@@ -56,6 +56,9 @@ for folder in [UPLOAD_FOLDER, HTML_FOLDER, PDF_FOLDER, POST_FILES_FOLDER, POST_I
 
 class Config:
     """기본 설정"""
+    # Release gates: explicit configuration override only after demo approval.
+    STUDENT_INTEREST_QUEST_ENABLED = False
+    STUDENT_INTEREST_MID_ENABLED = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
 
     # Database 설정

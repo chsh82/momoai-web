@@ -6,15 +6,17 @@ index.html 하나가 전체 앱(질문·채점·결과·인쇄)을 담고 있으
 """
 import os
 
-from flask import current_app, send_file
+from flask import send_file
 
 from app.interest_quest import interest_quest_bp
-from app.utils.decorators import requires_role
+from app.utils.student_launch import student_launch_required
 
 
 @interest_quest_bp.route('/')
-@requires_role('admin')
+@student_launch_required('STUDENT_INTEREST_QUEST_ENABLED')
 def index():
-    """모모의 이야기 탐험단 - 초등 관심탐험 (정적 단일 HTML)."""
-    path = os.path.join(current_app.static_folder, 'interest_quest', 'index.html')
-    return send_file(path)
+    """로그인·출시 게이트 뒤에서만 제공하는 단일 HTML."""
+    path = os.path.join(os.path.dirname(__file__), 'protected', 'index.html')
+    response = send_file(path)
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response
