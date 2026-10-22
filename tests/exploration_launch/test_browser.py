@@ -5,7 +5,7 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[2]
-OUT=ROOT/'reports/exploration-launch'
+OUT=ROOT/'reports/exploration-story-v3'
 
 @pytest.fixture
 def browser_page():
@@ -25,19 +25,18 @@ def test_quest_five_step_clicks(browser_page,width):
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
     page.get_by_role('button',name='결과 예시',exact=True).click()
     page.locator('.sample-choice').first.click()
-    ids=['overview','village','evidence','future','quest']
+    ids=['core','connections','second','third','compare']
     for i,tab in enumerate(ids):
         assert page.locator('#result-progress').inner_text()==f'{i+1} / 5'
         assert page.locator('#tab-'+tab).get_attribute('aria-selected')=='true'
         assert page.locator('#result-panel').get_attribute('aria-labelledby')=='tab-'+tab
         assert page.locator('#result-panel').get_attribute('data-step')==tab
         if i==0:
-            assert page.locator('#result-panel .summary-table9').count()==1
-            assert page.locator('#result-panel .village-hierarchy9').count()==0
-        elif i==1: assert page.locator('#result-panel .village-hierarchy9').count()==1
-        elif i==2: assert page.locator('#result-panel .evidence-block').count()==9
-        elif i==3: assert page.locator('#result-panel [data-path]').count()>0
-        else: assert page.locator('#result-panel .quest-select').count()==1
+            assert page.locator('#result-panel .village-discovery').count()==1
+            assert page.locator('#result-panel table').count()==0
+        elif i==1: assert page.locator('#result-panel .study-connections').count()==1
+        elif i in (2,3): assert page.locator('#result-panel .compact').count()==1
+        else: assert page.locator('#result-panel .story-comparison').count()==1
         page.screenshot(path=str(OUT/f'quest-{width}-step-{i+1}.png'))
         if i<4:
             page.get_by_role('button',name='다음 단계',exact=True).click()
@@ -46,22 +45,24 @@ def test_quest_five_step_clicks(browser_page,width):
     for i in range(3,-1,-1):
         page.get_by_role('button',name='이전 단계',exact=True).click()
         assert page.locator('#result-progress').inner_text()==f'{i+1} / 5'
-    page.get_by_role('tab',name='4. 앞으로의 공부',exact=True).click()
-    assert page.locator('#result-panel').get_attribute('data-step')=='future'
-    page.get_by_role('tab',name='3. 선택 근거',exact=True).focus()
+    page.get_by_role('tab',name='4. 세 번째 마을',exact=True).click()
+    assert page.locator('#result-panel').get_attribute('data-step')=='third'
+    page.get_by_role('tab',name='3. 두 번째 마을',exact=True).focus()
     page.keyboard.press('Home')
-    assert page.locator('#tab-overview').get_attribute('aria-selected')=='true'
+    assert page.locator('#tab-core').get_attribute('aria-selected')=='true'
     page.keyboard.press('End')
-    assert page.locator('#tab-quest').get_attribute('aria-selected')=='true'
+    assert page.locator('#tab-compare').get_attribute('aria-selected')=='true'
 
 def test_intro_memory_warning_and_file_save(browser_page):
     page=browser_page
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
+    assert page.locator('[data-story="greeting"]').count()==1
+    page.get_by_role('button',name='안내 건너뛰기',exact=True).click()
     assert page.locator('.launch-intro').count()==1
     assert page.locator('#main .world-map, #main .v12-map').count()==0
     assert page.get_by_role('button',name='기록 저장·불러오기',exact=True).count()==1
-    assert '자동 저장' in page.locator('#main').inner_text()
-    page.get_by_role('button',name='탐험 시작하기 →',exact=True).click()
+    assert '파일로 저장' in page.locator('#main').inner_text()
+    page.get_by_role('button',name='탐험 시작하기',exact=True).click()
     page.get_by_role('button',name='첫 장면으로 가기 →',exact=True).click()
     assert page.locator('.chapter-screen').count()==1
     page.locator('.chapter-actions button').first.click()
@@ -119,20 +120,20 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     page.on('pageerror',lambda error:errors.append(str(error)))
     page.set_viewport_size({'width':width,'height':900})
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
-    page.get_by_role('button',name='탐험 시작하기 →',exact=True).click()
+    page.get_by_role('button',name='탐험 시작하기',exact=True).click()
     page.get_by_role('button',name='첫 장면으로 가기 →',exact=True).click()
     for i in range(32):
         if page.locator('.chapter-screen').count(): page.locator('.chapter-actions button').first.click()
         page.locator('input[type=radio]').nth(i%4).check()
         page.locator('#next').click()
-    page.get_by_role('button',name='나의 관심 지도 펼치기 →',exact=True).first.click()
+    page.get_by_role('button',name='나의 마을 만나기',exact=True).click()
     real=page.evaluate('session.values.slice()')
     score=page.evaluate('JSON.stringify(session.result)')
     assert page.locator('#result-progress').inner_text()=='1 / 5'
-    for tab in ['village','evidence','future','quest']:
+    for tab in ['connections','second','third','compare']:
         page.locator('#tab-'+tab).click()
         assert page.locator('#result-panel').get_attribute('data-step')==tab
-    page.locator('.quest-choice').first.click()
+
     with page.expect_download() as download:
         page.get_by_role('button',name='기록 파일 저장',exact=True).click()
     saved=OUT/f'real-record-{width}.json'
@@ -140,7 +141,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     record=json.loads(saved.read_text(encoding='utf-8'))
     assert record['data_origin']=='LOCAL_USER_INPUT'
     assert len(record['responses'])==32
-    page.get_by_role('button',name='전체 결과 인쇄하기',exact=True).click()
+    page.get_by_role('button',name='전체 리포트 보기',exact=True).click()
     assert page.locator('.journey-report').count()==1
     assert page.locator('.journey-report .response-appendix').count()==1
     page.evaluate('window.print=()=>{window.printCalled=true}')
@@ -157,7 +158,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
         page.locator('.sample-choice').nth(index).click()
         assert '가상 예시' in page.locator('.banner').inner_text()
         assert page.evaluate('session.values')==real
-        page.locator('#tab-quest').click()
+        page.locator('#tab-compare').click()
         with page.expect_download() as download:
             page.get_by_role('button',name='기록 파일 저장',exact=True).click()
         target=OUT/f'sample-{width}-{index}.json'
@@ -175,8 +176,8 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     page.wait_for_function("view==='sample'")
     assert '가상 예시' in page.locator('.banner').inner_text()
     assert page.evaluate('session.values')==real
-    page.locator('#tab-quest').click()
-    page.get_by_role('button',name='전체 결과 인쇄하기',exact=True).click()
+    page.locator('#tab-compare').click()
+    page.get_by_role('button',name='전체 리포트 보기',exact=True).click()
     assert '가상 예시' in page.locator('#main .report-origin').inner_text()
     page.locator('#include-appendix').uncheck()
     page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).click()
@@ -186,7 +187,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
 def test_canonical_form_and_scoring_equal_head(browser_page,tmp_path):
     import subprocess,hashlib
     page=browser_page
-    original=subprocess.check_output(['git','-C',str(ROOT),'show','HEAD:static/interest_quest/index.html'])
+    original=subprocess.check_output(['git','-C',str(ROOT),'show','HEAD:app/interest_quest/protected/index.html'])
     baseline=tmp_path/'baseline.html'
     baseline.write_bytes(original)
     script="""(()=>({form:FORM, scores:Array.from({length:128},(_,seed)=>{let x=seed+1;const answers=FORM.items.map((q,i)=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return {item_id:q.id,option_id:q.options[(x>>>16)%4].id};});return InterestScoring.score(answers,FORM);})}))()"""
@@ -198,15 +199,14 @@ def test_canonical_form_and_scoring_equal_head(browser_page,tmp_path):
     unique=len({json.dumps(s,sort_keys=True) for s in actual['scores']})
     assert unique==128
     data=json.dumps(actual,sort_keys=True,ensure_ascii=False).encode()
-    (OUT/'scoring-equivalence.json').write_text(json.dumps({'baseline':'edbe273:static/interest_quest/index.html','canonical_form_equal':True,'score_cases':128,'unique_results':unique,'equal':True,'sha256':hashlib.sha256(data).hexdigest()},indent=2),encoding='utf-8')
+    (OUT/'scoring-equivalence.json').write_text(json.dumps({'baseline':'d4182ff:app/interest_quest/protected/index.html','canonical_form_equal':True,'score_cases':128,'unique_results':unique,'equal':True,'sha256':hashlib.sha256(data).hexdigest()},indent=2),encoding='utf-8')
 
 def test_future_evidence_is_optional_not_repeated_long_page(browser_page):
     page=browser_page
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
     page.get_by_role('button',name='결과 예시',exact=True).click()
     page.locator('.sample-choice').first.click()
-    page.locator('#tab-future').click()
-    assert page.locator('.launch-evidence').count()>0
+    page.locator('#tab-connections').click()
+    assert page.locator('.study-connections').count()==1
     assert page.locator('#result-panel blockquote:visible').count()==0
-    page.locator('.launch-evidence summary').first.click()
-    assert page.locator('#result-panel blockquote:visible').count()>0
+    assert page.locator('.method,.inquiry-example9,.quest-select').count()==0
