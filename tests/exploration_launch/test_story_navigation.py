@@ -26,11 +26,11 @@ def test_no_body_overflow_all_primary_views(page,width):
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     page.evaluate('enableLocalStoryQA();showSamples()')
     page.locator('.sample-choice').first.click()
-    for i in range(5):
+    for i in range(6):
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         for b in page.locator('.launch-pager button').all():
             assert b.bounding_box()['height']>=44
-        if i<4: page.get_by_role('button',name='다음 단계',exact=True).click()
+        if i<5: page.get_by_role('button',name='다음 단계',exact=True).click()
     # Chromium CSS zoom verifies 200% reflow, not OS/browser chrome zoom.
     page.evaluate('document.body.style.zoom="2"')
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')

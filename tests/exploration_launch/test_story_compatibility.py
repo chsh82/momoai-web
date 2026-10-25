@@ -36,7 +36,7 @@ def test_tied_representatives_and_all_ui_remove_method(page):
     assert '같은 값인 마을은 동등' in page.locator('#main').inner_text()
     expected=sorted([r for r in found['domains'] if r['selected_count']>0],key=lambda r:(-r['comparison_units'],r['display_order']))[:3]
     assert [r['domain_id'] for r in found['rows']]==[r['domain_id'] for r in expected]
-    for tab in ['core','connections','second','third','compare']:
+    for tab in ['core','connections','bridge','second','third','compare']:
         page.locator('#tab-'+tab).click()
         text=page.locator('body').inner_text()
         for forbidden in ['결과를 읽는 방법','자료 출처와 결과 계산 방법','다음 여행에서 직접 해볼 일','이렇게 시작해 보세요','확인 필요']:

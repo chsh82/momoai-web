@@ -16,7 +16,7 @@ def test_concrete_names_across_map_results_and_report(page):
         page.evaluate('closeDialog()')
     for sample in ['lab','story','people','wide']:
         page.evaluate('(key)=>showSample(key)',sample)
-        for step in ['core','connections','second','third','compare']:
+        for step in ['core','connections','bridge','second','third','compare']:
             page.evaluate('(step)=>setTab(step)',step)
             assert not any(old in page.locator('#main').inner_text() for old in OLD)
         page.get_by_role('button',name='전체 리포트 보기',exact=True).click()

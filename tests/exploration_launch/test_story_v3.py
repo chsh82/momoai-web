@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[2]
-OUT=ROOT/'reports/exploration-v4/art-integration/regression'
+OUT=ROOT/'reports/exploration-v4/design-refinement/regression'
 OUT.mkdir(exist_ok=True,parents=True)
 @pytest.fixture
 def page():

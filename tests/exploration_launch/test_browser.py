@@ -5,7 +5,7 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[2]
-OUT=ROOT/'reports/exploration-v4/art-integration/regression'
+OUT=ROOT/'reports/exploration-v4/design-refinement/regression'
 OUT.mkdir(exist_ok=True,parents=True)
 
 @pytest.fixture
@@ -26,9 +26,9 @@ def test_quest_five_step_clicks(browser_page,width):
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
     page.evaluate('enableLocalStoryQA();showSamples()')
     page.locator('.sample-choice').first.click()
-    ids=['core','connections','second','third','compare']
+    ids=['core','connections','bridge','second','third','compare']
     for i,tab in enumerate(ids):
-        assert page.locator('#result-progress').inner_text()==f'{i+1} / 5'
+        assert page.locator('#result-progress').inner_text()==f'{i+1} / 6'
         assert page.locator('#tab-'+tab).get_attribute('aria-selected')=='true'
         assert page.locator('#result-panel').get_attribute('aria-labelledby')=='tab-'+tab
         assert page.locator('#result-panel').get_attribute('data-step')==tab
@@ -36,19 +36,20 @@ def test_quest_five_step_clicks(browser_page,width):
             assert page.locator('#result-panel .village-discovery').count()==1
             assert page.locator('#result-panel table').count()==0
         elif i==1: assert page.locator('#result-panel .study-connections').count()==1
-        elif i in (2,3): assert page.locator('#result-panel .compact').count()==1
+        elif i==2: assert page.locator('#result-panel .village-transition').count()==1
+        elif i in (3,4): assert page.locator('#result-panel .compact').count()==1
         else: assert page.locator('#result-panel .story-comparison').count()==1
         page.screenshot(path=str(OUT/f'quest-{width}-step-{i+1}.png'))
-        if i<4:
+        if i<len(ids)-1:
             page.get_by_role('button',name='다음 단계',exact=True).click()
             assert page.evaluate('document.activeElement.id')=='result-panel'
     assert page.get_by_role('button',name='다음 단계',exact=True).is_disabled()
-    for i in range(3,-1,-1):
+    for i in range(len(ids)-2,-1,-1):
         page.get_by_role('button',name='이전 단계',exact=True).click()
-        assert page.locator('#result-progress').inner_text()==f'{i+1} / 5'
-    page.get_by_role('tab',name='4. 세 번째 마을',exact=True).click()
+        assert page.locator('#result-progress').inner_text()==f'{i+1} / 6'
+    page.get_by_role('tab',name='5. 세 번째 마을',exact=True).click()
     assert page.locator('#result-panel').get_attribute('data-step')=='third'
-    page.get_by_role('tab',name='3. 두 번째 마을',exact=True).focus()
+    page.get_by_role('tab',name='4. 두 번째 마을',exact=True).focus()
     page.keyboard.press('Home')
     assert page.locator('#tab-core').get_attribute('aria-selected')=='true'
     page.keyboard.press('End')
@@ -63,12 +64,14 @@ def test_intro_memory_warning_and_file_save(browser_page):
     assert page.locator('#main .world-map, #main .v12-map').count()==0
     assert page.get_by_role('button',name='기록 저장·불러오기',exact=True).count()==1
     assert '파일로 저장' in page.locator('#main').inner_text()
+    if not page.locator('.nav').is_visible(): page.get_by_role('button',name='메뉴',exact=True).click()
     page.get_by_role('button',name='탐험 시작하기',exact=True).click()
     page.get_by_role('button',name='첫 장면으로 가기 →',exact=True).click()
     assert page.locator('.chapter-screen').count()==1
     page.locator('.chapter-actions button').first.click()
     page.locator('input[type=radio]').first.check()
     assert page.evaluate("(()=>{const e=new Event('beforeunload',{cancelable:true});window.dispatchEvent(e);return e.defaultPrevented;})()")
+    if not page.locator('.nav').is_visible(): page.get_by_role('button',name='메뉴',exact=True).click()
     page.get_by_role('button',name='기록 저장·불러오기',exact=True).first.click()
     with page.expect_download() as download:
         page.get_by_role('button',name='현재 기록 파일 저장',exact=True).click()
@@ -121,6 +124,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     page.on('pageerror',lambda error:errors.append(str(error)))
     page.set_viewport_size({'width':width,'height':900})
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
+    if not page.locator('.nav').is_visible(): page.get_by_role('button',name='메뉴',exact=True).click()
     page.get_by_role('button',name='탐험 시작하기',exact=True).click()
     page.get_by_role('button',name='첫 장면으로 가기 →',exact=True).click()
     for i in range(32):
@@ -130,8 +134,8 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     page.get_by_role('button',name='나의 마을 만나기',exact=True).click()
     real=page.evaluate('session.values.slice()')
     score=page.evaluate('JSON.stringify(session.result)')
-    assert page.locator('#result-progress').inner_text()=='1 / 5'
-    for tab in ['connections','second','third','compare']:
+    assert page.locator('#result-progress').inner_text()=='1 / 6'
+    for tab in ['connections','bridge','second','third','compare']:
         page.locator('#tab-'+tab).click()
         assert page.locator('#result-panel').get_attribute('data-step')==tab
 
@@ -165,6 +169,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
         target=OUT/f'sample-{width}-{index}.json'
         download.value.save_as(target)
         assert json.loads(target.read_text(encoding='utf-8'))['data_origin']=='SYNTHETIC_EXAMPLE'
+    if not page.locator('.nav').is_visible(): page.get_by_role('button',name='메뉴',exact=True).click()
     page.get_by_role('button',name='기록 저장·불러오기',exact=True).click()
     page.locator('#record-file').set_input_files(str(saved))
     # Importing a real record must explicitly confirm replacing in-memory input.
