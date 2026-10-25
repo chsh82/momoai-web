@@ -8,7 +8,7 @@ def test_public_navigation_has_no_internal_method_and_intro_roadmap(page):
     page.get_by_role('button',name='모모의 초대 다시 보기',exact=True).click()
     assert page.locator('[data-story="greeting"]').count()==1
     page.get_by_role('button',name='안내 건너뛰기',exact=True).click()
-    for name in ['결과 예시','마을 전체 지도','이야기 친구 만나기']:
+    for name in ['마을 전체 지도','이야기 친구 만나기']:
         page.get_by_role('button',name=name,exact=True).first.click()
         assert page.get_by_role('button',name='첫 화면으로',exact=True).is_visible()
         assert page.get_by_role('button',name='탐험 시작하기',exact=True).is_visible()
@@ -24,7 +24,7 @@ def test_no_body_overflow_all_primary_views(page,width):
     page.screenshot(path=str(OUT/f'intro-{width}.png'),full_page=True)
     page.get_by_role('button',name='안내 건너뛰기',exact=True).click()
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-    page.get_by_role('button',name='결과 예시',exact=True).click()
+    page.evaluate('enableLocalStoryQA();showSamples()')
     page.locator('.sample-choice').first.click()
     for i in range(5):
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')

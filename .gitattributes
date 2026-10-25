@@ -1,0 +1,2 @@
+# Preserve the exact browser/PDF-verified bytes of the generated protected artifact.
+/app/interest_quest/protected/index.html -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

@@ -1,0 +1,923 @@
+{
+  "schema": "momo-protected-art-slots-v1",
+  "art_ready": false,
+  "gate": "Files decoded and integrated locally when present. Final user screen/print visual approval is pending; no deployment approval.",
+  "import_policy": "Local reviewed WebP only; inline data in protected artifact through maintained builder. Never a public-static route or remote URL. school strips have 3 equal panels. Existing village fallback is a temporary scene, NOT occupation or school-specific art.",
+  "slots": [
+    {
+      "id": "village-FOREST",
+      "filename": "village-FOREST.webp",
+      "alt": "도서관 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "FOREST",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-FOREST.webp",
+      "sha256": "4517558a12d19567d5a5b94e2f3e11a9b9b83d0ef13f544090a63f9e96a58e51",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-FOREST.webp",
+      "display_sha256": "8aa34e7017e65f2b6d76349db97c8ba23bd24a590bfd1d4bb003d8f14e85c044",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-FOREST-01",
+      "filename": "career-FOREST-01.webp",
+      "alt": "번역가의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "FOREST",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-FOREST-01.webp",
+      "sha256": "2f1e72b93d790fb82387ed06aa4b1bb19b1ca6940d783b5baccb123a53ea3a1d",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-FOREST-01.webp",
+      "display_sha256": "a713704583f9d548bb23a3c01fda3e0d563b4197ec7307116dc0a46885942141",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-FOREST-02",
+      "filename": "career-FOREST-02.webp",
+      "alt": "학예연구사의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "FOREST",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-FOREST-02.webp",
+      "sha256": "88d36b31d5349d0147e24da9311cc1f4c75cbde73e748d1bebf351db468129de",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-FOREST-02.webp",
+      "display_sha256": "f65880584ed9b66ba03c670be7ed9881e5451446e7e6905ec577673b32c3e12a",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-FOREST",
+      "filename": "school-FOREST.webp",
+      "alt": "도서관 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "FOREST",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-FOREST.webp",
+      "sha256": "0ac9c98ca53411b1623d673a9b084e9bcff858860e4b8b98e734f08889bfadb2",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-FOREST.webp",
+      "display_sha256": "af78ac12b5aa65e1fa7022dc6b06a78a0e767d610e6a9b58fb6d02bb3b5d8096",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-LAB",
+      "filename": "village-LAB.webp",
+      "alt": "과학연구소 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "LAB",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-LAB.webp",
+      "sha256": "e169c1bebbea90c0e40649c5d92f4a6b148c843e6b4a555383ece65c8f45102f",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-LAB.webp",
+      "display_sha256": "d5e3b4d36528758ecddc252c6dd180bb36d408d04b5c84bbbeda71dbede0f751",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-LAB-01",
+      "filename": "career-LAB-01.webp",
+      "alt": "통계 연구자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "LAB",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-LAB-01.webp",
+      "sha256": "e2d3eb90e076ccc58e409f3dfce14b06465fc932cf18fb42a0a48db08b20f253",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-LAB-01.webp",
+      "display_sha256": "d2daa0b28b3dd5ddef7beae55a74573daf83f824f3ea477f4e6f62229dd3444c",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-LAB-02",
+      "filename": "career-LAB-02.webp",
+      "alt": "물리 연구자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "LAB",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-LAB-02.webp",
+      "sha256": "b6ae36169e4ec0f00f9dc87f124e31734809314b1026ca9b0c915928a3e26e6a",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-LAB-02.webp",
+      "display_sha256": "fb87a8ed41552d866a56132ac848172992e332391c0d8a51e0045d8e57c8d30e",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-LAB",
+      "filename": "school-LAB.webp",
+      "alt": "과학연구소 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "LAB",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-LAB.webp",
+      "sha256": "47901e943a35485deb93b864d578553b3d012c100eb49eb56de0ddd13785d76c",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-LAB.webp",
+      "display_sha256": "15115850b7aa6ce00baeee7f0ba8c9ef553af71c85dae5801e89ccf8d95c672e",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-FACTORY",
+      "filename": "village-FACTORY.webp",
+      "alt": "발명공방 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "FACTORY",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-FACTORY.webp",
+      "sha256": "d740038c3927947f4933a8166f40f1c1cd4f467d5d2e23bac1b7bfff9b3c1a36",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-FACTORY.webp",
+      "display_sha256": "01633cdb5a0e0fb7c27b8a4035438a7f02a1278cb244d6cc71655d9c31a293a1",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-FACTORY-01",
+      "filename": "career-FACTORY-01.webp",
+      "alt": "기계공학 기술자·연구원의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "FACTORY",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-FACTORY-01.webp",
+      "sha256": "addd77f3a58b5260c67f672b1cbe5ba2e388b7d5bcd6f223edb847902751e62e",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-FACTORY-01.webp",
+      "display_sha256": "5e40a50344ac56e867d4ed4d81b2eb721695880229a8ea3896a6c909f40fc4dd",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-FACTORY-02",
+      "filename": "career-FACTORY-02.webp",
+      "alt": "소프트웨어 개발자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "FACTORY",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-FACTORY-02.webp",
+      "sha256": "a985aee865e9c3f0af36f9f17e872d2a7328abf050697eaf938bbddf87e5bfb0",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-FACTORY-02.webp",
+      "display_sha256": "319441f74571a9edad494509be430432c943ce1cd3ec307928f5e836b7c33d7b",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-FACTORY",
+      "filename": "school-FACTORY.webp",
+      "alt": "발명공방 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "FACTORY",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-FACTORY.webp",
+      "sha256": "29f6b8df80ceedebca1937ed43a32888ce8eddede737b08698db794fa2f2c099",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-FACTORY.webp",
+      "display_sha256": "d70f0df97d22f13c8f4206a5b12bc8030111bd53e4e3548a034dca9e1ea43b40",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-PLAZA",
+      "filename": "village-PLAZA.webp",
+      "alt": "시청광장 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "PLAZA",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-PLAZA.webp",
+      "sha256": "1b307d438deefac18eab0e3c7c86fc724385a74e60c0e6ed64cc1e626c93b8e1",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-PLAZA.webp",
+      "display_sha256": "0e0a0222e22bbec076b273874e7a3f3b52047fffdbb357c1d20582943fd8083f",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-PLAZA-01",
+      "filename": "career-PLAZA-01.webp",
+      "alt": "법률가의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "PLAZA",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-PLAZA-01.webp",
+      "sha256": "4324f4bde62fb52c310d95f649ef24a0ef705304266b5b918b5f04288fa9220f",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-PLAZA-01.webp",
+      "display_sha256": "ec8e09140216a4b1f7e491194f43f7f939c305447bf7546dc502937429222ee8",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-PLAZA-02",
+      "filename": "career-PLAZA-02.webp",
+      "alt": "사회조사 연구원의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "PLAZA",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-PLAZA-02.webp",
+      "sha256": "f3615041526014e1684696cb72f588836cc020082e1fd6f3422ba11a3d47fe5a",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-PLAZA-02.webp",
+      "display_sha256": "32f722effd81cc1352563b1494ba7b492427583d4bab86c606ff96e091aee1dc",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-PLAZA",
+      "filename": "school-PLAZA.webp",
+      "alt": "시청광장 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "PLAZA",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-PLAZA.webp",
+      "sha256": "ec43ae23e848f7ddf5ec6fae1abca17ef0646bc10d20760ddee4617061d26be5",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-PLAZA.webp",
+      "display_sha256": "2eaaa836791d9892e6761fe92f6d7864526495804be0248afbdfa5b7e324fb19",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-CLINIC",
+      "filename": "village-CLINIC.webp",
+      "alt": "병원 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "CLINIC",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-CLINIC.webp",
+      "sha256": "e6b7c947b069d59b259e7ecc5a6727d8572ddc706d1475b5a6d2f27e78853694",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-CLINIC.webp",
+      "display_sha256": "74c6ca74152ba3467069934798759492c97516a2390630f97b219de95d60023b",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-CLINIC-01",
+      "filename": "career-CLINIC-01.webp",
+      "alt": "의사의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "CLINIC",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-CLINIC-01.webp",
+      "sha256": "98d57599f883a7a148b0358d9d21d2166ed52b956365eb74f248b483c8ea96f8",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-CLINIC-01.webp",
+      "display_sha256": "3926a2fcdcb9f1a2917eccf02a53878bfd9915e6a8b1c79041a224331465c6cf",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-CLINIC-02",
+      "filename": "career-CLINIC-02.webp",
+      "alt": "약사의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "CLINIC",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-CLINIC-02.webp",
+      "sha256": "fbc7a6c11a414d59a569219feb7e725ceebb04f08ab72f11009d27af21a1ca18",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-CLINIC-02.webp",
+      "display_sha256": "ece1baabf58efc3804ad11ebee2cde84004a5c44012d31485224379108528be5",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-CLINIC",
+      "filename": "school-CLINIC.webp",
+      "alt": "병원 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "CLINIC",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-CLINIC.webp",
+      "sha256": "a87511bdccbec5d776c83934cfe99a787af5a998ef1fa34a95fef93d02b43bd6",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-CLINIC.webp",
+      "display_sha256": "a452a5b56e372cb8c0f5fbdc9a57ec44723b12014a0096cda36309f96d88d30c",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-PORT",
+      "filename": "village-PORT.webp",
+      "alt": "항구시장 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "PORT",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-PORT.webp",
+      "sha256": "22a28fc7f7cf12c1830738bf45037f36e4eb8a41d557dd7ed404da2a93b99b13",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-PORT.webp",
+      "display_sha256": "041f7269b5f3fd2b205549d6a5ce70ca87c77abb7637b7897c217f266f1a686e",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-PORT-01",
+      "filename": "career-PORT-01.webp",
+      "alt": "산업공학기술자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "PORT",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-PORT-01.webp",
+      "sha256": "19106e8e4b846113c8992c48a9e3b5ed28bbe7a8e7d37368a0483efbd6c8f995",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-PORT-01.webp",
+      "display_sha256": "89e4dbd8d5bbc1f0acb222219c40bbfa83cc22760988a56ea0ea61d63ff3d59f",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-PORT-02",
+      "filename": "career-PORT-02.webp",
+      "alt": "상품기획자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "PORT",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-PORT-02.webp",
+      "sha256": "e40208318f8e448c6b0953f2daa944ff2671956447bfe77e4811fdfb34a474b2",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-PORT-02.webp",
+      "display_sha256": "d992f53a62908a476f25e6e9423b72bd02a25fa9eaa8847c7a75cf23ece9ced4",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-PORT",
+      "filename": "school-PORT.webp",
+      "alt": "항구시장 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "PORT",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-PORT.webp",
+      "sha256": "b8dfdbf33b0878b79d617bf302418569d1901bdad48de700eb7ca08a1841d77b",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-PORT.webp",
+      "display_sha256": "eb4f7cd8196338bed0a868304da6dea3745afab30f200c60cf3760a0d9eb06b7",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-FIELD",
+      "filename": "village-FIELD.webp",
+      "alt": "생태농장 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "FIELD",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-FIELD.webp",
+      "sha256": "8ff165c9f840346cbeeb0faa5b562526eb8d64a6ef88da1158984a4c53e95e7c",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-FIELD.webp",
+      "display_sha256": "635e1a0f4a715ca07c265f7786d722ed8747cf8ae0460e8bc66e3c7c3e9ef449",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-FIELD-01",
+      "filename": "career-FIELD-01.webp",
+      "alt": "식물·작물 연구자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "FIELD",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-FIELD-01.webp",
+      "sha256": "174bf0970b46c10b36e347bdb64968822e5443604a31de9a72f5871e9eb18fe5",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-FIELD-01.webp",
+      "display_sha256": "37a84d4cbf0277d6cf8fa55f2c33df8ef0a96ab4b1c7acf10649bf3fabe09650",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-FIELD-02",
+      "filename": "career-FIELD-02.webp",
+      "alt": "산림·생태 관련 전문가의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "FIELD",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-FIELD-02.webp",
+      "sha256": "04f01fe3626ea43ec5ce877372f0cd12def57ff0e6030b90fc2559880e80d8c6",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-FIELD-02.webp",
+      "display_sha256": "4a035ebdd2b15125cb1928682a2ad22a0f0921703d0ded015d8b393c92015ceb",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-FIELD",
+      "filename": "school-FIELD.webp",
+      "alt": "생태농장 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "FIELD",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-FIELD.webp",
+      "sha256": "4eec40712d1a85a5e46df3ae57d389fcee15cc6d56c70b01778fa5b1869e48e3",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-FIELD.webp",
+      "display_sha256": "0d6475d0ff4c6b6e7693e6a0d2fedb9cf408664e573c032dee7fcbcc510f8d9d",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-HOUSE",
+      "filename": "village-HOUSE.webp",
+      "alt": "학교 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "HOUSE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-HOUSE.webp",
+      "sha256": "79a5ddbd3fc979d35455b1b3b0f36b683c03ae6416dcb0e77732afeb57776ea7",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-HOUSE.webp",
+      "display_sha256": "6b9f0337043529ff9c14eaa59bf786f4c392682a3b854be4a37982ce5c588dc4",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-HOUSE-01",
+      "filename": "career-HOUSE-01.webp",
+      "alt": "교사의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "HOUSE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-HOUSE-01.webp",
+      "sha256": "2074923be6843ad3c7dd34c66923df2f1cb50133b44d5969c5f9dc591517def1",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-HOUSE-01.webp",
+      "display_sha256": "6248c4e7bff9afba11d17889c3e79fc5a3ee39db39981082f9f9db1b17e8f32f",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-HOUSE-02",
+      "filename": "career-HOUSE-02.webp",
+      "alt": "교육 콘텐츠 개발자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "HOUSE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-HOUSE-02.webp",
+      "sha256": "057e39e7c50bccb758afd91aabcba5a7f55e37c5521b8678a801ddc8d1933108",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-HOUSE-02.webp",
+      "display_sha256": "5ed9e698612d0e0ae98e6b97ec41aa1a8ebf22be85fcc90efd7d9d610d48478b",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-HOUSE",
+      "filename": "school-HOUSE.webp",
+      "alt": "학교 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "HOUSE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-HOUSE.webp",
+      "sha256": "b8fdc9153475999ce6cdf189efcabf644660a994c2324dd7607c7eeddf2e7d7b",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-HOUSE.webp",
+      "display_sha256": "d6a2ea9d05f188b6f9f8c33e8b3363a6afb7c92979a3139691885e4113c19e0f",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "village-STAGE",
+      "filename": "village-STAGE.webp",
+      "alt": "예술극장 마을 마을의 생활 풍경",
+      "aspect": "3:2",
+      "slot": "village-landscape / atlas",
+      "fallback_asset": "STAGE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/village-STAGE.webp",
+      "sha256": "1dd78876e63af153e37ef3ca5935894b9f9a95720dae2e622271bd5d6db0ca13",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/village-STAGE.webp",
+      "display_sha256": "049c579c9c8ea9bb8ef411b7935419098821547b2fe1027d2b0e35e26086b266",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-STAGE-01",
+      "filename": "career-STAGE-01.webp",
+      "alt": "시각 디자이너의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 1",
+      "fallback_asset": "STAGE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-STAGE-01.webp",
+      "sha256": "4fed862c11bfeacb4bb55e19b02bf15609aae92d0e23a198bf49a3289d7d9d04",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-STAGE-01.webp",
+      "display_sha256": "910c6ca7bd3dea784fa108eb5714e45586b0efb126644b0df52a7e9440be7b73",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "career-STAGE-02",
+      "filename": "career-STAGE-02.webp",
+      "alt": "음악 창작자의 작업 장면",
+      "aspect": "3:2",
+      "slot": "career-scene 2",
+      "fallback_asset": "STAGE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/career-STAGE-02.webp",
+      "sha256": "1b479e51f879a46f2826cf6a6309c95030405e8d164efbb36494aa2e32702a0a",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/career-STAGE-02.webp",
+      "display_sha256": "ec5ebfbcf375ef41235b97cb4e80d84d0bd9e9d651d58b3601f631379c0cac10",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "school-STAGE",
+      "filename": "school-STAGE.webp",
+      "alt": "예술극장 마을의 초등·중등·고등 배움 장면",
+      "aspect": "9:2",
+      "panel_aspect": "3:2",
+      "panels": [
+        "초등",
+        "중등",
+        "고등"
+      ],
+      "slot": "school-stage: 3 equal crops",
+      "fallback_asset": "STAGE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/school-STAGE.webp",
+      "sha256": "06ae698b556de4c699dc92c61088a071ba2894c0d542cd094b361d692ee94bcd",
+      "dimensions": [
+        4608,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/school-STAGE.webp",
+      "display_sha256": "e15711378fd1032948908edafe6e54edbf6cff60726b010d721643eb8159c16a",
+      "display_dimensions": [
+        2880,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "roadmap-questions",
+      "filename": "roadmap-questions.webp",
+      "alt": "이야기 속 활동을 고르는 장면",
+      "aspect": "3:2",
+      "slot": "home roadmap",
+      "fallback_asset": "MOMO_AMPHITHEATRE",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/roadmap-questions.webp",
+      "sha256": "033862580c7950feb571d25128202ce0e553c89fe6e93d1daae5d05ea8674285",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/roadmap-questions.webp",
+      "display_sha256": "dc70d0520fccf9e8faa424f6a5b1ab32545c6daafbe244f341a8265357b2e70c",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "roadmap-careers",
+      "filename": "roadmap-careers.webp",
+      "alt": "공부와 직업을 탐색하는 장면",
+      "aspect": "3:2",
+      "slot": "home roadmap",
+      "fallback_asset": "FACTORY",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/roadmap-careers.webp",
+      "sha256": "10f05e005b06ac3211ccd61ee3d8c296517454d9d27869f8bce56e155cb48ab1",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/roadmap-careers.webp",
+      "display_sha256": "77206c3f9a6b544e804d9c6e8fb9ba24b0610174616210c15ed52dd5e7b7fa77",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    },
+    {
+      "id": "roadmap-report",
+      "filename": "roadmap-report.webp",
+      "alt": "나의 여행 기록을 돌아보는 장면",
+      "aspect": "3:2",
+      "slot": "home roadmap",
+      "fallback_asset": "FOREST",
+      "status": "INTEGRATED_FILE_VERIFIED",
+      "source": "story-assets/external-v4/roadmap-report.webp",
+      "sha256": "3b2866712fa94d3f93ba9253bc4df49846da062d4c1cb5d96b66f5b8c76d3b83",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "display_source": "story-assets/display-v4/roadmap-report.webp",
+      "display_sha256": "a429bfd079d2cfec4f25468e2a130f8989803eec5d482bdd16c125678826cb0e",
+      "display_dimensions": [
+        960,
+        640
+      ],
+      "display_encoding": "WebP quality=80 method=6; LANCZOS 960x640 per panel, no crop; lossy display derivative"
+    }
+  ],
+  "integration_status": "integrated_file_verified",
+  "visual_approval": "pending_visual_approval",
+  "integrated_slots": 39
+}

@@ -5,7 +5,8 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[2]
-OUT=ROOT/'reports/exploration-story-v3'
+OUT=ROOT/'reports/exploration-v4/art-integration/regression'
+OUT.mkdir(exist_ok=True,parents=True)
 
 @pytest.fixture
 def browser_page():
@@ -23,7 +24,7 @@ def test_quest_five_step_clicks(browser_page,width):
     page=browser_page
     page.set_viewport_size({'width':width,'height':900})
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
-    page.get_by_role('button',name='결과 예시',exact=True).click()
+    page.evaluate('enableLocalStoryQA();showSamples()')
     page.locator('.sample-choice').first.click()
     ids=['core','connections','second','third','compare']
     for i,tab in enumerate(ids):
@@ -146,7 +147,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     assert page.locator('.journey-report .response-appendix').count()==1
     page.evaluate('window.print=()=>{window.printCalled=true}')
     page.locator('#include-appendix').check()
-    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).click()
+    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).first.click()
     assert page.evaluate('window.printCalled')
     assert page.locator('#print-root .response-appendix').get_attribute('open') is not None
     page.emulate_media(media='print')
@@ -154,7 +155,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     page.emulate_media(media='screen')
     page.get_by_role('button',name='결과로 돌아가기',exact=True).click()
     for index in range(4):
-        page.get_by_role('button',name='결과 예시',exact=True).click()
+        page.evaluate('enableLocalStoryQA();showSamples()')
         page.locator('.sample-choice').nth(index).click()
         assert '가상 예시' in page.locator('.banner').inner_text()
         assert page.evaluate('session.values')==real
@@ -180,14 +181,16 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     page.get_by_role('button',name='전체 리포트 보기',exact=True).click()
     assert '가상 예시' in page.locator('#main .report-origin').inner_text()
     page.locator('#include-appendix').uncheck()
-    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).click()
+    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).first.click()
     assert page.locator('#print-root .response-appendix').count()==0
     assert errors==[]
 
 def test_canonical_form_and_scoring_equal_head(browser_page,tmp_path):
     import subprocess,hashlib
     page=browser_page
-    original=subprocess.check_output(['git','-C',str(ROOT),'show','HEAD:app/interest_quest/protected/index.html'])
+    # Pin the accepted baseline so committing v4 cannot turn this into self-comparison.
+    baseline_commit='4356a3cbfc2b16e6fde2f1f4dcea1e1e1396a0e8'
+    original=subprocess.check_output(['git','-C',str(ROOT),'show',baseline_commit+':app/interest_quest/protected/index.html'])
     baseline=tmp_path/'baseline.html'
     baseline.write_bytes(original)
     script="""(()=>({form:FORM, scores:Array.from({length:128},(_,seed)=>{let x=seed+1;const answers=FORM.items.map((q,i)=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return {item_id:q.id,option_id:q.options[(x>>>16)%4].id};});return InterestScoring.score(answers,FORM);})}))()"""
@@ -199,12 +202,12 @@ def test_canonical_form_and_scoring_equal_head(browser_page,tmp_path):
     unique=len({json.dumps(s,sort_keys=True) for s in actual['scores']})
     assert unique==128
     data=json.dumps(actual,sort_keys=True,ensure_ascii=False).encode()
-    (OUT/'scoring-equivalence.json').write_text(json.dumps({'baseline':'d4182ff:app/interest_quest/protected/index.html','canonical_form_equal':True,'score_cases':128,'unique_results':unique,'equal':True,'sha256':hashlib.sha256(data).hexdigest()},indent=2),encoding='utf-8')
+    (OUT/'scoring-equivalence.json').write_text(json.dumps({'baseline':baseline_commit+':app/interest_quest/protected/index.html','canonical_form_equal':True,'score_cases':128,'unique_results':unique,'equal':True,'sha256':hashlib.sha256(data).hexdigest()},indent=2),encoding='utf-8')
 
 def test_future_evidence_is_optional_not_repeated_long_page(browser_page):
     page=browser_page
     page.goto((ROOT/'app/interest_quest/protected/index.html').as_uri())
-    page.get_by_role('button',name='결과 예시',exact=True).click()
+    page.evaluate('enableLocalStoryQA();showSamples()')
     page.locator('.sample-choice').first.click()
     page.locator('#tab-connections').click()
     assert page.locator('.study-connections').count()==1

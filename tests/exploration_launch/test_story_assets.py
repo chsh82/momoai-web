@@ -14,8 +14,11 @@ def test_manifest_actual_assets_chapters_and_occupations(page):
         before=page.evaluate('(id)=>NEW_VILLAGES.has(id)?worldAsset("revision9-"+id+".webp"):worldAsset("village-"+id+".webp")',id)
         a=Image.open(io.BytesIO(base64.b64decode(src.split(',')[1]))).convert('RGB')
         b=Image.open(io.BytesIO(base64.b64decode(before.split(',')[1]))).convert('RGB')
-        assert a.size==b.size
-        if ImageChops.difference(a,b).getbbox(): changed+=1
+        # External display dimensions are intentional, not legacy fallback dimensions.
+        slot=page.evaluate('(id)=>V4_IMAGE_SLOTS.slots.find(s=>s.id==="village-"+id)',id)
+        assert list(a.size)==slot['display_dimensions']
+        assert page.evaluate('(id)=>placeImage(id)===STORY_ASSETS["village-"+id]',id)
+        if ImageChops.difference(a,b.resize(a.size,Image.Resampling.LANCZOS)).getbbox(): changed+=1
     assert changed>=5
     page.get_by_role('button',name='안내 건너뛰기',exact=True).click()
     page.get_by_role('button',name='마을 전체 지도',exact=True).click()
@@ -28,13 +31,14 @@ def test_manifest_actual_assets_chapters_and_occupations(page):
         page.evaluate('closeDialog()')
     sample(page)
     page.locator('#tab-connections').click()
-    assert page.locator('.career-scene svg[role=img]').count()>=2
-    assert page.locator('.school-table svg').count()>=3
-    assert page.locator('.department-illustration').count()>=1
-    for svg in page.locator('.career-scene svg[role=img]').all():
-        assert svg.get_attribute('aria-label')
-        assert svg.locator('path,rect,circle').count()>5
-    assert '예를 들어' in page.locator('.school-table').first.inner_text()
+    # v4 uses verified external scenes, retaining no simplistic SVG substitutions.
+    assert page.locator('#main .career-scene img').count()==2
+    assert page.locator('#main .school-stage img').count()==3
+    assert page.locator('#main .study-connections svg').count()==0
+    for image in page.locator('#main .career-scene img, #main .school-stage img').all():
+        assert image.get_attribute('alt')
+        assert image.evaluate('(i)=>i.complete && i.naturalWidth>0')
+    assert page.locator('#main .school-stage li').count()==9
     page.get_by_role('button',name='첫 화면으로',exact=True).click()
     page.get_by_role('button',name='탐험 시작하기',exact=True).first.click()
     page.get_by_role('button',name='첫 장면으로 가기 →',exact=True).click()

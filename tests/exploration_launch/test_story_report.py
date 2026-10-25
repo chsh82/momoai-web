@@ -2,7 +2,7 @@ from test_story_v3 import page, ROOT, OUT
 import json
 
 def sample(page):
-    page.get_by_role('button',name='결과 예시',exact=True).click()
+    page.evaluate('enableLocalStoryQA();showSamples()')
     page.locator('.sample-choice').first.click()
 
 def test_report_graph_reference_last_and_export(page):
@@ -28,15 +28,15 @@ def test_report_graph_reference_last_and_export(page):
     assert page.locator('.journey-report a[href^="http"]').count()>=6
     page.locator('#include-appendix').check()
     page.evaluate('window.print=()=>{window.printCalled=true}')
-    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).click()
+    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).first.click()
     assert page.evaluate('window.printCalled')
     assert page.locator('#print-root .response-appendix').count()==1
-    assert page.locator('#print-root .journey-report > :last-child').get_attribute('id')=='references'
+    assert page.locator('#print-root .journey-report > :last-child').get_attribute('id')=='print-references'
     page.emulate_media(media='print')
     page.pdf(path=str(OUT/'story-v3-with-appendix.pdf'),format='A4',print_background=True)
     page.emulate_media(media='screen')
     page.locator('#include-appendix').uncheck()
-    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).click()
+    page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).first.click()
     assert page.locator('#print-root .response-appendix').count()==0
     page.emulate_media(media='print')
     page.pdf(path=str(OUT/'story-v3-report.pdf'),format='A4',print_background=True)
