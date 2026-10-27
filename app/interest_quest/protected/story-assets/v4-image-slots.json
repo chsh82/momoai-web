@@ -7,7 +7,7 @@
     {
       "id": "village-FOREST",
       "filename": "village-FOREST.webp",
-      "alt": "도서관 마을 마을의 생활 풍경",
+      "alt": "도서관마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "FOREST",
@@ -73,7 +73,7 @@
     {
       "id": "school-FOREST",
       "filename": "school-FOREST.webp",
-      "alt": "도서관 마을의 초등·중등·고등 배움 장면",
+      "alt": "도서관마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -101,7 +101,7 @@
     {
       "id": "village-LAB",
       "filename": "village-LAB.webp",
-      "alt": "과학연구소 마을 마을의 생활 풍경",
+      "alt": "연구소마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "LAB",
@@ -167,7 +167,7 @@
     {
       "id": "school-LAB",
       "filename": "school-LAB.webp",
-      "alt": "과학연구소 마을의 초등·중등·고등 배움 장면",
+      "alt": "연구소마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -195,7 +195,7 @@
     {
       "id": "village-FACTORY",
       "filename": "village-FACTORY.webp",
-      "alt": "발명공방 마을 마을의 생활 풍경",
+      "alt": "공방마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "FACTORY",
@@ -261,7 +261,7 @@
     {
       "id": "school-FACTORY",
       "filename": "school-FACTORY.webp",
-      "alt": "발명공방 마을의 초등·중등·고등 배움 장면",
+      "alt": "공방마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -289,7 +289,7 @@
     {
       "id": "village-PLAZA",
       "filename": "village-PLAZA.webp",
-      "alt": "시청광장 마을 마을의 생활 풍경",
+      "alt": "광장마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "PLAZA",
@@ -355,7 +355,7 @@
     {
       "id": "school-PLAZA",
       "filename": "school-PLAZA.webp",
-      "alt": "시청광장 마을의 초등·중등·고등 배움 장면",
+      "alt": "광장마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -383,7 +383,7 @@
     {
       "id": "village-CLINIC",
       "filename": "village-CLINIC.webp",
-      "alt": "병원 마을 마을의 생활 풍경",
+      "alt": "건강마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "CLINIC",
@@ -449,7 +449,7 @@
     {
       "id": "school-CLINIC",
       "filename": "school-CLINIC.webp",
-      "alt": "병원 마을의 초등·중등·고등 배움 장면",
+      "alt": "건강마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -477,7 +477,7 @@
     {
       "id": "village-PORT",
       "filename": "village-PORT.webp",
-      "alt": "항구시장 마을 마을의 생활 풍경",
+      "alt": "항구마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "PORT",
@@ -543,7 +543,7 @@
     {
       "id": "school-PORT",
       "filename": "school-PORT.webp",
-      "alt": "항구시장 마을의 초등·중등·고등 배움 장면",
+      "alt": "항구마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -571,7 +571,7 @@
     {
       "id": "village-FIELD",
       "filename": "village-FIELD.webp",
-      "alt": "생태농장 마을 마을의 생활 풍경",
+      "alt": "농장마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "FIELD",
@@ -637,7 +637,7 @@
     {
       "id": "school-FIELD",
       "filename": "school-FIELD.webp",
-      "alt": "생태농장 마을의 초등·중등·고등 배움 장면",
+      "alt": "농장마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -665,7 +665,7 @@
     {
       "id": "village-HOUSE",
       "filename": "village-HOUSE.webp",
-      "alt": "학교 마을 마을의 생활 풍경",
+      "alt": "교실마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "HOUSE",
@@ -731,7 +731,7 @@
     {
       "id": "school-HOUSE",
       "filename": "school-HOUSE.webp",
-      "alt": "학교 마을의 초등·중등·고등 배움 장면",
+      "alt": "교실마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [
@@ -759,7 +759,7 @@
     {
       "id": "village-STAGE",
       "filename": "village-STAGE.webp",
-      "alt": "예술극장 마을 마을의 생활 풍경",
+      "alt": "무대마을 마을의 생활 풍경",
       "aspect": "3:2",
       "slot": "village-landscape / atlas",
       "fallback_asset": "STAGE",
@@ -825,7 +825,7 @@
     {
       "id": "school-STAGE",
       "filename": "school-STAGE.webp",
-      "alt": "예술극장 마을의 초등·중등·고등 배움 장면",
+      "alt": "무대마을의 초등·중등·고등 배움 장면",
       "aspect": "9:2",
       "panel_aspect": "3:2",
       "panels": [

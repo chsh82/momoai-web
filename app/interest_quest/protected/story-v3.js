@@ -1,14 +1,14 @@
 const LAUNCH_STEPS=[['core','핵심 마을 발견'],['connections','학과·직업·공부'],['bridge','함께 만날 마을'],['second','두 번째 마을'],['third','세 번째 마을'],['compare','비교와 리포트']];
 const VILLAGE_STORY={
- FOREST:{name:'도서관 마을',subtitle:'말과 이야기의 뜻을 찾는 마을',color:'#40694e',character:'anne',role:'이야기를 기록하는 친구'},
- LAB:{name:'과학연구소 마을',subtitle:'관찰하고 이유를 알아가는 마을',color:'#315d86',character:'aronnax',role:'관찰 기록을 함께 읽는 친구'},
- FACTORY:{name:'발명공방 마을',subtitle:'도구를 설계하고 만드는 마을',color:'#93501f',character:'nemo',role:'도구의 쓰임을 상상하는 친구'},
- PLAZA:{name:'시청광장 마을',subtitle:'사람과 사회의 약속을 살피는 마을',color:'#8e4e47',character:'gigi',role:'여러 사람의 이야기를 잇는 친구'},
- CLINIC:{name:'병원 마을',subtitle:'건강과 돌봄을 생각하는 마을',color:'#366f68',character:'aouda',role:'휴식에 필요한 것을 살피는 친구'},
- PORT:{name:'항구시장 마을',subtitle:'필요와 자원을 연결하는 마을',color:'#35677a',character:'fogg',role:'여행의 여러 조건을 살피는 친구'},
- FIELD:{name:'생태농장 마을',subtitle:'생명과 환경을 관찰하는 마을',color:'#536c2d',character:'mowgli',role:'동식물의 생활을 살피는 친구'},
- HOUSE:{name:'학교 마을',subtitle:'설명하고 함께 배우는 마을',color:'#815b36',character:'beppo',role:'순서를 나눠 차근차근 돕는 친구'},
- STAGE:{name:'예술극장 마을',subtitle:'색과 소리로 표현하는 마을',color:'#78527c',character:'alice',role:'새로운 모양을 상상하는 친구'}
+ FOREST:{name:'도서관마을',subtitle:'말과 이야기의 뜻을 찾는 마을',color:'#40694e',character:'anne',role:'이야기를 기록하는 친구'},
+ LAB:{name:'연구소마을',subtitle:'관찰하고 이유를 알아가는 마을',color:'#315d86',character:'aronnax',role:'관찰 기록을 함께 읽는 친구'},
+ FACTORY:{name:'공방마을',subtitle:'도구를 설계하고 만드는 마을',color:'#93501f',character:'nemo',role:'도구의 쓰임을 상상하는 친구'},
+ PLAZA:{name:'광장마을',subtitle:'사람과 사회의 약속을 살피는 마을',color:'#8e4e47',character:'gigi',role:'여러 사람의 이야기를 잇는 친구'},
+ CLINIC:{name:'건강마을',subtitle:'건강과 돌봄을 생각하는 마을',color:'#366f68',character:'aouda',role:'휴식에 필요한 것을 살피는 친구'},
+ PORT:{name:'항구마을',subtitle:'필요와 자원을 연결하는 마을',color:'#35677a',character:'fogg',role:'여행의 여러 조건을 살피는 친구'},
+ FIELD:{name:'농장마을',subtitle:'생명과 환경을 관찰하는 마을',color:'#536c2d',character:'mowgli',role:'동식물의 생활을 살피는 친구'},
+ HOUSE:{name:'교실마을',subtitle:'설명하고 함께 배우는 마을',color:'#815b36',character:'beppo',role:'순서를 나눠 차근차근 돕는 친구'},
+ STAGE:{name:'무대마을',subtitle:'색과 소리로 표현하는 마을',color:'#78527c',character:'alice',role:'새로운 모양을 상상하는 친구'}
 };
 function villageName(id){return VILLAGE_STORY[id]?.name||PLACES.get(id)?.name||id;}
 function storyTie(m){return `<p class="story-note">관심을 탐색하는 안내이지 능력 순서가 아니에요.${m.reps.some(x=>x.tied_ids.length)?' 같은 값인 마을은 동등하며, 보여주는 순서만 달라요.':''}${m.boundary.length?' 세 곳 밖에도 같은 값의 마을이 있어요: '+m.boundary.map(villageName).map(esc).join(' · '):''}</p>`;}

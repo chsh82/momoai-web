@@ -1,8 +1,8 @@
 """Approved concrete village names must agree across user-facing surfaces."""
 from test_story_v3 import page
 
-NAMES={'FOREST':'도서관 마을','LAB':'과학연구소 마을','FACTORY':'발명공방 마을','PLAZA':'시청광장 마을','CLINIC':'병원 마을','PORT':'항구시장 마을','FIELD':'생태농장 마을','HOUSE':'학교 마을','STAGE':'예술극장 마을'}
-OLD=['속삭임 책숲','별빛 물음탑','톱니 구름공방','다정한 약속광장','햇살 쉼정원','바람 교역항','새싹 숨들판','한걸음 배움집','무지개 달무대']
+NAMES={'FOREST':'도서관마을','LAB':'연구소마을','FACTORY':'공방마을','PLAZA':'광장마을','CLINIC':'건강마을','PORT':'항구마을','FIELD':'농장마을','HOUSE':'교실마을','STAGE':'무대마을'}
+OLD=['속삭임 책숲','별빛 물음탑','톱니 구름공방','다정한 약속광장','햇살 쉼정원','바람 교역항','새싹 숨들판','한걸음 배움집','무지개 달무대','도서관 마을','과학연구소 마을','발명공방 마을','시청광장 마을','병원 마을','항구시장 마을','생태농장 마을','학교 마을','예술극장 마을']
 
 def test_concrete_names_across_map_results_and_report(page):
     assert page.evaluate('Object.fromEntries(Object.entries(VILLAGE_STORY).map(([id,v])=>[id,v.name]))')==NAMES
