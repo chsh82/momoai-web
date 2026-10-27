@@ -1,3 +1,4 @@
+from v02_helpers import open_report
 from test_story_v3 import page, ROOT, OUT
 import json
 
@@ -12,8 +13,14 @@ def test_report_graph_reference_last_and_export(page):
     target=OUT/'synthetic-example-v3.json'; d.value.save_as(target)
     data=json.loads(target.read_text(encoding='utf-8'))
     assert data['schema']=='momo-interest-record-v1'
+    versions=page.evaluate('({frame:FESTIVAL_FRAME,copy:MOMOTOWN_V02.copy_version,canonical:FORM.form_version})')
+    assert data['form_version']==data['response_frame_version']==versions['frame']
+    assert data['canonical_form_version']==versions['canonical']
+    assert data['copy_version']==versions['copy']
+    assert data['preference_snapshot']['answers']==page.evaluate('sampleSession.values')
+    assert data['preference_snapshot']['presented_villages']==page.evaluate('festivalCandidates(sampleSession)')
     assert data['data_origin']=='SYNTHETIC_EXAMPLE'
-    page.get_by_role('button',name='전체 리포트 보기',exact=True).click()
+    open_report(page)
     assert page.locator('.journey-report .village-discovery').count()==3
     assert page.locator('.interest-bar').count()==9
     for bar in page.locator('.interest-bar').all():

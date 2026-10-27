@@ -1,3 +1,4 @@
+from v02_helpers import navigation
 from test_story_v3 import page,ROOT,OUT
 from test_story_report import sample
 import base64,io,json
@@ -21,7 +22,7 @@ def test_manifest_actual_assets_chapters_and_occupations(page):
         if ImageChops.difference(a,b.resize(a.size,Image.Resampling.LANCZOS)).getbbox(): changed+=1
     assert changed>=5
     page.get_by_role('button',name='안내 건너뛰기',exact=True).click()
-    page.get_by_role('button',name='마을 전체 지도',exact=True).click()
+    page.get_by_role('button',name='마을 지도 둘러보기',exact=True).click()
     for id,v in manifest.items():
         pin=page.locator(f'.map-pin[data-village="{id}"]')
         assert pin.inner_text()==v['name']
@@ -39,10 +40,10 @@ def test_manifest_actual_assets_chapters_and_occupations(page):
         assert image.get_attribute('alt')
         assert image.evaluate('(i)=>i.complete && i.naturalWidth>0')
     assert page.locator('#main .school-stage li').count()==9
-    page.get_by_role('button',name='첫 화면으로',exact=True).click()
-    page.get_by_role('button',name='탐험 시작하기',exact=True).first.click()
+    navigation(page, '첫 화면으로')
+    page.get_by_role('button',name='초대받은 여행 떠나기',exact=True).click()
     page.get_by_role('button',name='첫 장면으로 가기 →',exact=True).click()
-    for chapter,scene in [(1,'MOMO_AMPHITHEATRE'),(2,'PLAZA'),(3,'TIME_HOUSE'),(4,'MOMO_AMPHITHEATRE')]:
+    for chapter,scene in [(1,'MOMO_AMPHITHEATRE'),(2,'PLAZA'),(3,'MOMO_AMPHITHEATRE'),(4,'MOMO_AMPHITHEATRE')]:
         page.evaluate('(n)=>{session.cursor=(n-1)*8;view="pause";render()}',chapter)
         css=page.locator('.chapter-art').get_attribute('style')
         assert page.evaluate('(id)=>placeImage(id)',scene) in css

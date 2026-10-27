@@ -1,4 +1,5 @@
 """Approved v4 behavior: local protected artifact, real Chromium, no HTTP."""
+from v02_helpers import open_report
 from test_story_v3 import page, ROOT
 import pytest
 
@@ -29,7 +30,7 @@ def test_report_core_first_print_and_computed_qa_labels(page,key):
     assert page.locator('.sample-choice b').all_inner_texts()==expected
     page.evaluate('(key)=>showSample(key)',key)
     core=page.evaluate('villageName(reportModel(sampleSession).paths[0].row.domain_id)')
-    page.evaluate('printResult()')
+    open_report(page)
     assert page.locator('.journey-report h1').inner_text()==f'나에게 잘 어울리는 {core}을 소개합니다!'
     assert '가상 예시' in page.locator('.journey-report > :first-child').inner_text()
     order=page.locator('.journey-report').evaluate('(e)=>[...e.children].map(x=>x.className)')
@@ -43,15 +44,22 @@ def test_report_core_first_print_and_computed_qa_labels(page,key):
     assert page.evaluate('()=>{const ids=[...document.querySelectorAll("[id]")].map(e=>e.id);return ids.length===new Set(ids).size}')
     assert page.locator('.story-report svg').count()==0
 
-def test_pdf_first_page_contains_core_scene(page):
+def test_pdf_first_page_contains_core_scene(page,record_property):
     import fitz
-    page.evaluate("showSample('story');printResult()")
+    page.evaluate("showSample('story')")
+    open_report(page)
     page.evaluate('()=>{window.print=()=>{}}')
     page.locator('.report-bottom-print button').click()
     page.emulate_media(media='print')
     document=fitz.open(stream=page.pdf(format='A4',print_background=True),filetype='pdf')
     assert len(document[0].get_images())>0
     assert '소개할게' in document[0].get_text()
+    # Audit every page without pinning the historical 19-page observation.
+    record_property('pdf_page_count',len(document))
+    for i,pdf_page in enumerate(document):
+        assert pdf_page.get_text().strip(),f'blank page {i+1}'
+    assert '<참고목록>' in document[-1].get_text()
+    assert '인쇄 또는 PDF 저장' not in ''.join(p.get_text() for p in document)
 
 def test_compact_story_is_complete_but_shorter(page):
     result=page.evaluate('''()=>{const p={slot:2,row:{domain_id:'FACTORY',evidence:[]},codes:[],catalogCodes:BRIDGE_BY_VILLAGE.get('FACTORY').group_codes};const el=document.createElement('div');el.innerHTML=discovery(p,false);const full=el.querySelector('.village-news p').textContent;el.innerHTML=discovery(p,true);return {full,compact:el.querySelector('.village-news p').textContent,intros:el.querySelectorAll('.host-intro p').length,books:!!el.querySelector('.village-books')}}''')
@@ -61,8 +69,8 @@ def test_compact_story_is_complete_but_shorter(page):
 @pytest.mark.parametrize('width',[390,1440])
 def test_public_navigation_and_atlas_targets(page,width):
     page.set_viewport_size({'width':width,'height':950})
-    assert page.locator('.brand strong').inner_text()=='모모아이 전공마을 탐색'
-    assert page.locator('.brand small').inner_text()=='나의 호기심으로 시작하는 나만의 이야기'
+    assert page.locator('.brand strong').inner_text()=='모모타운 축제'
+    assert page.locator('.brand small').inner_text()=='아홉 마을, 하나의 타운 · 하고 싶은 일을 찾는 방문'
     assert page.locator('.brand-mark').count()==0
     assert page.locator('.nav button[onclick="showSamples()"] ').count()==0
     page.evaluate('showSamples()')

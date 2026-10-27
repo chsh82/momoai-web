@@ -18,7 +18,7 @@ def build():
     if a in html:
         begin=html.index(a);end=html.index('<!-- /STORY_V3_STYLE -->',begin)+len('<!-- /STORY_V3_STYLE -->')
         html=html[:begin]+html[end:]
-    html=html.replace('</head>',a+'<style>'+(base/'story-v3.css').read_text(encoding='utf-8')+'</style><!-- /STORY_V3_STYLE --></head>')
+    html=html.replace('</head>',a+'<style>'+(base/'story-v3.css').read_text(encoding='utf-8')+'\n'+(base/'momotown-v02.css').read_text(encoding='utf-8')+'</style><!-- /STORY_V3_STYLE --></head>')
     html=re.sub(r'<footer class="footer">[\s\S]*?</footer>','<footer class="footer"><p>모모의 이야기 탐험단 · 관심을 발견하는 여행<br>입력은 이 페이지에만 있어요. 닫기 전에 기록 파일로 저장해 주세요.</p></footer>',html)
     manifest=json.loads((base/'story-assets/v4-image-slots.json').read_text(encoding='utf-8'))
     embedded=json.loads((base/'story-assets/embedded.json').read_text(encoding='utf-8'))
@@ -44,7 +44,11 @@ def build():
             output.write(b';\n')
             for name in ['story-v3-illustrations.js','story-v3.js']:
                 output.write((base/name).read_bytes());output.write(b'\n')
-            output.write(b'</script></body></html>')
+            output.write(b'const MOMOTOWN_V02=')
+            output.write((base/'momotown-v02.json').read_bytes())
+            output.write(b';\n')
+            output.write((base/'momotown-v02.js').read_bytes())
+            output.write(b'\n</script></body></html>')
         temporary.replace(target)
     finally:temporary.unlink(missing_ok=True)
 if __name__=='__main__':build()

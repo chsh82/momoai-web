@@ -434,6 +434,28 @@ main:focus,#result-panel:focus{outline:none}
 @media(max-width:600px){.companion-previews{grid-template-columns:1fr;gap:20px}.story-report .report-heading{padding:22px 20px}.report-map-legend{grid-template-columns:1fr;gap:12px}.report-map-place>span{padding:3px 1px;font-size:10px}.map-rank{top:2px;left:2px;width:20px;height:20px;font-size:14px}.report-map-place.is-selected{border-width:2px}}
 @media(max-width:600px){.report-map-place>img{display:none}.report-map-place>span{padding:6px 2px;line-height:1.4}.report-map-place.is-selected{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;overflow:visible;background:#fff1b8}.report-map-place.is-selected>span{display:none}.report-map-place.is-selected .map-rank{position:static;width:26px;height:26px;border:0;font-size:17px}}
 @media print{.story-menu-toggle{display:none!important}.story-report .report-heading{padding:0 0 5mm}.story-report .report-page p{line-height:1.7!important}.story-report .school-stage{padding:3.5mm}.story-report .school-stage li{margin:3mm 0;padding-inline-start:1mm}.story-report .school-stage ul{padding-inline-start:5mm;margin-top:3mm}.story-report .school-stage li p{line-height:1.7!important}.story-report .report-map-summary{break-inside:avoid}.story-report .report-map-place{width:18.5%;height:auto;display:block;border-radius:8px;overflow:hidden;background:#fffef8}.story-report .report-map-place>img{display:block}.story-report .report-map-place>span,.story-report .report-map-place.is-selected>span{display:block;font-size:10pt;padding:2mm 1mm}.story-report .report-map-place.is-selected .map-rank{position:absolute;top:4px;left:4px;width:7mm;height:7mm;border:1px solid #865022;font-size:14pt}.story-report .map-rank{width:7mm;height:7mm;font-size:14pt}.story-report .report-map-legend{grid-template-columns:repeat(3,minmax(0,1fr));gap:3mm;margin-top:5mm}.story-report .report-map-legend li{padding:3mm;font-size:11pt;break-inside:avoid}.story-report .report-map-legend span{margin-top:2mm}}
+
+/* Festival copy uses existing layout and artwork. */
+.festival-dialogue{border-left:3px solid #8c734a;padding-left:1rem;line-height:1.8}
+.preference-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.preference-card{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:12px;border:2px solid #aaa88e;border-radius:12px;background:#fffdf6;color:#253e37;cursor:pointer;font:inherit}
+.preference-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px}
+.preference-card[aria-pressed=true]{border-color:#2e6551;background:#eaf1e5;box-shadow:inset 0 0 0 2px #2e6551}
+.preference-card:focus-visible{outline:3px solid #315d86;outline-offset:3px}
+.preference-card:disabled{cursor:wait;opacity:.7}
+.festival-mode{font-size:.9rem;color:#4b6155}
+#festival-save-status:not(:empty){padding:12px;background:#fff1dc;border:2px solid #8c734a}
+@media(max-width:540px){.preference-candidates{gap:6px}.preference-card{padding:6px;font-size:.85rem}}
+/* The same explicit collapsed menu on desktop and mobile. */
+.story-menu-toggle{display:block;min-width:60px;min-height:44px;padding:8px 12px;background:#fffdf6;border:1px solid #81998a;border-radius:10px;color:#233e37;font:inherit;margin-left:auto}
+.top .nav{flex-basis:100%;width:100%}
+.top .nav:not(.is-open){display:none}
+.top .nav.is-open{display:flex}
+@media print{.festival-mode,.identity-unavailable,#festival-preference{display:none!important}}
+/* Keep the selection marker in the flex layout even before it is selected.
+   display:none added both a glyph and a gap on click, shrinking the label text. */
+.option .selected-check{display:inline;visibility:hidden}
+.option:has(input:checked) .selected-check{visibility:visible}
 </style><!-- /STORY_V3_STYLE --></head><body>
 <a class="skip" href="#main">본문으로 이동</a><div class="notice"><b>초5–6 관심탐험</b> · 나의 관심을 살펴보는 여행 · 32개 장면에서 지도와 미래의 공부로</div><div class="shell">
 <header class="top"><button class="brand" onclick="goHome()" aria-label="처음 화면"><span class="brand-mark" aria-hidden="true">m</span><span><strong>모모아이</strong><small>나의 호기심으로 여는 다음 이야기</small></span></button><nav class="nav" aria-label="보조 메뉴"><button class="text-btn plain-btn desktop-only" onclick="showAtlas()">마을 전체 지도</button><button class="text-btn" onclick="showSamples()">결과 예시</button><button class="text-btn" onclick="showManagement()">기록 저장·불러오기</button></nav></header>
@@ -1947,5 +1969,1475 @@ function memoryFingerprint(s){return JSON.stringify([s.values,s.quest,s.response
 exportRecord=function(forceResult=true){const s=view==='report'?(reportReturn==='sample'?sampleSession:session):(['result','sample'].includes(view)&&forceResult?dataForResult().s:session);launchExport(forceResult);if(s)exportedRecords.set(s,memoryFingerprint(s));};
 window.addEventListener('beforeunload',event=>{if(session?.origin==='LOCAL_USER_INPUT'&&session.values.some(v=>v!==null)&&exportedRecords.get(session)!==memoryFingerprint(session)){event.preventDefault();event.returnValue='';}});
 view='greeting';history.replaceState(storyHistoryState(),'');render(false);
+
+const MOMOTOWN_V02={
+  "form_version": "1.0.0-draft1+interest-only-momotown-v02",
+  "copy_version": "momotown-festival-v02",
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "모모타운 한 바퀴",
+      "concept": "둘러보기",
+      "range": [
+        1,
+        8
+      ],
+      "goal": "모모와 타운 이곳저곳을 보며 어떤 활동이 있는지 발견한다.",
+      "intro": "모모: 먼저 모모타운을 한 바퀴 돌아보자. 마을 곳곳에서 어떤 일을 하는지 보면서, 해 보고 싶은 일을 골라 줘.",
+      "closing": "모모: 타운 곳곳을 둘러봤네. 이번에는 체험하는 친구들 곁으로 가 보자."
+    },
+    {
+      "chapter": 2,
+      "title": "나도 해 보고 싶어",
+      "concept": "체험하기",
+      "range": [
+        9,
+        16
+      ],
+      "goal": "학생이 그 자리에 참여한다는 상황에서 체험하고 싶은 역할을 고른다. 실제 미니게임이나 실습을 추가하지 않는다.",
+      "intro": "기기: 이번에는 체험하는 곳들이야. 베포: 그 자리에 네가 있다면 어떤 일을 해 보고 싶은지 골라 보렴.",
+      "closing": "모모: 여러 체험을 만나 봤네. 이제 축제를 준비하는 친구들에게 가 볼까?"
+    },
+    {
+      "chapter": 3,
+      "title": "축제를 함께 준비해",
+      "concept": "축제 준비 돕기",
+      "range": [
+        17,
+        24
+      ],
+      "goal": "모모타운 축제를 준비하는 상황에서 본인이 하고 싶은 활동을 선택한다. 가장 도움이 되거나 착한 답을 고르는 문제가 아니다.",
+      "intro": "모모: 타운 곳곳에서 축제 준비가 한창이야. 여러 일 중 네가 해 보고 싶은 일을 골라 보자.",
+      "closing": "모모: 축제를 준비하는 일도 여럿 만났네. 이제 돌아갈 시간을 생각하며 마지막으로 둘러보자."
+    },
+    {
+      "chapter": 4,
+      "title": "다시 만날 모모타운",
+      "concept": "방문 갈무리",
+      "range": [
+        25,
+        32
+      ],
+      "goal": "쉬어 가기·재방문·다음 방문을 떠올리는 장면으로 이번 선택을 갈무리하고 결과로 연결한다.",
+      "intro": "모모: 이제 방문을 마무리할 시간이야. 잠깐 쉬어 가고, 기억에 남은 곳도 다시 만나 보자.",
+      "closing": "모모: 서른두 장면에서 하고 싶은 일을 골라 봤네. 이번 선택과 이어지는 세 마을을 같이 만나 보자."
+    }
+  ],
+  "scenes": [
+    {
+      "source_item_id": "IE56-Q01",
+      "order": 1,
+      "chapter": 1,
+      "character_id": "dorothy",
+      "title": "모모타운 입구에서",
+      "scene": "모모와 타운 입구를 지나며 축제를 맞이하는 친구들을 만나요.",
+      "dialogue": "도로시: 모모타운에 잘 왔어! 여기서는 축제를 맞아 여러 일을 준비하고 있어.",
+      "question": "입구에서 본 일 중 네가 해 보고 싶은 건 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-01-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "축제의 느낌을 담은 간판과 초대장을 만들기"
+        },
+        {
+          "source_option_id": "IE56-01-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "사람들이 편하게 쓸 수 있는 안내대를 만들기"
+        },
+        {
+          "source_option_id": "IE56-01-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 온 친구에게 놀이 방법을 쉽게 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-01-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "친구들의 의견을 듣고 함께 지킬 약속을 정하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q02",
+      "order": 2,
+      "chapter": 1,
+      "character_id": "nemo",
+      "title": "항구의 바다 관찰 창",
+      "scene": "항구에 있는 네모선장의 배에서 바닷속을 볼 수 있는 창을 만나요.",
+      "dialogue": "네모선장: 창밖으로 처음 보는 생물이 지나가는구나. 여기서 할 수 있는 일들을 살펴보렴.",
+      "question": "이 생물을 만난다면 어떤 일을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-02-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "그 생물이 언제 나타나는지 관찰 기록을 비교하기"
+        },
+        {
+          "source_option_id": "IE56-02-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "처음 만난 생물을 주인공으로 짧은 이야기 쓰기"
+        },
+        {
+          "source_option_id": "IE56-02-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "생물이 사는 곳의 물과 주변 환경 살펴보기"
+        },
+        {
+          "source_option_id": "IE56-02-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "생물을 더 잘 볼 수 있는 관찰 도구 모형을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q03",
+      "order": 3,
+      "chapter": 1,
+      "character_id": "jekyll",
+      "title": "두 기록이 놓인 방",
+      "scene": "지킬 박사가 같은 방을 보고 쓴 기록 두 장을 보여 줘요.",
+      "dialogue": "지킬 박사: 같은 물건인데 두 사람이 색을 다르게 적었구나. 두 기록이 여기 있단다.",
+      "question": "이 두 기록을 보고 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-03-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "두 기록자의 말을 듣고 함께 지킬 기록 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-03-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "빛이 달랐는지 확인할 수 있는 관찰 순서를 정하기"
+        },
+        {
+          "source_option_id": "IE56-03-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "기록을 남긴 두 사람의 이야기를 번갈아 써 보기"
+        },
+        {
+          "source_option_id": "IE56-03-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "같은 방을 두 가지 색으로 표현해 보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q04",
+      "order": 4,
+      "chapter": 1,
+      "character_id": "alice",
+      "title": "큰 컵과 작은 문",
+      "scene": "앨리스와 전시실을 둘러보니 큰 컵과 작은 문이 보여요.",
+      "dialogue": "앨리스: 이 방은 물건 크기가 제각각이야. 다른 사람들도 이 모습을 구경하러 올 거야.",
+      "question": "이 전시실을 소개한다면 어떤 일을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-04-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "물건의 크기를 비교하며 어떤 규칙이 있는지 찾기"
+        },
+        {
+          "source_option_id": "IE56-04-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "작은 문을 통과할 수 있는 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-04-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "크기가 바뀐 물건들로 새로운 장면을 그리기"
+        },
+        {
+          "source_option_id": "IE56-04-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "이곳에 사는 인물이 들려줄 이야기를 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q05",
+      "order": 5,
+      "chapter": 1,
+      "character_id": "holmes",
+      "title": "전시실의 빈자리",
+      "scene": "다른 전시실에 작은 모형이 놓여 있던 자리가 비어 있어요.",
+      "dialogue": "홈즈: 여기 있던 모형이 보이지 않는구나. 옆에는 사람들이 남긴 기록과 이야기가 있어.",
+      "question": "이 전시실에서는 무슨 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-05-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "시간별 기록을 비교해 서로 맞지 않는 단서를 찾기"
+        },
+        {
+          "source_option_id": "IE56-05-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "전시물의 입장에서 오늘 겪은 일을 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-05-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 사람의 의견을 듣고 전시물을 함께 관리할 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-05-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "전시물이 옮겨지면 그 기록이 남는 장치 모형 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q06",
+      "order": 6,
+      "chapter": 1,
+      "character_id": "fogg",
+      "title": "타운 산책 안내도",
+      "scene": "포그가 모모타운을 둘러볼 때 참고하는 이동 안내 두 장을 펼쳐요.",
+      "dialogue": "포그: 같은 타운에서도 여러 길로 다닐 수 있단다. 함께 둘러볼 친구들이 참고할 안내야.",
+      "question": "타운을 돌아볼 안내를 준비한다면 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-06-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "타운을 돌아볼 이동 방법마다 드는 돈을 비교해 예산표 만들기"
+        },
+        {
+          "source_option_id": "IE56-06-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "타운에서 찾아갈 곳의 사람과 생활 이야기를 찾아 소개하기"
+        },
+        {
+          "source_option_id": "IE56-06-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "여행 중 편히 쉬고 물을 마실 곳을 표시하기"
+        },
+        {
+          "source_option_id": "IE56-06-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 여행하는 친구에게 지도를 읽는 방법을 알려 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q07",
+      "order": 7,
+      "chapter": 1,
+      "character_id": "anne",
+      "title": "새 친구를 맞는 전시",
+      "scene": "앤이 새로 온 친구와 서로를 알아갈 작은 전시를 보여 줘요.",
+      "dialogue": "앤: 반가워! 서로 어떤 이야기를 가진 친구인지 알아보는 전시야.",
+      "question": "새 친구를 만나는 이 전시에서 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-07-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "새 친구에게 들려주고 싶은 우리 이야기를 쓰기"
+        },
+        {
+          "source_option_id": "IE56-07-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "친구들이 좋아하는 것을 듣고 함께 할 일을 정하기"
+        },
+        {
+          "source_option_id": "IE56-07-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "전시를 처음 보는 친구에게 차근차근 설명하기"
+        },
+        {
+          "source_option_id": "IE56-07-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "환영하는 마음을 담은 그림이나 음악을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q08",
+      "order": 8,
+      "chapter": 1,
+      "character_id": "tom_sawyer",
+      "title": "점심시간 놀이 마당",
+      "scene": "첫 번째 둘러보기의 끝에서 톰의 놀이 마당을 만나요.",
+      "dialogue": "톰: 점심시간에 즐길 새 놀이를 생각하고 있어. 여기에서 해 볼 일이 여러 가지야.",
+      "question": "새 놀이를 만든다면 네가 하고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-08-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "직접 움직여 볼 수 있는 놀이 도구 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-08-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 친구가 함께 즐길 수 있도록 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-08-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "놀이를 소개하는 짧은 몸짓 공연과 음악을 만들기"
+        },
+        {
+          "source_option_id": "IE56-08-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 재료 안에서 무엇을 준비할지 비용 비교하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q09",
+      "order": 9,
+      "chapter": 2,
+      "character_id": "mowgli",
+      "title": "숲 안내소 체험",
+      "scene": "모글리가 숲 안내소에서 체험할 수 있는 활동을 보여 줘요.",
+      "dialogue": "모글리: 여기서 본 숲의 모습을 방문객과 나누는 안내소야. 네가 참여하는 모습을 떠올려 봐.",
+      "question": "숲 안내소 체험에서는 어떤 역할을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-09-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "방문객이 편히 쉬며 몸을 돌볼 수 있는 장소를 안내하기"
+        },
+        {
+          "source_option_id": "IE56-09-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "동물과 식물이 어디에서 살아가는지 관찰해 기록하기"
+        },
+        {
+          "source_option_id": "IE56-09-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "같은 장소를 여러 번 관찰하며 달라진 점을 찾기"
+        },
+        {
+          "source_option_id": "IE56-09-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 친구에게 관찰한 것을 쉽게 설명해 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q10",
+      "order": 10,
+      "chapter": 2,
+      "character_id": "dorothy",
+      "title": "정원에서 해 보는 일",
+      "scene": "도로시와 정원의 전시·쉼터 체험 자리를 둘러봐요.",
+      "dialogue": "도로시: 정원에서 어떤 일을 해 볼지 고를 수 있어. 네가 참여한다면 어떨까?",
+      "question": "이 정원에서 직접 해 보고 싶은 활동은 무엇이야?",
+      "options": [
+        {
+          "source_option_id": "IE56-10-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "정원의 장소마다 바람개비가 도는 빠르기 비교하기"
+        },
+        {
+          "source_option_id": "IE56-10-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 돈으로 살 씨앗과 화분의 값 비교하기"
+        },
+        {
+          "source_option_id": "IE56-10-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "오래된 정원에서 있었을 일을 상상해 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-10-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "햇빛과 흙을 살펴 정원에 기를 식물을 고르기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q11",
+      "order": 11,
+      "chapter": 2,
+      "character_id": "nemo",
+      "title": "바다 기록 전시 체험",
+      "scene": "네모선장이 항해에서 모은 기록을 체험 자리에서 펼쳐요.",
+      "dialogue": "네모선장: 바다에서 보고 느낀 것이 여기 모여 있단다. 이 전시에서 해 볼 일을 골라 보렴.",
+      "question": "바다 기록 전시에 참여한다면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-11-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "바다에서 느낀 분위기를 색과 소리로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-11-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "날마다 기록한 파도의 높이에서 반복되는 변화를 찾기"
+        },
+        {
+          "source_option_id": "IE56-11-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "전시 준비에 필요한 물건의 값과 수량을 계산하기"
+        },
+        {
+          "source_option_id": "IE56-11-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 방문객에게 항해 기록표 읽는 방법을 알려 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q12",
+      "order": 12,
+      "chapter": 2,
+      "character_id": "jekyll",
+      "title": "오래된 온실 체험",
+      "scene": "지킬 박사와 오래된 온실을 만나요. 주인의 일기와 빈 화분이 남아 있어요.",
+      "dialogue": "지킬 박사: 이 온실을 다시 사용하는 모습을 생각해 보자. 여기에 여러 활동이 있단다.",
+      "question": "온실을 다시 쓰는 체험에서는 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-12-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "남겨진 일기를 읽고 이곳 주인의 마음을 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-12-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "고칠 물건과 새로 살 물건에 드는 돈 비교하기"
+        },
+        {
+          "source_option_id": "IE56-12-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "흙과 햇빛을 살펴 화분을 돌보는 계획을 세우기"
+        },
+        {
+          "source_option_id": "IE56-12-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "흔들리는 화분을 받칠 튼튼한 받침대 모형을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q13",
+      "order": 13,
+      "chapter": 2,
+      "character_id": "alice",
+      "title": "앨리스의 찻집 체험",
+      "scene": "메뉴판 크기와 앉는 자리가 제각각인 찻집에서 앨리스를 만나요.",
+      "dialogue": "앨리스: 새 손님을 맞는 찻집 체험이야. 네가 여기 함께 있다면 어떤 일이 끌려?",
+      "question": "이 찻집에서는 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-13-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "간식의 값을 비교해 정해진 돈 안에서 고르기"
+        },
+        {
+          "source_option_id": "IE56-13-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "서로 원하는 자리가 다를 때 함께 지킬 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-13-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "컵의 모양과 담기는 물의 양이 어떤 관계인지 비교하기"
+        },
+        {
+          "source_option_id": "IE56-13-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 온 손님에게 메뉴판을 읽는 방법을 알려 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q14",
+      "order": 14,
+      "chapter": 2,
+      "character_id": "holmes",
+      "title": "교환 가게 체험",
+      "scene": "홈즈가 책·화분·장난감을 서로 바꾸어 쓰는 가게를 소개해요.",
+      "dialogue": "홈즈: 물건을 바꾸어 쓰는 가게야. 이곳의 여러 일 중 하나를 골라 볼 수 있단다.",
+      "question": "물건을 바꾸는 가게에서 네가 해 보고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-14-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "물건의 상태와 쓰임을 비교해 교환 기준 정하기"
+        },
+        {
+          "source_option_id": "IE56-14-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 방문객에게 교환 방법을 순서대로 설명하기"
+        },
+        {
+          "source_option_id": "IE56-14-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "물건을 고르는 순서에 대해 서로의 의견을 듣기"
+        },
+        {
+          "source_option_id": "IE56-14-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "가게에 들어온 식물의 상태를 살펴 돌보는 역할 맡아 보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q15",
+      "order": 15,
+      "chapter": 2,
+      "character_id": "fogg",
+      "title": "여행자 마을의 하루 체험",
+      "scene": "포그가 여러 여행자가 머무는 마을의 하루 행사 체험을 보여 줘요.",
+      "dialogue": "포그: 여러 곳에서 온 사람들이 함께 시간을 보내는 곳이란다. 행사에 참여하는 모습을 떠올려 보렴.",
+      "question": "여행자들의 하루 행사에 참여한다면 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-15-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "마을에서 자라는 나무와 새가 머무는 곳을 기록하기"
+        },
+        {
+          "source_option_id": "IE56-15-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "여행지의 느낌을 담은 그림과 리듬을 만들기"
+        },
+        {
+          "source_option_id": "IE56-15-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "여행자의 몸이 편히 쉴 수 있는 휴식 장소를 살펴보기"
+        },
+        {
+          "source_option_id": "IE56-15-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "서로 다른 생활 습관을 가진 여행자들의 약속을 정하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q16",
+      "order": 16,
+      "chapter": 2,
+      "character_id": "anne",
+      "title": "함께 쓰는 정원 체험",
+      "scene": "앤과 친구들이 함께 쓰는 정원에서 체험할 활동을 살펴봐요.",
+      "dialogue": "앤: 여러 친구가 시간을 보내는 정원이야. 네가 해 보고 싶은 활동을 찾아보자.",
+      "question": "친구들과 정원을 함께 쓴다면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-16-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "물을 주기 편한 물뿌리개 모형을 설계하기"
+        },
+        {
+          "source_option_id": "IE56-16-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "정원을 함께 쓰는 친구들의 의견을 듣고 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-16-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 참여한 친구에게 씨앗 심는 순서를 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-16-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "식물이 자라는 모습을 오래 관찰하고 돌보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q17",
+      "order": 17,
+      "chapter": 3,
+      "character_id": "tom_sawyer",
+      "title": "축제의 종이배 전시",
+      "scene": "톰이 모모타운 축제에 놓을 종이배 전시를 준비하고 있어요.",
+      "dialogue": "톰: 깊은 물이 아니라 책상 위 물통에서 종이배를 살펴볼 거야.",
+      "question": "종이배 전시를 준비할 때 어떤 일을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-17-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 접는 친구에게 종이배 접는 방법을 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-17-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "종이배 모양을 바꾸면 뜨는 모습이 어떻게 달라지는지 보기"
+        },
+        {
+          "source_option_id": "IE56-17-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "종이배를 타고 떠나는 인물의 모험 이야기를 쓰기"
+        },
+        {
+          "source_option_id": "IE56-17-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "준비할 종이와 물통의 가격을 비교해 구입 목록을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q18",
+      "order": 18,
+      "chapter": 3,
+      "character_id": "mowgli",
+      "title": "축제에 전할 숲 이야기",
+      "scene": "모글리가 축제에 보여 줄 숲 전시를 준비해요.",
+      "dialogue": "모글리: 자연물은 가져오지 않고 기록으로 숲의 모습을 전할 거야.",
+      "question": "축제의 숲 전시에서는 무슨 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-18-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "숲의 하루를 나무의 입장에서 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-18-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "숲에서 들은 소리를 짧은 음악과 몸짓으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-18-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 준비 비용을 어디에 쓸지 계산하기"
+        },
+        {
+          "source_option_id": "IE56-18-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "동물과 식물이 함께 사는 모습을 관찰해 기록하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q19",
+      "order": 19,
+      "chapter": 3,
+      "character_id": "dorothy",
+      "title": "모모타운 축제 신문",
+      "scene": "도로시가 축제에 나눌 마을 신문을 펼쳐요.",
+      "dialogue": "도로시: 마을에서 만난 사람과 장소를 소개할 신문이야. 아직 채울 곳이 있네.",
+      "question": "축제 신문을 만들며 네가 해 보고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-19-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "신문의 표지 그림과 글자의 모양을 디자인하기"
+        },
+        {
+          "source_option_id": "IE56-19-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "축제 신문을 만드는 데 드는 종이값과 인쇄비 계산하기"
+        },
+        {
+          "source_option_id": "IE56-19-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "마을 어른에게 들은 옛이야기를 글로 옮기기"
+        },
+        {
+          "source_option_id": "IE56-19-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "몸을 돌보고 쉬는 데 도움이 되는 장소를 찾아 소개하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q20",
+      "order": 20,
+      "chapter": 3,
+      "character_id": "nemo",
+      "title": "축제를 준비하는 친구들의 기지",
+      "scene": "네모선장이 축제를 준비하는 친구들이 며칠 머물 기지를 보여 줘요.",
+      "dialogue": "네모선장: 기지는 며칠 지낼 곳이란다. 머무는 사람마다 기대하는 생활이 다르구나.",
+      "question": "축제 준비 친구들이 머물 곳에서 무엇을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-20-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "기지에서 함께 생활할 약속을 여러 사람과 의논하기"
+        },
+        {
+          "source_option_id": "IE56-20-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "친구들이 몸 상태를 살피고 쉴 수 있는 준비물 챙기기"
+        },
+        {
+          "source_option_id": "IE56-20-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 돈으로 필요한 생활용품 고르기"
+        },
+        {
+          "source_option_id": "IE56-20-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "축제 준비 친구들이 머물 기지의 하루를 짧은 이야기로 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q21",
+      "order": 21,
+      "chapter": 3,
+      "character_id": "jekyll",
+      "title": "축제의 관찰 전시회",
+      "scene": "지킬 박사가 빛·그림자와 일상 기록을 보여 줄 축제 전시를 준비해요.",
+      "dialogue": "지킬 박사: 방문객들이 둘러볼 관찰 전시회란다. 준비할 일을 살펴보렴.",
+      "question": "관찰 전시회를 준비한다면 어떤 활동을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-21-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "방문객에게 관찰 기록을 읽는 순서를 쉽게 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-21-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "오래 둘러본 방문객이 몸을 쉬게 할 공간을 살피기"
+        },
+        {
+          "source_option_id": "IE56-21-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "빛의 방향에 따라 그림자가 달라지는 까닭을 확인하기"
+        },
+        {
+          "source_option_id": "IE56-21-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "다양한 방문객이 전시실을 함께 쓰는 약속을 정하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q22",
+      "order": 22,
+      "chapter": 3,
+      "character_id": "alice",
+      "title": "모모타운 축제 장터",
+      "scene": "앨리스와 하루 동안 열리는 축제 장터의 준비 모습을 만나요.",
+      "dialogue": "앨리스: 화분과 장난감, 먹거리를 놓을 자리야. 손님을 맞기 전에 할 일이 있어.",
+      "question": "축제 장터에서는 어떤 일을 함께 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-22-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "장터에서 나눌 화분의 흙과 잎을 살펴 돌보기"
+        },
+        {
+          "source_option_id": "IE56-22-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "사람들이 물을 마시고 몸을 쉬게 할 장소를 챙기기"
+        },
+        {
+          "source_option_id": "IE56-22-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "크기가 다른 물건을 올려놓을 진열대 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-22-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "물건을 준비한 비용을 비교해 가격표를 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q23",
+      "order": 23,
+      "chapter": 3,
+      "character_id": "holmes",
+      "title": "축제 산책길의 전시판",
+      "scene": "홈즈와 축제 산책길의 빈 전시판 앞에 서요.",
+      "dialogue": "홈즈: 사람들이 잠깐 머물며 볼 내용을 준비하려고 해.",
+      "question": "축제 산책길의 전시판을 준비한다면 무엇을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-23-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "산책길의 느낌을 색과 모양으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-23-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "걷다 지친 사람이 편히 쉬는 데 필요한 것을 알아보기"
+        },
+        {
+          "source_option_id": "IE56-23-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "산책길에서 자라는 풀과 나무를 관찰하기"
+        },
+        {
+          "source_option_id": "IE56-23-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "이 길을 먼저 걸었던 사람의 이야기를 찾아 글로 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q24",
+      "order": 24,
+      "chapter": 3,
+      "character_id": "fogg",
+      "title": "축제의 여행 박람회",
+      "scene": "포그가 축제에 소개할 여행 이야기 박람회를 준비하고 있어요.",
+      "dialogue": "포그: 여러 이동 방법과 여행의 모습을 소개하는 작은 박람회란다.",
+      "question": "여행 박람회를 준비하며 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-24-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 팀이 전시 공간을 나누어 쓰는 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-24-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "여행에서 만난 풍경을 무대 그림으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-24-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "수레가 굴러가는 모습을 보여줄 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-24-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "바퀴 크기에 따라 수레가 움직이는 모습을 비교하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q25",
+      "order": 25,
+      "chapter": 4,
+      "character_id": "anne",
+      "title": "돌아가기 전 책 읽는 쉼터",
+      "scene": "방문을 마무리하며 앤이 보여 주는 책 읽는 쉼터에 들러요.",
+      "dialogue": "앤: 방은 이미 정해져 있어. 다음에도 편히 책을 읽을 수 있게 쓰는 방법을 생각하고 있어.",
+      "question": "이 쉼터를 다음에도 쓰려면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-25-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "오래 읽는 사람이 몸의 불편함을 줄이도록 쉴 곳을 살피기"
+        },
+        {
+          "source_option_id": "IE56-25-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "책과 필요한 물건을 정해진 돈 안에서 고르기"
+        },
+        {
+          "source_option_id": "IE56-25-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "책이 넘어지지 않게 받쳐 줄 물건을 설계하기"
+        },
+        {
+          "source_option_id": "IE56-25-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "창문과 전등의 위치에 따라 밝기가 어떻게 달라지는지 보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q26",
+      "order": 26,
+      "chapter": 4,
+      "character_id": "tom_sawyer",
+      "title": "다음 산책을 위한 안내",
+      "scene": "톰이 다음에 이 길을 걸을 친구들을 위한 산책 안내판을 보여 줘요.",
+      "dialogue": "톰: 낮에 짧게 산책할 때 참고할 내용을 모으고 있어.",
+      "question": "다음 산책 안내에 보탤 일 중 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-26-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 가는 친구에게 지도를 읽는 방법을 쉽게 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-26-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "산책길에서 볼 수 있는 나무와 새의 모습을 정리하기"
+        },
+        {
+          "source_option_id": "IE56-26-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "그늘과 햇빛이 있는 곳의 온도 기록을 비교하기"
+        },
+        {
+          "source_option_id": "IE56-26-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "걷는 중 몸이 힘들 때 쉴 장소와 도움받을 곳을 정리하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q27",
+      "order": 27,
+      "chapter": 4,
+      "character_id": "mowgli",
+      "title": "기억에 남길 숲길",
+      "scene": "모글리가 숲길을 소개할 전시와 작은 다리 모형을 보여 줘요.",
+      "dialogue": "모글리: 진짜 다리를 짓는 건 아니야. 길의 모습을 작은 모형과 이야기로 보여 주려고 해.",
+      "question": "이 숲길을 기억하며 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-27-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "장난감 인형이 건널 수 있는 다리 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-27-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "이 길을 따라간 사람의 이야기를 상상해 쓰기"
+        },
+        {
+          "source_option_id": "IE56-27-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 사람이 좁은 길을 함께 이용할 약속을 의논하기"
+        },
+        {
+          "source_option_id": "IE56-27-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "다리 모양에 따라 버티는 무게가 어떻게 다른지 비교하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q28",
+      "order": 28,
+      "chapter": 4,
+      "character_id": "dorothy",
+      "title": "다음 방문자를 위한 안내",
+      "scene": "도로시가 다음에 올 친구에게 보여 줄 안내 노트를 펼쳐요.",
+      "dialogue": "도로시: 처음 타운에 오는 친구가 참고할 내용을 남기려고 해.",
+      "question": "다음 방문자를 위한 안내를 만든다면 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-28-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "마을의 식물을 오래 돌보는 방법을 관찰해 기록하기"
+        },
+        {
+          "source_option_id": "IE56-28-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "새 친구가 알아야 할 생활 방법을 쉬운 순서로 설명하기"
+        },
+        {
+          "source_option_id": "IE56-28-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "서로 다른 의견을 듣고 마을에서 함께 지낼 약속을 정리하기"
+        },
+        {
+          "source_option_id": "IE56-28-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "몸이 불편한 사람이 쉴 곳과 도움받을 곳을 안내하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q29",
+      "order": 29,
+      "chapter": 4,
+      "character_id": "nemo",
+      "title": "바다 전시를 다시 만나며",
+      "scene": "전에 본 바다 기록과 모형이 모인 전시를 다시 찾아요.",
+      "dialogue": "네모선장: 친구들이 준비한 자료가 모였구나. 다음 손님을 맞을 일도 남아 있단다.",
+      "question": "다시 만난 바다 전시에서 네가 하고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-29-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "관찰 그림을 가까이 볼 수 있는 받침대 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-29-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "바다 생물이 사는 곳과 그곳을 지킬 방법을 소개하기"
+        },
+        {
+          "source_option_id": "IE56-29-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "방문객이 몸의 피로를 덜고 쉬어 갈 수 있게 준비하기"
+        },
+        {
+          "source_option_id": "IE56-29-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "바다의 색과 소리를 담은 전시 장면을 꾸미기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q30",
+      "order": 30,
+      "chapter": 4,
+      "character_id": "jekyll",
+      "title": "온실을 다시 둘러보며",
+      "scene": "온실을 다시 보니 아까 눈여겨보지 못한 작은 새 잎도 보여요.",
+      "dialogue": "지킬 박사: 어린 친구들도 이 온실을 둘러볼 거란다. 함께 할 수 있는 일들을 보렴.",
+      "question": "온실에 다시 온다면 어떤 활동을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-30-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "식물의 새 잎과 흙 상태를 살펴 돌보기"
+        },
+        {
+          "source_option_id": "IE56-30-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "식물에서 떠오르는 느낌을 그림과 색으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-30-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 친구에게 관찰 기록을 쓰는 방법을 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-30-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "화분에 맞는 물받이 모형을 설계하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q31",
+      "order": 31,
+      "chapter": 4,
+      "character_id": "alice",
+      "title": "오늘 본 전시를 돌아보며",
+      "scene": "앨리스가 전시를 둘러본 뒤 다음 방문객에게 전할 내용을 생각해요.",
+      "dialogue": "앨리스: 전시를 보고 떠오른 생각이 여러 가지야. 다음에 올 사람에게 나눌 것도 있겠지.",
+      "question": "오늘 본 전시를 돌아보며 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-31-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "전시 중 몸이 피곤해질 때 쉬는 방법을 안내하기"
+        },
+        {
+          "source_option_id": "IE56-31-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 방문객이 전시의 순서를 이해하도록 설명하기"
+        },
+        {
+          "source_option_id": "IE56-31-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "전시에서 느낀 감정을 짧은 음악과 그림으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-31-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "전시실에 살 법한 인물을 만들어 이야기를 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q32",
+      "order": 32,
+      "chapter": 4,
+      "character_id": "holmes",
+      "title": "다시 올 모모타운을 떠올리며",
+      "scene": "마지막으로 홈즈와 다음 전시를 준비하는 친구들을 만나요.",
+      "dialogue": "홈즈: 이번 전시에서 알게 된 점을 모아 다음 전시를 생각하고 있어.",
+      "question": "모모타운의 다음 전시에 다시 온다면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-32-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "새 참가자에게 기록표 쓰는 방법을 차근차근 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-32-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "전시물이 흔들리지 않게 고정하는 받침을 설계하기"
+        },
+        {
+          "source_option_id": "IE56-32-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "오래 서 있는 관람객이 편히 쉴 자리를 살피기"
+        },
+        {
+          "source_option_id": "IE56-32-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "전시를 준비하는 데 쓸 물건과 비용을 비교하기"
+        }
+      ]
+    }
+  ],
+  "opening": {
+    "student": [
+      "모모: {학생실명}, 모모타운 축제에 온 걸 환영해! 나는 모모야.",
+      "모모: 작은 마을 아홉 곳이 모여 하나의 모모타운이 되었어. 타운 곳곳에서 축제를 즐기고 준비하고 있지.",
+      "모모: 먼저 둘러보고, 체험할 일도 골라 보고, 축제 준비도 함께 만나 보자. 장면마다 네가 하고 싶은 일 하나를 고르면 돼.",
+      "모모: 돌아가기 전에는 네 선택과 이어지는 세 마을을 만나고, 그중 가장 마음에 든 곳을 골라 리포트를 볼 거야."
+    ],
+    "admin_first": "모모: 모모타운 축제에 온 걸 환영해! 나는 모모야.",
+    "rule": "학생은 서버가 확인한 실명만 사용. 관리자 검수는 무기명. 이름/별명 입력창 추가 없음."
+  },
+  "tie_copy": "같은 선택 비율로 나온 마을은 동등해. 여기서는 정해진 순서로 세 마을을 소개할게. 소개 순서는 실력이나 진로의 순위가 아니야.",
+  "preference": {
+    "question": "세 마을을 둘러봤어. 지금 가장 마음에 드는 마을은 어디야?",
+    "instruction": "정답은 없어. 네가 느낀 대로 한 곳을 골라 줘.",
+    "cta": "선택하고 리포트 보기"
+  }
+};
+/* Final display-only festival overlay. FORM/V12/scorer remain canonical. */
+const FESTIVAL_FRAME=MOMOTOWN_V02.form_version;
+const festivalScenes=new Map(MOMOTOWN_V02.scenes.map(s=>[s.source_item_id,s]));
+const festivalOptions=new Map(MOMOTOWN_V02.scenes.flatMap(s=>s.options.map(o=>[o.source_option_id,o.proposed_text])));
+function festivalCurrent(s){return s?.response_frame_version===FESTIVAL_FRAME;}
+const festivalBase={init,question,pause,greeting,intro,guide,reportHtml,reportModel,recordFrame};
+init=function(){festivalBase.init();session.response_frame_version=FESTIVAL_FRAME;session.copy_version=MOMOTOWN_V02.copy_version;render();};
+greeting=function(){let h=festivalBase.greeting();return h.replace(esc(GREETING[greetingIndex]),esc(greetingIndex===0?MOMOTOWN_V02.opening.admin_first:MOMOTOWN_V02.opening.student[greetingIndex])).replace('너의 다음 이야기를 찾아서','모모타운 축제에 온 걸 환영해!');};
+intro=function(){return festivalBase.intro().replaceAll('모모의 이야기 탐험단','모모타운 축제').replace('좋아하는 일을 따라,','모모타운 축제에서,').replace('32개의 이야기에서 내가 맡고 싶은 활동을 골라 출발해요.','아홉 마을이 모인 하나의 타운에서, 하고 싶은 활동을 골라요.');};
+guide=function(){return festivalBase.guide().replace('잘한다고 느끼는 일이나 해보고 싶은 일 중, 내가 맡고 싶은 활동 하나를 골라요.','장면마다 내가 해 보고 싶은 활동 하나를 골라요.').replace('다음 탐험도 찾아봐요.','축제에서 만난 관심을 돌아봐요.');};
+question=function(){let h=festivalBase.question();if(!festivalCurrent(session))return h;const q=FORM.items[session.cursor],c=festivalScenes.get(q.id);h=h.replace(esc(q.title),esc(c.title)).replace(esc(q.scene),esc(c.scene));const oldQuestion=session.response_frame_version===FORM_V12?POLICY.response_frame.common_question:q.question;h=h.replace(esc(oldQuestion),esc(c.question));for(const o of q.options)h=h.replace(esc(o.text),esc(festivalOptions.get(o.id)));h=h.replace('</p><div class="scene-source">','</p><div class="scene-source">');return h.replace('<p id="scene-copy">'+esc(c.scene)+'</p>','<p id="scene-copy">'+esc(c.scene)+'</p><p class="festival-dialogue">'+esc(c.dialogue)+'</p>').replace('<p class="q-help" id="question-help">내가 맡고 싶은 활동 하나를 골라 주세요.</p>','<p class="q-help sr-only" id="question-help">네 가지 중 하나를 선택하세요.</p>');};
+pause=function(){if(!festivalCurrent(session))return festivalBase.pause();const c=MOMOTOWN_V02.chapters[Math.floor(session.cursor/8)],previous=MOMOTOWN_V02.chapters[c.chapter-2];return crumb(c.title)+`<section class="chapter-screen paper" data-chapter="${c.chapter}"><div class="chapter-art" style="--scene:url('${placeImage(c.chapter===2?'PLAZA':'MOMO_AMPHITHEATRE')}')"><div class="chapter-hosts">${characterImage('momo','','모모')}</div></div><div class="chapter-copy"><div class="eyebrow">${c.chapter}장 · ${session.cursor} / 32 기록</div><h1>${esc(c.title)}</h1>${previous?`<p>${esc(previous.closing)}</p>`:''}<p>${esc(c.intro)}</p><div class="actions chapter-actions">${button('다음 이야기로 →','continueJourney()',false,true)}</div><p class="micro">각 장은 여덟 장면이에요. 체험은 이야기 속 상황이며 실제 과제를 수행하지 않아요.</p></div></section>`;};
+recordFrame=function(s){return festivalCurrent(s)?'하고 싶은 활동을 고른 관심 전용 기록이에요. 이전 안내 버전과 같은 척도로 비교하지 않아요.':festivalBase.recordFrame(s);};
+/* Only replace evidence in a derived report model; never canonical source rows. */
+reportModel=function(s){const m=festivalBase.reportModel(s);if(!m||!festivalCurrent(s))return m;const copy=e=>({...e,title:festivalScenes.get(e.item_id||e.source_item_id)?.title||e.title,option_text:festivalOptions.get(e.option_id)||e.option_text});m.reps=m.reps.map(r=>({...r,evidence:r.evidence.map(copy)}));m.paths=m.paths.map(p=>({...p,row:{...p.row,evidence:p.row.evidence.map(copy)},evidence:p.evidence.map(copy)}));return m;};
+reportHtml=function(m){let h=festivalBase.reportHtml(m);if(!festivalCurrent(m.s))return h;for(const q of FORM.items){h=h.replaceAll(esc(q.title),esc(festivalScenes.get(q.id).title));for(const o of q.options)h=h.replaceAll(esc(o.text),esc(festivalOptions.get(o.id)));}return h;};
+document.querySelector('.brand strong').textContent='모모타운 축제';
+document.querySelector('.brand small').textContent='아홉 마을, 하나의 타운 · 하고 싶은 일을 찾는 방문';
+document.querySelector('.footer').innerHTML='<p>모모타운 축제 · 하고 싶은 일을 찾는 여행<br>진행 중인 선택은 기록 파일로 백업할 수 있어요.</p>';
+window.festivalIdentity={mode:location.protocol==='file:'?'LOCAL_ADMIN_PREVIEW':'pending',display_name:null};
+const FESTIVAL_API='/student/interest-quest';
+const festivalDisplayRender=render,festivalContentInit=init,festivalContentGreeting=greeting;
+function festivalIdentityReady(){return ['student','admin_preview','LOCAL_ADMIN_PREVIEW'].includes(window.festivalIdentity.mode);}
+function festivalModeLabel(){return window.festivalIdentity.mode==='LOCAL_ADMIN_PREVIEW'?'로컬 관리자 미리보기 · 학생 데이터로 저장하지 않아요.':window.festivalIdentity.mode==='admin_preview'?'관리자 미리보기 · 학생 데이터로 저장하지 않아요.':'학생 모드 · 완료한 응답과 선호는 서버 저장 성공을 확인해요.';}
+function festivalIdentityBlock(){return `<section class="paper identity-unavailable"><h1>학생 신원을 확인하고 있어요</h1><p role="alert" tabindex="-1">${window.festivalIdentity.mode==='unavailable'?'신원을 확인할 수 없어요. 연결이나 계정 정보를 확인한 뒤 다시 시도해 주세요.':'확인 전에는 새 방문을 시작할 수 없어요.'}</p>${button('신원 확인 다시 시도','loadFestivalContext()')}</section>`;}
+async function loadFestivalContext(){
+ if(location.protocol==='file:')return;
+ window.festivalIdentity={mode:'pending',display_name:null};render(false);
+ try{const response=await fetch(FESTIVAL_API+'/context',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error('context');const c=await response.json();if(!['student','admin_preview'].includes(c.mode)||c.form_version!==FESTIVAL_FRAME||c.copy_version!==MOMOTOWN_V02.copy_version||(c.mode==='student'&&(typeof c.display_name!=='string'||!c.display_name.trim()||!c.csrf_token)))throw Error('context');window.festivalIdentity={...c,display_name:c.mode==='student'?c.display_name:null};}
+ catch(e){window.festivalIdentity={mode:'unavailable',display_name:null};}
+ render(false);document.querySelector('.identity-unavailable [role=alert]')?.focus();
+}
+init=function(){if(!festivalIdentityReady()){render();return;}festivalContentInit();};
+greeting=function(){let h=festivalContentGreeting();if(greetingIndex===0&&window.festivalIdentity.mode==='student')h=h.replace(esc(MOMOTOWN_V02.opening.admin_first),esc(MOMOTOWN_V02.opening.student[0].replace('{학생실명}',window.festivalIdentity.display_name)));return h;};
+render=function(focus=true){if(!festivalIdentityReady()){$('#main').innerHTML=festivalIdentityBlock();return;}festivalDisplayRender(focus);if(['greeting','intro','guide'].includes(view))$('#main').insertAdjacentHTML('afterbegin',`<p class="festival-mode" role="status">${festivalModeLabel()}</p>`);};
+render(false);
+/* Context is loaded after all final overlay hooks are installed. */
+
+const festivalResultBase={finish,choose,render,printResult,printUnified,result,storyTie};
+function festivalFingerprint(s){return JSON.stringify([s.response_frame_version,s.values]);}
+function festivalState(s){if(!s)return null;const fingerprint=festivalFingerprint(s);if(s.festival?.fingerprint!==fingerprint)s.festival={fingerprint,seen:{},preference:null,acknowledged:false,selected:null,submitting:false};return s.festival;}
+function festivalActive(){return view==='report'?(reportReturn==='sample'?sampleSession:session):dataForResult().s;}
+function festivalCandidates(s){return reportModel(s)?.paths.map(p=>p.row.domain_id)||[];}
+function festivalMissing(s){const f=festivalState(s);return festivalCandidates(s).flatMap((id,i)=>['intro','study'].filter(section=>!f.seen[id]?.includes(section)).map(section=>({id,section,tab:i===0?(section==='intro'?'core':'connections'):i===1?'second':'third'})));}
+function festivalAllowed(s){const f=festivalState(s);return !!(festivalCurrent(s)&&s.result&&festivalCandidates(s).length===3&&!festivalMissing(s).length&&f.acknowledged&&f.preference?.selected_village_id&&festivalCandidates(s).includes(f.preference.selected_village_id));}
+finish=function(){if(!festivalIdentityReady()||!session)return;festivalState(session);festivalResultBase.finish();};
+choose=function(id){if(!session)return;const q=FORM.items[session.cursor];if(q.options.some(o=>o.id===id)&&session.values[session.cursor]!==id){session.festival=null;$('#print-root').innerHTML='';}festivalResultBase.choose(id);};
+function festivalVisitMissing(tab){closeDialog();view='result';setTab(tab);}
+function festivalGate(s=festivalActive()){
+ if(!s?.result)return false;
+ if(!festivalCurrent(s)){openDialog('이전 안내 버전의 기록',`<p>${esc(recordFrame(s))}</p><p>이 기록을 관심 전용 새 응답으로 바꾸거나 선호와 합치지 않아요. 새 축제 방문에서 다시 선택해 주세요.</p>${button('새 방문 시작하기','closeDialog();init()')}`);return false;}
+ if(festivalAllowed(s))return true;
+ const missing=festivalMissing(s);
+ if(missing.length){openDialog('세 마을을 먼저 만나 보자',`<p role="alert">아직 만나지 않은 마을의 안내와 공부 화면이 있어요. 화면을 둘러본 기록이며, 읽고 이해했는지 평가하지 않아요.</p><div class="actions">${[...new Map(missing.map(x=>[x.tab,x])).values()].map(x=>button(esc(villageName(x.id))+(x.tab==='connections'?' 공부 보기':' 만나기'),`festivalVisitMissing('${x.tab}')`)).join('')}</div>`);return false;}
+ festivalPreferenceDialog(s);return false;
+}
+function festivalPreferenceDialog(s=festivalActive()){
+ const f=festivalState(s),ids=festivalCandidates(s);
+ openDialog('마음에 드는 마을 고르기',`<section id="festival-preference"><h2>${esc(MOMOTOWN_V02.preference.question)}</h2><p>${esc(MOMOTOWN_V02.preference.instruction)}</p><p class="festival-mode">${festivalModeLabel()}</p><div class="preference-candidates" role="group" aria-label="세 마을 중 한 곳 선택">${ids.map(id=>`<button type="button" class="preference-card" data-village="${id}" aria-pressed="${f.selected===id}" onclick="festivalSelectPreference('${id}')" ${f.submitting?'disabled':''}><img src="${placeImage(id)}" alt=""><b>${esc(villageName(id))}</b></button>`).join('')}</div><p id="festival-save-status" role="alert" tabindex="-1">${esc(f.error||'')}</p><button class="btn" id="festival-confirm" onclick="festivalConfirmPreference()" ${!f.selected||f.submitting?'disabled':''}>${f.submitting?'저장 확인 중…':esc(MOMOTOWN_V02.preference.cta)}</button></section>`);
+}
+function festivalSelectPreference(id){const s=festivalActive(),f=festivalState(s);if(f.submitting||!festivalCandidates(s).includes(id))return;if(f.selected!==id)f.preference_request_id=null;f.selected=id;f.error='';document.querySelectorAll('.preference-card').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.village===id)));$('#festival-confirm').disabled=false;}
+function festivalOpenReport(s){closeDialog();reportReturn=s===sampleSession?'sample':'result';view='report';render();}
+async function festivalConfirmPreference(){const s=festivalActive(),f=festivalState(s);if(f.submitting||!festivalCandidates(s).includes(f.selected)||festivalMissing(s).length)return;f.preference={selected_village_id:f.selected,analysis_revision:'ADMIN_PREVIEW',displayed_villages_in_order:festivalCandidates(s),origin:'ADMIN_PREVIEW'};f.acknowledged=true;festivalOpenReport(s);}
+printResult=function(){const s=festivalActive();if(festivalGate(s))festivalOpenReport(s);};
+printUnified=function(){if(festivalGate(festivalActive()))festivalResultBase.printUnified();};
+/* Ctrl+P bypasses printUnified: never trust cached material from another visit. */
+addEventListener('beforeprint',()=>{
+ const root=$('#print-root'),s=festivalActive();root.innerHTML='';
+ if(!festivalIdentityReady()||!s||!festivalAllowed(s))return;
+ root.innerHTML=reportHtml(reportModel(s));
+ const appendix=root.querySelector('.response-appendix');
+ if(appendix){if($('#include-appendix')?.checked)appendix.open=true;else appendix.remove();}
+});
+storyTie=function(m){return `<p class="story-note">${esc(MOMOTOWN_V02.tie_copy)}</p>`;};
+result=function(){const s=dataForResult().s;return festivalResultBase.result()+(!festivalCurrent(s)?`<p class="banner" role="status">${esc(recordFrame(s))}</p>`:'');};
+render=function(focus=true){
+ if(!festivalIdentityReady())return festivalResultBase.render(focus);
+ if(view==='report'&&!festivalAllowed(festivalActive())){view=reportReturn==='sample'?'sample':'result';festivalResultBase.render(focus);festivalGate(festivalActive());return;}
+ festivalResultBase.render(focus);
+ if(!['result','sample'].includes(view))return;
+ const s=festivalActive();if(!festivalCurrent(s)||!s?.result)return;const f=festivalState(s),ids=festivalCandidates(s);
+ const sections=resultTab==='core'?[[ids[0],['intro']]]:resultTab==='connections'?[[ids[0],['study']]]:resultTab==='second'?[[ids[1],['intro','study']]]:resultTab==='third'?[[ids[2],['intro','study']]]:[];
+ for(const [id,shown] of sections){if(!id)continue;const actual=shown.filter(section=>document.querySelector(section==='intro'?`.village-discovery[data-village="${id}"]`:`.study-connections[data-path="${id}"]`));f.seen[id]=[...new Set([...(f.seen[id]||[]),...actual])];}
+};
+/* HTTP contract: student writes only, server/client agreement before results. */
+const festivalServerBase={finish,render,festivalConfirmPreference,festivalAllowed};
+function festivalStudent(){return window.festivalIdentity.mode==='student';}
+async function festivalRequest(path,payload){
+ if(!festivalStudent())throw Error('학생 모드에서만 저장할 수 있어요.');
+ const response=await fetch(FESTIVAL_API+path,{method:payload?'POST':'GET',credentials:'same-origin',cache:'no-store',headers:payload?{'Content-Type':'application/json','X-CSRFToken':window.festivalIdentity.csrf_token}:{},...(payload?{body:JSON.stringify(payload)}:{})});
+ if(!response.ok)throw Error('서버 저장을 확인하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.');
+ return response.json();
+}
+function festivalAnalysisMatches(s,a,presented){
+ if(!a||!Array.isArray(a.domains)||a.domains.length!==9)return false;
+ const local=s.result||InterestScoring.score(responseRows(s),FORM),fields=['domain_id','selected_count','offered_count','comparison_units','display_order'];
+ const equal=local.domains.every(row=>{const remote=a.domains.find(d=>d.domain_id===row.domain_id);return remote&&fields.every(k=>remote[k]===row[k]);});
+ const reps=representativeData(local).reps.map(d=>d.domain_id);
+ return equal&&JSON.stringify(a.representatives)===JSON.stringify(reps)&&JSON.stringify(presented||a.representatives)===JSON.stringify(reps);
+}
+function festivalStillActive(s,f){return (s===session||s===sampleSession)&&s.festival===f&&festivalFingerprint(s)===f.fingerprint;}
+function festivalSaveScreen(){const f=festivalState(session);return `<section class="paper"><h1>결과를 서버와 확인하고 있어요</h1><p role="alert" tabindex="-1" id="festival-attempt-status">${esc(f?.error||'32개 응답을 저장하고 같은 분석인지 확인해요.')}</p><div class="actions"><button class="btn" onclick="finish()" ${f?.saving?'disabled':''}>결과 저장 다시 시도</button>${button('선택한 응답 수정','backToReview()',true)}</div></section>`;}
+finish=async function(){
+ if(!festivalIdentityReady()||!session)return;
+ if(!festivalStudent()||!festivalCurrent(session))return festivalServerBase.finish();
+ const s=session,f=festivalState(s);if(f.saving)return;
+ let navigation=festivalNavigationGeneration;
+ try{const local=InterestScoring.score(responseRows(s),FORM);f.saving=true;f.error='';f.attempt_request_id ||=crypto.randomUUID();view='festival-saving';render();navigation=festivalNavigationGeneration;
+ const saved=await festivalRequest('/attempts',{request_id:f.attempt_request_id,form_version:FESTIVAL_FRAME,answers:[...s.values]});
+ if(!festivalStillActive(s,f))return;
+ if(!saved.attempt_id||!saved.analysis_revision||!festivalAnalysisMatches({...s,result:local},saved.analysis,saved.presented_villages))throw Error('서버 분석과 화면 분석이 일치하지 않아 결과를 열지 않았어요. 운영자에게 확인해 주세요.');
+ const check=await festivalRequest('/attempts/'+encodeURIComponent(saved.attempt_id));
+ if(!festivalStillActive(s,f))return;
+ if(check.attempt_id!==saved.attempt_id||check.analysis_revision!==saved.analysis_revision||!festivalAnalysisMatches({...s,result:local},check.analysis,check.presented_villages))throw Error('서버 저장 결과를 확인하지 못했어요. 다시 시도해 주세요.');
+ Object.assign(f,{attempt_id:saved.attempt_id,analysis_revision:saved.analysis_revision,verified:true,server_seen:{}});s.result=local;f.saving=false;
+ if(navigation!==festivalNavigationGeneration)return;
+ resultTab='core';view='result';render();festivalRememberAttempt(f.attempt_id);
+ }catch(e){if(!festivalStillActive(s,f))return;f.saving=false;f.error=e.message;if(navigation!==festivalNavigationGeneration)return;view='festival-saving';render();$('#festival-attempt-status')?.focus();}
+};
+async function festivalFlushPresentations(s,f){
+ if(!festivalStudent()||!f.verified||!festivalStillActive(s,f))return;
+ for(const id of festivalCandidates(s)){
+  if(!festivalStillActive(s,f))return;
+  const shown=f.seen[id]||[],sent=f.server_seen?.[id]||[];
+  if(!shown.some(section=>!sent.includes(section)))continue;
+  await festivalRequest('/attempts/'+encodeURIComponent(f.attempt_id)+'/presentation',{analysis_revision:f.analysis_revision,domain_id:id,sections:[...shown]});
+  if(!festivalStillActive(s,f))return;
+  const check=await festivalRequest('/attempts/'+encodeURIComponent(f.attempt_id));
+  if(check.analysis_revision!==f.analysis_revision||!festivalAnalysisMatches(s,check.analysis,check.presented_villages))throw Error('서버의 최신 분석을 다시 확인해 주세요.');
+  f.server_seen||={};f.server_seen[id]=[...shown];
+ }
+}
+function festivalQueuePresentations(s){const f=festivalState(s);if(!festivalStudent()||!f.verified)return;f.presentation_queue=(f.presentation_queue||Promise.resolve()).catch(()=>{}).then(()=>festivalFlushPresentations(s,f));f.presentation_queue.catch(()=>{});}
+festivalConfirmPreference=async function(){
+ const s=festivalActive(),f=festivalState(s);
+ if(!festivalStudent())return festivalServerBase.festivalConfirmPreference();
+ if(f.submitting||!f.verified||festivalMissing(s).length||!festivalCandidates(s).includes(f.selected))return;
+ f.submitting=true;f.error='';f.preference_request_id ||=crypto.randomUUID();festivalPreferenceDialog(s);
+ const navigation=festivalNavigationGeneration;
+ try{
+  await (f.presentation_queue||Promise.resolve()).catch(()=>{});await festivalFlushPresentations(s,f);
+  if(!festivalStillActive(s,f))return;
+  const payload={request_id:f.preference_request_id,analysis_revision:f.analysis_revision,selected_village_id:f.selected};
+  const saved=await festivalRequest('/attempts/'+encodeURIComponent(f.attempt_id)+'/preference',payload);
+  if(!festivalStillActive(s,f))return;
+  if(!saved.preference||saved.preference.selected_village_id!==payload.selected_village_id||!festivalAnalysisMatches(s,saved.analysis))throw Error('선호 저장과 기존 분석을 확인하지 못했어요. 다시 시도해 주세요.');
+  const check=await festivalRequest('/attempts/'+encodeURIComponent(f.attempt_id));
+  if(!festivalStillActive(s,f))return;
+  if(check.analysis_revision!==f.analysis_revision||check.preference?.selected_village_id!==payload.selected_village_id||!festivalAnalysisMatches(s,check.analysis,check.presented_villages))throw Error('서버에 저장된 선택을 확인하지 못했어요. 다시 시도해 주세요.');
+  f.preference=check.preference;f.acknowledged=true;f.submitting=false;
+  if(navigation===festivalNavigationGeneration)festivalOpenReport(s);
+ }catch(e){if(!festivalStillActive(s,f))return;f.submitting=false;f.error=e.message;if(navigation!==festivalNavigationGeneration)return;festivalPreferenceDialog(s);$('#festival-save-status')?.focus();}
+};
+festivalAllowed=function(s){return festivalServerBase.festivalAllowed(s)&&(!festivalStudent()||festivalState(s).verified===true);};
+render=function(focus=true){
+ if(festivalIdentityReady()&&view==='festival-saving'){$('#main').innerHTML=festivalSaveScreen();return;}
+ festivalServerBase.render(focus);
+ if(['result','sample'].includes(view)){const s=festivalActive();if(festivalCurrent(s))festivalQueuePresentations(s);}
+};
+render(false);
+/* Versioned file snapshots never confer student acknowledgement. */
+const festivalRecordBase={readFile,applyImport,loadFestivalContext,init};
+let festivalNavigationGeneration=0;
+/* Data acknowledgements survive departure; only current navigation may open UI. */
+const festivalNavigationBase={goHome,backToReview,closeDialog,render};
+let festivalRenderedView=view;
+goHome=function(){festivalNavigationGeneration++;return festivalNavigationBase.goHome();};
+backToReview=function(){festivalNavigationGeneration++;return festivalNavigationBase.backToReview();};
+closeDialog=function(){festivalNavigationGeneration++;return festivalNavigationBase.closeDialog();};
+addEventListener('popstate',()=>{festivalNavigationGeneration++;},true);
+$('#dialog').addEventListener('cancel',()=>{festivalNavigationGeneration++;});
+render=function(focus=true){if(view!==festivalRenderedView){festivalNavigationGeneration++;festivalRenderedView=view;}return festivalNavigationBase.render(focus);};
+function festivalSnapshot(s){
+ if(!festivalCurrent(s)||!s.result)return null;
+ const f=festivalState(s);return {form_version:FESTIVAL_FRAME,copy_version:MOMOTOWN_V02.copy_version,answers:[...s.values],attempt_id:f.attempt_id||null,analysis_revision:f.analysis_revision||f.preference?.analysis_revision||null,presented_villages:festivalCandidates(s),seen:JSON.parse(JSON.stringify(f.seen)),preference:f.preference||null};
+}
+function festivalRecord(s){
+ const frame=s.response_frame_version||FORM.form_version,complete=s.values.every(v=>v!==null);
+ return {schema:'momo-interest-record-v1',module_id:FORM.module_id,form_id:FORM.form_id,form_version:frame,response_frame_version:frame,canonical_form_version:FORM.form_version,copy_version:festivalCurrent(s)?MOMOTOWN_V02.copy_version:null,scoring_version:FORM.scoring_version,experience_version:FORM.experience_version,content_digest:FORM.content_digest,data_origin:s.origin,cursor:s.cursor,responses:responseRows(s),quest_choice:s.quest,result:complete?InterestScoring.score(responseRows(s),FORM):null,representative_rule_version:RULE_V12,preference_snapshot:festivalSnapshot(s)};
+}
+exportRecord=function(forceResult=true){const s=view==='report'?(reportReturn==='sample'?sampleSession:session):(['result','sample'].includes(view)&&forceResult?dataForResult().s:session);if(!s)return toast('아직 저장할 기록이 없어요.');saveBlob(new Blob([JSON.stringify(festivalRecord(s),null,2)],{type:'application/json'}),'모모타운_방문기록.json');exportedRecords.set(s,memoryFingerprint(s));};
+function festivalValidateSnapshot(raw,valid){
+ const p=raw.preference_snapshot;if(p===null||p===undefined)return null;
+ const s={...valid,response_frame_version:FESTIVAL_FRAME,result:InterestScoring.score(FORM.items.map((q,i)=>({item_id:q.id,option_id:valid.values[i]})),FORM)},ids=festivalCandidates(s);
+ if(p.form_version!==FESTIVAL_FRAME||p.copy_version!==MOMOTOWN_V02.copy_version||JSON.stringify(p.answers)!==JSON.stringify(valid.values)||JSON.stringify(p.presented_villages)!==JSON.stringify(ids)||!p.seen||typeof p.seen!=='object'||Array.isArray(p.seen))throw Error('선호 스냅샷과 응답·버전·세 마을 순서가 일치하지 않아요.');
+ for(const [id,sections] of Object.entries(p.seen))if(!ids.includes(id)||!Array.isArray(sections)||sections.some(x=>!['intro','study'].includes(x)))throw Error('마을 화면 기록을 확인할 수 없어요.');
+ if(p.preference&&(!ids.includes(p.preference.selected_village_id)||p.preference.analysis_revision!==p.analysis_revision||(p.preference.displayed_villages_in_order&&JSON.stringify(p.preference.displayed_villages_in_order)!==JSON.stringify(ids))))throw Error('선호와 분석 버전이 일치하지 않아요.');
+ return p;
+}
+readFile=async function(file){
+ if(!file)return;
+ try{
+  if(file.size>1000000)throw Error('1MB 이하의 JSON 기록을 골라 주세요.');
+  const raw=JSON.parse(await file.text());
+  if(raw.form_version!==FESTIVAL_FRAME){if((raw.response_frame_version&&raw.response_frame_version!==raw.form_version)||raw.preference_snapshot||raw.copy_version===MOMOTOWN_V02.copy_version)throw Error('이전 기록과 새 안내 버전이 섞여 있어요. 원본 기록 파일을 확인해 주세요.');return festivalRecordBase.readFile(file);}
+  if(raw.response_frame_version!==FESTIVAL_FRAME||raw.canonical_form_version!==FORM.form_version||raw.copy_version!==MOMOTOWN_V02.copy_version)throw Error('안내 버전 정보가 일치하지 않아요.');
+  const valid=InterestScoring.validateRecord({...raw,form_version:FORM.form_version},FORM);if(festivalStudent()&&valid.origin==='SYNTHETIC_EXAMPLE')throw Error('가상 예시는 학생의 실제 응답으로 저장하지 않아요.');const snapshot=festivalValidateSnapshot(raw,valid);
+  pendingImport={...valid,response_frame_version:FESTIVAL_FRAME,festival_snapshot:snapshot,festival_import:true};
+  if(session?.values.some(v=>v!==null))openDialog('불러온 기록으로 바꿀까요?',`<p>현재 선택을 바꾸기 전에 필요한 기록을 저장해 주세요.</p>${button('불러오기','applyImport()')}${button('취소','cancelImport()',true)}`);else await applyImport();
+ }catch(e){pendingImport=null;toast(e instanceof SyntaxError?'올바른 JSON 기록 파일이 아닙니다.':e.message);}
+};
+applyImport=async function(){
+ if(pendingImport){festivalNavigationGeneration++;$('#print-root').innerHTML='';}
+ if(!pendingImport?.festival_import)return festivalRecordBase.applyImport();
+ const p=pendingImport;pendingImport=null;closeDialog();
+ const s={values:[...p.values],cursor:p.cursor,quest:p.quest,origin:p.origin,result:p.complete?InterestScoring.score(FORM.items.map((q,i)=>({item_id:q.id,option_id:p.values[i]})),FORM):null,started_at:null,response_frame_version:FESTIVAL_FRAME,copy_version:MOMOTOWN_V02.copy_version};
+ if(s.origin==='SYNTHETIC_EXAMPLE')sampleSession=s;else session=s;
+ editReturn=false;resultTab='core';view=p.complete?(s===sampleSession?'sample':'result'):'question';
+ const f=festivalState(s);
+ if(p.festival_snapshot&&!festivalStudent()){f.seen=p.festival_snapshot.seen;f.preference=p.festival_snapshot.preference;f.acknowledged=false;}
+ if(festivalStudent()&&p.complete){if(p.festival_snapshot?.attempt_id)await festivalRestoreAttempt(p.festival_snapshot.attempt_id,s);else await finish();}
+ else render();
+};
+function festivalRememberAttempt(id){if(location.protocol==='file:')return;const url=new URL(location.href);url.hash='attempt='+encodeURIComponent(id);history.replaceState(history.state,'',url);}
+async function festivalRestoreAttempt(id,imported=null){
+ if(!festivalStudent())return;
+ const generation=++festivalNavigationGeneration,identity=window.festivalIdentity,previous=session,fingerprint=previous?festivalFingerprint(previous):null;
+ const stillCurrent=()=>generation===festivalNavigationGeneration&&identity===window.festivalIdentity&&festivalStudent()&&session===previous&&(!previous||festivalFingerprint(previous)===fingerprint);
+ $('#print-root').innerHTML='';
+ try{
+  const raw=await festivalRequest('/attempts/'+encodeURIComponent(id));
+  if(!stillCurrent())return;
+  if(raw.form_version!==FESTIVAL_FRAME||raw.copy_version!==MOMOTOWN_V02.copy_version||!Array.isArray(raw.answers)||raw.answers.length!==32)throw Error('서버 기록의 응답과 버전을 확인할 수 없어요. 운영자에게 확인해 주세요.');
+  InterestScoring.validateResponses(FORM.items.map((q,i)=>({item_id:q.id,option_id:raw.answers[i]})),FORM);
+  if(imported&&JSON.stringify(imported.values)!==JSON.stringify(raw.answers))throw Error('파일 응답과 서버 기록이 일치하지 않아요.');
+  const s=imported||{values:[...raw.answers],cursor:31,quest:null,origin:'LOCAL_USER_INPUT',started_at:null,response_frame_version:FESTIVAL_FRAME,copy_version:MOMOTOWN_V02.copy_version};
+  s.result=InterestScoring.score(responseRows(s),FORM);
+  if(raw.attempt_id!==id||!raw.analysis_revision||!festivalAnalysisMatches(s,raw.analysis,raw.presented_villages))throw Error('서버 분석과 화면 분석이 일치하지 않아요.');
+  const f=festivalState(s);Object.assign(f,{attempt_id:id,analysis_revision:raw.analysis_revision,verified:true,seen:{},server_seen:{},preference:null,acknowledged:false});
+  if(Array.isArray(raw.presentations))for(const row of raw.presentations){const shown=row.shown_sections;if(festivalCandidates(s).includes(row.domain_id)&&Array.isArray(shown)&&shown.every(x=>['intro','study'].includes(x))){f.seen[row.domain_id]=[...shown];f.server_seen[row.domain_id]=[...shown];}}
+  const pref=raw.preference;if(pref&&pref.analysis_revision===f.analysis_revision&&festivalCandidates(s).includes(pref.selected_village_id)&&JSON.stringify(pref.displayed_villages_in_order)===JSON.stringify(festivalCandidates(s))){f.preference=pref;f.acknowledged=!festivalMissing(s).length;}
+  session=s;view='result';resultTab='core';festivalRememberAttempt(id);render();
+ }catch(e){if(!stillCurrent())return;if(!session)session={values:Array(32).fill(null),cursor:0,quest:null,origin:'LOCAL_USER_INPUT',response_frame_version:FESTIVAL_FRAME,result:null};const f=festivalState(session);f.error=e.message;f.verified=false;f.acknowledged=false;view='festival-saving';render();$('#festival-attempt-status')?.focus();}
+}
+loadFestivalContext=async function(){const generation=++festivalNavigationGeneration;$('#print-root').innerHTML='';await festivalRecordBase.loadFestivalContext();if(generation!==festivalNavigationGeneration)return;if(festivalStudent()){const hash=new URLSearchParams(location.hash.slice(1)),id=hash.get('attempt');if(id)await festivalRestoreAttempt(id);}};
+init=function(){festivalNavigationGeneration++;if(!festivalIdentityReady())return festivalRecordBase.init();if(location.protocol!=='file:'&&location.hash.startsWith('#attempt='))history.replaceState(history.state,'',location.pathname+location.search);festivalRecordBase.init();$('#print-root').innerHTML='';};
+render(false);
+const festivalTransitionBase={pause,anticipation,crumb};
+pause=function(){let h=festivalTransitionBase.pause();if(festivalCurrent(session)&&festivalStudent()&&session.cursor===8)h=h.replace('<div class="chapter-copy">','<div class="chapter-copy"><p>'+esc(window.festivalIdentity.display_name)+', 이번에는 체험하는 자리를 둘러보자.</p>');return h;};
+anticipation=function(){return festivalTransitionBase.anticipation().replace('<p class="lead">',`<p>${esc(MOMOTOWN_V02.chapters[3].closing)}</p><p class="lead">`);};
+crumb=function(label){return festivalTransitionBase.crumb(label).replace('이야기 탐험단','모모타운 축제');};
+showManagement=function(){openDialog('기록 저장·불러오기',`<p>${festivalStudent()?'32개 응답을 모두 고른 뒤 서버 저장 성공을 확인하고 결과를 열어요. 선호도 확정할 때 서버 저장 성공을 확인해요. 진행 중인 응답은 자동 저장하지 않으니 기록 파일로 백업해 주세요.':'관리자 미리보기는 현재 페이지에서만 진행하며 학생 데이터로 저장하지 않아요. JSON 파일로 백업할 수 있어요.'}</p><div class="actions">${button('현재 기록 파일 저장','exportRecord()')}${button('기록 불러오기','closeDialog();loadFile()',true)}</div><p>파일에는 내가 고른 활동과 버전이 담겨요. 이름은 파일에 담지 않아요.</p>`);};
+const festivalSampleBase=qaSampleSession;
+qaSampleSession=function(key){const s=festivalSampleBase(key);s.response_frame_version=FESTIVAL_FRAME;s.copy_version=MOMOTOWN_V02.copy_version;return s;};
+if(location.protocol!=='file:')loadFestivalContext();
 
 </script></body></html>

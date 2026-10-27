@@ -1,4 +1,5 @@
 """External art stays private and separately gated from visual approval."""
+from v02_helpers import open_report
 import base64, hashlib, io, json, subprocess, sys
 from pathlib import Path
 from PIL import Image
@@ -60,7 +61,8 @@ def test_all_slots_render_exact_inline_bytes_and_honest_fallback(page):
 def test_equal_school_panel_geometry_in_screen_and_print(page):
     for width in [390,1440]:
         page.set_viewport_size({'width':width,'height':950})
-        page.evaluate("showSample('story');printResult()")
+        page.evaluate("showSample('story')")
+        open_report(page)
         page.evaluate('()=>{window.print=()=>{}}')
         page.locator('.report-bottom-print button').click()
         for media,root in [('screen','#main .journey-report'),('print','#print-root')]:

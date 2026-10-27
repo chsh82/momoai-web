@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>모모타운 학생 피드백 · 관리자</title>
+<style>body{font:1rem/1.6 system-ui,sans-serif;margin:2rem;color:#172b28;background:#fafcfb}main{max-width:90rem;margin:auto}form{display:flex;gap:1rem;flex-wrap:wrap;padding:1rem;border:1px solid #849d93}label{display:flex;flex-direction:column}input,select,button{font:inherit;padding:.4rem}table{border-collapse:collapse;width:100%;margin-top:2rem}th,td{padding:.6rem;border:1px solid #849d93;text-align:left;vertical-align:top}.table-scroll{overflow:auto}caption{font-weight:bold;text-align:left}small{display:block}a{color:#164e42}</style></head>
+<body><main><h1>모모타운 학생 피드백</h1>
+<p>비공개 관리자 조회 · 기본 단위는 학생·폼별 최신 응답 시도입니다. 관리자 검수 기록은 제외합니다.</p>
+<p>제시된 세 마을 중 설명을 본 뒤 고른 선호입니다. 독립적인 아홉 마을 선호, 분석 정확도, 능력 또는 진로 적합성으로 해석하지 마세요. 화면 표시 기록은 이해·숙독을 증명하지 않습니다.</p>
+<form method="get">
+<label>학생 ID<input name="student" maxlength="128" value="{{ filters.get('student','') }}"></label>
+<label>폼 버전<input name="form_version" maxlength="128" value="{{ filters.get('form_version','') }}"></label>
+<label>문구 버전<input name="copy_version" maxlength="128" value="{{ filters.get('copy_version','') }}"></label>
+<label>시작일 (UTC)<input type="date" name="date_from" value="{{ filters.get('date_from','') }}"></label>
+<label>종료일 (UTC)<input type="date" name="date_to" value="{{ filters.get('date_to','') }}"></label>
+<label>선호 제출<select name="status">{% for key,label in [('','전체'),('completed','제출'),('pending','미제출')] %}<option value="{{ key }}" {% if filters.get('status','')==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>조회 단위<select name="history"><option value="0">학생·폼별 최신</option><option value="1" {% if filters.get('history')=='1' %}selected{% endif %}>시도 이력</option></select></label>
+<button type="submit">조회</button></form>
+<div class="table-scroll"><table><caption>학생 응답과 선호 (최대 {{ result.limit }}건)</caption><thead><tr><th scope="col">학생</th><th scope="col">시도·버전</th><th scope="col">제시된 마을 순서</th><th scope="col">선호·선택 위치</th><th scope="col">동점·상태</th></tr></thead><tbody>
+{% for row in result.rows %}<tr><td>{{ row.student_name or '학생 연결 확인 필요' }}<small>{{ row.student_id }}</small></td><td>{{ row.completed_at }}<small>{{ row.form_version }} / {{ row.copy_version }}</small><small>{{ row.scoring_version }} / {{ row.analysis_revision }}</small></td><td>{{ row.presented_villages|join(' → ') }}</td><td>{% if row.preference %}{{ row.preference.selected_village_id }} · {{ row.preference.selected_display_position }}번째<small>{{ row.preference.submitted_at_server }} · 변경 {{ row.preference.revision }}</small>{% else %}미제출{% endif %}</td><td>최고 비교값 동등 집합: {{ row.top_tied_villages|join(', ') }}<small>소개 마을별 동등 집합: {% for group in row.presented_ties %}{{ group|join(', ') }}{% if not loop.last %} / {% endif %}{% endfor %}</small>{{ row.status }}</td></tr>
+{% else %}<tr><td colspan="5">조회 조건에 맞는 학생 기록이 없습니다.</td></tr>{% endfor %}</tbody></table></div>
+{% if result.has_more %}<p>추가 기록이 있습니다. 기간·학생 필터를 좁히거나 JSON 조회의 offset을 사용하세요.</p>{% endif %}
+</main></body></html>

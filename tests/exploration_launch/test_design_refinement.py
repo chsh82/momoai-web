@@ -1,4 +1,5 @@
 """Student-readable welcome, village transitions, result map and spacing."""
+from v02_helpers import open_report
 import json
 from pathlib import Path
 from test_story_v3 import page, ROOT
@@ -10,10 +11,10 @@ def test_welcome_explains_nine_villages_and_three_discoveries(page):
     for i in range(4):
         messages.append(page.locator('.speech p').inner_text())
         if i<3: page.get_by_role('button',name='다음 이야기',exact=True).click()
-    assert '9개' in messages[0]
-    assert '어울리는 마을' in messages[0] and '여행' in messages[0]
+    expected=page.evaluate('MOMOTOWN_V02.opening')
+    assert messages==[expected['admin_first']]+expected['student'][1:]
     combined=' '.join(messages)
-    assert all(t in combined for t in ['첫 번째','두 번째','세 번째'])
+    assert all(t in combined for t in ['아홉','하나의 모모타운','하고 싶은 일','세 마을','마음에 든 곳'])
     page.get_by_role('button',name='초대장 펼치기',exact=True).click()
     assert '9개' in page.locator('.invitation-layout .lead').inner_text()
 
@@ -43,7 +44,8 @@ def test_bridge_explains_companion_villages_before_second_and_third(page):
 
 def test_report_map_follows_third_village_and_keeps_the_real_three_results(page):
     for key in ['story','lab','people','wide']:
-        page.evaluate('(key)=>{showSample(key);printResult()}',key)
+        page.evaluate('(key)=>showSample(key)',key)
+        open_report(page)
         expected=page.evaluate("Object.fromEntries(reportModel(sampleSession).paths.map(p=>[p.row.domain_id,String(p.slot)]))")
         section=page.locator('#main .report-map-summary')
         assert section.count()==1
@@ -68,7 +70,7 @@ def test_text_spacing_and_card_gutters_at_mobile_desktop_and_print(page):
         page.evaluate("showSample('story');setTab('connections')")
         observations.append(page.locator('#result-panel .school-stage').first.evaluate('(e)=>({width:innerWidth,schoolPadding:parseFloat(getComputedStyle(e).paddingLeft)})'))
         page.locator('#result-panel .school-progression').screenshot(path=str(OUT/f'spacing-school-{width}.png'))
-        page.evaluate('printResult()')
+        open_report(page)
         observations[-1]['headingPadding']=page.locator('#main .report-heading').evaluate('(e)=>parseFloat(getComputedStyle(e).paddingLeft)')
         page.evaluate('()=>{window.print=()=>{}}')
         page.locator('.report-bottom-print button').click()
@@ -97,13 +99,22 @@ def test_mobile_menu_is_collapsed_until_requested_and_closes_after_navigation(pa
     assert page.locator('.story-atlas').is_visible()
     assert not page.locator('.nav').is_visible() and toggle.get_attribute('aria-expanded')=='false'
     page.set_viewport_size({'width':1440,'height':950})
-    assert page.locator('.nav').is_visible() and not toggle.is_visible()
+    # v02 deliberately uses the same explicit collapsed menu at every width.
+    # Preserve actual desktop reachability rather than require auto-expansion.
+    assert not page.locator('.nav').is_visible() and toggle.is_visible()
+    toggle.click()
+    assert page.locator('.nav').is_visible() and toggle.get_attribute('aria-expanded')=='true'
+    assert page.get_by_role('button',name='마을 전체 지도',exact=True).is_visible()
+    page.keyboard.press('Escape')
+    assert not page.locator('.nav').is_visible()
+    assert toggle.evaluate('(e)=>e===document.activeElement')
 
 def test_map_labels_stay_inside_the_board_without_overlap(page):
     audit=[]
     for width in [320,390,768,1440]:
         page.set_viewport_size({'width':width,'height':950})
-        page.evaluate("showSample('story');printResult()")
+        page.evaluate("showSample('story')")
+        open_report(page)
         row=page.locator('#main .report-map-board').evaluate("""board=>{const b=board.getBoundingClientRect();return {width:innerWidth,board:{x:b.x,y:b.y,right:b.right,bottom:b.bottom},places:[...board.querySelectorAll('[data-map-village]')].map(e=>{const r=e.getBoundingClientRect();return {id:e.dataset.mapVillage,x:r.x,y:r.y,right:r.right,bottom:r.bottom}})}}""")
         audit.append(row)
     (OUT/'map-layout-audit.json').write_text(json.dumps(audit,indent=2),encoding='utf-8')

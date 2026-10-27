@@ -1,0 +1,21 @@
+/* Festival copy uses existing layout and artwork. */
+.festival-dialogue{border-left:3px solid #8c734a;padding-left:1rem;line-height:1.8}
+.preference-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.preference-card{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:12px;border:2px solid #aaa88e;border-radius:12px;background:#fffdf6;color:#253e37;cursor:pointer;font:inherit}
+.preference-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px}
+.preference-card[aria-pressed=true]{border-color:#2e6551;background:#eaf1e5;box-shadow:inset 0 0 0 2px #2e6551}
+.preference-card:focus-visible{outline:3px solid #315d86;outline-offset:3px}
+.preference-card:disabled{cursor:wait;opacity:.7}
+.festival-mode{font-size:.9rem;color:#4b6155}
+#festival-save-status:not(:empty){padding:12px;background:#fff1dc;border:2px solid #8c734a}
+@media(max-width:540px){.preference-candidates{gap:6px}.preference-card{padding:6px;font-size:.85rem}}
+/* The same explicit collapsed menu on desktop and mobile. */
+.story-menu-toggle{display:block;min-width:60px;min-height:44px;padding:8px 12px;background:#fffdf6;border:1px solid #81998a;border-radius:10px;color:#233e37;font:inherit;margin-left:auto}
+.top .nav{flex-basis:100%;width:100%}
+.top .nav:not(.is-open){display:none}
+.top .nav.is-open{display:flex}
+@media print{.festival-mode,.identity-unavailable,#festival-preference{display:none!important}}
+/* Keep the selection marker in the flex layout even before it is selected.
+   display:none added both a glyph and a gap on click, shrinking the label text. */
+.option .selected-check{display:inline;visibility:hidden}
+.option:has(input:checked) .selected-check{visibility:visible}

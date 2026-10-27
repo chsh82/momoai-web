@@ -1,0 +1,1224 @@
+{
+  "form_version": "1.0.0-draft1+interest-only-momotown-v02",
+  "copy_version": "momotown-festival-v02",
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "모모타운 한 바퀴",
+      "concept": "둘러보기",
+      "range": [
+        1,
+        8
+      ],
+      "goal": "모모와 타운 이곳저곳을 보며 어떤 활동이 있는지 발견한다.",
+      "intro": "모모: 먼저 모모타운을 한 바퀴 돌아보자. 마을 곳곳에서 어떤 일을 하는지 보면서, 해 보고 싶은 일을 골라 줘.",
+      "closing": "모모: 타운 곳곳을 둘러봤네. 이번에는 체험하는 친구들 곁으로 가 보자."
+    },
+    {
+      "chapter": 2,
+      "title": "나도 해 보고 싶어",
+      "concept": "체험하기",
+      "range": [
+        9,
+        16
+      ],
+      "goal": "학생이 그 자리에 참여한다는 상황에서 체험하고 싶은 역할을 고른다. 실제 미니게임이나 실습을 추가하지 않는다.",
+      "intro": "기기: 이번에는 체험하는 곳들이야. 베포: 그 자리에 네가 있다면 어떤 일을 해 보고 싶은지 골라 보렴.",
+      "closing": "모모: 여러 체험을 만나 봤네. 이제 축제를 준비하는 친구들에게 가 볼까?"
+    },
+    {
+      "chapter": 3,
+      "title": "축제를 함께 준비해",
+      "concept": "축제 준비 돕기",
+      "range": [
+        17,
+        24
+      ],
+      "goal": "모모타운 축제를 준비하는 상황에서 본인이 하고 싶은 활동을 선택한다. 가장 도움이 되거나 착한 답을 고르는 문제가 아니다.",
+      "intro": "모모: 타운 곳곳에서 축제 준비가 한창이야. 여러 일 중 네가 해 보고 싶은 일을 골라 보자.",
+      "closing": "모모: 축제를 준비하는 일도 여럿 만났네. 이제 돌아갈 시간을 생각하며 마지막으로 둘러보자."
+    },
+    {
+      "chapter": 4,
+      "title": "다시 만날 모모타운",
+      "concept": "방문 갈무리",
+      "range": [
+        25,
+        32
+      ],
+      "goal": "쉬어 가기·재방문·다음 방문을 떠올리는 장면으로 이번 선택을 갈무리하고 결과로 연결한다.",
+      "intro": "모모: 이제 방문을 마무리할 시간이야. 잠깐 쉬어 가고, 기억에 남은 곳도 다시 만나 보자.",
+      "closing": "모모: 서른두 장면에서 하고 싶은 일을 골라 봤네. 이번 선택과 이어지는 세 마을을 같이 만나 보자."
+    }
+  ],
+  "scenes": [
+    {
+      "source_item_id": "IE56-Q01",
+      "order": 1,
+      "chapter": 1,
+      "character_id": "dorothy",
+      "title": "모모타운 입구에서",
+      "scene": "모모와 타운 입구를 지나며 축제를 맞이하는 친구들을 만나요.",
+      "dialogue": "도로시: 모모타운에 잘 왔어! 여기서는 축제를 맞아 여러 일을 준비하고 있어.",
+      "question": "입구에서 본 일 중 네가 해 보고 싶은 건 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-01-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "축제의 느낌을 담은 간판과 초대장을 만들기"
+        },
+        {
+          "source_option_id": "IE56-01-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "사람들이 편하게 쓸 수 있는 안내대를 만들기"
+        },
+        {
+          "source_option_id": "IE56-01-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 온 친구에게 놀이 방법을 쉽게 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-01-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "친구들의 의견을 듣고 함께 지킬 약속을 정하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q02",
+      "order": 2,
+      "chapter": 1,
+      "character_id": "nemo",
+      "title": "항구의 바다 관찰 창",
+      "scene": "항구에 있는 네모선장의 배에서 바닷속을 볼 수 있는 창을 만나요.",
+      "dialogue": "네모선장: 창밖으로 처음 보는 생물이 지나가는구나. 여기서 할 수 있는 일들을 살펴보렴.",
+      "question": "이 생물을 만난다면 어떤 일을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-02-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "그 생물이 언제 나타나는지 관찰 기록을 비교하기"
+        },
+        {
+          "source_option_id": "IE56-02-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "처음 만난 생물을 주인공으로 짧은 이야기 쓰기"
+        },
+        {
+          "source_option_id": "IE56-02-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "생물이 사는 곳의 물과 주변 환경 살펴보기"
+        },
+        {
+          "source_option_id": "IE56-02-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "생물을 더 잘 볼 수 있는 관찰 도구 모형을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q03",
+      "order": 3,
+      "chapter": 1,
+      "character_id": "jekyll",
+      "title": "두 기록이 놓인 방",
+      "scene": "지킬 박사가 같은 방을 보고 쓴 기록 두 장을 보여 줘요.",
+      "dialogue": "지킬 박사: 같은 물건인데 두 사람이 색을 다르게 적었구나. 두 기록이 여기 있단다.",
+      "question": "이 두 기록을 보고 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-03-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "두 기록자의 말을 듣고 함께 지킬 기록 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-03-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "빛이 달랐는지 확인할 수 있는 관찰 순서를 정하기"
+        },
+        {
+          "source_option_id": "IE56-03-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "기록을 남긴 두 사람의 이야기를 번갈아 써 보기"
+        },
+        {
+          "source_option_id": "IE56-03-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "같은 방을 두 가지 색으로 표현해 보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q04",
+      "order": 4,
+      "chapter": 1,
+      "character_id": "alice",
+      "title": "큰 컵과 작은 문",
+      "scene": "앨리스와 전시실을 둘러보니 큰 컵과 작은 문이 보여요.",
+      "dialogue": "앨리스: 이 방은 물건 크기가 제각각이야. 다른 사람들도 이 모습을 구경하러 올 거야.",
+      "question": "이 전시실을 소개한다면 어떤 일을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-04-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "물건의 크기를 비교하며 어떤 규칙이 있는지 찾기"
+        },
+        {
+          "source_option_id": "IE56-04-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "작은 문을 통과할 수 있는 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-04-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "크기가 바뀐 물건들로 새로운 장면을 그리기"
+        },
+        {
+          "source_option_id": "IE56-04-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "이곳에 사는 인물이 들려줄 이야기를 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q05",
+      "order": 5,
+      "chapter": 1,
+      "character_id": "holmes",
+      "title": "전시실의 빈자리",
+      "scene": "다른 전시실에 작은 모형이 놓여 있던 자리가 비어 있어요.",
+      "dialogue": "홈즈: 여기 있던 모형이 보이지 않는구나. 옆에는 사람들이 남긴 기록과 이야기가 있어.",
+      "question": "이 전시실에서는 무슨 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-05-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "시간별 기록을 비교해 서로 맞지 않는 단서를 찾기"
+        },
+        {
+          "source_option_id": "IE56-05-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "전시물의 입장에서 오늘 겪은 일을 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-05-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 사람의 의견을 듣고 전시물을 함께 관리할 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-05-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "전시물이 옮겨지면 그 기록이 남는 장치 모형 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q06",
+      "order": 6,
+      "chapter": 1,
+      "character_id": "fogg",
+      "title": "타운 산책 안내도",
+      "scene": "포그가 모모타운을 둘러볼 때 참고하는 이동 안내 두 장을 펼쳐요.",
+      "dialogue": "포그: 같은 타운에서도 여러 길로 다닐 수 있단다. 함께 둘러볼 친구들이 참고할 안내야.",
+      "question": "타운을 돌아볼 안내를 준비한다면 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-06-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "타운을 돌아볼 이동 방법마다 드는 돈을 비교해 예산표 만들기"
+        },
+        {
+          "source_option_id": "IE56-06-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "타운에서 찾아갈 곳의 사람과 생활 이야기를 찾아 소개하기"
+        },
+        {
+          "source_option_id": "IE56-06-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "여행 중 편히 쉬고 물을 마실 곳을 표시하기"
+        },
+        {
+          "source_option_id": "IE56-06-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 여행하는 친구에게 지도를 읽는 방법을 알려 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q07",
+      "order": 7,
+      "chapter": 1,
+      "character_id": "anne",
+      "title": "새 친구를 맞는 전시",
+      "scene": "앤이 새로 온 친구와 서로를 알아갈 작은 전시를 보여 줘요.",
+      "dialogue": "앤: 반가워! 서로 어떤 이야기를 가진 친구인지 알아보는 전시야.",
+      "question": "새 친구를 만나는 이 전시에서 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-07-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "새 친구에게 들려주고 싶은 우리 이야기를 쓰기"
+        },
+        {
+          "source_option_id": "IE56-07-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "친구들이 좋아하는 것을 듣고 함께 할 일을 정하기"
+        },
+        {
+          "source_option_id": "IE56-07-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "전시를 처음 보는 친구에게 차근차근 설명하기"
+        },
+        {
+          "source_option_id": "IE56-07-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "환영하는 마음을 담은 그림이나 음악을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q08",
+      "order": 8,
+      "chapter": 1,
+      "character_id": "tom_sawyer",
+      "title": "점심시간 놀이 마당",
+      "scene": "첫 번째 둘러보기의 끝에서 톰의 놀이 마당을 만나요.",
+      "dialogue": "톰: 점심시간에 즐길 새 놀이를 생각하고 있어. 여기에서 해 볼 일이 여러 가지야.",
+      "question": "새 놀이를 만든다면 네가 하고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-08-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "직접 움직여 볼 수 있는 놀이 도구 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-08-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 친구가 함께 즐길 수 있도록 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-08-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "놀이를 소개하는 짧은 몸짓 공연과 음악을 만들기"
+        },
+        {
+          "source_option_id": "IE56-08-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 재료 안에서 무엇을 준비할지 비용 비교하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q09",
+      "order": 9,
+      "chapter": 2,
+      "character_id": "mowgli",
+      "title": "숲 안내소 체험",
+      "scene": "모글리가 숲 안내소에서 체험할 수 있는 활동을 보여 줘요.",
+      "dialogue": "모글리: 여기서 본 숲의 모습을 방문객과 나누는 안내소야. 네가 참여하는 모습을 떠올려 봐.",
+      "question": "숲 안내소 체험에서는 어떤 역할을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-09-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "방문객이 편히 쉬며 몸을 돌볼 수 있는 장소를 안내하기"
+        },
+        {
+          "source_option_id": "IE56-09-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "동물과 식물이 어디에서 살아가는지 관찰해 기록하기"
+        },
+        {
+          "source_option_id": "IE56-09-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "같은 장소를 여러 번 관찰하며 달라진 점을 찾기"
+        },
+        {
+          "source_option_id": "IE56-09-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 친구에게 관찰한 것을 쉽게 설명해 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q10",
+      "order": 10,
+      "chapter": 2,
+      "character_id": "dorothy",
+      "title": "정원에서 해 보는 일",
+      "scene": "도로시와 정원의 전시·쉼터 체험 자리를 둘러봐요.",
+      "dialogue": "도로시: 정원에서 어떤 일을 해 볼지 고를 수 있어. 네가 참여한다면 어떨까?",
+      "question": "이 정원에서 직접 해 보고 싶은 활동은 무엇이야?",
+      "options": [
+        {
+          "source_option_id": "IE56-10-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "정원의 장소마다 바람개비가 도는 빠르기 비교하기"
+        },
+        {
+          "source_option_id": "IE56-10-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 돈으로 살 씨앗과 화분의 값 비교하기"
+        },
+        {
+          "source_option_id": "IE56-10-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "오래된 정원에서 있었을 일을 상상해 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-10-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "햇빛과 흙을 살펴 정원에 기를 식물을 고르기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q11",
+      "order": 11,
+      "chapter": 2,
+      "character_id": "nemo",
+      "title": "바다 기록 전시 체험",
+      "scene": "네모선장이 항해에서 모은 기록을 체험 자리에서 펼쳐요.",
+      "dialogue": "네모선장: 바다에서 보고 느낀 것이 여기 모여 있단다. 이 전시에서 해 볼 일을 골라 보렴.",
+      "question": "바다 기록 전시에 참여한다면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-11-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "바다에서 느낀 분위기를 색과 소리로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-11-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "날마다 기록한 파도의 높이에서 반복되는 변화를 찾기"
+        },
+        {
+          "source_option_id": "IE56-11-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "전시 준비에 필요한 물건의 값과 수량을 계산하기"
+        },
+        {
+          "source_option_id": "IE56-11-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 방문객에게 항해 기록표 읽는 방법을 알려 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q12",
+      "order": 12,
+      "chapter": 2,
+      "character_id": "jekyll",
+      "title": "오래된 온실 체험",
+      "scene": "지킬 박사와 오래된 온실을 만나요. 주인의 일기와 빈 화분이 남아 있어요.",
+      "dialogue": "지킬 박사: 이 온실을 다시 사용하는 모습을 생각해 보자. 여기에 여러 활동이 있단다.",
+      "question": "온실을 다시 쓰는 체험에서는 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-12-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "남겨진 일기를 읽고 이곳 주인의 마음을 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-12-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "고칠 물건과 새로 살 물건에 드는 돈 비교하기"
+        },
+        {
+          "source_option_id": "IE56-12-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "흙과 햇빛을 살펴 화분을 돌보는 계획을 세우기"
+        },
+        {
+          "source_option_id": "IE56-12-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "흔들리는 화분을 받칠 튼튼한 받침대 모형을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q13",
+      "order": 13,
+      "chapter": 2,
+      "character_id": "alice",
+      "title": "앨리스의 찻집 체험",
+      "scene": "메뉴판 크기와 앉는 자리가 제각각인 찻집에서 앨리스를 만나요.",
+      "dialogue": "앨리스: 새 손님을 맞는 찻집 체험이야. 네가 여기 함께 있다면 어떤 일이 끌려?",
+      "question": "이 찻집에서는 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-13-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "간식의 값을 비교해 정해진 돈 안에서 고르기"
+        },
+        {
+          "source_option_id": "IE56-13-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "서로 원하는 자리가 다를 때 함께 지킬 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-13-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "컵의 모양과 담기는 물의 양이 어떤 관계인지 비교하기"
+        },
+        {
+          "source_option_id": "IE56-13-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 온 손님에게 메뉴판을 읽는 방법을 알려 주기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q14",
+      "order": 14,
+      "chapter": 2,
+      "character_id": "holmes",
+      "title": "교환 가게 체험",
+      "scene": "홈즈가 책·화분·장난감을 서로 바꾸어 쓰는 가게를 소개해요.",
+      "dialogue": "홈즈: 물건을 바꾸어 쓰는 가게야. 이곳의 여러 일 중 하나를 골라 볼 수 있단다.",
+      "question": "물건을 바꾸는 가게에서 네가 해 보고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-14-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "물건의 상태와 쓰임을 비교해 교환 기준 정하기"
+        },
+        {
+          "source_option_id": "IE56-14-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 방문객에게 교환 방법을 순서대로 설명하기"
+        },
+        {
+          "source_option_id": "IE56-14-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "물건을 고르는 순서에 대해 서로의 의견을 듣기"
+        },
+        {
+          "source_option_id": "IE56-14-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "가게에 들어온 식물의 상태를 살펴 돌보는 역할 맡아 보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q15",
+      "order": 15,
+      "chapter": 2,
+      "character_id": "fogg",
+      "title": "여행자 마을의 하루 체험",
+      "scene": "포그가 여러 여행자가 머무는 마을의 하루 행사 체험을 보여 줘요.",
+      "dialogue": "포그: 여러 곳에서 온 사람들이 함께 시간을 보내는 곳이란다. 행사에 참여하는 모습을 떠올려 보렴.",
+      "question": "여행자들의 하루 행사에 참여한다면 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-15-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "마을에서 자라는 나무와 새가 머무는 곳을 기록하기"
+        },
+        {
+          "source_option_id": "IE56-15-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "여행지의 느낌을 담은 그림과 리듬을 만들기"
+        },
+        {
+          "source_option_id": "IE56-15-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "여행자의 몸이 편히 쉴 수 있는 휴식 장소를 살펴보기"
+        },
+        {
+          "source_option_id": "IE56-15-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "서로 다른 생활 습관을 가진 여행자들의 약속을 정하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q16",
+      "order": 16,
+      "chapter": 2,
+      "character_id": "anne",
+      "title": "함께 쓰는 정원 체험",
+      "scene": "앤과 친구들이 함께 쓰는 정원에서 체험할 활동을 살펴봐요.",
+      "dialogue": "앤: 여러 친구가 시간을 보내는 정원이야. 네가 해 보고 싶은 활동을 찾아보자.",
+      "question": "친구들과 정원을 함께 쓴다면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-16-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "물을 주기 편한 물뿌리개 모형을 설계하기"
+        },
+        {
+          "source_option_id": "IE56-16-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "정원을 함께 쓰는 친구들의 의견을 듣고 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-16-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 참여한 친구에게 씨앗 심는 순서를 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-16-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "식물이 자라는 모습을 오래 관찰하고 돌보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q17",
+      "order": 17,
+      "chapter": 3,
+      "character_id": "tom_sawyer",
+      "title": "축제의 종이배 전시",
+      "scene": "톰이 모모타운 축제에 놓을 종이배 전시를 준비하고 있어요.",
+      "dialogue": "톰: 깊은 물이 아니라 책상 위 물통에서 종이배를 살펴볼 거야.",
+      "question": "종이배 전시를 준비할 때 어떤 일을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-17-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 접는 친구에게 종이배 접는 방법을 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-17-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "종이배 모양을 바꾸면 뜨는 모습이 어떻게 달라지는지 보기"
+        },
+        {
+          "source_option_id": "IE56-17-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "종이배를 타고 떠나는 인물의 모험 이야기를 쓰기"
+        },
+        {
+          "source_option_id": "IE56-17-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "준비할 종이와 물통의 가격을 비교해 구입 목록을 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q18",
+      "order": 18,
+      "chapter": 3,
+      "character_id": "mowgli",
+      "title": "축제에 전할 숲 이야기",
+      "scene": "모글리가 축제에 보여 줄 숲 전시를 준비해요.",
+      "dialogue": "모글리: 자연물은 가져오지 않고 기록으로 숲의 모습을 전할 거야.",
+      "question": "축제의 숲 전시에서는 무슨 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-18-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "숲의 하루를 나무의 입장에서 이야기로 쓰기"
+        },
+        {
+          "source_option_id": "IE56-18-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "숲에서 들은 소리를 짧은 음악과 몸짓으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-18-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 준비 비용을 어디에 쓸지 계산하기"
+        },
+        {
+          "source_option_id": "IE56-18-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "동물과 식물이 함께 사는 모습을 관찰해 기록하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q19",
+      "order": 19,
+      "chapter": 3,
+      "character_id": "dorothy",
+      "title": "모모타운 축제 신문",
+      "scene": "도로시가 축제에 나눌 마을 신문을 펼쳐요.",
+      "dialogue": "도로시: 마을에서 만난 사람과 장소를 소개할 신문이야. 아직 채울 곳이 있네.",
+      "question": "축제 신문을 만들며 네가 해 보고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-19-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "신문의 표지 그림과 글자의 모양을 디자인하기"
+        },
+        {
+          "source_option_id": "IE56-19-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "축제 신문을 만드는 데 드는 종이값과 인쇄비 계산하기"
+        },
+        {
+          "source_option_id": "IE56-19-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "마을 어른에게 들은 옛이야기를 글로 옮기기"
+        },
+        {
+          "source_option_id": "IE56-19-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "몸을 돌보고 쉬는 데 도움이 되는 장소를 찾아 소개하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q20",
+      "order": 20,
+      "chapter": 3,
+      "character_id": "nemo",
+      "title": "축제를 준비하는 친구들의 기지",
+      "scene": "네모선장이 축제를 준비하는 친구들이 며칠 머물 기지를 보여 줘요.",
+      "dialogue": "네모선장: 기지는 며칠 지낼 곳이란다. 머무는 사람마다 기대하는 생활이 다르구나.",
+      "question": "축제 준비 친구들이 머물 곳에서 무엇을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-20-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "기지에서 함께 생활할 약속을 여러 사람과 의논하기"
+        },
+        {
+          "source_option_id": "IE56-20-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "친구들이 몸 상태를 살피고 쉴 수 있는 준비물 챙기기"
+        },
+        {
+          "source_option_id": "IE56-20-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "정해진 돈으로 필요한 생활용품 고르기"
+        },
+        {
+          "source_option_id": "IE56-20-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "축제 준비 친구들이 머물 기지의 하루를 짧은 이야기로 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q21",
+      "order": 21,
+      "chapter": 3,
+      "character_id": "jekyll",
+      "title": "축제의 관찰 전시회",
+      "scene": "지킬 박사가 빛·그림자와 일상 기록을 보여 줄 축제 전시를 준비해요.",
+      "dialogue": "지킬 박사: 방문객들이 둘러볼 관찰 전시회란다. 준비할 일을 살펴보렴.",
+      "question": "관찰 전시회를 준비한다면 어떤 활동을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-21-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "방문객에게 관찰 기록을 읽는 순서를 쉽게 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-21-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "오래 둘러본 방문객이 몸을 쉬게 할 공간을 살피기"
+        },
+        {
+          "source_option_id": "IE56-21-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "빛의 방향에 따라 그림자가 달라지는 까닭을 확인하기"
+        },
+        {
+          "source_option_id": "IE56-21-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "다양한 방문객이 전시실을 함께 쓰는 약속을 정하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q22",
+      "order": 22,
+      "chapter": 3,
+      "character_id": "alice",
+      "title": "모모타운 축제 장터",
+      "scene": "앨리스와 하루 동안 열리는 축제 장터의 준비 모습을 만나요.",
+      "dialogue": "앨리스: 화분과 장난감, 먹거리를 놓을 자리야. 손님을 맞기 전에 할 일이 있어.",
+      "question": "축제 장터에서는 어떤 일을 함께 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-22-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "장터에서 나눌 화분의 흙과 잎을 살펴 돌보기"
+        },
+        {
+          "source_option_id": "IE56-22-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "사람들이 물을 마시고 몸을 쉬게 할 장소를 챙기기"
+        },
+        {
+          "source_option_id": "IE56-22-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "크기가 다른 물건을 올려놓을 진열대 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-22-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "물건을 준비한 비용을 비교해 가격표를 만들기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q23",
+      "order": 23,
+      "chapter": 3,
+      "character_id": "holmes",
+      "title": "축제 산책길의 전시판",
+      "scene": "홈즈와 축제 산책길의 빈 전시판 앞에 서요.",
+      "dialogue": "홈즈: 사람들이 잠깐 머물며 볼 내용을 준비하려고 해.",
+      "question": "축제 산책길의 전시판을 준비한다면 무엇을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-23-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "산책길의 느낌을 색과 모양으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-23-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "걷다 지친 사람이 편히 쉬는 데 필요한 것을 알아보기"
+        },
+        {
+          "source_option_id": "IE56-23-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "산책길에서 자라는 풀과 나무를 관찰하기"
+        },
+        {
+          "source_option_id": "IE56-23-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "이 길을 먼저 걸었던 사람의 이야기를 찾아 글로 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q24",
+      "order": 24,
+      "chapter": 3,
+      "character_id": "fogg",
+      "title": "축제의 여행 박람회",
+      "scene": "포그가 축제에 소개할 여행 이야기 박람회를 준비하고 있어요.",
+      "dialogue": "포그: 여러 이동 방법과 여행의 모습을 소개하는 작은 박람회란다.",
+      "question": "여행 박람회를 준비하며 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-24-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 팀이 전시 공간을 나누어 쓰는 약속을 정하기"
+        },
+        {
+          "source_option_id": "IE56-24-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "여행에서 만난 풍경을 무대 그림으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-24-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "수레가 굴러가는 모습을 보여줄 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-24-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "바퀴 크기에 따라 수레가 움직이는 모습을 비교하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q25",
+      "order": 25,
+      "chapter": 4,
+      "character_id": "anne",
+      "title": "돌아가기 전 책 읽는 쉼터",
+      "scene": "방문을 마무리하며 앤이 보여 주는 책 읽는 쉼터에 들러요.",
+      "dialogue": "앤: 방은 이미 정해져 있어. 다음에도 편히 책을 읽을 수 있게 쓰는 방법을 생각하고 있어.",
+      "question": "이 쉼터를 다음에도 쓰려면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-25-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "오래 읽는 사람이 몸의 불편함을 줄이도록 쉴 곳을 살피기"
+        },
+        {
+          "source_option_id": "IE56-25-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "책과 필요한 물건을 정해진 돈 안에서 고르기"
+        },
+        {
+          "source_option_id": "IE56-25-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "책이 넘어지지 않게 받쳐 줄 물건을 설계하기"
+        },
+        {
+          "source_option_id": "IE56-25-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "창문과 전등의 위치에 따라 밝기가 어떻게 달라지는지 보기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q26",
+      "order": 26,
+      "chapter": 4,
+      "character_id": "tom_sawyer",
+      "title": "다음 산책을 위한 안내",
+      "scene": "톰이 다음에 이 길을 걸을 친구들을 위한 산책 안내판을 보여 줘요.",
+      "dialogue": "톰: 낮에 짧게 산책할 때 참고할 내용을 모으고 있어.",
+      "question": "다음 산책 안내에 보탤 일 중 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-26-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "처음 가는 친구에게 지도를 읽는 방법을 쉽게 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-26-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "산책길에서 볼 수 있는 나무와 새의 모습을 정리하기"
+        },
+        {
+          "source_option_id": "IE56-26-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "그늘과 햇빛이 있는 곳의 온도 기록을 비교하기"
+        },
+        {
+          "source_option_id": "IE56-26-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "걷는 중 몸이 힘들 때 쉴 장소와 도움받을 곳을 정리하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q27",
+      "order": 27,
+      "chapter": 4,
+      "character_id": "mowgli",
+      "title": "기억에 남길 숲길",
+      "scene": "모글리가 숲길을 소개할 전시와 작은 다리 모형을 보여 줘요.",
+      "dialogue": "모글리: 진짜 다리를 짓는 건 아니야. 길의 모습을 작은 모형과 이야기로 보여 주려고 해.",
+      "question": "이 숲길을 기억하며 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-27-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "장난감 인형이 건널 수 있는 다리 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-27-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "이 길을 따라간 사람의 이야기를 상상해 쓰기"
+        },
+        {
+          "source_option_id": "IE56-27-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "여러 사람이 좁은 길을 함께 이용할 약속을 의논하기"
+        },
+        {
+          "source_option_id": "IE56-27-LAB",
+          "domain_id": "LAB",
+          "weight": 1,
+          "proposed_text": "다리 모양에 따라 버티는 무게가 어떻게 다른지 비교하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q28",
+      "order": 28,
+      "chapter": 4,
+      "character_id": "dorothy",
+      "title": "다음 방문자를 위한 안내",
+      "scene": "도로시가 다음에 올 친구에게 보여 줄 안내 노트를 펼쳐요.",
+      "dialogue": "도로시: 처음 타운에 오는 친구가 참고할 내용을 남기려고 해.",
+      "question": "다음 방문자를 위한 안내를 만든다면 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-28-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "마을의 식물을 오래 돌보는 방법을 관찰해 기록하기"
+        },
+        {
+          "source_option_id": "IE56-28-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "새 친구가 알아야 할 생활 방법을 쉬운 순서로 설명하기"
+        },
+        {
+          "source_option_id": "IE56-28-PLAZA",
+          "domain_id": "PLAZA",
+          "weight": 1,
+          "proposed_text": "서로 다른 의견을 듣고 마을에서 함께 지낼 약속을 정리하기"
+        },
+        {
+          "source_option_id": "IE56-28-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "몸이 불편한 사람이 쉴 곳과 도움받을 곳을 안내하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q29",
+      "order": 29,
+      "chapter": 4,
+      "character_id": "nemo",
+      "title": "바다 전시를 다시 만나며",
+      "scene": "전에 본 바다 기록과 모형이 모인 전시를 다시 찾아요.",
+      "dialogue": "네모선장: 친구들이 준비한 자료가 모였구나. 다음 손님을 맞을 일도 남아 있단다.",
+      "question": "다시 만난 바다 전시에서 네가 하고 싶은 일은 뭐야?",
+      "options": [
+        {
+          "source_option_id": "IE56-29-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "관찰 그림을 가까이 볼 수 있는 받침대 모형을 만들기"
+        },
+        {
+          "source_option_id": "IE56-29-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "바다 생물이 사는 곳과 그곳을 지킬 방법을 소개하기"
+        },
+        {
+          "source_option_id": "IE56-29-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "방문객이 몸의 피로를 덜고 쉬어 갈 수 있게 준비하기"
+        },
+        {
+          "source_option_id": "IE56-29-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "바다의 색과 소리를 담은 전시 장면을 꾸미기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q30",
+      "order": 30,
+      "chapter": 4,
+      "character_id": "jekyll",
+      "title": "온실을 다시 둘러보며",
+      "scene": "온실을 다시 보니 아까 눈여겨보지 못한 작은 새 잎도 보여요.",
+      "dialogue": "지킬 박사: 어린 친구들도 이 온실을 둘러볼 거란다. 함께 할 수 있는 일들을 보렴.",
+      "question": "온실에 다시 온다면 어떤 활동을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-30-FIELD",
+          "domain_id": "FIELD",
+          "weight": 1,
+          "proposed_text": "식물의 새 잎과 흙 상태를 살펴 돌보기"
+        },
+        {
+          "source_option_id": "IE56-30-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "식물에서 떠오르는 느낌을 그림과 색으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-30-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 친구에게 관찰 기록을 쓰는 방법을 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-30-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "화분에 맞는 물받이 모형을 설계하기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q31",
+      "order": 31,
+      "chapter": 4,
+      "character_id": "alice",
+      "title": "오늘 본 전시를 돌아보며",
+      "scene": "앨리스가 전시를 둘러본 뒤 다음 방문객에게 전할 내용을 생각해요.",
+      "dialogue": "앨리스: 전시를 보고 떠오른 생각이 여러 가지야. 다음에 올 사람에게 나눌 것도 있겠지.",
+      "question": "오늘 본 전시를 돌아보며 무엇을 해 보고 싶어?",
+      "options": [
+        {
+          "source_option_id": "IE56-31-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "전시 중 몸이 피곤해질 때 쉬는 방법을 안내하기"
+        },
+        {
+          "source_option_id": "IE56-31-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "어린 방문객이 전시의 순서를 이해하도록 설명하기"
+        },
+        {
+          "source_option_id": "IE56-31-STAGE",
+          "domain_id": "STAGE",
+          "weight": 1,
+          "proposed_text": "전시에서 느낀 감정을 짧은 음악과 그림으로 표현하기"
+        },
+        {
+          "source_option_id": "IE56-31-FOREST",
+          "domain_id": "FOREST",
+          "weight": 1,
+          "proposed_text": "전시실에 살 법한 인물을 만들어 이야기를 쓰기"
+        }
+      ]
+    },
+    {
+      "source_item_id": "IE56-Q32",
+      "order": 32,
+      "chapter": 4,
+      "character_id": "holmes",
+      "title": "다시 올 모모타운을 떠올리며",
+      "scene": "마지막으로 홈즈와 다음 전시를 준비하는 친구들을 만나요.",
+      "dialogue": "홈즈: 이번 전시에서 알게 된 점을 모아 다음 전시를 생각하고 있어.",
+      "question": "모모타운의 다음 전시에 다시 온다면 어떤 일을 해 보고 싶니?",
+      "options": [
+        {
+          "source_option_id": "IE56-32-HOUSE",
+          "domain_id": "HOUSE",
+          "weight": 1,
+          "proposed_text": "새 참가자에게 기록표 쓰는 방법을 차근차근 알려 주기"
+        },
+        {
+          "source_option_id": "IE56-32-FACTORY",
+          "domain_id": "FACTORY",
+          "weight": 1,
+          "proposed_text": "전시물이 흔들리지 않게 고정하는 받침을 설계하기"
+        },
+        {
+          "source_option_id": "IE56-32-CLINIC",
+          "domain_id": "CLINIC",
+          "weight": 1,
+          "proposed_text": "오래 서 있는 관람객이 편히 쉴 자리를 살피기"
+        },
+        {
+          "source_option_id": "IE56-32-PORT",
+          "domain_id": "PORT",
+          "weight": 1,
+          "proposed_text": "전시를 준비하는 데 쓸 물건과 비용을 비교하기"
+        }
+      ]
+    }
+  ],
+  "opening": {
+    "student": [
+      "모모: {학생실명}, 모모타운 축제에 온 걸 환영해! 나는 모모야.",
+      "모모: 작은 마을 아홉 곳이 모여 하나의 모모타운이 되었어. 타운 곳곳에서 축제를 즐기고 준비하고 있지.",
+      "모모: 먼저 둘러보고, 체험할 일도 골라 보고, 축제 준비도 함께 만나 보자. 장면마다 네가 하고 싶은 일 하나를 고르면 돼.",
+      "모모: 돌아가기 전에는 네 선택과 이어지는 세 마을을 만나고, 그중 가장 마음에 든 곳을 골라 리포트를 볼 거야."
+    ],
+    "admin_first": "모모: 모모타운 축제에 온 걸 환영해! 나는 모모야.",
+    "rule": "학생은 서버가 확인한 실명만 사용. 관리자 검수는 무기명. 이름/별명 입력창 추가 없음."
+  },
+  "tie_copy": "같은 선택 비율로 나온 마을은 동등해. 여기서는 정해진 순서로 세 마을을 소개할게. 소개 순서는 실력이나 진로의 순위가 아니야.",
+  "preference": {
+    "question": "세 마을을 둘러봤어. 지금 가장 마음에 드는 마을은 어디야?",
+    "instruction": "정답은 없어. 네가 느낀 대로 한 곳을 골라 줘.",
+    "cta": "선택하고 리포트 보기"
+  }
+}

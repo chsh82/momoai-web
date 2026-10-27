@@ -1,4 +1,5 @@
 """Real Chromium clicks; file-only quest, locally rendered compass, external traffic blocked."""
+from v02_helpers import open_report
 import json
 from pathlib import Path
 import pytest
@@ -62,7 +63,7 @@ def test_intro_memory_warning_and_file_save(browser_page):
     page.get_by_role('button',name='안내 건너뛰기',exact=True).click()
     assert page.locator('.launch-intro').count()==1
     assert page.locator('#main .world-map, #main .v12-map').count()==0
-    assert page.get_by_role('button',name='기록 저장·불러오기',exact=True).count()==1
+    assert page.locator('.nav').get_by_role('button',name='기록 저장·불러오기',exact=True,include_hidden=True).count()==1
     assert '파일로 저장' in page.locator('#main').inner_text()
     if not page.locator('.nav').is_visible(): page.get_by_role('button',name='메뉴',exact=True).click()
     page.get_by_role('button',name='탐험 시작하기',exact=True).click()
@@ -146,7 +147,7 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     record=json.loads(saved.read_text(encoding='utf-8'))
     assert record['data_origin']=='LOCAL_USER_INPUT'
     assert len(record['responses'])==32
-    page.get_by_role('button',name='전체 리포트 보기',exact=True).click()
+    open_report(page)
     assert page.locator('.journey-report').count()==1
     assert page.locator('.journey-report .response-appendix').count()==1
     page.evaluate('window.print=()=>{window.printCalled=true}')
@@ -179,11 +180,12 @@ def test_real_journey_sample_separation_export_import_print(browser_page,width):
     assert '가상 예시' not in page.locator('.banner').inner_text()
     page.screenshot(path=str(OUT/f'real-{width}-roundtrip.png'))
     page.locator('#record-file').set_input_files(str(OUT/f'sample-{width}-3.json'))
+    page.get_by_role('button',name='불러오기',exact=True).click()
     page.wait_for_function("view==='sample'")
     assert '가상 예시' in page.locator('.banner').inner_text()
     assert page.evaluate('session.values')==real
     page.locator('#tab-compare').click()
-    page.get_by_role('button',name='전체 리포트 보기',exact=True).click()
+    open_report(page)
     assert '가상 예시' in page.locator('#main .report-origin').inner_text()
     page.locator('#include-appendix').uncheck()
     page.get_by_role('button',name='인쇄 또는 PDF 저장',exact=True).first.click()
