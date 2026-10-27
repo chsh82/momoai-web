@@ -20,7 +20,7 @@
     <button class="back" onclick="goHome()">‹</button>
     <div class="top-title">
       <span class="crumb">코스{{ course_code[-1] }} · {{ course_title }}</span>
-      <span class="of">1단계 · 배우기</span>
+      <span class="of">레슨 {{ lesson_number }}/{{ lesson_total }} · 배우기</span>
     </div>
   </div>
   <div class="screen-body">
@@ -42,7 +42,7 @@
     <button class="back" onclick="go('learn')">‹</button>
     <div class="top-title">
       <span class="crumb">코스{{ course_code[-1] }} · {{ course_title }}</span>
-      <span class="of">2단계 · 확인 문제</span>
+      <span class="of">레슨 {{ lesson_number }}/{{ lesson_total }} · 확인 문제</span>
     </div>
   </div>
   <div class="dots" id="lessonDots"></div>
@@ -72,6 +72,8 @@
     <div class="medal" id="medal">🎉</div>
     <h2>{{ lesson.title }} 끝!</h2>
     <div class="score"><span id="scoreN">0</span> / <span id="scoreT">0</span></div>
+    <p id="saveStatus" role="status" aria-live="polite"></p>
+    <p id="courseProgress" hidden></p>
     <div class="mile" id="mileLine" hidden>⭐ <span id="mileN">0</span> 모모 마일리지</div>
     <div class="save-warn" id="saveWarn" hidden>
       ⚠️ 진행 상황 저장에 실패했어요.
@@ -86,6 +88,7 @@
     <div id="reviewList"></div>
   </div>
   <div class="result-actions">
+    <a class="big" id="nextLessonBtn" hidden>다음 미완료 레슨으로 ›</a>
     <button class="big" style="margin:0;width:100%" onclick="startLesson()">다시 풀기</button>
     <button class="big ghost" style="margin:0;width:100%" onclick="goHome()">코스 화면으로</button>
   </div>
@@ -99,7 +102,7 @@
 
 <script id="lessonData" type="application/json">{{ lesson|tojson }}</script>
 <script>
-  window.TUTORIAL_HOME_URL = "{{ url_for('tutorial.index', track=track) }}";
+  window.TUTORIAL_HOME_URL = "{{ url_for('tutorial.index', track=track, _anchor='courses') }}";
   window.TUTORIAL_TRACK = "{{ track }}";
   window.TUTORIAL_COURSE = "{{ course_code }}";
 </script>

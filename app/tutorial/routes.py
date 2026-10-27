@@ -15,7 +15,7 @@ TutorialProgress 등 모델은 처음부터 track/course 컬럼을 갖고 있었
 """
 from datetime import datetime
 
-from flask import render_template, request, jsonify, current_app, abort
+from flask import render_template, request, jsonify, current_app, abort, url_for
 from flask_login import current_user
 
 from app.tutorial import tutorial_bp
@@ -57,11 +57,19 @@ def index(track):
         lesson_ids = content.get_lesson_ids(track, course_code)
         total_lessons = len(lesson_ids)
 
-        done_count = 0
+        done_lesson_ids = set()
         if current_user.is_authenticated and total_lessons:
-            done_count = TutorialProgress.query.filter_by(
-                user_id=current_user.user_id, track=track, course=course_code, status='done',
-            ).count()
+            done_lesson_ids = {
+                progress.lesson_id for progress in TutorialProgress.query.filter_by(
+                    user_id=current_user.user_id, track=track, course=course_code, status='done',
+                ).all()
+            }
+        done_count = len(done_lesson_ids.intersection(lesson_ids))
+        # '이어서 하기'는 완료한 첫 레슨을 반복하지 않고 첫 미완료 레슨으로 간다.
+        resume_lesson_id = next(
+            (lesson_id for lesson_id in lesson_ids if lesson_id not in done_lesson_ids),
+            lesson_ids[0] if lesson_ids else None,
+        )
 
         courses.append({
             'code': course_code,
@@ -69,6 +77,7 @@ def index(track):
             'total_lessons': total_lessons,
             'done_count': done_count,
             'first_lesson_id': lesson_ids[0] if lesson_ids else None,
+            'resume_lesson_id': resume_lesson_id,
         })
 
     # 관리자는 순서(잠금)와 상관없이 모든 코스를 열어볼 수 있어야 콘텐츠 점검이
@@ -91,11 +100,13 @@ def lesson(track, course_code, lesson_id):
                               error='레슨을 찾을 수 없습니다.'), 404
 
     course = content.get_course(track, course_code)
+    lesson_ids = content.get_lesson_ids(track, course_code)
     return render_template(
         'tutorial/lesson.html',
         lesson=lesson_data,
         course_title=course.get('title') if course else '',
         track=track, course_code=course_code,
+        lesson_number=lesson_ids.index(lesson_id) + 1, lesson_total=len(lesson_ids),
     )
 
 
@@ -198,7 +209,7 @@ def api_complete():
     if current_user.role != 'student':
         # 관리자/교사/학부모 계정으로 튜토리얼을 열어볼 수는 있지만 진도는 저장 대상이
         # 아니다 - 화면에서 "저장 실패"로 오인하지 않도록 skipped 플래그를 명시한다.
-        return jsonify({'skipped': True, 'points_awarded': False, 'points': 0})
+        return jsonify({'saved': False, 'skipped': True, 'points_awarded': False, 'points': 0})
 
     data = request.get_json(silent=True) or {}
     lesson_id = data.get('lesson_id')
@@ -211,6 +222,8 @@ def api_complete():
         return jsonify({'error': '요청이 올바르지 않습니다'}), 400
     if track not in SUPPORTED_TRACKS or course_code not in TRACK_COURSES.get(track, []):
         return jsonify({'error': '요청이 올바르지 않습니다'}), 400
+    if lesson_id not in content.get_lesson_ids(track, course_code):
+        return jsonify({'error': '레슨을 찾을 수 없습니다', 'saved': False}), 400
 
     # 1) 진도 저장 - 먼저 커밋한다(마일리지 적립과 트랜잭션을 분리).
     try:
@@ -232,15 +245,10 @@ def api_complete():
         current_app.logger.exception(
             '[tutorial.api_complete] 진도 저장 실패 (user_id=%s, lesson_id=%s)',
             current_user.user_id, lesson_id)
-        return jsonify({'error': '저장에 실패했습니다'}), 500
+        return jsonify({'saved': False, 'error': '저장에 실패했습니다'}), 500
 
-    # 2) 명부(Student) 레코드 확인 - 없으면 정상 상황으로 보고 적립만 건너뛴다.
+    # 2) 명부가 없어도 진도 저장 및 다음 레슨 안내는 제공하고, 적립만 건너뛴다.
     student = _resolve_student()
-    if student is None:
-        current_app.logger.info(
-            '[tutorial.api_complete] 명부(Student) 레코드 없음 - 적립 건너뜀 (user_id=%s)',
-            current_user.user_id)
-        return jsonify({'points_awarded': False, 'points': 0})
 
     # 3) 코스의 전체 레슨이 done인지 판정 (레슨 수는 콘텐츠 JSON에서 센다 - 하드코딩 금지).
     all_lesson_ids = content.get_lesson_ids(track, course_code)
@@ -252,11 +260,20 @@ def api_complete():
     all_lessons_done = bool(all_lesson_ids) and set(all_lesson_ids).issubset(done_lesson_ids)
 
     points = 0
-    if all_lessons_done:
+    if all_lessons_done and student is not None:
         # 4)+5) 중복 확인 + 적립은 별도 트랜잭션(_award_course_completion 안에서 처리).
         points = _award_course_completion(student, track, course_code)
 
     # points_awarded는 "코스가 다 끝났다"가 아니라 "이번 호출로 적립이 발생했다"는 뜻이다
     # (이미 지급된 코스를 다시 풀어도 all_lessons_done은 계속 true지만, 그때는 points=0이라
     # 프런트가 마일리지 줄을 또 보여주면 안 되므로 - "코스 완료! +0"처럼 어색해지는 것을 막는다).
-    return jsonify({'points_awarded': points > 0, 'points': points})
+    next_id = next((lid for lid in all_lesson_ids if lid not in done_lesson_ids), None)
+    return jsonify({
+        'saved': True, 'skipped': False,
+        'course_done_count': len(set(all_lesson_ids).intersection(done_lesson_ids)),
+        'course_total': len(all_lesson_ids), 'course_completed': all_lessons_done,
+        'next_lesson_url': url_for('tutorial.lesson', track=track, course_code=course_code,
+                                   lesson_id=next_id) if next_id else None,
+        'courses_url': url_for('tutorial.index', track=track, _anchor='courses'),
+        'points_awarded': points > 0, 'points': points,
+    })

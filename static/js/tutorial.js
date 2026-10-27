@@ -137,9 +137,10 @@ function post(url, body){
 async function postComplete(body){
   try{
     const res = await post('/tutorial/api/complete', body);
+    if(res && res.status === 401) return {saved:false, login_required:true};
     if(!res || !res.ok) return {points_awarded:false, points:0, saved:false};
     const data = await res.json();
-    return Object.assign({saved:true}, data);
+    return data && typeof data === 'object' ? data : {saved:false};
   }catch(e){
     return {points_awarded:false, points:0, saved:false};
   }
@@ -149,16 +150,35 @@ async function postComplete(body){
 let answered={};   // qi -> {correct, ruleName, ruleNo, type, selectedIndex?, fillState?}
 let cardIdx=0;
 let quizIdx=0;
+let saveSession = null;
 
 function go(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   window.scrollTo(0,0);
 }
-function goHome(){ window.location.href = HOME_URL; }
+async function goHome(){
+  const session = saveSession;
+  if(session && session.promise) await session.promise;
+  // A replay abandons this navigation as well as the old response.
+  if(session !== saveSession) return;
+  if(session && session.state === 'failed'
+     && !window.confirm('진도가 저장되지 않았어요. 저장하지 않고 코스 화면으로 돌아갈까요?')){
+    go('result');
+    return;
+  }
+  window.location.href = HOME_URL;
+}
 
 /* ===== 레슨 시작 ===== */
 function startLesson(){
+  saveSession = {payload:null, promise:null, state:'idle'};
+  ['mileLine','saveWarn','skipNote','courseProgress','nextLessonBtn'].forEach(id => {
+    document.getElementById(id).hidden = true;
+  });
+  document.getElementById('nextLessonBtn').removeAttribute('href');
+  document.getElementById('saveStatus').textContent = '';
+  document.getElementById('courseProgress').textContent = '';
   answered={};
   cardIdx=0;
   quizIdx=0;
@@ -487,33 +507,60 @@ async function renderResult(){
   go('result');
 
   // 완료 저장 + 마일리지는 서버 응답을 받은 뒤에 채운다(클라이언트 계산 없음).
-  lastResultPayload = { lesson_id: lesson.id, score: n, total: total, track: TRACK, course: COURSE };
+  saveSession.payload = { lesson_id: lesson.id, score: n, total: total, track: TRACK, course: COURSE };
   await tryCompleteSave();
 }
 
 /* 진도 저장이 실패(세션 만료·네트워크 오류 등)하면 화면은 이미 "완료"로 보이지만
    서버엔 기록이 안 남아 다음 코스가 계속 잠겨있는 문제가 있었다 - 실패를 화면에
    드러내고 재시도할 수 있게 한다. */
-let lastResultPayload = null;
-async function tryCompleteSave(){
+function tryCompleteSave(){
+  const session = saveSession;
+  if(!session || !session.payload) return Promise.resolve();
+  if(session.promise) return session.promise;
+  if(session.state === 'saved' || session.state === 'skipped') return Promise.resolve();
+  session.state = 'saving';
+  session.promise = saveCompletion(session).finally(() => { session.promise = null; });
+  return session.promise;
+}
+async function saveCompletion(session){
   const mileEl = document.getElementById('mileLine');
   const warnEl = document.getElementById('saveWarn');
   const skipEl = document.getElementById('skipNote');
-  const data = await postComplete(lastResultPayload);
-  if(!data.saved){
+  document.getElementById('saveStatus').textContent = '진도 저장 중…';
+  ['mileLine','saveWarn','skipNote','courseProgress','nextLessonBtn'].forEach(id => {
+    document.getElementById(id).hidden = true;
+  });
+  const data = await postComplete(session.payload);
+  if(session !== saveSession) return;
+  if(data.skipped){
+    session.state = 'skipped';
+    document.getElementById('saveStatus').textContent = '체험 완료 · 진도 저장 대상 아님';
+    skipEl.hidden = false;
+    warnEl.hidden = true;
+    return;
+  }
+  if(data.saved !== true){
+    session.state = data.login_required ? 'anonymous' : 'failed';
+    document.getElementById('saveStatus').textContent = '문제 풀이 끝 · 진도 미저장'
+      + (data.login_required ? ' · 로그인이 필요해요' : '');
     warnEl.hidden = false;
     skipEl.hidden = true;
     mileEl.hidden = true;
     return;
   }
-  warnEl.hidden = true;
-  if(data.skipped){
-    // 관리자/교사/학부모 계정 - 애초에 진도 저장 대상이 아니므로 실패가 아니라
-    // "왜 마일리지가 안 뜨는지" 궁금할 사람을 위한 안내만 보여준다.
-    skipEl.hidden = false;
-    mileEl.hidden = true;
-    return;
+  session.state = 'saved';
+  document.getElementById('saveStatus').textContent = '레슨 완료 · 진도 저장됨';
+  const progressEl = document.getElementById('courseProgress');
+  progressEl.textContent = '코스 진도 ' + data.course_done_count + '/' + data.course_total
+    + (data.course_completed ? ' · 코스 전체 완료!' : ' · 아직 남은 레슨이 있어요');
+  progressEl.hidden = false;
+  const nextEl = document.getElementById('nextLessonBtn');
+  if(data.next_lesson_url){
+    nextEl.href = data.next_lesson_url;
+    nextEl.hidden = false;
   }
+  warnEl.hidden = true;
   skipEl.hidden = true;
   if(data.points_awarded && data.points > 0){
     document.getElementById('mileN').textContent = data.points;

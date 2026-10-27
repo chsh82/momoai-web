@@ -54,14 +54,14 @@
       {% set percent = (c.done_count / c.total_lessons * 100) | round | int if c.total_lessons else 0 %}
       {% set prev_done = bypass_gate or (loop.index0 == 0) or (courses[loop.index0 - 1].done_count >= courses[loop.index0 - 1].total_lessons and courses[loop.index0 - 1].total_lessons > 0) %}
       {% if c.first_lesson_id and prev_done %}
-      <a class="course c{{ loop.index }}" href="{{ url_for('tutorial.lesson', track=track, course_code=c.code, lesson_id=c.first_lesson_id) }}">
+      <a class="course c{{ loop.index }}" href="{{ url_for('tutorial.lesson', track=track, course_code=c.code, lesson_id=c.resume_lesson_id) }}">
         <span class="chip">코스 {{ loop.index }}</span>
         <h3>{{ c.data.title if c.data else '' }}</h3>
         <div class="sub">{{ c.data.lede if c.data else '' }}</div>
         <div class="bar"><i style="width:{{ percent }}%"></i></div>
         <div class="meta">
           {% if c.total_lessons and c.done_count >= c.total_lessons %}
-          <span>완료 · {{ c.done_count }}/{{ c.total_lessons }}</span>
+          <span>완료 · 다시 풀기 · {{ c.done_count }}/{{ c.total_lessons }}</span>
           {% else %}
           <span>{{ c.done_count }}/{{ c.total_lessons }} · {% if c.done_count %}이어서 하기{% else %}시작해요{% endif %}</span>
           {% endif %}
@@ -93,5 +93,7 @@ function go(id){
   document.getElementById(id).classList.add('on');
   window.scrollTo(0,0);
 }
+window.addEventListener('hashchange', () => go(location.hash === '#courses' ? 'courses' : 'intro'));
+if(location.hash === '#courses') go('courses');
 </script>
 {% endblock %}
