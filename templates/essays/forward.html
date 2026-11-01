@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}강사에게 전달{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">강사에게 전달</h1>
+<p>선택한 글에만 권한을 부여합니다. 학생 전체 기록이나 다른 과제의 권한은 바뀌지 않습니다.</p>
+<form method="post" class="my-4 space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <ul>{% for essay in essays %}<li>{{ essay.student.name }} / {{ essay.title or '제목 없음' }}<input type="hidden" name="essay_id" value="{{ essay.essay_id }}"></li>{% endfor %}</ul>
+    <label class="block">전달 강사 <select name="teacher_id" required class="border rounded p-2">
+        <option value="">-- 활성 강사를 선택하세요 --</option>
+        {% for teacher in teachers %}<option value="{{ teacher.user_id }}">{{ teacher.name }}</option>{% endfor %}
+    </select></label>
+    <label class="block">권한 <select name="mode" required class="border rounded p-2">
+        <option value="reference">열람/참고 (원문·결과·첨부 열람만, 수정 불가)</option>
+        <option value="correction">첨삭 담당 이전 (단일 담당자 변경, 원작성자·기존 결과 보존)</option>
+    </select></label>
+    <label class="block">전달 사유 <textarea name="reason" required maxlength="2000" class="border rounded p-2 w-full"></textarea></label>
+    <button class="bg-blue-700 text-white rounded px-4 py-2" type="submit">선택한 글 강사에게 전달 확정</button>
+    <a href="{{ url_for('essays.index') }}">취소 / 목록</a>
+</form>
+<h2 class="text-lg font-bold">전달 이력</h2>
+{% for essay in essays %}
+<section class="border rounded p-3 my-3"><h3>{{ essay.title or '제목 없음' }}</h3>
+{% for grant in essay.teacher_grants %}<p>{{ grant.teacher.name }} / {{ '첨삭 담당 이전' if grant.mode == 'correction' else '열람/참고' }} / {{ grant.actor.name }} / {{ grant.created_at }} UTC / {{ grant.reason }}{% if grant.revoked_at %} (회수: {{ grant.revoked_at }} UTC, {{ grant.revoked_by }}, {{ grant.revoke_reason }}){% endif %}</p>
+{% if not grant.revoked_at %}
+<form method="post" action="{{ url_for('essays.revoke_forward', grant_id=grant.grant_id) }}" class="my-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>회수 사유 <input name="reason" required maxlength="2000" class="border rounded p-1"></label>
+    <button type="submit" class="border rounded p-1">권한 회수{% if grant.mode == 'correction' %} (기존 담당 복귀){% endif %}</button>
+</form>
+{% endif %}
+{% else %}<p>전달 이력 없음</p>{% endfor %}
+</section>
+{% endfor %}
+{% endblock %}

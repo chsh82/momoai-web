@@ -127,6 +127,8 @@ v5.0.0 필수 포함 사항:
         return f'{safe_name}_{safe_grade}_v{version}_{timestamp}_gemini.html'
 
     def save_html(self, html_content: str, filename: str) -> str:
+        from app.services.correction_jobs import file_name
+        filename = file_name(filename)
         html_folder = Path(current_app.config['HTML_FOLDER'])
         html_folder.mkdir(parents=True, exist_ok=True)
         filepath = html_folder / filename
@@ -203,14 +205,7 @@ v5.0.0 필수 포함 사항:
                          revision_note: str,
                          teacher_name: Optional[str] = None) -> Tuple[EssayVersion, str]:
         """첨삭 재생성 (MOMOAIService.regenerate_essay와 동일한 인터페이스)"""
-        essay.current_version += 1
-        essay.status = 'processing'
-
         is_finalized = essay.is_finalized
-        if is_finalized:
-            essay.is_finalized = False
-            essay.finalized_at = None
-
         db.session.commit()
 
         try:
@@ -236,6 +231,11 @@ v5.0.0 필수 포함 사항:
 
             html_content = self._call_gemini(system_prompt, user_prompt)
 
+            from app.services.correction_jobs import checkpoint
+            checkpoint()
+            essay.current_version += 1
+            essay.is_finalized = False
+            essay.finalized_at = None
             filename = self.generate_filename(student_name, essay.grade, essay.current_version)
             html_path = self.save_html(html_content, filename)
 

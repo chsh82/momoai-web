@@ -3,6 +3,7 @@
 {% block title %}OCR 결과 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
+{% include 'essays/_csrf.html' %}
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
@@ -273,7 +274,7 @@ function addToEssay() {
         return;
     }
 
-    fetch('{{ url_for("essays.add_ocr_to_essay", ocr_id=ocr_record.ocr_id) }}', {
+    essayCsrfFetch('{{ url_for("essays.add_ocr_to_essay", ocr_id=ocr_record.ocr_id) }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -308,7 +309,7 @@ function addToEssay() {
 // OCR 처리 중 폴링
 {% if ocr_record.status == 'processing' %}
 (function poll() {
-    fetch('{{ url_for("essays.ocr_status", ocr_id=ocr_record.ocr_id) }}')
+    essayCsrfFetch('{{ url_for("essays.ocr_status", ocr_id=ocr_record.ocr_id) }}')
         .then(r => r.json())
         .then(data => {
             if (data.status === 'completed' || data.status === 'failed') {

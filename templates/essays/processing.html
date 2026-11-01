@@ -3,6 +3,7 @@
 {% block title %}첨삭 진행 중 - MOMOAI v4.0{% endblock %}
 
 {% block content %}
+{% include 'essays/_csrf.html' %}
 <div class="max-w-2xl mx-auto">
     <!-- Header -->
     <div class="text-center mb-8">
@@ -115,7 +116,7 @@ let regenerationStarted = false;
 function checkStatus() {
     checkCount++;
 
-    fetch(`/essays/api/status/${essayId}`)
+    essayCsrfFetch(`/essays/api/status/${essayId}`)
         .then(response => response.json())
         .then(data => {
             console.log('Status:', data.status);
@@ -162,7 +163,7 @@ function checkStatus() {
 function startRegeneration() {
     document.getElementById('statusText').textContent = '첨삭을 재생성하는 중입니다...';
 
-    fetch(`/essays/api/regenerate/${essayId}`, {
+    essayCsrfFetch(`/essays/api/regenerate/${essayId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     })
@@ -189,7 +190,7 @@ function cancelCorrection() {
     btn.disabled = true;
     btn.textContent = '취소 중...';
 
-    fetch(`/essays/api/cancel/${essayId}`, { method: 'POST' })
+    essayCsrfFetch(`/essays/api/cancel/${essayId}`, { method: 'POST' })
         .then(r => r.json())
         .then(data => {
             if (data.success) {

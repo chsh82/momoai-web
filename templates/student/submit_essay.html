@@ -18,6 +18,8 @@
     <div class="bg-white rounded-lg shadow">
         <div class="p-6">
             <form method="POST" action="{{ url_for('student.submit_essay') }}" enctype="multipart/form-data" onsubmit="return validateForm()">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% include 'essays/_makeup_submit.html' %}
                 {% if enrolled_teachers|length > 1 %}
                 <div class="mb-6">
                     <label for="teacher_id" class="block text-sm font-medium text-gray-700 mb-2">
@@ -165,7 +167,8 @@
                     <button type="submit"
                             class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200">
                         제출하기
-                    </button>
+                        </button>
+                        {% include 'essays/_makeup_submit_button.html' %}
                     <a href="{{ url_for('student.index') }}"
                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 rounded-lg transition duration-200 text-center">
                         취소

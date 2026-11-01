@@ -5,6 +5,7 @@
 {% block page_subtitle %}<span class="text-sm text-white text-opacity-70 ml-3">과제 · 글쓰기 첨삭 관리</span>{% endblock %}
 
 {% block content %}
+{% include 'essays/_csrf.html' %}
 <div class="max-w-7xl mx-auto">
 
     <!-- Header -->
@@ -261,6 +262,7 @@
                         {% if essay.status == 'draft' %}
                         <form method="POST" action="{{ url_for('essays.start_correction', essay_id=essay.essay_id) }}"
                               onsubmit="return confirm('이 학생의 글을 첨삭하시겠습니까?');">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit"
                                     class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition text-center text-sm whitespace-nowrap">
                                 ✏️ 첨삭 시작
@@ -359,7 +361,7 @@ async function executeDelete() {
     btn.textContent = '삭제 중...';
 
     try {
-        const res = await fetch(`/essays/${_deleteEssayId}/delete`, {method: 'DELETE'});
+        const res = await essayCsrfFetch(`/essays/${_deleteEssayId}/delete`, {method: 'DELETE'});
         const data = await res.json();
         if (data.success) {
             // 카드 제거

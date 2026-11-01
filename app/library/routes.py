@@ -471,6 +471,36 @@ def hall_of_fame_detail(post_id):
 
 # ==================== 명예의 전당 좋아요 ====================
 
+def _download_library_resource(post, folder, visible):
+    """Authorize resource identity, not arbitrary output filenames."""
+    from pathlib import Path
+    from flask import abort
+    if not current_user.is_active or (not visible and not current_user.is_admin):
+        abort(403)
+    if not post.file_path:
+        abort(404)
+    root = (Path(current_app.config['UPLOAD_FOLDER']) / folder).resolve()
+    target = (Path(current_app.config['UPLOAD_FOLDER']) / post.file_path).resolve()
+    if not target.is_relative_to(root) or not target.is_file():
+        abort(404)
+    return send_file(target, as_attachment=True,
+        download_name=post.original_filename or target.name)
+
+
+@library_bp.route('/hall-of-fame/<post_id>/attachment')
+@login_required
+def hall_of_fame_attachment(post_id):
+    post = HallOfFame.query.get_or_404(post_id)
+    return _download_library_resource(post, 'hall_of_fame', post.is_published)
+
+
+@library_bp.route('/admission-info/<post_id>/attachment')
+@login_required
+def admission_info_attachment(post_id):
+    post = AdmissionInfo.query.get_or_404(post_id)
+    return _download_library_resource(post, 'admission_info', post.is_active())
+
+
 @library_bp.route('/hall-of-fame/<post_id>/like', methods=['POST'])
 @login_required
 def hall_of_fame_toggle_like(post_id):
@@ -819,7 +849,10 @@ def hall_of_fame_student_essays(student_id):
     돌려준다(이미 명예의 전당에 연결된 글은 제외 - 중복 등록 방지)."""
     linked_essay_ids = {row[0] for row in db.session.query(HallOfFame.essay_id)
                         .filter(HallOfFame.essay_id.isnot(None)).all()}
+    from app.services.essay_scope import original_access_query
+    safe = original_access_query(current_user, 'essay').subquery()
     essays = (Essay.query
+              .filter(Essay.essay_id.in_(db.select(safe.c.essay_id)))
               .filter_by(student_id=student_id, is_finalized=True)
               .order_by(Essay.finalized_at.desc())
               .limit(50).all())
@@ -839,6 +872,25 @@ def hall_of_fame_student_essays(student_id):
 def create_hall_of_fame():
     """명예의 전당 게시글 생성"""
     if request.method == 'POST':
+        from app.services.essay_delivery import can_correct, validate_submission_csrf, lock_essay
+        from flask import abort
+        linked_id = request.form.get('essay_id')
+        if linked_id:
+            from sqlalchemy.exc import OperationalError
+            try:
+                lock_essay(linked_id)
+            except OperationalError:
+                db.session.rollback()
+                abort(409)
+            except ValueError:
+                abort(403)
+            linked = db.session.get(Essay, linked_id)
+            db.session.refresh(linked)
+            if (linked is None or not linked.is_finalized or
+                    linked.student_id != request.form.get('student_id') or
+                    not can_correct(current_user, linked)):
+                abort(403)
+        validate_submission_csrf()
         try:
             # Handle file upload
             file_path = None

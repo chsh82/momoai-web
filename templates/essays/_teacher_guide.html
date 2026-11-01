@@ -1,3 +1,4 @@
+{% include 'essays/_csrf.html' %}
 {# 강사 가이드 섹션 + 프롬프트 템플릿 저장/불러오기 #}
 <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
     <div class="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
@@ -111,7 +112,7 @@ async function guideDeleteAttachment(attachmentId, btn) {
     if (!confirm('이 첨부파일을 삭제하시겠습니까?')) return;
     btn.disabled = true;
     try {
-        const res = await fetch(`/essays/guide-attachment/${attachmentId}`, {method: 'DELETE'});
+        const res = await essayCsrfFetch(`/essays/guide-attachment/${attachmentId}`, {method: 'DELETE'});
         const data = await res.json();
         if (data.success) {
             btn.closest('div').remove();
@@ -128,7 +129,7 @@ async function guideDeleteAttachment(attachmentId, btn) {
 // ===== 강사 가이드 템플릿 관리 =====
 async function guideLoadTemplates() {
     try {
-        const res = await fetch('/essays/prompt-templates');
+        const res = await essayCsrfFetch('/essays/prompt-templates');
         if (!res.ok) return;
         const data = await res.json();
         const select = document.getElementById('templateSelect');
@@ -170,7 +171,7 @@ async function guideConfirmSave() {
     if (!title)   { alert('프롬프트 이름을 입력해주세요.'); return; }
     if (!content) { alert('저장할 내용이 없습니다.'); return; }
     try {
-        const res = await fetch('/essays/prompt-templates', {
+        const res = await essayCsrfFetch('/essays/prompt-templates', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({title, content})
@@ -197,7 +198,7 @@ function guideCloseManageModal() {
 async function guideRenderManageList() {
     const container = document.getElementById('guideTemplateList');
     try {
-        const res = await fetch('/essays/prompt-templates');
+        const res = await essayCsrfFetch('/essays/prompt-templates');
         const data = await res.json();
         const templates = data.templates || [];
         if (templates.length === 0) {
@@ -240,7 +241,7 @@ async function guideDeleteTemplate(id, btn) {
     if (!confirm('이 프롬프트를 삭제하시겠습니까?')) return;
     btn.disabled = true;
     try {
-        const res = await fetch(`/essays/prompt-templates/${id}`, {method: 'DELETE'});
+        const res = await essayCsrfFetch(`/essays/prompt-templates/${id}`, {method: 'DELETE'});
         const data = await res.json();
         if (data.success) {
             guideLoadTemplates();

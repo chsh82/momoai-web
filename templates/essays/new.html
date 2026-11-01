@@ -27,6 +27,7 @@
     <!-- Form -->
     <div class="bg-white rounded-lg shadow-lg p-8">
         <form method="POST" action="{{ url_for('essays.new') }}" enctype="multipart/form-data" id="mainForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {{ form.hidden_tag() }}
 
             <!-- ===== 학생 선택 섹션 ===== -->

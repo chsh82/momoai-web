@@ -652,6 +652,8 @@ v5.0.0 필수 포함 사항:
         Returns:
             저장된 파일의 전체 경로
         """
+        from app.services.correction_jobs import file_name
+        filename = file_name(filename)
         try:
             html_folder = Path(current_app.config['HTML_FOLDER'])
             file_path = html_folder / filename
@@ -836,18 +838,8 @@ v5.0.0 필수 포함 사항:
         Returns:
             (EssayVersion, html_path) 튜플
         """
-        # 버전 증가
-        essay.current_version += 1
-        essay.status = 'processing'
-
-        # 완료된 첨삭인지 확인
+        # Preserve the previous result until fenced publication succeeds.
         is_finalized = essay.is_finalized
-
-        # 완료된 첨삭의 경우 is_finalized를 False로 변경 (재작업)
-        if is_finalized:
-            essay.is_finalized = False
-            essay.finalized_at = None
-
         db.session.commit()
 
         try:
@@ -910,6 +902,11 @@ v5.0.0 필수 포함 사항:
                     usage_type='regeneration',
                     )
 
+            from app.services.correction_jobs import checkpoint
+            checkpoint()
+            essay.current_version += 1
+            essay.is_finalized = False
+            essay.finalized_at = None
             # HTML 저장
             filename = self.generate_filename(
                 student_name=student_name,
@@ -992,6 +989,8 @@ v5.0.0 필수 포함 사항:
                 result.total_score = parsed_data.get('total_score')
                 result.final_grade = parsed_data.get('final_grade')
 
+            from app.services.correction_jobs import checkpoint
+            checkpoint()
             # 기존 점수 삭제 (해당 버전의)
             EssayScore.query.filter_by(version_id=version_id).delete()
 
@@ -1023,6 +1022,8 @@ v5.0.0 필수 포함 사항:
         Args:
             essay: Essay 객체
         """
+        from app.services.correction_jobs import checkpoint
+        checkpoint()
         essay.is_finalized = True
         essay.finalized_at = datetime.utcnow()
         essay.status = 'completed'

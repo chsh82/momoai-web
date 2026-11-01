@@ -10,6 +10,7 @@
 
 
 {% block content %}
+{% include 'essays/_csrf.html' %}
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
@@ -185,6 +186,7 @@
                     </button>
                     {% if not session.attendance_checked or session.status == 'pending_review' %}
                     <form method="POST" action="{{ url_for('teacher.hold_session', session_id=session.session_id) }}" style="display:inline;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit"
                                 class="hold-btn-{{ session.session_id }} px-2 py-0.5 text-xs rounded font-medium transition
                                        {% if session.status == 'pending_review' %}bg-yellow-400 text-white{% else %}bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200{% endif %}"
@@ -498,7 +500,7 @@ async function doExcusedList() {
     closeExcusedModalList();
 
     try {
-        var resp = await fetch('/teacher/api/attendance/' + attId + '/excused', {
+        var resp = await essayCsrfFetch('/teacher/api/attendance/' + attId + '/excused', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': _csrfTokenList},
             body: JSON.stringify({reason: reason})
@@ -568,7 +570,7 @@ async function doLateList(sendSms) {
     closeLateSmsModal();
 
     try {
-        const res = await fetch('/teacher/api/attendance/' + attId, {
+        const res = await essayCsrfFetch('/teacher/api/attendance/' + attId, {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({status: 'late'})
@@ -587,7 +589,7 @@ async function doLateList(sendSms) {
 
     if (sendSms) {
         try {
-            const r2 = await fetch('/teacher/api/attendance/' + attId + '/send-late-sms', {
+            const r2 = await essayCsrfFetch('/teacher/api/attendance/' + attId + '/send-late-sms', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': _csrfTokenList}
             });
@@ -602,7 +604,7 @@ async function doLateList(sendSms) {
 async function setStatus(attendanceId, status, event) {
     if (event) event.stopPropagation();
     try {
-        const res = await fetch(`/teacher/api/attendance/${attendanceId}`, {
+        const res = await essayCsrfFetch(`/teacher/api/attendance/${attendanceId}`, {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({status: status})
@@ -642,7 +644,7 @@ async function setScore(attendanceId, score, type) {
     if (type === 'participation') payload.participation_score = score;
     else payload.comprehension_score = score;
     try {
-        const res = await fetch(`/teacher/api/attendance/${attendanceId}`, {
+        const res = await essayCsrfFetch(`/teacher/api/attendance/${attendanceId}`, {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
@@ -729,7 +731,7 @@ async function openAssignModal(studentId, studentName, courseId, sessionId, curr
     document.getElementById('assignModal').classList.remove('hidden');
 
     try {
-        const res = await fetch(`/teacher/api/student-essays?student_id=${studentId}&course_id=${courseId}`);
+        const res = await essayCsrfFetch(`/teacher/api/student-essays?student_id=${studentId}&course_id=${courseId}`);
         const data = await res.json();
         renderEssayList(data.essays, currentEssayId);
     } catch (e) {
@@ -783,7 +785,7 @@ function renderEssayList(essays, currentEssayId) {
 async function assignEssayToSession(essayId) {
     const {sessionId} = _assignContext;
     try {
-        const res = await fetch(`/teacher/api/essay/${essayId}/assign-session`, {
+        const res = await essayCsrfFetch(`/teacher/api/essay/${essayId}/assign-session`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({session_id: sessionId})
@@ -804,7 +806,7 @@ async function clearAssignment() {
     if (!confirm('현재 글쓰기 배정을 해제하시겠습니까?')) return;
 
     try {
-        const res = await fetch(`/teacher/api/essay/${currentEssayId}/assign-session`, {
+        const res = await essayCsrfFetch(`/teacher/api/essay/${currentEssayId}/assign-session`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({session_id: null})
@@ -830,7 +832,7 @@ async function completeSession(sessionId, btn) {
     const newChecked = !isChecked;
 
     try {
-        const res = await fetch(`/teacher/api/sessions/${sessionId}/complete`, {
+        const res = await essayCsrfFetch(`/teacher/api/sessions/${sessionId}/complete`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({checked: newChecked})

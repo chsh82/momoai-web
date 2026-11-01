@@ -42,6 +42,7 @@
         </div>
         <div class="p-6">
             <form method="POST" action="{{ url_for('essays.ocr_from_essay', essay_id=essay.essay_id) }}" onsubmit="return validateAndShowProcessing()">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="space-y-3 mb-6">
                     {% for file_index, filename, filepath in image_attachments %}
                     <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-400 cursor-pointer transition duration-200 file-item">

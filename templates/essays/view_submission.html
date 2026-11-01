@@ -3,6 +3,7 @@
 {% block title %}{{ essay.title or student.name + '의 과제' }} - MOMOAI v4.0{% endblock %}
 
 {% block content %}
+{% include 'essays/_csrf.html' %}
 <div class="max-w-5xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
@@ -101,7 +102,7 @@
         btn.disabled = true;
         btn.textContent = '삭제 중...';
         try {
-            const res = await fetch('/essays/{{ essay.essay_id }}/delete', {method: 'DELETE'});
+            const res = await essayCsrfFetch('/essays/{{ essay.essay_id }}/delete', {method: 'DELETE'});
             const data = await res.json();
             if (data.success) {
                 window.location.href = '{{ url_for("essays.index") }}';
@@ -169,7 +170,7 @@
         btn.disabled = true;
         btn.textContent = '초기화 중...';
         try {
-            const res = await fetch('/essays/{{ essay.essay_id }}/reset', {method: 'POST'});
+            const res = await essayCsrfFetch('/essays/{{ essay.essay_id }}/reset', {method: 'POST'});
             const data = await res.json();
             if (data.success) {
                 window.location.reload();
@@ -194,7 +195,7 @@
         select.disabled = true;
         status.textContent = '저장 중...';
         try {
-            const res = await fetch('/essays/{{ essay.essay_id }}/update-essay-type', {
+            const res = await essayCsrfFetch('/essays/{{ essay.essay_id }}/update-essay-type', {
                 method: 'PATCH',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({essay_type: newType})
@@ -407,7 +408,7 @@
         btn.textContent = '저장 중...';
 
         try {
-            const res = await fetch(`/essays/${ESSAY_ID}/update-original-text`, {
+            const res = await essayCsrfFetch(`/essays/${ESSAY_ID}/update-original-text`, {
                 method: 'PATCH',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({text: text})
@@ -603,6 +604,7 @@
                   id="startCorrectionForm" enctype="multipart/form-data"
                   class="{% if not attachments %}col-span-2{% endif %}"
                   onsubmit="return confirmAndStartCorrection(event, '이 학생의 글을 첨삭하시겠습니까? (약 10~30초 소요)')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="correction_model" class="correction-model-input" value="standard">
                 <input type="hidden" name="api_provider" class="api-provider-input" value="claude">
                 <button type="submit"
@@ -615,6 +617,7 @@
                   id="startCorrectionForm" enctype="multipart/form-data"
                   class="{% if not attachments %}col-span-2{% endif %}"
                   onsubmit="return confirmAndStartCorrection(event, '첨삭이 중단된 것 같습니다. 다시 시작하시겠습니까?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="correction_model" class="correction-model-input" value="standard">
                 <input type="hidden" name="api_provider" class="api-provider-input" value="claude">
                 <button type="submit"
@@ -627,6 +630,7 @@
                   id="startCorrectionForm" enctype="multipart/form-data"
                   class="{% if not attachments %}col-span-2{% endif %}"
                   onsubmit="return confirmAndStartCorrection(event, '첨삭에 실패했습니다. 다시 시도하시겠습니까?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="correction_model" class="correction-model-input" value="standard">
                 <input type="hidden" name="api_provider" class="api-provider-input" value="claude">
                 <button type="submit"
@@ -822,7 +826,7 @@ function quickAddToEssay(ocrId) {
         return;
     }
 
-    fetch(`/essays/ocr/${ocrId}/add-to-essay`, {
+    essayCsrfFetch(`/essays/ocr/${ocrId}/add-to-essay`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -858,7 +862,7 @@ function addModalTextToEssay() {
         return;
     }
 
-    fetch(`/essays/ocr/${currentOCRId}/add-to-essay`, {
+    essayCsrfFetch(`/essays/ocr/${currentOCRId}/add-to-essay`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

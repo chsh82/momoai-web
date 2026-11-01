@@ -357,6 +357,9 @@ def course_detail(course_id):
 @requires_role('student', 'admin')
 def submit_essay():
     """새 과제 제출"""
+    from app.services.essay_delivery import assign_submission, makeup_choices, validate_submission_csrf
+    if request.method == 'POST':
+        validate_submission_csrf()
     if current_user.role == 'student':
         student = Student.query.filter_by(user_id=current_user.user_id).first() or \
                   Student.query.filter_by(email=current_user.email).first()
@@ -367,29 +370,13 @@ def submit_essay():
         flash('학생 정보를 찾을 수 없습니다.', 'error')
         return redirect(url_for('student.index'))
 
-    # 수강 중인 강사 목록 조회
-    from app.models.course import Course, CourseEnrollment
-    from app.models import User as UserModel
-    enrolled_teachers = db.session.query(UserModel).join(
-        Course, Course.teacher_id == UserModel.user_id
-    ).join(
-        CourseEnrollment, CourseEnrollment.course_id == Course.course_id
-    ).filter(
-        CourseEnrollment.student_id == student.student_id,
-        CourseEnrollment.status == 'active'
-    ).order_by(CourseEnrollment.enrolled_at.asc()).distinct().all()
+    from app.services.essay_delivery import regular_teachers
+    enrolled_teachers = regular_teachers(student)
 
     # 기본 강사: student.teacher_id 또는 가장 오래된 수강 강사
     default_teacher_id = student.teacher_id
     if not default_teacher_id and enrolled_teachers:
-        oldest = db.session.query(CourseEnrollment).join(
-            Course, Course.course_id == CourseEnrollment.course_id
-        ).filter(
-            CourseEnrollment.student_id == student.student_id,
-            CourseEnrollment.status == 'active'
-        ).order_by(CourseEnrollment.enrolled_at.asc()).first()
-        if oldest:
-            default_teacher_id = oldest.course.teacher_id
+        default_teacher_id = enrolled_teachers[0].user_id
 
     if request.method == 'POST':
         from app.models.essay import ESSAY_TYPES
@@ -424,12 +411,16 @@ def submit_essay():
             grade=student.grade,
             essay_type=essay_type_input
         )
+        try:
+            mode = request.form.get('submission_mode', 'regular')
+            assign_submission(essay, student, mode=mode,
+                session_id=request.form.get('makeup_session_id'),
+                teacher_id=request.form.get('makeup_teacher_id') if mode == 'makeup' else selected_teacher_id)
+        except ValueError as exc:
+            abort(400, description=str(exc))
+        selected_teacher_id = essay.user_id
         db.session.add(essay)
-        db.session.flush()  # essay_id 생성을 위해 flush
-
-        # 수업-세션 자동 배정
-        from app.utils.essay_utils import auto_assign_essay_session
-        auto_assign_essay_session(essay)
+        db.session.flush()
 
         try:
             from app.services.badge_service import evaluate_badges
@@ -508,6 +499,7 @@ def submit_essay():
     ).order_by(desc(Essay.created_at)).limit(10).all()
 
     return render_template('student/submit_essay.html',
+                           makeup_sessions=makeup_choices(student),
                            student=student,
                            recent_essays=recent_essays,
                            enrolled_teachers=enrolled_teachers,

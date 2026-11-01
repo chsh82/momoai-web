@@ -1363,11 +1363,32 @@ def assign_essay_session(essay_id):
     """Essay를 특정 세션에 수동 배정 (또는 배정 해제)"""
     from app.models.essay import Essay
     essay = Essay.query.get_or_404(essay_id)
+    from app.services.essay_delivery import can_correct
+    if not can_correct(current_user, essay):
+        return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
+    from app.services.essay_delivery import validate_submission_csrf, lock_essay
+    validate_submission_csrf()
+    from sqlalchemy.exc import OperationalError
+    try:
+        lock_essay(essay_id)
+        db.session.refresh(essay)
+        if not can_correct(current_user, essay):
+            return jsonify({'success': False, 'message': '담당이 변경되었습니다.'}), 403
+    except OperationalError:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': '다른 요청이 처리 중입니다.'}), 409
     data = request.json or {}
     session_id = data.get('session_id')  # None이면 배정 해제
 
     if session_id:
         session = CourseSession.query.get_or_404(session_id)
+        valid_enrollment = CourseEnrollment.query.filter(
+            CourseEnrollment.student_id == essay.student_id,
+            CourseEnrollment.course_id == session.course_id,
+            CourseEnrollment.status.in_(['active', 'completed'])).first()
+        if (not valid_enrollment or session.status == 'cancelled' or
+                session.course.status == 'cancelled' or session.course.is_terminated):
+            return jsonify({'success': False, 'message': '유효한 수강 수업을 선택해주세요.'}), 400
         if session.course.teacher_id != current_user.user_id and not current_user.is_admin:
             return jsonify({'success': False, 'message': '권한이 없습니다.'}), 403
         essay.session_id = session_id
@@ -1393,7 +1414,10 @@ def get_student_essays_for_assign():
     if not student_id:
         return jsonify({'essays': []})
 
-    query = Essay.query.filter_by(student_id=student_id)
+    from app.services.essay_scope import original_access_query
+    allowed = original_access_query(current_user, 'essay').subquery()
+    query = Essay.query.filter(Essay.essay_id.in_(db.select(allowed.c.essay_id)))
+    query = query.filter_by(student_id=student_id)
     if course_id:
         # 해당 수업 글 또는 아직 배정 안 된 글
         from sqlalchemy import or_
@@ -2288,31 +2312,12 @@ def assignments():
             assignment_id=a.assignment_id, status='submitted'
         ).count()
 
-    # ── 섹션 2: 내 담당 학생들의 글쓰기(첨삭) 과제 ─────────────────
-    # 내 수업 수강생 student_id 목록
-    my_course_ids = [c.course_id for c in
-                     Course.query.filter_by(teacher_id=current_user.user_id, status='active').all()]
-    enrolled_student_ids = []
-    if my_course_ids:
-        enrolled_student_ids = [
-            e.student_id for e in
-            CourseEnrollment.query.filter(
-                CourseEnrollment.course_id.in_(my_course_ids),
-                CourseEnrollment.status == 'active'
-            ).all()
-        ]
-
-    # student.teacher_id 직접 배정된 학생 + 내 수업 수강생
-    direct_student_ids = [
-        s.student_id for s in Student.query.filter_by(teacher_id=current_user.user_id).all()
-    ]
-    all_student_ids = list(set(enrolled_student_ids + direct_student_ids))
-
-    writing_essays = []
-    if all_student_ids:
-        writing_essays = Essay.query.filter(
-            Essay.student_id.in_(all_student_ids)
-        ).order_by(Essay.created_at.desc()).limit(100).all()
+    # 글 단위 원본 ACL. 보강 재원이나 기본 학생 담당만으로 다른 글을 열지 않는다.
+    from app.services.essay_scope import original_access_query
+    safe = original_access_query(current_user, 'essay').subquery()
+    writing_essays = Essay.query.filter(
+        Essay.essay_id.in_(db.select(safe.c.essay_id))
+    ).order_by(Essay.created_at.desc()).limit(100).all()
 
     # 첨삭 대기(미완료) / 완료 분리
     essays_pending   = [e for e in writing_essays if e.status not in ('completed', 'failed')]

@@ -82,7 +82,7 @@
         <h3 class="text-lg font-bold text-blue-800 mb-3">📎 첨부파일</h3>
         <div class="flex items-center justify-between">
             <span class="text-gray-700">{{ post.file_path | basename }}</span>
-            <a href="{{ url_for('api_download', filename=post.file_path) }}"
+            <a href="{{ url_for('library.admission_info_attachment', post_id=post.post_id) }}"
                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
                 다운로드
             </a>

@@ -482,21 +482,9 @@ def create_app(config_name='default'):
     @app.route('/api/download/<path:filename>')
     @login_required
     def api_download(filename):
-        """파일 다운로드 API"""
-        try:
-            # HTML 또는 PDF 폴더에서 파일 찾기
-            html_path = Path(app.config['HTML_FOLDER']) / filename
-            pdf_path = Path(app.config['PDF_FOLDER']) / filename
-
-            if html_path.exists():
-                return send_file(html_path, as_attachment=True)
-            elif pdf_path.exists():
-                return send_file(pdf_path, as_attachment=True)
-            else:
-                return "파일을 찾을 수 없습니다.", 404
-
-        except Exception as e:
-            return str(e), 500
+        """파일명으로 원본 ACL을 우회하지 않는 첨삭 결과 다운로드."""
+        from app.services.essay_delivery import download_output
+        return download_output(filename)
 
     # 앱 시작 시 누락된 테이블 자동 생성
     with app.app_context():

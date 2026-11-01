@@ -38,6 +38,7 @@
         <div class="p-6">
             <form method="POST" action="{{ url_for('essays.ocr_upload') }}" enctype="multipart/form-data"
                   id="uploadForm" onsubmit="return handleSubmit()">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <!-- 파일 선택 영역 -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">

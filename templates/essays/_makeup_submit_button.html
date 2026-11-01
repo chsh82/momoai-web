@@ -1,0 +1,3 @@
+<button type="submit" name="submission_mode" value="makeup" class="rounded bg-purple-700 text-white px-4 py-2"
+    {% if not makeup_sessions %}disabled{% endif %}
+    onclick="if (!this.form.elements.makeup_session_id.value) { alert('보강 수업/날짜/강사를 선택해주세요.'); return false; }">보강 수업에 제출</button>

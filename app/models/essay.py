@@ -14,6 +14,16 @@ ESSAY_TYPES = {
 ESSAY_TYPE_DEFAULT = 'basic'
 
 
+class EssayCorrectionJob(db.Model):
+    """One durable generation per essay; replaced atomically on every claim."""
+    __tablename__ = 'essay_correction_jobs'
+    essay_id = db.Column(db.String(36), db.ForeignKey('essays.essay_id', ondelete='CASCADE'), primary_key=True)
+    job_id = db.Column(db.String(36), nullable=False)
+    actor_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    state = db.Column(db.String(20), nullable=False)
+    revision_note = db.Column(db.Text, nullable=True)
+
+
 class Essay(db.Model):
     """첨삭 작업 모델"""
     __tablename__ = 'essays'
@@ -98,6 +108,34 @@ class Essay(db.Model):
         if self.versions:
             return self.versions[-1]
         return None
+
+
+class EssayTeacherGrant(db.Model):
+    """Per-essay grant; immutable grant facts, explicit audited revocation."""
+    __tablename__ = 'essay_teacher_grants'
+    grant_id = db.Column(db.String(36), primary_key=True, default=lambda: __import__('uuid').uuid4().hex)
+    essay_id = db.Column(db.String(36), db.ForeignKey('essays.essay_id', ondelete='CASCADE'), nullable=False, index=True)
+    teacher_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False, index=True)
+    mode = db.Column(db.String(20), nullable=False)
+    actor_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    revoked_at = db.Column(db.DateTime)
+    revoked_by = db.Column(db.String(36), db.ForeignKey('users.user_id'))
+    revoke_reason = db.Column(db.Text)
+    essay = db.relationship('Essay', backref=db.backref('teacher_grants', cascade='all, delete-orphan'))
+    teacher = db.relationship('User', foreign_keys=[teacher_id])
+    actor = db.relationship('User', foreign_keys=[actor_id])
+    __table_args__ = (
+        db.CheckConstraint("mode IN ('reference','correction')", name='ck_essay_grant_mode'),
+        db.CheckConstraint("length(trim(reason)) > 0", name='ck_essay_grant_reason'),
+        db.CheckConstraint("(revoked_at IS NULL AND revoked_by IS NULL AND revoke_reason IS NULL) OR "
+                           "(revoked_at IS NOT NULL AND revoked_by IS NOT NULL AND revoke_reason IS NOT NULL AND length(trim(revoke_reason)) > 0)", name='ck_essay_grant_revocation'),
+        db.Index('uq_essay_active_recipient_mode', 'essay_id', 'teacher_id', 'mode', unique=True,
+                 sqlite_where=db.text('revoked_at IS NULL')),
+        db.Index('uq_essay_active_correction', 'essay_id', unique=True,
+                 sqlite_where=db.text("revoked_at IS NULL AND mode = 'correction'")),
+    )
 
 
 class EssayVersion(db.Model):

@@ -29,6 +29,7 @@
                 </button>
                 {% if not essay.is_finalized %}
                 <form method="POST" action="{{ url_for('essays.finalize', essay_id=essay.essay_id) }}" class="inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" onclick="return confirm('이 첨삭을 최종 완료하시겠습니까?')" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg transition duration-200">
                         완료
                     </button>
@@ -151,6 +152,7 @@
         </div>
         {% endif %}
         <form method="POST" action="{{ url_for('essays.regenerate', essay_id=essay.essay_id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {{ revision_form.hidden_tag() }}
 
             <!-- 모델 선택 -->

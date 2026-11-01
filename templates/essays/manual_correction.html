@@ -70,6 +70,7 @@
         </div>
         {% if not ex01_status.already_selected %}
         <form method="POST" action="{{ url_for('essays.select_excellent', essay_id=essay.essay_id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit"
                     {% if not ex01_status.can_select %}disabled{% endif %}
                     class="px-4 py-2 text-sm font-medium rounded-lg text-white
@@ -82,6 +83,7 @@
     {% endif %}
 
     <form method="POST" action="{{ url_for('essays.manual_correction', essay_id=essay.essay_id) }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- 2-column layout: original essay (left) + correction editor (right) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 

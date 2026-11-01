@@ -8,6 +8,8 @@ from app.utils.file_utils import safe_original_filename
 import os
 import uuid
 import threading
+from contextlib import nullcontext
+from app.services.correction_jobs import fenced_worker, checkpoint, invalidate
 from datetime import datetime, timedelta
 
 from app.essays import essays_bp
@@ -34,63 +36,165 @@ def _save_essay_error(essay_id: str, error_msg: str) -> None:
         pass
 
 
-def _revision_note_path(essay_id: str) -> str:
-    note_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'revision_notes')
-    os.makedirs(note_dir, exist_ok=True)
-    return os.path.join(note_dir, f'{secure_filename(essay_id)}.txt')
 
-
-def _save_pending_revision_note(essay_id: str, revision_note: str) -> None:
-    """재생성 요청 시 입력한 revision_note를 서버 파일에 임시 저장."""
-    with open(_revision_note_path(essay_id), 'w', encoding='utf-8') as f:
-        f.write(revision_note)
-
-
-def _pop_pending_revision_note(essay_id: str):
-    """저장된 revision_note를 읽고 파일을 삭제."""
-    path = _revision_note_path(essay_id)
-    if not os.path.exists(path):
-        return None
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            content = f.read()
-    finally:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-    return content
 
 
 def _can_access_essay(essay):
+    """공통 SQL 원본 ACL: 관리자/본인 작성 강사/현재 해당 수강 담당만.
+
+    학생 담당자나 다른 수강의 재원 여부는 기록 열람권이 아니다.
+    이전 강사의 본인 작성 원본은 독립적으로 유지하며, 학부모/학생은
+    여기서 허용하지 않고 각 포털의 확정·관계 게이트를 별도로 따른다.
     """
-    현재 로그인 유저가 해당 essay에 접근 가능한지 확인.
-    - admin: 항상 허용
-    - essay.user_id 일치: 허용 (직접 생성한 강사)
-    - 담당 강사 (student.teacher_id): 허용
-    - 수강 담당 강사 (CourseEnrollment): 허용
-    """
-    if current_user.role == 'admin':
-        return True
-    if essay.user_id == current_user.user_id:
-        return True
-    if current_user.role == 'teacher' and essay.student:
-        if essay.student.teacher_id == current_user.user_id:
-            return True
-        from app.models import CourseEnrollment, Course
-        teacher_course_ids = [
-            c.course_id for c in
-            Course.query.filter_by(teacher_id=current_user.user_id).all()
-        ]
-        if teacher_course_ids:
-            enrolled = CourseEnrollment.query.filter(
-                CourseEnrollment.student_id == essay.student.student_id,
-                CourseEnrollment.course_id.in_(teacher_course_ids),
-                CourseEnrollment.status == 'active'
-            ).first()
-            if enrolled:
-                return True
-    return False
+    from app.services.essay_scope import original_access_query
+
+    source_id = getattr(essay, 'essay_id', None)
+    if not isinstance(source_id, str) or not source_id.strip():
+        return False
+    with db.session.no_autoflush:
+        return db.session.execute(
+            original_access_query(current_user, 'essay', source_id).limit(1)
+        ).first() is not None
+
+
+@essays_bp.before_request
+def enforce_essay_mutation_scope():
+    """Defense in depth: read grants never authorize ANY essay mutation."""
+    from flask import abort
+    from app.services.essay_delivery import can_correct
+    from app.services.essay_scope import is_hub_admin
+    if request.endpoint.split('.')[-1] in {'forward', 'revoke_forward'}:
+        if not current_user.is_authenticated or not current_user.is_active or not is_hub_admin(current_user):
+            abort(403)
+    if current_user.is_authenticated and request.endpoint.split('.')[-1] in {'ocr_status', 'ocr_result'}:
+        record = OCRHistory.query.get_or_404(request.view_args['ocr_id'])
+        if record.essay_id:
+            essay = db.session.get(Essay, record.essay_id)
+            if essay is None or not _can_access_essay(essay):
+                abort(403)
+    guarded = {'regenerate', 'api_cancel', 'api_regenerate', 'finalize', 'manual_correction',
+        'select_excellent', 'start_correction', 'ocr_from_essay', 'update_original_text',
+        'update_essay_type', 'reset_essay', 'delete_essay', 'delete_guide_attachment', 'add_ocr_to_essay'}
+    if not current_user.is_authenticated or request.endpoint.split('.')[-1] not in guarded:
+        return
+    args = request.view_args or {}
+    essay = None
+    if 'essay_id' in args:
+        essay = Essay.query.get_or_404(args['essay_id'])
+    elif 'attachment_id' in args:
+        from app.models.essay import EssayGuideAttachment
+        essay = EssayGuideAttachment.query.get_or_404(args['attachment_id']).essay
+    elif 'ocr_id' in args:
+        record = OCRHistory.query.get_or_404(args['ocr_id'])
+        essay = db.session.get(Essay, record.essay_id) if record.essay_id else None
+    if essay is None or not can_correct(current_user, essay):
+        abort(403)
+
+
+@essays_bp.before_request
+def protect_essay_mutations_from_csrf():
+    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        from app.services.essay_delivery import validate_submission_csrf
+        validate_submission_csrf()
+        # Hold the same transaction mutex as forwarding/revocation until the
+        # mutation commits. Recheck SQL ACL after acquiring, never stale objects.
+        from app.services.essay_delivery import lock_essay, can_correct
+        args = request.view_args or {}
+        essay_id = args.get('essay_id')
+        if 'attachment_id' in args:
+            from app.models.essay import EssayGuideAttachment
+            essay_id = EssayGuideAttachment.query.get_or_404(args['attachment_id']).essay_id
+        elif 'ocr_id' in args:
+            essay_id = OCRHistory.query.get_or_404(args['ocr_id']).essay_id
+        if essay_id:
+            from sqlalchemy.exc import OperationalError
+            from flask import abort
+            try:
+                lock_essay(essay_id)
+                essay = db.session.get(Essay, essay_id)
+                db.session.refresh(essay)
+                if not can_correct(current_user, essay):
+                    abort(403)
+            except OperationalError:
+                db.session.rollback()
+                abort(409, description='다른 요청이 처리 중입니다. 잠시 후 다시 시도해주세요.')
+
+
+from sqlalchemy.exc import OperationalError
+
+
+@essays_bp.errorhandler(OperationalError)
+def essay_database_busy(exc):
+    db.session.rollback()
+    return jsonify({'error': '다른 요청이 처리 중입니다. 잠시 후 다시 시도해주세요.'}), 409
+
+
+@essays_bp.errorhandler(ValueError)
+def essay_state_conflict(exc):
+    db.session.rollback()
+    return jsonify({'error': str(exc)}), 409
+
+
+@essays_bp.errorhandler(PermissionError)
+def essay_owner_changed(exc):
+    db.session.rollback()
+    return jsonify({'error': str(exc)}), 403
+
+
+@essays_bp.route('/forward', methods=['GET', 'POST'])
+@login_required
+def forward():
+    from flask import abort
+    from app.models import User
+    from app.services.essay_delivery import forward_essays, validate_submission_csrf
+    from app.services.essay_scope import is_hub_admin
+    if not current_user.is_active or not is_hub_admin(current_user):
+        abort(403)
+    if request.method == 'POST':
+        validate_submission_csrf()
+    source = request.form if request.method == 'POST' else request.args
+    ids = list(dict.fromkeys(source.getlist('essay_id')))
+    if not ids or len(ids) > 100:
+        abort(400)
+    essays = Essay.query.filter(Essay.essay_id.in_(ids)).order_by(Essay.essay_id).all()
+    if len(essays) != len(ids):
+        abort(404)
+    if request.method == 'POST':
+        try:
+            forward_essays(current_user, essays, db.session.get(User, request.form.get('teacher_id')),
+                mode=request.form.get('mode'), reason=request.form.get('reason'))
+            db.session.commit()
+        except ValueError as exc:
+            db.session.rollback()
+            abort(400, description=str(exc))
+        except Exception:
+            db.session.rollback()
+            raise
+        flash('선택한 글의 강사 전달을 처리했습니다.', 'success')
+        return redirect(url_for('essays.forward', essay_id=ids))
+    teachers = User.query.filter(User.role == 'teacher', User.is_active.is_(True),
+        User.role_level.in_([3, 4])).order_by(User.name).all()
+    return render_template('essays/forward.html', essays=essays, teachers=teachers)
+
+
+@essays_bp.route('/grants/<grant_id>/revoke', methods=['POST'])
+@login_required
+def revoke_forward(grant_id):
+    from flask import abort
+    from app.models.essay import EssayTeacherGrant
+    from app.services.essay_delivery import revoke_grant, validate_submission_csrf
+    from app.services.essay_scope import is_hub_admin
+    if not current_user.is_active or not is_hub_admin(current_user):
+        abort(403)
+    validate_submission_csrf()
+    grant = EssayTeacherGrant.query.get_or_404(grant_id)
+    try:
+        revoke_grant(current_user, grant, request.form.get('reason'))
+        db.session.commit()
+    except ValueError as exc:
+        db.session.rollback()
+        abort(400, description=str(exc))
+    return redirect(url_for('essays.forward', essay_id=grant.essay_id))
 
 
 @essays_bp.route('/')
@@ -111,21 +215,11 @@ def index():
                 n.is_read = True
             db.session.commit()
 
-    # 기본 쿼리 - 관리자/매니저는 모든 첨삭 조회, 강사는 본인이 생성하거나 담당 학생의 첨삭 조회
-    if current_user.role in ('admin', 'manager') or (
-            current_user.role_level and current_user.role_level <= 2):
-        query = Essay.query
-    else:
-        from app.utils.enrollment_utils import get_active_student_ids_subquery
-        course_student_ids = get_active_student_ids_subquery(current_user.user_id)
-
-        query = Essay.query.outerjoin(Student).filter(
-            db.or_(
-                Essay.user_id == current_user.user_id,
-                Student.teacher_id == current_user.user_id,
-                Student.student_id.in_(course_student_ids)
-            )
-        )
+    # Independent originals retain authorship; student-wide access is not a grant.
+    from app.services.essay_scope import original_access_query, student_scope
+    safe = original_access_query(current_user, 'essay').subquery()
+    base_query = Essay.query.filter(Essay.essay_id.in_(db.select(safe.c.essay_id)))
+    query = base_query.outerjoin(Student)
 
     # Phase 2: 필터링
     is_teacher = current_user.role not in ('admin', 'manager') and not (
@@ -183,9 +277,6 @@ def index():
             query = query.join(EssayResult)
         query = query.order_by(EssayResult.total_score.asc())
     elif sort_by == 'student':
-        # 강사 쿼리는 Student를 이미 outerjoin 했으므로 중복 join 방지
-        if not is_teacher:
-            query = query.join(Student)
         query = query.order_by(Student.name.asc())
     else:
         query = query.order_by(Essay.created_at.desc())
@@ -199,8 +290,9 @@ def index():
         students = Student.query.filter_by(is_temp=False).order_by(Student.name).all()
         teachers = User.query.filter_by(role='teacher', is_active=True).order_by(User.name).all()
     else:
-        students = Student.query.filter_by(teacher_id=current_user.user_id, is_temp=False)\
-            .order_by(Student.name).all()
+        safe_students = student_scope(current_user).subquery()
+        students = Student.query.filter(Student.is_temp == False,
+            Student.student_id.in_(db.select(safe_students.c.student_id))).order_by(Student.name).all()
         teachers = []
 
     # 대시보드 통계 (관리자/매니저 전용)
@@ -214,8 +306,8 @@ def index():
         # 이번 달 1일 00:00
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        week_all = Essay.query.filter(Essay.created_at >= week_start).all()
-        month_all = Essay.query.filter(Essay.created_at >= month_start).all()
+        week_all = base_query.filter(Essay.created_at >= week_start).all()
+        month_all = base_query.filter(Essay.created_at >= month_start).all()
 
         dashboard_stats = {
             'week': {
@@ -241,18 +333,12 @@ def index():
         dashboard_stats['teacher_stats'] = None
 
         if selected_teacher_id:
-            from app.utils.enrollment_utils import get_active_student_ids_subquery
-            course_student_ids = get_active_student_ids_subquery(selected_teacher_id)
+            selected_teacher = db.session.get(User, selected_teacher_id)
+            teacher_scope = original_access_query(selected_teacher, 'essay').subquery()
 
             def _teacher_essays(since):
-                return Essay.query.outerjoin(Student).filter(
-                    Essay.created_at >= since,
-                    db.or_(
-                        Essay.user_id == selected_teacher_id,
-                        Student.teacher_id == selected_teacher_id,
-                        Student.student_id.in_(course_student_ids)
-                    )
-                ).all()
+                return base_query.filter(Essay.created_at >= since,
+                    Essay.essay_id.in_(db.select(teacher_scope.c.essay_id))).all()
 
             t_week = _teacher_essays(week_start)
             t_month = _teacher_essays(month_start)
@@ -269,7 +355,11 @@ def index():
                 },
             }
 
+    from app.services.essay_scope import is_hub_admin
+    from app.services.essay_delivery import can_correct
     return render_template('essays/index.html',
+                         can_forward=is_hub_admin(current_user),
+                         writable_ids={e.essay_id for e in essays if can_correct(current_user, e)},
                          essays=essays,
                          students=students,
                          teachers=teachers,
@@ -462,11 +552,13 @@ def new():
         chosen_provider = api_provider
         app = current_app._get_current_object()
 
-        essay.status = 'processing'
+        from app.services.essay_delivery import begin_correction
+        job_id = begin_correction(current_user, essay)
         db.session.commit()
 
+        @fenced_worker(app, essay_id_val, job_id)
         def do_correction():
-            with app.app_context():
+            with nullcontext():
                 from app.models import db as _db, Essay as _Essay
                 essay_obj = _Essay.query.get(essay_id_val)
                 if not essay_obj:
@@ -481,6 +573,7 @@ def new():
                     svc.process_essay(essay_obj, student_name, teacher_name)
 
                     # 첨삭 완료 후 자동 완료 처리 + 학생/학부모 알림 발송
+                    checkpoint()
                     svc.finalize_essay(essay_obj)
                     try:
                         from app.models.user import User as _User
@@ -607,7 +700,7 @@ def quick():
             title=title,
             original_text=essay_text or '',
             grade=grade,
-            status='processing'
+            status='draft'
         )
         db.session.add(essay)
 
@@ -648,8 +741,13 @@ def quick():
         teacher_name_q = current_user.name
         app = current_app._get_current_object()
 
+        from app.services.essay_delivery import begin_correction
+        job_id = begin_correction(current_user, essay)
+        db.session.commit()
+
+        @fenced_worker(app, essay_id_val, job_id)
         def do_quick_correction():
-            with app.app_context():
+            with nullcontext():
                 from app.models import db as _db, Essay as _Essay
                 essay_obj = _Essay.query.get(essay_id_val)
                 if not essay_obj:
@@ -719,22 +817,8 @@ def report_frame(essay_id):
     """
     essay = Essay.query.get_or_404(essay_id)
 
-    allowed = _can_access_essay(essay)
-
-    if not allowed and current_user.role == 'parent':
-        from app.models import ParentStudent
-        relation = ParentStudent.query.filter_by(
-            parent_id=current_user.user_id, student_id=essay.student_id, is_active=True
-        ).first()
-        allowed = bool(relation) and essay.is_finalized
-
-    if not allowed and current_user.role == 'student':
-        student = Student.query.filter_by(user_id=current_user.user_id).first() or \
-                  Student.query.filter_by(email=current_user.email).first()
-        allowed = bool(student) and essay.student_id == student.student_id and \
-            essay.status in ('reviewing', 'completed') and essay.is_finalized
-
-    if not allowed:
+    from app.services.essay_delivery import can_view_result
+    if not can_view_result(current_user, essay):
         return '접근 권한이 없습니다.', 403
 
     version_number = request.args.get('version', type=int)
@@ -815,7 +899,8 @@ def result(essay_id):
         .order_by(Book.title)\
         .all()
 
-    return render_template('essays/result.html',
+    from app.services.essay_delivery import can_correct
+    return render_template('essays/result.html' if can_correct(current_user, essay) else 'essays/read_only.html',
                          essay=essay,
                          student=essay.student,
                          version=version,
@@ -847,13 +932,11 @@ def regenerate(essay_id):
         new_guide = request.form.get('teacher_guide', '').strip()
         essay.teacher_guide = new_guide or None
 
-        # revision_note는 쿠키 세션이 아니라 서버 파일에 저장
-        # (길이 제한이 없는 사용자 입력을 쿠키에 담으면 응답 헤더가 커져
-        #  nginx가 502 "upstream sent too big header"로 끊는 문제가 있었음)
-        _save_pending_revision_note(essay_id, revision_note)
+        # Persist note and prepared generation atomically, never in cookie/file state.
 
         # 상태를 processing으로 변경
-        essay.status = 'processing'
+        from app.services.essay_delivery import begin_correction
+        job_id = begin_correction(current_user, essay, revision_note=revision_note)
         db.session.commit()
 
         # processing 페이지로 리다이렉트 (재생성 플래그 추가)
@@ -875,6 +958,7 @@ def api_cancel(essay_id):
     if essay.status != 'processing':
         return jsonify({'error': '진행 중인 첨삭이 아닙니다.'}), 400
 
+    invalidate(essay_id)
     essay.status = 'failed'
     db.session.commit()
 
@@ -891,10 +975,9 @@ def api_regenerate(essay_id):
     if not _can_access_essay(essay):
         return jsonify({'error': '접근 권한이 없습니다.'}), 403
 
-    # 서버 파일에서 revision_note 가져오기 (미리 값 추출, 스레드는 요청 컨텍스트 없음)
-    revision_note = _pop_pending_revision_note(essay_id)
-    if not revision_note:
-        return jsonify({'error': '수정 요청 내용을 찾을 수 없습니다.'}), 400
+    # Atomically consume the current prepared generation and its durable note.
+    from app.services.correction_jobs import dispatch
+    job_id, revision_note = dispatch(current_user, essay)
 
     student_name = essay.student.name
     teacher_name = current_user.name
@@ -903,8 +986,9 @@ def api_regenerate(essay_id):
     chosen_provider = getattr(essay, 'api_provider', 'claude') or 'claude'
     app = current_app._get_current_object()
 
+    @fenced_worker(app, essay_id_val, job_id)
     def do_regenerate():
-        with app.app_context():
+        with nullcontext():
             from app.models import db as _db, Essay as _Essay
             essay_obj = _Essay.query.get(essay_id_val)
             if not essay_obj:
@@ -924,6 +1008,7 @@ def api_regenerate(essay_id):
                 _db.session.commit()
                 _save_essay_error(essay_obj.essay_id, str(e))
 
+    db.session.commit()
     t = threading.Thread(target=do_regenerate, daemon=True)
     t.start()
 
@@ -1298,7 +1383,8 @@ def start_correction(essay_id):
     essay.teacher_guide = request.form.get('teacher_guide', '').strip() or None
 
     # 백그라운드 스레드로 처리 시작
-    essay.status = 'processing'
+    from app.services.essay_delivery import begin_correction
+    job_id = begin_correction(current_user, essay)
     db.session.commit()
 
     # 강사 가이드 첨부파일 (이미지/PDF/DOCX) - AI 첨삭 프롬프트에 함께 전달됨
@@ -1314,8 +1400,9 @@ def start_correction(essay_id):
     chosen_provider = essay.api_provider
     app = current_app._get_current_object()
 
+    @fenced_worker(app, essay_id_val, job_id)
     def do_correction():
-        with app.app_context():
+        with nullcontext():
             from app.models import db as _db, Essay as _Essay
             essay_obj = _Essay.query.get(essay_id_val)
             if not essay_obj:
@@ -1330,6 +1417,7 @@ def start_correction(essay_id):
                 service.process_essay(essay_obj, student_name, teacher_name)
 
                 # 첨삭 완료 후 자동 완료 처리 + 학생/학부모 알림 발송
+                checkpoint()
                 service.finalize_essay(essay_obj)
                 try:
                     from app.models.user import User as _User
@@ -1461,27 +1549,9 @@ def serve_correction_attachment(attachment_id):
     attach = CorrectionAttachment.query.get_or_404(attachment_id)
     essay = attach.essay
 
-    # 학생 본인 접근 허용 (완료된 첨삭)
-    if current_user.role == 'student':
-        student = Student.query.filter_by(email=current_user.email).first()
-        if not student or essay.student_id != student.student_id or not essay.is_finalized:
-            flash('접근 권한이 없습니다.', 'error')
-            return redirect(url_for('student.my_essays'))
-    elif current_user.role == 'parent':
-        # 학부모: 자녀의 완료된 첨삭만 허용
-        from app.models.parent_student import ParentStudent
-        student = Student.query.get(essay.student_id)
-        link = ParentStudent.query.filter_by(
-            parent_id=current_user.user_id,
-            student_id=essay.student_id,
-            is_active=True
-        ).first()
-        if not link or not essay.is_finalized:
-            flash('접근 권한이 없습니다.', 'error')
-            return redirect(url_for('parent.dashboard'))
-    elif not _can_access_essay(essay):
-        flash('접근 권한이 없습니다.', 'error')
-        return redirect(url_for('essays.index'))
+    from app.services.essay_delivery import can_view_result
+    if not can_view_result(current_user, essay):
+        return '접근 권한이 없습니다.', 403
 
     file_path = Path(attach.file_path)
     if not file_path.exists():
@@ -1551,31 +1621,10 @@ def print_essay(essay_id):
     """첨삭 결과 인쇄 전용 페이지"""
     essay = Essay.query.get_or_404(essay_id)
 
-    # 권한 확인 - 학생, 강사, 학부모, 관리자 모두 접근 가능
-    has_permission = False
+    from app.services.essay_delivery import can_view_result
+    if not can_view_result(current_user, essay):
+        return '접근 권한이 없습니다.', 403
 
-    if current_user.role == 'admin':
-        has_permission = True
-    elif current_user.role == 'teacher':
-        has_permission = (essay.user_id == current_user.user_id)
-    elif current_user.role == 'student':
-        from app.models import Student
-        student = Student.query.filter_by(email=current_user.email).first()
-        if student:
-            has_permission = (essay.student_id == student.student_id)
-    elif current_user.role == 'parent':
-        from app.models import ParentStudent
-        linked_students = ParentStudent.query.filter_by(
-            parent_id=current_user.user_id
-        ).all()
-        student_ids = [link.student_id for link in linked_students]
-        has_permission = (essay.student_id in student_ids)
-
-    if not has_permission:
-        flash('접근 권한이 없습니다.', 'error')
-        return redirect(url_for('essays.index'))
-
-    # 최신 버전 가져오기
     version = essay.latest_version
 
     if not version:
@@ -1613,32 +1662,9 @@ def download_pdf(essay_id):
 
     essay = Essay.query.get_or_404(essay_id)
 
-    # 권한 확인 - 학생, 강사, 학부모, 관리자 모두 접근 가능
-    has_permission = False
-
-    if current_user.role == 'admin':
-        has_permission = True
-    elif current_user.role == 'teacher':
-        # 강사는 자신이 담당한 첨삭만
-        has_permission = (essay.user_id == current_user.user_id)
-    elif current_user.role == 'student':
-        # 학생은 자신의 첨삭만
-        from app.models import Student
-        student = Student.query.filter_by(email=current_user.email).first()
-        if student:
-            has_permission = (essay.student_id == student.student_id)
-    elif current_user.role == 'parent':
-        # 학부모는 자녀의 첨삭만
-        from app.models import ParentStudent
-        linked_students = ParentStudent.query.filter_by(
-            parent_id=current_user.user_id
-        ).all()
-        student_ids = [link.student_id for link in linked_students]
-        has_permission = (essay.student_id in student_ids)
-
-    if not has_permission:
-        flash('접근 권한이 없습니다.', 'error')
-        return redirect(url_for('essays.index'))
+    from app.services.essay_delivery import can_view_result
+    if not can_view_result(current_user, essay):
+        return '접근 권한이 없습니다.', 403
 
     # 최신 버전 가져오기
     version = essay.latest_version
@@ -1733,7 +1759,8 @@ def view_submission(essay_id):
             _Course.course_type.in_(['하크니스', '시그니처'])
         ).count() > 0
 
-    return render_template('essays/view_submission.html',
+    from app.services.essay_delivery import can_correct
+    return render_template('essays/view_submission.html' if can_correct(current_user, essay) else 'essays/read_only.html',
                          essay=essay,
                          student=essay.student,
                          attachments=attachments,
@@ -1746,7 +1773,8 @@ def view_submission(essay_id):
 def ocr_index():
     """OCR 인식 메인 페이지"""
     # 최근 OCR 히스토리 조회
-    recent_history = OCRHistory.query\
+    from app.services.essay_delivery import scoped_ocr_query
+    recent_history = scoped_ocr_query(current_user)\
         .filter_by(user_id=current_user.user_id)\
         .order_by(OCRHistory.created_at.desc())\
         .limit(10)\
@@ -2014,14 +2042,8 @@ def ocr_result(ocr_id):
 @login_required
 def ocr_history():
     """OCR 히스토리 전체 보기"""
-    # 관리자는 모든 히스토리, 강사는 본인 히스토리만
-    if current_user.role == 'admin':
-        history = OCRHistory.query.order_by(OCRHistory.created_at.desc()).all()
-    else:
-        history = OCRHistory.query\
-            .filter_by(user_id=current_user.user_id)\
-            .order_by(OCRHistory.created_at.desc())\
-            .all()
+    from app.services.essay_delivery import scoped_ocr_query
+    history = scoped_ocr_query(current_user).order_by(OCRHistory.created_at.desc()).all()
 
     return render_template('essays/ocr_history.html',
                          history=history)
@@ -2141,6 +2163,9 @@ def reset_essay(essay_id):
 
     from app.models.essay_score import EssayScore, EssayNote
     from app.models.essay import EssayVersion, EssayResult, CorrectionAttachment
+
+    # The request hook holds the essay mutex; fence in-flight generations before reset writes.
+    invalidate(essay_id)
 
     # 1. 강사 첨삭 첨부파일 (correction_attachments) 파일 삭제 + DB 삭제
     for att in essay.correction_attachments:

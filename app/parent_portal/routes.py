@@ -1293,6 +1293,10 @@ def view_essay(student_id, essay_id):
 @requires_role('parent', 'admin')
 def submit_essay():
     """자녀 대신 글 제출"""
+    from flask import abort
+    from app.services.essay_delivery import assign_submission, makeup_choices, validate_submission_csrf
+    if request.method == 'POST':
+        validate_submission_csrf()
     import uuid
     from werkzeug.utils import secure_filename
     from app.utils.file_utils import safe_original_filename
@@ -1356,15 +1360,16 @@ def submit_essay():
             grade=student.grade,
             essay_type=essay_type_input
         )
+        try:
+            mode = request.form.get('submission_mode', 'regular')
+            assign_submission(essay, student, mode=mode,
+                session_id=request.form.get('makeup_session_id'),
+                teacher_id=request.form.get('makeup_teacher_id') if mode == 'makeup' else selected_teacher_id)
+        except ValueError as exc:
+            abort(400, description=str(exc))
+        selected_teacher_id = essay.user_id
         db.session.add(essay)
         db.session.flush()
-
-        # 수업-세션 자동 배정
-        try:
-            from app.utils.essay_utils import auto_assign_essay_session
-            auto_assign_essay_session(essay)
-        except Exception:
-            pass
 
         try:
             from app.services.badge_service import evaluate_badges
@@ -1429,24 +1434,21 @@ def submit_essay():
 
     # GET: 첫 번째 자녀 기준으로 강사 목록 초기 로드
     selected_student_id = request.args.get('student_id') or (children[0].student_id if children else None)
+    if selected_student_id not in {child.student_id for child in children}:
+        abort(403)
     enrolled_teachers = []
     default_teacher_id = None
     if selected_student_id:
         selected_student = Student.query.get(selected_student_id)
         if selected_student:
-            enrolled_teachers = db.session.query(User).join(
-                Course, Course.teacher_id == User.user_id
-            ).join(
-                CourseEnrollment, CourseEnrollment.course_id == Course.course_id
-            ).filter(
-                CourseEnrollment.student_id == selected_student_id,
-                CourseEnrollment.status == 'active'
-            ).distinct().all()
+            from app.services.essay_delivery import regular_teachers
+            enrolled_teachers = regular_teachers(selected_student)
             default_teacher_id = selected_student.teacher_id
             if not default_teacher_id and enrolled_teachers:
                 default_teacher_id = enrolled_teachers[0].user_id
 
     return render_template('parent/essay_submit.html',
+                           makeup_sessions=makeup_choices(selected_student) if selected_student_id else [],
                            children=children,
                            enrolled_teachers=enrolled_teachers,
                            default_teacher_id=default_teacher_id,

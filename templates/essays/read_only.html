@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ essay.title or '과제' }} — 열람/참고{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-5">
+    <a href="{{ url_for('essays.index') }}">← 첨삭 관리</a>
+    <h1 class="text-2xl font-bold">{{ essay.title or '과제' }}</h1>
+    <p class="border rounded bg-blue-50 p-3">열람/참고 전용 — 이 글을 볼 수 있지만 원문 수정·OCR 실행·첨삭·삭제 권한은 없습니다.</p>
+    <p>{{ essay.student.name }} / {{ essay.grade }} / 기존 작성 담당: {{ essay.user.name }}</p>
+    {% if essay.course %}<p>제출 수업: {{ essay.course.course_name }}{% if essay.session %} / {{ essay.session.session_date }}{% endif %}</p>{% endif %}
+    <h2 class="text-lg font-bold">제출 원문</h2>
+    <pre class="whitespace-pre-wrap border rounded p-4">{{ essay.original_text }}</pre>
+    {% for index, name in attachments|default([]) %}
+    <a class="block" href="{{ url_for('essays.download_attachment', essay_id=essay.essay_id, file_index=index) }}">첨부: {{ name }}</a>
+    {% endfor %}
+    {% if essay.latest_version %}
+    <h2 class="text-lg font-bold">기존 첨삭 결과</h2>
+    <iframe title="기존 첨삭 결과" src="{{ url_for('essays.report_frame', essay_id=essay.essay_id) }}" class="w-full" style="height:75vh"></iframe>
+    <a href="{{ url_for('essays.print_essay', essay_id=essay.essay_id) }}">인쇄 보기</a>
+    {% endif %}
+    {% for attachment in essay.correction_attachments %}
+    <a class="block" href="{{ url_for('essays.serve_correction_attachment', attachment_id=attachment.attachment_id) }}">첨삭 첨부: {{ attachment.original_filename }}</a>
+    {% endfor %}
+    {% for ocr in ocr_records|default([]) %}
+    <details class="border rounded p-3"><summary>기존 OCR: {{ ocr.original_filename }}</summary><pre class="whitespace-pre-wrap">{{ ocr.corrected_text or ocr.extracted_text }}</pre></details>
+    {% endfor %}
+</div>
+{% endblock %}

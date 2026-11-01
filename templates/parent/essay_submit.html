@@ -25,6 +25,7 @@
     <div class="bg-white rounded-lg shadow-lg p-6">
         <form method="POST" action="{{ url_for('parent.submit_essay') }}" enctype="multipart/form-data" id="submitForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% include 'essays/_makeup_submit.html' %}
 
             <!-- 자녀 선택 -->
             <div class="mb-5">
@@ -93,6 +94,7 @@
                         class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-2.5 rounded-lg transition duration-200">
                     제출하기
                 </button>
+                {% include 'essays/_makeup_submit_button.html' %}
                 <a href="{{ url_for('parent.essays_index') }}"
                    class="bg-gray-400 hover:bg-gray-500 text-white font-medium px-8 py-2.5 rounded-lg transition duration-200">
                     취소

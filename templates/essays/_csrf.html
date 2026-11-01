@@ -1,0 +1,12 @@
+{# Explicit helper for essay/assignment fetches; never patch global fetch. #}
+<script>
+window.essayCsrfFetch = function (input, options = {}) {
+    const headers = new Headers(options.headers || {});
+    const method = (options.method || 'GET').toUpperCase();
+    const target = new URL(input, window.location.href);
+    if (target.origin === window.location.origin && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        headers.set('X-CSRFToken', {{ csrf_token()|tojson }});
+    }
+    return window.fetch(input, {...options, headers});
+};
+</script>
