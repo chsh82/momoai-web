@@ -681,6 +681,43 @@ def post_parent_conversation_message(obj, sender_id, parent_id, body):
 
 def finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=None,
                              approved_by=None, admin_notes=None):
+    """Serialize all group-makeup finalizers, including parent acceptance.
+
+    SQLite ignores SELECT FOR UPDATE. A conditional row UPDATE acquires its
+    writer mutex and rechecks persisted authority even with a stale ORM object.
+    Keep it through the course, conversation and notification commit/rollback.
+    """
+    from app.models.makeup_request import MakeupClassRequest
+    from app.utils.notification_transaction import notification_transaction
+    with notification_transaction():
+        with db.session.no_autoflush:
+            claimed = db.session.execute(
+                db.update(MakeupClassRequest).where(
+                    MakeupClassRequest.request_id == makeup_request.request_id,
+                    MakeupClassRequest.status == 'pending',
+                    MakeupClassRequest.created_makeup_course_id.is_(None),
+                ).values(status=MakeupClassRequest.status),
+                execution_options={'synchronize_session': False},
+            ).rowcount
+        if claimed != 1:
+            raise ValueError('이미 처리된 보강 신청입니다.')
+        # The existing parent widget stages its explicit acknowledgement before
+        # calling this helper. Refresh authority, not that new unsaved timestamp.
+        from sqlalchemy import inspect
+        ack = inspect(makeup_request).attrs.parent_confirmed_at.history
+        new_ack = ack.added[0] if ack.added else None
+        db.session.refresh(makeup_request)
+        if new_ack is not None:
+            makeup_request.parent_confirmed_at = new_ack
+        course = _finalize_makeup_request(
+            makeup_request, makeup_date, makeup_start_override,
+            approved_by, admin_notes,
+        )
+    return course
+
+
+def _finalize_makeup_request(makeup_request, makeup_date, makeup_start_override=None,
+                             approved_by=None, admin_notes=None):
     """MakeupClassRequest(그룹 보강)를 확정 - 1회 보강수업 개설 + 학생 등록 +
     신청 상태 갱신 + 학생/학부모/강사 알림. 관리자가 수동으로 승인할 때
     (admin.approve_makeup_request)와, 강사가 제안한 일정에 학부모가 위젯에서

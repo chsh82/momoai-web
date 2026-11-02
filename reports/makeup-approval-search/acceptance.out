@@ -1,0 +1,72 @@
+.............................................................            [100%]
+============================== warnings summary ===============================
+tests/makeup_direct_approval/test_approval.py: 515 warnings
+tests/makeup_direct_approval/test_browser.py: 50 warnings
+tests/makeup_direct_approval/test_browser_proposal.py: 21 warnings
+tests/makeup_direct_approval/test_concurrency.py: 104 warnings
+tests/makeup_direct_approval/test_course_search.py: 301 warnings
+tests/makeup_direct_approval/test_notifications.py: 128 warnings
+tests/makeup_direct_approval/test_safety.py: 127 warnings
+  C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\makeup-essay-venv\Lib\site-packages\sqlalchemy\sql\schema.py:3624: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/makeup_direct_approval/test_approval.py: 25 warnings
+tests/makeup_direct_approval/test_browser.py: 1 warning
+tests/makeup_direct_approval/test_browser_proposal.py: 1 warning
+tests/makeup_direct_approval/test_concurrency.py: 6 warnings
+tests/makeup_direct_approval/test_notifications.py: 3 warnings
+tests/makeup_direct_approval/test_safety.py: 5 warnings
+  C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\makeup-essay-venv\Lib\site-packages\flask_sqlalchemy\query.py:30: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    rv = self.get(ident)
+
+tests/makeup_direct_approval/test_approval.py: 4 warnings
+tests/makeup_direct_approval/test_browser.py: 1 warning
+tests/makeup_direct_approval/test_concurrency.py: 3 warnings
+tests/makeup_direct_approval/test_notifications.py: 3 warnings
+tests/makeup_direct_approval/test_safety.py: 3 warnings
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\utils\course_utils.py:529: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    course = Course.query.get(course_id)
+
+tests/makeup_direct_approval/test_approval.py: 4 warnings
+tests/makeup_direct_approval/test_browser.py: 1 warning
+tests/makeup_direct_approval/test_concurrency.py: 3 warnings
+tests/makeup_direct_approval/test_notifications.py: 3 warnings
+tests/makeup_direct_approval/test_safety.py: 3 warnings
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\utils\course_utils.py:938: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    student = Student.query.get(student_id)
+
+tests/makeup_direct_approval/test_approval.py: 4 warnings
+tests/makeup_direct_approval/test_browser.py: 1 warning
+tests/makeup_direct_approval/test_concurrency.py: 3 warnings
+tests/makeup_direct_approval/test_notifications.py: 3 warnings
+tests/makeup_direct_approval/test_safety.py: 3 warnings
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\utils\course_utils.py:886: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    student = Student.query.get(student_id)
+
+tests/makeup_direct_approval/test_approval.py: 4 warnings
+tests/makeup_direct_approval/test_browser.py: 1 warning
+tests/makeup_direct_approval/test_concurrency.py: 3 warnings
+tests/makeup_direct_approval/test_notifications.py: 3 warnings
+tests/makeup_direct_approval/test_safety.py: 3 warnings
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\utils\course_utils.py:747: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    makeup_request.admin_response_date = datetime.utcnow()
+
+tests/makeup_direct_approval/test_approval.py: 4 warnings
+tests/makeup_direct_approval/test_browser.py: 1 warning
+tests/makeup_direct_approval/test_concurrency.py: 3 warnings
+tests/makeup_direct_approval/test_notifications.py: 3 warnings
+tests/makeup_direct_approval/test_safety.py: 2 warnings
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\utils\course_utils.py:678: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    conv.last_message_at = datetime.utcnow()
+
+tests/makeup_direct_approval/test_browser_proposal.py::test_normal_mode_proposal_real_post_and_parent_readback
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\admin\routes.py:3819: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    conv.last_message_at = datetime.utcnow()
+
+tests/makeup_direct_approval/test_concurrency.py::test_concurrent_different_dates_cannot_create_two_courses[parent-race]
+tests/makeup_direct_approval/test_safety.py::test_existing_parent_schedule_acceptance_keeps_ack
+  C:\Users\aproa\Documents\Agent-Work\worktrees\makeup-approval-search-live\app\chat_widget\routes.py:835: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    makeup_request.parent_confirmed_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+61 passed, 1359 warnings in 168.57s (0:02:48)

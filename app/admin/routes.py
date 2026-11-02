@@ -322,6 +322,11 @@ def courses():
     else:  # newest
         courses = query.order_by(Course.created_at.desc()).all()
 
+    if search_filter:
+        # Stable partition covers SQL and student-enrollment merged results alike.
+        # Keep each group's existing newest/weekday order and all filter semantics.
+        courses.sort(key=lambda course: course.status != 'active')
+
     # 강사 목록 (필터용, 가나다 순)
     teachers = User.query.filter_by(role='teacher').order_by(User.name).all()
 
@@ -3207,18 +3212,32 @@ def makeup_requests():
 @login_required
 @requires_permission_level(2)
 def approve_makeup_request(request_id):
-    """보강수업 신청 승인 및 1회 수업 생성"""
+    """강사 확인 후 승인 또는 관리자의 명시적 직접 승인으로 보강수업 생성."""
+    from flask import abort
+    from flask_wtf.csrf import validate_csrf
+    from wtforms.validators import ValidationError
     from app.models.makeup_request import MakeupClassRequest
     from datetime import date, time, timedelta
-    
+
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+    except ValidationError:
+        abort(400)
+    mode = request.form.get('approval_mode', 'normal').strip()
+    if mode not in ('normal', 'direct'):
+        abort(400)
+    direct = mode == 'direct'
     makeup_request = MakeupClassRequest.query.get_or_404(request_id)
 
-    if makeup_request.status != 'pending':
+    if makeup_request.status != 'pending' or makeup_request.created_makeup_course_id:
         flash('이미 처리된 신청입니다.', 'warning')
         return redirect(url_for('admin.makeup_requests'))
 
-    if not makeup_request.teacher_confirmed:
+    if not direct and not makeup_request.teacher_confirmed:
         flash('담당 강사가 아직 확인하지 않았습니다. "강사에게 물어보기"로 먼저 협의해주세요.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+    if direct and request.form.get('direct_confirmed') != '1':
+        flash('강사 확인 없이 관리자 직접 승인하는 것에 확인 체크해주세요.', 'error')
         return redirect(url_for('admin.makeup_requests'))
 
     # 원본 수업 정보
@@ -3227,31 +3246,40 @@ def approve_makeup_request(request_id):
     
     # 보강수업 날짜 (POST 데이터에서 가져오기, 없으면 다음 주 같은 요일)
     makeup_date_str = request.form.get('makeup_date', '').strip()
-    if makeup_date_str:
-        makeup_date = datetime.strptime(makeup_date_str, '%Y-%m-%d').date()
-    else:
-        # 기본값: 다음 주 같은 요일
-        today = date.today()
-        days_ahead = original_course.weekday - today.weekday()
-        if days_ahead <= 0:
-            days_ahead += 7
-        makeup_date = today + timedelta(days=days_ahead)
-    
+    try:
+        if direct or makeup_date_str:
+            makeup_date = datetime.strptime(makeup_date_str, '%Y-%m-%d').date()
+        else:
+            # 기존 일반 승인 기본값은 유지한다.
+            today = date.today()
+            days_ahead = original_course.weekday - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            makeup_date = today + timedelta(days=days_ahead)
+        direct_time = None
+        if direct:
+            direct_time = time(int(request.form.get('makeup_time_hour', '')),
+                               int(request.form.get('makeup_time_minute', '')))
+    except (ValueError, TypeError):
+        flash('올바른 보강 날짜와 시간을 입력해주세요. 관리자 직접 승인은 날짜와 시간이 필수입니다.', 'error')
+        return redirect(url_for('admin.makeup_requests'))
+
     try:
         from app.utils.course_utils import finalize_makeup_request, parse_hm_time
 
         # 시간은 기본적으로 원 수업 시간을 그대로 쓰되, 강사와 협의해 다른
         # 시간으로 정했다면 폼에서 넘어온 makeup_time으로 덮어쓴다.
-        makeup_start_override = parse_hm_time(request.form, 'makeup_time')
+        makeup_start_override = direct_time if direct else parse_hm_time(request.form, 'makeup_time')
+        notes = request.form.get('admin_notes', '').strip()
+        if direct:
+            notes = '[관리자 직접 승인]' + (' ' + notes if notes else '')
 
         makeup_course = finalize_makeup_request(
             makeup_request, makeup_date,
             makeup_start_override=makeup_start_override,
             approved_by=current_user.user_id,
-            admin_notes=request.form.get('admin_notes', '').strip(),
+            admin_notes=notes,
         )
-
-        db.session.commit()
 
         flash(f'보강수업 신청이 승인되었습니다. 보강수업이 생성되었습니다: {makeup_course.course_name}', 'success')
 

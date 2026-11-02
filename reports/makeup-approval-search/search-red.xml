@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="14" time="36.030" timestamp="2026-11-02T21:07:47.169173+09:00" hostname="DESKTOP-4FCJPMF"><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[newest-expected0-MATCH]" time="2.808"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = 'MATCH', sort = 'newest'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[newest-expected0-Synthetic teacher-a]" time="2.503"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = 'Synthetic teacher-a', sort = 'newest'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[newest-expected0-O'Neil]" time="2.496"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = "O'Neil", sort = 'newest'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[newest-expected0-\ucd084]" time="2.640"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = '초4', sort = 'newest'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[newest-expected0-\uc815\uaddc\ubc18]" time="2.469"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = '정규반', sort = 'newest'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[weekday-expected1-MATCH]" time="2.453"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = 'MATCH', sort = 'weekday'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[weekday-expected1-Synthetic teacher-a]" time="2.593"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = 'Synthetic teacher-a', sort = 'weekday'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[weekday-expected1-O'Neil]" time="2.454"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = "O'Neil", sort = 'weekday'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[weekday-expected1-\ucd084]" time="2.745"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = '초4', sort = 'weekday'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_active_first_in_actual_html[weekday-expected1-\uc815\uaddc\ubc18]" time="2.410"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+search = '정규반', sort = 'weekday'
+expected = ['active-new', 'active-old', 'ended-new', 'ended-old']
+
+    @pytest.mark.parametrize('search',['MATCH','Synthetic teacher-a',"O'Neil",'초4','정규반'])
+    @pytest.mark.parametrize('sort,expected',[('newest',['active-new','active-old','ended-new','ended-old']),('weekday',['active-new','active-old','ended-new','ended-old'])])
+    def test_search_active_first_in_actual_html(makeup,search,sort,expected):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+&gt;       assert order(client,search=search,sort=sort)==expected
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:27: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_non_search_order_unchanged[newest-expected0]" time="2.606" /><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_non_search_order_unchanged[weekday-expected1]" time="2.403" /><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_text_filters_and_student_merge_semantics_preserved" time="2.843"><failure message="AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']&#10;  &#10;  At index 0 diff: 'ended-new' != 'active-new'&#10;  Use -v to get more diff">makeup = (&lt;Flask 'synthetic-makeup'&gt;, &lt;SQLAlchemy sqlite:///C:\Users\aproa\AppData\Local\hermes\profiles\momo\cache\scratch\mak...mand_logs&gt;), schema=None)}), &lt;FlaskClient &lt;Flask 'synthetic-makeup'&gt;&gt;, &lt;MakeupClassRequest direct-synthetic: s -&gt; c-a&gt;)
+
+    def test_text_filters_and_student_merge_semantics_preserved(makeup):
+        app,db,_,client,_=makeup
+        seed(db);login(client)
+        assert order(client,search='MATCH',status='completed')==['ended-new','ended-old']
+        assert order(client,search='MATCH',weekday='3',teacher='teacher-a',grade='초4',course_type='정규반')==['active-old']
+        # Live intentionally includes enrolled classes irrespective of text filters.
+&gt;       assert order(client,search="O'Neil",status='completed',grade='초99')==['active-new','active-old','ended-new','ended-old']
+E       AssertionError: assert ['ended-new',... 'active-old'] == ['active-new'..., 'ended-old']
+E         
+E         At index 0 diff: 'ended-new' != 'active-new'
+E         Use -v to get more diff
+
+tests\makeup_direct_approval\test_course_search.py:43: AssertionError</failure></testcase><testcase classname="tests.makeup_direct_approval.test_course_search" name="test_search_requires_manager" time="2.439" /></testsuite></testsuites>

@@ -66,6 +66,13 @@ class Notification(db.Model):
             related_entity_id=related_entity_id
         )
         db.session.add(notification)
+        pending = db.session.info.get('pending_notification_pushes')
+        if pending is not None:
+            # Caller owns atomic course/request/notification persistence.
+            db.session.flush()
+            pending.append(dict(user_id=user_id, title=title, body=message,
+                                url=link_url or '/notifications'))
+            return notification
         db.session.commit()
 
         # Web Push 알림 발송 (구독자에게만, 실패해도 무시)

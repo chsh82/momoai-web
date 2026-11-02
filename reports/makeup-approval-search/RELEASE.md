@@ -1,0 +1,15 @@
+# Scoped administrator makeup approval + course search order
+
+- Exact deployment baseline: `39925d593380b992fee0155de1e20a8be51070e6` (actual live, NOT origin/master).
+- Direct-approval delta transplanted with three-way patch from `d4fdfb2b26dda3022668759b1289f8bed980aa8c`, preserving all live essay/ACL code. The generated stylesheet was rebuilt against the live baseline; only amber-700 and hover:amber-800 rules were added, no rules removed.
+- Search-only stable active-first partition applies after both SQL and student-enrollment merge paths. Within-status newest/weekday sorting, deduplication, existing student-filter semantics and non-search sorting are unchanged. No schema migration or real request approval is required.
+- `acceptance.xml/out`: exact live-based release source, 61 passed (47 original including 3 actual Chrome cases + 14 course-search HTML/permissions/filter cases). Existing deprecation/legacy-query warnings remain (1359).
+- `search-red.xml/out`: 11 expected ordering assertion failures before the search change; 3 unchanged-policy checks passed.
+- `deploy-final.xml/out`: 8 disposable-repository transaction cases covering successful publication, partial install, receipt hook, actual intermediate/final receipt-write failures, health failure, explicit rollback failure, untracked overlay hashing. Earlier `deploy-red` proves implementation absence; `deploy-green` is superseded.
+- `scripts/deploy_scoped_makeup.py`: stopped-cgroup, no-migration, exact-blob transactional install. Backs up SQLite through online backup with quick_check, hashes all tables before/after the stopped interval, preserves all unrelated tracked/untracked Git overlay files and ignored `.env` by SHA-256. Refuses scoped collisions, staged unrelated work or active correction/OCR work since current service start. Historical stale processing rows are preserved, not repaired. Rollback restores only changed files + HEAD/index, never database contents.
+- Service health is explicitly `127.0.0.1:8000/auth/login` with Host `momoai.kr`; a whole stopped systemd control group fences old workers.
+- `tests/scoped_makeup_release/live_readonly_probe.py`: no-factory, query-only database/deployed-blueprint render check after release. Uses reduced base shell and an isolated session for read-only admin rendering; NOT an actual account/browser login. No real request POST, notification or student write.
+- Local npm install/build passed after adding the discovered native node tool directory to PATH. npm reported 10 preexisting dependency vulnerabilities; no dependency upgrades were made.
+- Git bundle/manifest transport is used to avoid normal master auto-deploy/reset. Origin/master is NOT updated; CI is not claimed green. Synchronize the exact live-based release and existing overlays upstream before any future ordinary reset-based deployment.
+
+Production receipt and independent postflight evidence are returned separately under the restricted remote backup directory and local scratch; do not commit private database backups or environment contents.

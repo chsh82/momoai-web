@@ -1,0 +1,140 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+_____________________ test_transaction_and_rollback[None] _____________________
+
+tmp_path = WindowsPath('C:/Users/aproa/AppData/Local/hermes/profiles/momo/cache/scratch/makeup-deploy-red/test_transaction_and_rollback_0')
+failure = None
+
+    @pytest.mark.parametrize('failure',[None,'install','receipt','health','rollback'])
+    def test_transaction_and_rollback(tmp_path,failure):
+>       m=load(); repo=tmp_path/'repo';repo.mkdir()
+          ^^^^^^
+
+tests\scoped_makeup_release\test_transaction.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def load():
+        p=ROOT/'scripts/deploy_scoped_makeup.py'
+>       assert p.exists(), 'scoped deployment implementation missing'
+E       AssertionError: scoped deployment implementation missing
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/aproa/Documents/Agent-Work/worktrees/makeup-approval-search-live/scripts/deploy_scoped_makeup.py').exists
+
+tests\scoped_makeup_release\test_transaction.py:14: AssertionError
+___________________ test_transaction_and_rollback[install] ____________________
+
+tmp_path = WindowsPath('C:/Users/aproa/AppData/Local/hermes/profiles/momo/cache/scratch/makeup-deploy-red/test_transaction_and_rollback_1')
+failure = 'install'
+
+    @pytest.mark.parametrize('failure',[None,'install','receipt','health','rollback'])
+    def test_transaction_and_rollback(tmp_path,failure):
+>       m=load(); repo=tmp_path/'repo';repo.mkdir()
+          ^^^^^^
+
+tests\scoped_makeup_release\test_transaction.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def load():
+        p=ROOT/'scripts/deploy_scoped_makeup.py'
+>       assert p.exists(), 'scoped deployment implementation missing'
+E       AssertionError: scoped deployment implementation missing
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/aproa/Documents/Agent-Work/worktrees/makeup-approval-search-live/scripts/deploy_scoped_makeup.py').exists
+
+tests\scoped_makeup_release\test_transaction.py:14: AssertionError
+___________________ test_transaction_and_rollback[receipt] ____________________
+
+tmp_path = WindowsPath('C:/Users/aproa/AppData/Local/hermes/profiles/momo/cache/scratch/makeup-deploy-red/test_transaction_and_rollback_2')
+failure = 'receipt'
+
+    @pytest.mark.parametrize('failure',[None,'install','receipt','health','rollback'])
+    def test_transaction_and_rollback(tmp_path,failure):
+>       m=load(); repo=tmp_path/'repo';repo.mkdir()
+          ^^^^^^
+
+tests\scoped_makeup_release\test_transaction.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def load():
+        p=ROOT/'scripts/deploy_scoped_makeup.py'
+>       assert p.exists(), 'scoped deployment implementation missing'
+E       AssertionError: scoped deployment implementation missing
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/aproa/Documents/Agent-Work/worktrees/makeup-approval-search-live/scripts/deploy_scoped_makeup.py').exists
+
+tests\scoped_makeup_release\test_transaction.py:14: AssertionError
+____________________ test_transaction_and_rollback[health] ____________________
+
+tmp_path = WindowsPath('C:/Users/aproa/AppData/Local/hermes/profiles/momo/cache/scratch/makeup-deploy-red/test_transaction_and_rollback_3')
+failure = 'health'
+
+    @pytest.mark.parametrize('failure',[None,'install','receipt','health','rollback'])
+    def test_transaction_and_rollback(tmp_path,failure):
+>       m=load(); repo=tmp_path/'repo';repo.mkdir()
+          ^^^^^^
+
+tests\scoped_makeup_release\test_transaction.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def load():
+        p=ROOT/'scripts/deploy_scoped_makeup.py'
+>       assert p.exists(), 'scoped deployment implementation missing'
+E       AssertionError: scoped deployment implementation missing
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/aproa/Documents/Agent-Work/worktrees/makeup-approval-search-live/scripts/deploy_scoped_makeup.py').exists
+
+tests\scoped_makeup_release\test_transaction.py:14: AssertionError
+___________________ test_transaction_and_rollback[rollback] ___________________
+
+tmp_path = WindowsPath('C:/Users/aproa/AppData/Local/hermes/profiles/momo/cache/scratch/makeup-deploy-red/test_transaction_and_rollback_4')
+failure = 'rollback'
+
+    @pytest.mark.parametrize('failure',[None,'install','receipt','health','rollback'])
+    def test_transaction_and_rollback(tmp_path,failure):
+>       m=load(); repo=tmp_path/'repo';repo.mkdir()
+          ^^^^^^
+
+tests\scoped_makeup_release\test_transaction.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def load():
+        p=ROOT/'scripts/deploy_scoped_makeup.py'
+>       assert p.exists(), 'scoped deployment implementation missing'
+E       AssertionError: scoped deployment implementation missing
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/aproa/Documents/Agent-Work/worktrees/makeup-approval-search-live/scripts/deploy_scoped_makeup.py').exists
+
+tests\scoped_makeup_release\test_transaction.py:14: AssertionError
+_______________ test_preserves_file_hashes_including_untracked ________________
+
+tmp_path = WindowsPath('C:/Users/aproa/AppData/Local/hermes/profiles/momo/cache/scratch/makeup-deploy-red/test_preserves_file_hashes_inc0')
+
+    def test_preserves_file_hashes_including_untracked(tmp_path):
+>       m=load();subprocess.run(['git','init',str(tmp_path)],check=True,capture_output=True)
+          ^^^^^^
+
+tests\scoped_makeup_release\test_transaction.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def load():
+        p=ROOT/'scripts/deploy_scoped_makeup.py'
+>       assert p.exists(), 'scoped deployment implementation missing'
+E       AssertionError: scoped deployment implementation missing
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/aproa/Documents/Agent-Work/worktrees/makeup-approval-search-live/scripts/deploy_scoped_makeup.py').exists
+
+tests\scoped_makeup_release\test_transaction.py:14: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/scoped_makeup_release/test_transaction.py::test_transaction_and_rollback[None]
+FAILED tests/scoped_makeup_release/test_transaction.py::test_transaction_and_rollback[install]
+FAILED tests/scoped_makeup_release/test_transaction.py::test_transaction_and_rollback[receipt]
+FAILED tests/scoped_makeup_release/test_transaction.py::test_transaction_and_rollback[health]
+FAILED tests/scoped_makeup_release/test_transaction.py::test_transaction_and_rollback[rollback]
+FAILED tests/scoped_makeup_release/test_transaction.py::test_preserves_file_hashes_including_untracked
+6 failed in 0.23s

@@ -56,9 +56,9 @@ class MakeupClassRequest(db.Model):
     admin_ask_date = db.Column(db.Date, nullable=True)
     admin_ask_time = db.Column(db.Time, nullable=True)
 
-    # 강사 최종 컨펌 - 담당 강사 본인이 직접 확인해야 승인 가능하다(approve_makeup_request
-    # 에서 이 값을 강제로 확인함). 관리자가 대신 체크하는 게 아니라 강사 전용 화면
-    # (teacher.makeup_confirm)에서 강사 계정으로만 True가 될 수 있다.
+    # 일반 승인은 담당 강사의 직접 확인이 필요하다(teacher.makeup_confirm).
+    # 관리자 직접 승인(approval_mode=direct)은 이 필드를 바꾸지 않고 승인하며,
+    # 관리자·처리시각과 [관리자 직접 승인] 메모로 구분한다.
     teacher_confirmed = db.Column(db.Boolean, default=False, nullable=False)
     teacher_confirmed_at = db.Column(db.DateTime, nullable=True)
 

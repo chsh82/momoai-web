@@ -1,0 +1,22 @@
+
+> momoai_web@1.0.0 build:css
+> npm run build:tailwind && npm run build:style
+
+
+> momoai_web@1.0.0 build:tailwind
+> tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.min.css --minify
+
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+Rebuilding...
+
+Done in 1142ms.
+
+> momoai_web@1.0.0 build:style
+> postcss static/css/style.css -o static/css/style.min.css --no-map
+
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
