@@ -1,0 +1,6 @@
+{% if config.get('NEWS_INTRO_V02_ENABLED', True) is sameas true %}
+<img data-intro-menu src="{{ url_for('static', filename='news/introductions-v02/menu-' ~ menu_kind ~ '.png') }}"
+     alt="{{ menu_alt }}" style="display:block;width:100%;max-width:100%;height:auto" class="mb-4">
+{% else %}
+<div class="text-5xl mb-4">{{ menu_emoji }}</div>
+{% endif %}

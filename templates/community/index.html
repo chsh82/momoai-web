@@ -35,6 +35,9 @@
     <!-- 검색 및 필터 -->
     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
         <form method="GET" action="{{ url_for('community.index') }}" class="space-y-4">
+            {% if category_filter %}
+            <input type="hidden" name="category" value="{{ category_filter }}">
+            {% endif %}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">검색</label>
@@ -72,10 +75,7 @@
                class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if not category_filter %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 전체
             </a>
-            <a href="{{ url_for('community.index', category='notice') }}"
-               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'notice' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                📢 공지
-            </a>
+
             <a href="{{ url_for('community.index', category='question') }}"
                class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'question' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 ❓ 질문
@@ -88,8 +88,15 @@
                class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'resource' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
                 📚 자료
             </a>
+            <a href="{{ url_for('community.index', category='education_article') }}"
+               class="flex-shrink-0 px-5 py-3 text-center font-medium whitespace-nowrap transition duration-200 {% if category_filter == 'education_article' %}bg-blue-50 text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                📰 교육기사
+            </a>
         </div>
     </div>
+    {% if category_filter == 'education_article' %}
+    <p class="bg-blue-50 text-blue-800 rounded-lg p-4 mb-6">학부모 대상 교육정보입니다. 학생용 모모 뉴스와 별개이며 기존 커뮤니티 로그인 회원 전체가 열람합니다. 탭 전환과 초기화 시 검색·정렬은 초기화됩니다.</p>
+    {% endif %}
 
     <!-- Posts Count -->
     <div class="mb-4 text-gray-600">
@@ -119,11 +126,13 @@
                                 {% elif post.category == 'question' %}bg-yellow-100 text-yellow-800
                                 {% elif post.category == 'free' %}bg-green-100 text-green-800
                                 {% elif post.category == 'resource' %}bg-purple-100 text-purple-800
+                                {% elif post.category == 'education_article' %}bg-blue-100 text-blue-800
                                 {% endif %}">
                                 {% if post.category == 'notice' %}📢 공지
                                 {% elif post.category == 'question' %}❓ 질문
                                 {% elif post.category == 'free' %}💬 자유
                                 {% elif post.category == 'resource' %}📚 자료
+                                {% elif post.category == 'education_article' %}📰 교육기사
                                 {% endif %}
                             </span>
 
@@ -149,7 +158,11 @@
 
                 <!-- 내용 미리보기 -->
                 <div class="text-gray-600 line-clamp-2 mb-2">
+                    {% if post.category == 'education_article' %}
+                    {{ post.content|striptags|truncate(200) }}
+                    {% else %}
                     {{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}
+                    {% endif %}
                 </div>
 
                 <!-- 태그 -->
@@ -170,7 +183,7 @@
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <div class="text-6xl mb-4">💬</div>
         <h3 class="text-xl font-bold text-gray-800 mb-2">게시글이 없습니다</h3>
-        <p class="text-gray-600 mb-6">첫 게시글을 작성해보세요.</p>
+        <p class="text-gray-600 mb-6">{% if category_filter == 'education_article' %}아직 등록된 교육기사가 없습니다. 검수를 마친 기사부터 게시할 예정입니다.{% else %}첫 게시글을 작성해보세요.{% endif %}</p>
         {% if current_user.role == 'admin' %}
         <a href="{{ url_for('community.new') }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
             + 첫 글 작성하기

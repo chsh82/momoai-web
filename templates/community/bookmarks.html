@@ -37,11 +37,13 @@
                                 {% elif post.category == 'question' %}bg-yellow-100 text-yellow-800
                                 {% elif post.category == 'free' %}bg-green-100 text-green-800
                                 {% elif post.category == 'resource' %}bg-purple-100 text-purple-800
+                                {% elif post.category == 'education_article' %}bg-blue-100 text-blue-800
                                 {% endif %}">
                                 {% if post.category == 'notice' %}📢 공지
                                 {% elif post.category == 'question' %}❓ 질문
                                 {% elif post.category == 'free' %}💬 자유
                                 {% elif post.category == 'resource' %}📚 자료
+                                {% elif post.category == 'education_article' %}📰 교육기사
                                 {% endif %}
                             </span>
 
@@ -78,7 +80,11 @@
 
                 <!-- 내용 미리보기 -->
                 <div class="text-gray-600 line-clamp-2">
+                    {% if post.category == 'education_article' %}
+                    {{ post.content|striptags|truncate(200) }}
+                    {% else %}
                     {{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}
+                    {% endif %}
                 </div>
             </a>
         </div>

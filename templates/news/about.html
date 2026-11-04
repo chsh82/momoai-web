@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}모모 소개 - MOMOAI v4.0{% endblock %}
+{% block title %}{{ '모모의 책장 소개' if intro_pages else '모모 소개' }} - MOMOAI v4.0{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
@@ -8,7 +8,7 @@
     <div class="mb-6 flex items-center justify-between">
         <div>
             <a href="{{ url_for('news.hub') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← 모모 소식</a>
-            <h2 class="text-3xl font-bold text-gray-800 mt-1">🏫 모모 소개</h2>
+            <h2 class="text-3xl font-bold text-gray-800 mt-1">🏫 {{ '모모의 책장 소개' if intro_pages else '모모 소개' }}</h2>
         </div>
         {% if current_user.role == 'admin' %}
         <a href="{{ url_for('news.edit_about') }}"
@@ -18,6 +18,9 @@
         {% endif %}
     </div>
 
+    {% if intro_pages and not content.content %}
+    {% include 'news/partials/introductions_v02.html' %}
+    {% else %}
     <div class="bg-white rounded-lg shadow p-8">
         {% if content.content %}
         <h3 class="text-2xl font-bold text-gray-800 mb-6">{{ content.title }}</h3>
@@ -40,5 +43,6 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

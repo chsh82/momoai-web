@@ -1,11 +1,27 @@
 # -*- coding: utf-8 -*-
 """모모 소식 라우트"""
-from flask import render_template, redirect, url_for, flash, request, abort
+import posixpath
+
+from flask import render_template, redirect, url_for, flash, request, abort, current_app
 from flask_login import login_required, current_user
 
 from app.news import news_bp
 from app.models import db
 from app.models.site_content import SiteContent
+from app.news.introductions_v02 import candidate_pages
+
+
+@news_bp.before_app_request
+def guard_intro_candidate_artwork():
+    """Keep direct Flask static URLs dark along with the review candidate.
+
+    Reverse-proxy static aliases must exclude this directory before any future
+    deployment; this local Flask guard cannot control an upstream file server.
+    """
+    filename = posixpath.normpath((request.view_args or {}).get('filename', '').replace('\\', '/'))
+    if request.endpoint == 'static' and filename.startswith('news/introductions-v02/'):
+        if current_app.config.get('NEWS_INTRO_V02_ENABLED', True) is not True:
+            abort(404)
 
 
 def get_or_create_content(key, default_title=''):
@@ -19,7 +35,10 @@ def get_or_create_content(key, default_title=''):
 @login_required
 def hub():
     """모모 소식 허브"""
-    return render_template('news/hub.html')
+    from app.models import Post
+    notices = Post.query.filter_by(category='notice').order_by(
+        Post.is_pinned.desc(), Post.created_at.desc(), Post.post_id.desc()).all()
+    return render_template('news/hub.html', notices=notices)
 
 
 @news_bp.route('/courses')
@@ -27,7 +46,7 @@ def hub():
 def courses():
     """강좌 소개"""
     content = get_or_create_content('course_intro', '강좌 소개')
-    return render_template('news/courses.html', content=content)
+    return render_template('news/courses.html', content=content, intro_pages=candidate_pages('course'))
 
 
 @news_bp.route('/courses/edit', methods=['GET', 'POST'])
@@ -83,7 +102,7 @@ def teacher_detail(teacher_id):
 def about():
     """모모 소개"""
     content = get_or_create_content('about_momo', '모모 소개')
-    return render_template('news/about.html', content=content)
+    return render_template('news/about.html', content=content, intro_pages=candidate_pages('story'))
 
 
 @news_bp.route('/about/edit', methods=['GET', 'POST'])

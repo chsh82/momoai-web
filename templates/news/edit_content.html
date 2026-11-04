@@ -12,6 +12,7 @@
 
     <div class="bg-white rounded-lg shadow p-6">
         <form method="POST" action="{{ save_url }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- 제목 -->
             <div class="mb-5">
                 <label for="title" class="block text-sm font-medium text-gray-700 mb-2">제목</label>

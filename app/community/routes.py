@@ -19,11 +19,13 @@ def index():
     """게시판 목록"""
     # 필터 및 검색
     category_filter = request.args.get('category', '').strip()
+    if category_filter == 'notice':
+        return redirect(url_for('news.hub', _anchor='momo-notices'))
     search = request.args.get('search', '').strip()
     sort_by = request.args.get('sort', 'recent')
 
     # 기본 쿼리
-    query = Post.query
+    query = Post.query.filter(Post.category != 'notice')
 
     # 카테고리 필터
     if category_filter:

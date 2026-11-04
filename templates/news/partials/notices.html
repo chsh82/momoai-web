@@ -1,0 +1,21 @@
+<section id="momo-notices" aria-labelledby="momo-notices-title" class="mb-8 bg-white rounded-xl shadow p-6" style="overflow-wrap:anywhere">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h3 id="momo-notices-title" class="text-xl font-bold">📢 모모공지</h3>
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('community.new') }}" class="text-blue-600">공지 작성 →</a>
+        {% endif %}
+    </div>
+    {% for notice in notices|default([]) %}
+    <article class="border-t border-gray-200 py-4">
+        <a href="{{ url_for('community.detail', post_id=notice.post_id) }}" class="block text-blue-700 font-medium">
+            {% if notice.is_pinned %}<span aria-label="고정 공지">📌</span> {% endif %}{{ notice.title }}
+        </a>
+        <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+            {% if notice.created_at %}<time datetime="{{ notice.created_at.strftime('%Y-%m-%d') }}">{{ notice.created_at.strftime('%Y-%m-%d') }}</time>{% endif %}
+            {% if current_user.role == 'admin' %}<a href="{{ url_for('community.edit', post_id=notice.post_id) }}" class="text-blue-600">공지 수정 →</a>{% endif %}
+        </div>
+    </article>
+    {% else %}
+    <p class="text-gray-500">등록된 모모공지가 없습니다.</p>
+    {% endfor %}
+</section>

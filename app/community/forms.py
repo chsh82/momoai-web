@@ -20,7 +20,8 @@ class PostForm(FlaskForm):
                               ('notice', '📢 공지'),
                               ('question', '❓ 질문'),
                               ('free', '💬 자유'),
-                              ('resource', '📚 자료')
+                              ('resource', '📚 자료'),
+                              ('education_article', '📰 교육기사')
                           ],
                           validators=[DataRequired(message='카테고리를 선택하세요.')])
 

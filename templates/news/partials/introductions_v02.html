@@ -1,0 +1,30 @@
+<section data-intro-v02 aria-label="모모의 책장 소개">
+    {% for page in intro_pages %}
+    <article class="mb-8">
+        <img src="{{ url_for('static', filename='news/introductions-v02/' ~ page.id ~ '.webp') }}"
+             alt="{{ page.title|replace('\n', ' ') }} — {{ loop.index }}장"
+             style="display:block;width:100%;height:auto;max-width:100%" {% if not loop.first %}loading="lazy"{% endif %}>
+        <details class="bg-white rounded-lg border p-4 mt-2" style="overflow-wrap:anywhere">
+            <summary class="cursor-pointer font-medium">{{ loop.index }}장 · 이미지 내용 텍스트로 읽기</summary>
+            <p>{{ page.eyebrow }}</p>
+            <h3 class="font-bold text-xl whitespace-pre-line">{{ page.title }}</h3>
+            {% if page.lead %}<p class="whitespace-pre-line">{{ page.lead }}</p>{% endif %}
+            {% for label, text in page.steps|default([]) %}<p><strong>{{ label }}</strong> — {{ text }}</p>{% endfor %}
+            {% for program in page.programs|default([]) %}
+            <h4 class="font-bold mt-4">{{ program.name }} — {{ program.tag }}</h4><p>{{ program.body }}</p><p>{{ program.point }}</p>
+            {% endfor %}
+            {% for label, text in page.grades|default([]) %}<p><strong>{{ label }}</strong> — {{ text }}</p>{% endfor %}
+            {% if page.author %}<p>{{ page.author }}</p>{% endif %}
+            {% for paragraph in page.paragraphs|default([]) %}<p class="mt-4">{{ paragraph }}</p>{% endfor %}
+            {% for character in page.characters|default([]) %}
+            <h4 class="font-bold mt-4">{{ character.name }} — {{ character.role }}</h4>
+            <p>{{ character.original }}</p><p>{{ character.learning }}</p>
+            {% endfor %}
+            {% if page.signature %}<p>{{ page.signature }}</p>{% endif %}
+            {% if page.closing %}<p class="whitespace-pre-line mt-4">{{ page.closing }}</p>{% endif %}
+            {% if page.cta %}<p class="whitespace-pre-line">{{ page.cta }}</p>{% endif %}
+            {% if page.note %}<p class="mt-2">{{ page.note }}</p>{% endif %}
+        </details>
+    </article>
+    {% endfor %}
+</section>

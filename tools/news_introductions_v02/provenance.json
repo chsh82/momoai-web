@@ -1,0 +1,5 @@
+{
+  "source": "momo-news-introductions-v02/index.html",
+  "source_sha256": "e1a6f5d5fccf696115d63a61d7b4c8e84cb5af07e99b9fc9f4b663e17fd29030",
+  "changes": "Remove review footer text only. Original CSS, page content, art and menu unchanged."
+}
