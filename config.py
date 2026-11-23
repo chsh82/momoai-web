@@ -57,6 +57,7 @@ for folder in [UPLOAD_FOLDER, HTML_FOLDER, PDF_FOLDER, POST_FILES_FOLDER, POST_I
 class Config:
     """기본 설정"""
     # Release gates: explicit configuration override only after demo approval.
+    MEMBER_INTEREST_QUEST_ENABLED = False
     STUDENT_INTEREST_QUEST_ENABLED = False
     STUDENT_INTEREST_MID_ENABLED = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
@@ -138,6 +139,8 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     """프로덕션 환경 설정"""
+    # Already-approved production release; no sibling feature gates changed.
+    MEMBER_INTEREST_QUEST_ENABLED = True
     DEBUG = False
     SQLALCHEMY_ECHO = False  # 명시적으로 끔 - DevelopmentConfig의 True를 상속하지 않는다는 의도를 남긴다
     LOG_LEVEL = 'INFO'

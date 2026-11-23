@@ -107,6 +107,7 @@ def test_http_context_failure_blocks_and_retries(page,server):
     page.get_by_role('button',name='신원 확인 다시 시도',exact=True).click()
     page.wait_for_function('window.festivalIdentity?.mode === "admin_preview"')
     assert '모모타운 축제' in page.locator('#main').inner_text()
+    assert page.locator('.brand strong').inner_text() == '전공마을 탐험'
 
 def test_local_file_is_explicit_unnamed_no_network(page):
     requests=[]
@@ -448,6 +449,17 @@ def test_canonical_data_engine_and_39_art_files_unchanged():
     display_baseline='d31fcaf40ff8ed5904d965cddf026599a8b6ae9f'
     for name in ['story-v3.js','story-v3.css','story-v4-content.json','story-assets/v4-image-slots.json']:
         accepted=subprocess.check_output(['git','show',display_baseline+':app/interest_quest/protected/'+name],cwd=ROOT).decode('utf8').replace(chr(13)+chr(10),chr(10))
+        if name == 'story-v3.js':
+            # Only the newly approved product-name substitutions are allowed;
+            # canonical data, scorer and all 39 artwork checks stay pinned.
+            for old,new in {
+                '모모아이 전공마을 탐색 · 여행 리포트</span>':'전공마을 탐험 · 여행 리포트</span><p>호기심으로 시작하는 관심 전공 탐색하기</p>',
+                '<strong>모모아이 전공마을 탐색</strong><small>나의 호기심으로 시작하는 나만의 이야기</small>':'<strong>전공마을 탐험</strong><small>호기심으로 시작하는 관심 전공 탐색하기</small>',
+                '모모의 이야기 탐험단 · 초등 5–6학년':'전공마을 탐험 · 초등 5–6학년',
+                '<h1>좋아하는 일을 따라,<br>나만의 마을로.</h1>':'<h1>전공마을 탐험</h1><p class="tagline">호기심으로 시작하는 관심 전공 탐색하기</p>',
+            }.items():
+                assert accepted.count(old)==1, old
+                accepted=accepted.replace(old,new)
         assert (base/name).read_text(encoding='utf8')==accepted
     slots=json.loads((base/'story-assets/v4-image-slots.json').read_text(encoding='utf8'))['slots']
     integrated=[s for s in slots if s['status']=='INTEGRATED_FILE_VERIFIED']
@@ -580,6 +592,7 @@ def local(page):
 def test_exact_approved_copy_in_real_question_screens(page):
     local(page)
     assert '모모타운 축제' in page.locator('#main').inner_text()
+    assert page.locator('.brand strong').inner_text() == '전공마을 탐험'
     canonical = page.evaluate('JSON.stringify(FORM)')
     page.evaluate('init()')
     assert page.evaluate('session.response_frame_version') == FRAME

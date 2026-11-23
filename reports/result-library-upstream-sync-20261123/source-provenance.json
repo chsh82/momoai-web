@@ -1,0 +1,11 @@
+{
+  "upstream_base": "de9ff0d0fc5399dffabbb4d7d2a48d263c942d14",
+  "source_review_report": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\exploration-result-library-reviewfix-20261121\\reports\\reviewfix-independent-20261121\\test-rerun.json",
+  "source_review_report_sha256": "dafea8bb0497009b6ae3ac7e8abfb2f13d1e5b5de67b91441fbbd9b3b82a0ce1",
+  "deployed_artifact_id": "result-library-reviewfix-20261121-independent3",
+  "live_head_during_release": "88db07d219c6743afae2151e67f117b095a17a72",
+  "immutable_ledger_sha256": "f97d29c97ec9e3a54d1bb8e57ca8652db41705fdb1e6e4a95b60460fdf236ff1",
+  "upstream_base_template_sha256": "f88beb0d57e1c2c441abd40c02b801516543fc2a861d4e6f1156b4520b5cf535",
+  "shared_template_policy": "Reapply only approved exploration title/member/layer/parent links onto upstream base; do not import unrelated live NEWS, reading or branding overlays.",
+  "sync_does_not_certify_other_live_overlays": true
+}

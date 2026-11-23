@@ -1,0 +1,316 @@
+{
+  "status": "tests_passed_with_one_platform_skip",
+  "counting": "Latest result per actual JUnit classname/name; overlapping frontend/layout and repeated guard cases deduplicated.",
+  "unique_junit_counts": {
+    "cases": 478,
+    "passed": 477,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "runs": [
+    {
+      "label": "upstream-sync-feature-final",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/result_library",
+        "tests/reset_deploy",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-feature-final",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-feature-final.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-feature-final.log",
+      "stdout_sha256": "bbd4eb104c412359e355d3b83c9333614fe5d9f940471a4ac0ff14be2b14731f",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-feature-final.xml",
+      "junit_sha256": "6ed9353534eaef1414c67c935c8208e5d39739e6f6cf526e7ef7c0dbca2bf570",
+      "counts": {
+        "cases": 78,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 78
+      },
+      "deselected": 0,
+      "source_fence_unchanged": true
+    },
+    {
+      "label": "upstream-sync-backend",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/momotown_backend",
+        "tests/momotown_integration",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-backend",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-backend.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-backend.log",
+      "stdout_sha256": "2eeb8513116e3fe3c0e0691913470f4ae84019dd6e5e2a082a70fe00910a24e7",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-backend.xml",
+      "junit_sha256": "3a48ed4f8671c2bd8b6bf19ed116e8b7628cc6e86d104ac1f4f0eaae276a9871",
+      "counts": {
+        "cases": 55,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 55
+      },
+      "deselected": 0,
+      "source_fence_unchanged": true
+    },
+    {
+      "label": "upstream-sync-members",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/momotown_members",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-members",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-members.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-members.log",
+      "stdout_sha256": "8fcae8261e531ba13c4cfcfaae0f0be6601c81bb586e8157d4f787e4fcc2720c",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-members.xml",
+      "junit_sha256": "895b81eec46094a1590a2e5591e531d989b573c5264604dba3a1c8cfbca8204e",
+      "counts": {
+        "cases": 153,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 153
+      },
+      "deselected": 0,
+      "source_fence_unchanged": true
+    },
+    {
+      "label": "upstream-sync-frontend",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/momotown_frontend",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-frontend",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-frontend.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-frontend.log",
+      "stdout_sha256": "f178495fcc4c615d6f61947ba57dc016aebd2aa45e48885122235319d2227693",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-frontend.xml",
+      "junit_sha256": "eb2c1cbaf406df09296207c66d5345a6f250f7b1c4460c34809d850676b620d9",
+      "counts": {
+        "cases": 110,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 110
+      },
+      "deselected": 0,
+      "source_fence_unchanged": true
+    },
+    {
+      "label": "upstream-sync-layout",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/momotown_frontend/test_choice_layout.py",
+        "-k",
+        "integrated",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-layout",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-layout.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-layout.log",
+      "stdout_sha256": "97bb565d6dfd192afabb127f5e1c10b1b75d492ebef6c1f937b69df0f5175d80",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-layout.xml",
+      "junit_sha256": "6dbf61209fbf7546c8d5e66d4ec377da7a533a8ecabaea9fa56d6de67955cd4e",
+      "counts": {
+        "cases": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 5
+      },
+      "deselected": 5,
+      "source_fence_unchanged": true
+    },
+    {
+      "label": "upstream-sync-guard-final",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/reset_deploy",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-guard-final",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-guard-final.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-guard-final.log",
+      "stdout_sha256": "ad755d8e7652cb9117781b5a08c0c3db0f510c1ae6f2643fb71c3d3e63d5aa51",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-guard-final.xml",
+      "junit_sha256": "7b91b63da4d2e1145b7d674a74bbedb203e8a1dc6f6679995d22b16e528eb869",
+      "counts": {
+        "cases": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "passed": 19
+      },
+      "deselected": 0,
+      "source_fence_unchanged": true
+    },
+    {
+      "label": "upstream-sync-launch-final",
+      "command": [
+        "C:\\Users\\aproa\\AppData\\Local\\hermes\\installs\\3dde7cb2704fe906\\environments\\f9a7ef031c8d4bbcb74be7cb2e893a62\\venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/exploration_launch/test_approved_title.py",
+        "tests/exploration_launch/test_launch.py",
+        "tests/exploration_launch/test_story_v4.py",
+        "-p",
+        "scripts.result_library_regression_plugin",
+        "-q",
+        "--basetemp=C:\\Users\\aproa\\AppData\\Local\\hermes\\profiles\\momo\\cache\\scratch\\result-library-20261121\\upstream-sync-launch-final",
+        "--junitxml=C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-launch-final.xml"
+      ],
+      "cwd": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123",
+      "returncode": 0,
+      "stdout": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-launch-final.log",
+      "stdout_sha256": "3b51d4412da8864380c6eedaee5c12ffba53061913ad540d780908e1b5b5405e",
+      "junit": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\reports\\result-library-20261121\\upstream-sync-launch-final.xml",
+      "junit_sha256": "edf89a9c62e45f47ee98759f99a5d4380a9232286fde56cca972ab94f7c6ad63",
+      "counts": {
+        "cases": 73,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 73
+      },
+      "deselected": 0,
+      "source_fence_unchanged": true
+    }
+  ],
+  "linux_disposable_guard_proof": {
+    "status": "passed",
+    "guard_sha256": "e8ce0943c03426a4d907efa3d8aac53f50dc0d3ccbba3c5afa5fda0b382340c1",
+    "checks": {
+      "clean_ancestor": true,
+      "actual_ignored_ancestor_directory_symlink": true,
+      "assume-unchanged": true,
+      "skip-worktree": true
+    },
+    "production_repo_accessed": false,
+    "system_changes": false,
+    "fixture_removed": true
+  },
+  "skips": [
+    {
+      "classname": "tests.reset_deploy.test_guard",
+      "name": "test_guard_rejects_actual_ancestor_directory_symlink",
+      "state": "skipped",
+      "label": "upstream-sync-guard-final",
+      "detail": "C:\\Users\\aproa\\Documents\\Agent-Work\\worktrees\\result-library-upstream-sync-20261123\\tests\\reset_deploy\\test_guard.py:89: Windows directory symlinks unavailable without system changes: [WinError 1314] 클라이언트가 필요한 권한을 가지고 있지 않습니다: 'C:\\\\Users\\\\aproa\\\\AppData\\\\Local\\\\hermes\\\\profiles\\\\momo\\\\cache\\\\scratch\\\\result-library-20261121\\\\upstream-sync-guard-final\\\\test_guard_rejects_actual_ance0\\\\private_target' -> 'C:\\\\Users\\\\aproa\\\\AppData\\\\Local\\\\hermes\\\\profiles\\\\momo\\\\cache\\\\scratch\\\\result-library-20261121\\\\upstream-sync-guard-final\\\\test_guard_rejects_actual_ance0\\\\new_directory'"
+    }
+  ],
+  "staged_source_blob_sha256": {
+    ".gitattributes": "5bf0a419f6b90fcd8adc5bc02abf2f2759a715f78b34f4ad3e871ed5305ef8e6",
+    ".github/workflows/deploy.yml": "b6aaa307ef876d6bd16fcbed3031e038e771ec5cc15b2696e953abbc648a08a6",
+    "app/interest_quest/access.py": "5db5afac06defddfc103917e579be30b0d8a722d4fc8f9612eb16ddeb0e9f3e7",
+    "app/interest_quest/protected/index.html": "94be5592d0bb97f7c0646f943e1e7902351d4f7c0b0a63793e18e4b5c932539d",
+    "app/interest_quest/protected/momotown-v02.js": "7cabea3dc47898ad25af3882b57eb748e088d4aba7e8d738c789b6de37a3e853",
+    "app/interest_quest/protected/result-library.js": "5724b498875b07db1ea40252b363571f21990f8e66706ab76f3ed05b0abc3ac3",
+    "app/interest_quest/protected/story-v3.js": "2bbc0c030cac1be90b6783cc1bee72acccbb83a0f1bc972b904c989e92eb276f",
+    "app/interest_quest/report-catalog.json": "92de909499eae946cffc068c80a26819bd389c2f3db15c3ba8e27f3823f1ba95",
+    "app/interest_quest/reports.py": "0185789100db974c94c408138e8575cdf71deff651dbfab9db3d0482537487eb",
+    "app/interest_quest/routes.py": "21dd1cb200b53f9e20bb928ed1a0d6abefd3ff742678846c28a5d96de50914ea",
+    "config.py": "47893392310febfd2cbcfb829c21bd6a44271ce08601d8f3a1e71578ad600b62",
+    "scripts/build_story_v3.py": "8201c03fddb276268e1a8299c9bf005150ebcb4eef269c0e2ca3b387f3f417d1",
+    "scripts/result_library_regression_plugin.py": "118727a4120368c550774fec54f562651616747e4a22dd3a4f356fe5ef012908",
+    "scripts/result_library_shell_overlay.py": "20ba726a2b3fa5c026dfcaa850d56e5c7aea2568dbab69552db1b74c0ba4ff99",
+    "scripts/result_library_upstream_shell.py": "737b10c6a357bf3365c41456a4d86baada2d10eb28fee6794bbb6103fa4870fa",
+    "scripts/run_result_library_tests.py": "de05a933a7ce1c9d779a86ce4c17b56892923304237eec3768ef917f8e8d5cd9",
+    "scripts/verify_reset_deploy.py": "e8ce0943c03426a4d907efa3d8aac53f50dc0d3ccbba3c5afa5fda0b382340c1",
+    "static/css/interest-reports.css": "e3d997d03ce99bb1deebedb505bc45b7e8182a124f349fe4c613dd6ebe10a4f5",
+    "templates/base.html": "c1c7070dbaaa9daf8e2e1d2420cdbe8643ed74035e61d0019950e3cf866a795f",
+    "templates/interest_quest/children.html": "be0a92b0952cf933d599a96783652d7ac87b09ce80956dcea2ca2718aec91d0b",
+    "templates/interest_quest/layer.html": "83818c7c4ce7e265db4e3be546f42ecc55146c1d943fe00f5042eb1f89c089e9",
+    "templates/interest_quest/library.html": "54e55c09d7164e7d69cad11b85a1c297c00137dd73104b46284defe8e01c4384",
+    "templates/interest_quest/report.html": "b20985f7ce66fa7a3ad7db35eff857afbf0c183ca735291bd1582b2d1ecce3c5",
+    "templates/interest_quest/report_shell.html": "5d577f6fd5c82522f48efa0dfcb48b5932464f6a26bfcefd5b9911cebb0ad33a",
+    "tests/exploration_launch/test_approved_title.py": "819d9d856b80fc4619ab0f749fb770c3b1e4a14086ef2111a4a8d8e5962399b4",
+    "tests/exploration_launch/test_launch.py": "4af61afa7cacc73c3ff74fcf371df22c9fbf71815fbbfdc1081b492e52dfa8a3",
+    "tests/exploration_launch/test_story_v4.py": "00d465c1618522721455799fa8c913f0d1824081ce8d0bc390110f13fff575e9",
+    "tests/momotown_frontend/test_momotown.py": "c497d6d06c04495b1b9fecea107e985aa00b010edce43c514a9ebf478f000738",
+    "tests/momotown_members/conftest.py": "9429ec38d32d44f9c2d0d1044924fcae4eb6f40d73a5ac8acdbd37393d37ceec",
+    "tests/momotown_members/test_access.py": "503af447da4ef05f40508ac13260337f3d36db29c74158031910396c03dfd289",
+    "tests/momotown_members/test_chromium.py": "75af4b3b457de6d52ee4fca07947e3a331ce1bd0b6b98165e1f92f7375591ec9",
+    "tests/momotown_members/test_sidebar.py": "9d22c8bd787e33565e6047c1337b7be258059f558fb586e183b5f4950be54a3b",
+    "tests/reset_deploy/test_guard.py": "b4121ac7ec36349635ba6c96b3bd6fcaeb910f5786399681f553a6d415336991",
+    "tests/result_library/conftest.py": "4d876c911fc213c716a71fdce47551eb4bb58fe3eeeaaf18a723a94d015e45e6",
+    "tests/result_library/fixtures/approved-immutable-baselines.json": "f97d29c97ec9e3a54d1bb8e57ca8652db41705fdb1e6e4a95b60460fdf236ff1",
+    "tests/result_library/fixtures/upstream-base.html": "f88beb0d57e1c2c441abd40c02b801516543fc2a861d4e6f1156b4520b5cf535",
+    "tests/result_library/test_async.py": "9f2819fc9f9fb53a77d1916d3ee53c4282de20ab3a40b10a4ff0225dd8fe55d9",
+    "tests/result_library/test_authorization.py": "c2e8a63f6194258045f0f2a3d5bdd451181ba22d01fb39119c9fda5327cb67b2",
+    "tests/result_library/test_browser.py": "26b436e2a4307c6497e36e810c6f2f65e87df1c33eae01ea254082a04b483ef5",
+    "tests/result_library/test_immutability.py": "6c20dc35e34dd3e6eb4b078a5906de533a223fb706c1229610e2eca799d65355",
+    "tests/result_library/test_layer.py": "f722e23f7910638cfc7c47d5ca8a249f5b5eee5ed26579b75d90c8ac27dfd921",
+    "tests/result_library/test_reports.py": "4aa7715c988224ce019e8dbb8b9e7888646198a23dfd755ac62ac23ad8e7a0fe",
+    "tests/result_library/test_reviewfix_new.py": "01c83b292e404285c23984b0a90b658815a5d6819b314e777285f6ba706823f7",
+    "tests/result_library/test_reviewfix_resume.py": "de644e6b6eb368053842e0b68592205938da8e14ecc509099f29b69304588d76",
+    "tests/result_library/test_reviewfix_security.py": "60ef6ba41735b4431464a734d3b78286b15e6623377b29a4700c16acf07921a3",
+    "tests/result_library/test_shell.py": "e9c5efe6ddc9dcbc964a21d24b8877c9c5160ecc17cc739e34623f38a43ccce0"
+  },
+  "historical_failures_preserved": [
+    {
+      "label": "upstream-sync-feature",
+      "result": "76 passed, 2 immutable-receipt raw/normalized hash mismatch failures",
+      "resolution": "Preserve original raw f97d29... ledger with path-specific -text; no expected source pin changed; full final suite passed."
+    },
+    {
+      "label": "guard-parent-red",
+      "result": "Expected untracked ancestor path-loss repro failure",
+      "resolution": "Check every target ancestor file/symlink; final regressions passed."
+    },
+    {
+      "label": "guard-harden-red",
+      "result": "6 expected hidden-index-flag failures",
+      "resolution": "Explicit assume-unchanged/skip-worktree rejection; final regressions passed."
+    },
+    {
+      "label": "upstream-sync-launch",
+      "result": "72 passed, 1 obsolete PDF-copy assertion failure",
+      "resolution": "Align only expected legacy copy to the already-approved deployed exact title; retain scene/image/all-page bounds assertions; full launch final73passed."
+    }
+  ],
+  "other_live_overlay_sync_complete": false,
+  "publish_policy": "One normal fast-forward master push with [skip ci], independently verify exact remote SHA and absence of deployment workflow; no source/service/DB operational mutations."
+}

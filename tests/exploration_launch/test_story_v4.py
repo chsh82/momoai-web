@@ -53,7 +53,8 @@ def test_pdf_first_page_contains_core_scene(page,record_property):
     page.emulate_media(media='print')
     document=fitz.open(stream=page.pdf(format='A4',print_background=True),filetype='pdf')
     assert len(document[0].get_images())>0
-    assert '소개할게' in document[0].get_text()
+    # Match the already-approved title/copy revision; retain first-page scene/image proof.
+    assert '나에게 잘 어울리는 무대마을을 소개합니다!' in document[0].get_text()
     # Audit every page without pinning the historical 19-page observation.
     record_property('pdf_page_count',len(document))
     for i,pdf_page in enumerate(document):
@@ -69,8 +70,8 @@ def test_compact_story_is_complete_but_shorter(page):
 @pytest.mark.parametrize('width',[390,1440])
 def test_public_navigation_and_atlas_targets(page,width):
     page.set_viewport_size({'width':width,'height':950})
-    assert page.locator('.brand strong').inner_text()=='모모타운 축제'
-    assert page.locator('.brand small').inner_text()=='아홉 마을, 하나의 타운 · 하고 싶은 일을 찾는 방문'
+    assert page.locator('.brand strong').inner_text()=='전공마을 탐험'
+    assert page.locator('.brand small').inner_text()=='호기심으로 시작하는 관심 전공 탐색하기'
     assert page.locator('.brand-mark').count()==0
     assert page.locator('.nav button[onclick="showSamples()"] ').count()==0
     page.evaluate('showSamples()')

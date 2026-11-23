@@ -1,0 +1,8 @@
+{% extends 'interest_quest/report_shell.html' %}{% block content %}
+{% if parent %}<a href="{{ url_for('interest_quest.children_page') }}">← 자녀 선택</a>{% endif %}
+<p class="eyebrow">{{ student.name }} · 읽기 전용 결과 보관함</p><h1>{{ '자녀 탐색 결과' if parent else '내 탐색 결과' }}</h1>
+<p>32개 응답의 저장이 확인된 회차예요. 응답 완료와 선호마을 확정은 서로 다른 상태예요. 열람·인쇄는 새 탐험이나 선호 변경을 만들지 않아요.</p>
+{% if not parent %}<a class="report-button" data-report-new href="{{ url_for('interest_quest.index') }}">새로 탐험하기</a>{% endif %}
+<div class="report-list">{% for row in result.rows %}<article class="report-card" data-attempt="{{ row.attempt_id }}"><div class="report-card-head"><span class="badge">{{ '최신 결과' if row.latest else '이전 회차' }}</span><time>{{ row.completed_at }}</time></div><h2>저장된 탐험 기록</h2><p>응답 완료 · 서버 저장 확인 / {{ '선호마을 확정' if row.preference_finalized else '선호마을 미확정' }}</p><p class="version">문항 {{ row.versions.form_version }}<br>프로그램 {{ row.versions.copy_version }}</p><a class="report-button" href="{{ url_for('interest_quest.child_report_page',student_id=student.student_id,attempt_id=row.attempt_id) if parent else url_for('interest_quest.report_page',attempt_id=row.attempt_id) }}">레포트 보기</a></article>{% else %}<p class="report-card" role="status">아직 서버에 저장된 결과가 없어요. 진행 중인 응답과 저장에 실패한 응답은 완료 결과에 포함되지 않아요.</p>{% endfor %}</div>
+<nav class="report-pagination" aria-label="결과 페이지">{% if result.offset %}<a href="{{ url_for(request.endpoint,offset=[0,result.offset-20]|max,**request.view_args) }}">이전 페이지</a>{% endif %}{% if result.has_more %}<a href="{{ url_for(request.endpoint,offset=result.offset+20,**request.view_args) }}">다음 페이지</a>{% endif %}</nav>
+{% endblock %}

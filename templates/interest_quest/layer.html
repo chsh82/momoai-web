@@ -1,0 +1,40 @@
+{% raw %}<style>
+#interest-layer{position:fixed;inset:0;margin:auto;width:calc(100vw - 56px);max-width:1500px;height:calc(100dvh - 48px);max-height:none;padding:0;border:1px solid #b7cbd2;border-radius:18px;background:#f5f3ec;color:#183e51;box-shadow:0 18px 80px #071e4580;overflow:hidden}#interest-layer::backdrop{background:#142a42b8}#interest-layer .interest-layer-chrome{height:86px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#173e52;color:white}#interest-layer .interest-layer-chrome p{font-size:12px;margin:2px 0}#interest-layer button{font:inherit;padding:10px 14px;border:1px solid #aac8d0;border-radius:9px;background:white;color:#173e52;cursor:pointer}#interest-layer button:focus-visible{outline:3px solid #ffd080;outline-offset:3px}#interest-layer iframe{border:0;width:100%;height:calc(100% - 86px);background:white}#interest-layer iframe[hidden]{display:none}#interest-layer-status{position:fixed;bottom:20px;left:20px;background:#173e52;color:white;padding:12px 18px;border-radius:8px;z-index:9999}#interest-layer-status:empty{display:none}@media(max-width:640px){#interest-layer{width:100vw;height:100dvh;border-radius:0;border:0}#interest-layer .interest-layer-chrome{padding:10px 12px;height:105px;align-items:start}#interest-layer .interest-layer-chrome p{max-width:185px}#interest-layer .interest-layer-chrome b{font-size:14px}#interest-layer button{max-width:145px;font-size:13px}#interest-layer iframe{height:calc(100% - 105px)}}
+</style>{% endraw %}
+<dialog id="interest-layer" aria-labelledby="interest-layer-title"><div class="interest-layer-chrome"><div><b id="interest-layer-title">전공마을 탐험</b><p>닫고 다시 열면 선택 유지 · 새로고침·이동 전 파일로 백업해 주세요.</p></div><button type="button" id="interest-layer-close" autofocus>닫기 · 모모아이로 돌아가기</button></div></dialog><p role="status" id="interest-layer-status" aria-live="polite"></p>
+<script>
+(()=>{'use strict';
+ const dialog=document.getElementById('interest-layer'),status=document.getElementById('interest-layer-status'),close=document.getElementById('interest-layer-close');
+ const base={{ url_for('interest_quest.index')|tojson }},contextURL=base+'context';
+ let generation=0,identity=null,opener=null,scroll=null,overflow='',frames=new Map(),active=null;
+ function suspend(){try{active?.contentWindow.momoLayerSuspend?.();}catch(e){}}
+ function hide(){generation++;suspend();if(dialog.open)dialog.close();document.documentElement.style.overflow=overflow;if(scroll)window.scrollTo(...scroll);opener?.focus({preventScroll:true});status.textContent='';}
+ close.addEventListener('click',hide);
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.open&&status.textContent){event.preventDefault();hide();}});
+ dialog.addEventListener('cancel',e=>{e.preventDefault();if(document.activeElement===active){try{if(active.contentDocument.querySelector('#dialog[open]'))return;}catch(e){}}hide();});
+ async function open(link,newJourney=false){
+  const token=++generation;if(!newJourney)opener=link;status.textContent='계정을 확인하고 있어요…';
+  try{
+   const response=await fetch(contextURL,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error();const current=await response.json();
+   if(token!==generation)return;if(!current.identity_key)throw Error();
+   const key=current.identity_key+'|'+current.mode;
+   if(identity!==key){for(const frame of frames.values())frame.remove();frames.clear();identity=key;}
+   const target=new URL(link.href,location.href);if(target.origin!==location.origin||!target.pathname.startsWith(base))throw Error();target.searchParams.set('expected_identity',current.identity_key);
+   const kind=target.pathname===base?'exploration':target.pathname;
+   let frame=frames.get(kind);
+   // A directly opened library must use the retained exploration's own draft guard.
+   // Cancellation leaves both the library and the unsaved exploration intact.
+   if(newJourney&&frame&&frame.contentWindow.momoStartNewJourney?.()!==true){status.textContent='';return;}
+   if(active!==frame)suspend();
+   for(const other of frames.values())other.hidden=true;
+   // Only the exploration draft is retained. Reports re-authorize through a fresh GET.
+   if(frame&&kind!=='exploration'){frame.remove();frames.delete(kind);frame=null;}
+   if(!frame){frame=document.createElement('iframe');frame.title=kind==='exploration'?'전공마을 탐험 학습':'저장된 탐색 결과 · 읽기 전용';if(kind==='exploration')frame.dataset.exploration='';target.searchParams.set('embedded','1');target.searchParams.set('return_to',location.pathname+location.search);if(newJourney)frame.addEventListener('load',async()=>{try{await frame.contentWindow.loadFestivalContext();if(token===generation&&active===frame)frame.contentWindow.momoStartNewJourney();}catch(e){}},{once:true});frame.src=target.href;dialog.append(frame);frames.set(kind,frame);}
+   active=frame;frame.hidden=false;try{frame.contentWindow.momoLayerResume?.();}catch(e){}
+   if(!dialog.open){scroll=[window.scrollX,window.scrollY];overflow=document.documentElement.style.overflow;document.documentElement.style.overflow='hidden';dialog.showModal();}close.focus();status.textContent='';
+  }catch(e){if(token!==generation)return;for(const frame of frames.values())frame.remove();frames.clear();identity=null;hide();status.textContent='신원 또는 접근 권한을 확인하지 못했어요. 로그인 상태를 확인하고 다시 열어 주세요.';}
+ }
+ document.addEventListener('click',event=>{const link=event.target.closest('a');if(!link||event.defaultPrevented||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.button!==0)return;const target=new URL(link.href,location.href);if(target.origin!==location.origin)return;if(target.pathname!==base&&!link.hasAttribute('data-interest-layer'))return;event.preventDefault();open(link);});
+ addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==active?.contentWindow)return;if(['momo-interest-close','momo-report-close'].includes(event.data?.type))hide();if(event.data?.type==='momo-report-new')open({href:new URL(base,location.origin).href},true);});
+})();
+</script>

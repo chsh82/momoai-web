@@ -48,6 +48,8 @@ jobs:
             STAGE_DIR="$STAGE_PARENT/release"
             trap 'git worktree remove --force "$STAGE_DIR" 2>/dev/null || true; rm -rf "$STAGE_PARENT"' EXIT
             git worktree add --detach "$STAGE_DIR" "$TARGET_COMMIT"
+            # Do not erase direct live overlays or unpublished production commits.
+            python3 "$STAGE_DIR/scripts/verify_reset_deploy.py" --repo "$HOME/momoai_web" --target "$TARGET_COMMIT"
 
             echo "=== 별도 디렉터리에서 의존성 설치 + CSS 빌드(검증 전용, 운영 미반영) ==="
             cd "$STAGE_DIR"
@@ -57,6 +59,7 @@ jobs:
             echo "빌드 성공 - 여기까지 실패하면 운영 HEAD·템플릿·CSS는 전혀 안 바뀐 채 배포가 멈춘다(직접 검증함, 아래 보고 참고)"
 
             echo "=== 검증된 커밋을 운영에 반영(코드 + CSS 동시) ==="
+            python3 "$STAGE_DIR/scripts/verify_reset_deploy.py" --repo "$HOME/momoai_web" --target "$TARGET_COMMIT"
             git reset --hard "$TARGET_COMMIT"
             cp "$STAGE_DIR/static/css/tailwind.min.css" static/css/tailwind.min.css
             cp "$STAGE_DIR/static/css/style.min.css" static/css/style.min.css

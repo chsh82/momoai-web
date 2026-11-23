@@ -83,10 +83,12 @@ def test_default_flags_and_student_sidebar(web, quest, mid):
     app, client = web
     app.config.update(STUDENT_INTEREST_QUEST_ENABLED=quest, STUDENT_INTEREST_MID_ENABLED=mid)
     template=(ROOT/'templates/base.html').read_text(encoding='utf-8')
-    # Render actual service section; avoid unrelated application/DB context processors.
+    # Guard-only legacy flag contract. Full enclosing role branches are exercised
+    # independently by momotown_members/test_sidebar.py against the whole base.
     start=template.rfind('{% if',0,template.index('<a href="{{ url_for(\'interest_quest.index\') }}"'))
-    end=template.index('<!-- 어휘퀴즈',start)
-    fragment=template[start:end]
+    end=template.index('{% if current_user.has_permission_level(2)',start)
+    study=template.rfind('{% if',0,template.index('<a href="{{ url_for(\'study_mid.index\') }}"'))
+    fragment=template[start:end]+template[study:template.index('<!-- 어휘퀴즈',study)]
     app.add_url_rule('/study-mid', 'study_mid.index', lambda:'')
     app.add_url_rule('/study-elem', 'study_elem.index', lambda:'')
     for role in ('student','parent','teacher','manager','admin','master_admin'):

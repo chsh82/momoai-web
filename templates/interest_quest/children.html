@@ -1,0 +1,4 @@
+{% extends 'interest_quest/report_shell.html' %}{% block content %}
+<p class="eyebrow">연결된 학부모 전용 · 읽기 전용</p><h1>자녀 탐색 결과</h1><p>함께 볼 자녀를 선택해 주세요. 현재 활성 연결과 학생 계정이 확인된 자녀만 표시해요.</p>
+<div class="report-grid">{% for child in children %}<article class="report-card"><h2><a href="{{ url_for('interest_quest.child_reports_page',student_id=child.student_id) }}">{{ child.name }}</a></h2><p>날짜별 결과와 저장된 레포트 보기</p></article>{% else %}<p class="report-card" role="status">현재 조회 가능한 자녀가 없어요. 연결 상태는 관리자에게 확인해 주세요.</p>{% endfor %}</div>
+{% endblock %}

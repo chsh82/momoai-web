@@ -6,27 +6,27 @@ function festivalCurrent(s){return s?.response_frame_version===FESTIVAL_FRAME;}
 const festivalBase={init,question,pause,greeting,intro,guide,reportHtml,reportModel,recordFrame};
 init=function(){festivalBase.init();session.response_frame_version=FESTIVAL_FRAME;session.copy_version=MOMOTOWN_V02.copy_version;render();};
 greeting=function(){let h=festivalBase.greeting();return h.replace(esc(GREETING[greetingIndex]),esc(greetingIndex===0?MOMOTOWN_V02.opening.admin_first:MOMOTOWN_V02.opening.student[greetingIndex])).replace('너의 다음 이야기를 찾아서','모모타운 축제에 온 걸 환영해!');};
-intro=function(){return festivalBase.intro().replaceAll('모모의 이야기 탐험단','모모타운 축제').replace('좋아하는 일을 따라,','모모타운 축제에서,').replace('32개의 이야기에서 내가 맡고 싶은 활동을 골라 출발해요.','아홉 마을이 모인 하나의 타운에서, 하고 싶은 활동을 골라요.');};
+intro=function(){return festivalBase.intro().replace('32개의 이야기에서 내가 맡고 싶은 활동을 골라 출발해요.','아홉 마을이 모인 하나의 타운에서, 하고 싶은 활동을 골라요.');};
 guide=function(){return festivalBase.guide().replace('잘한다고 느끼는 일이나 해보고 싶은 일 중, 내가 맡고 싶은 활동 하나를 골라요.','장면마다 내가 해 보고 싶은 활동 하나를 골라요.').replace('다음 탐험도 찾아봐요.','축제에서 만난 관심을 돌아봐요.');};
 question=function(){let h=festivalBase.question();if(!festivalCurrent(session))return h;const q=FORM.items[session.cursor],c=festivalScenes.get(q.id);h=h.replace(esc(q.title),esc(c.title)).replace(esc(q.scene),esc(c.scene));const oldQuestion=session.response_frame_version===FORM_V12?POLICY.response_frame.common_question:q.question;h=h.replace(esc(oldQuestion),esc(c.question));for(const o of q.options)h=h.replace(esc(o.text),esc(festivalOptions.get(o.id)));h=h.replace('</p><div class="scene-source">','</p><div class="scene-source">');return h.replace('<p id="scene-copy">'+esc(c.scene)+'</p>','<p id="scene-copy">'+esc(c.scene)+'</p><p class="festival-dialogue">'+esc(c.dialogue)+'</p>').replace('<p class="q-help" id="question-help">내가 맡고 싶은 활동 하나를 골라 주세요.</p>','<p class="q-help sr-only" id="question-help">네 가지 중 하나를 선택하세요.</p>');};
 pause=function(){if(!festivalCurrent(session))return festivalBase.pause();const c=MOMOTOWN_V02.chapters[Math.floor(session.cursor/8)],previous=MOMOTOWN_V02.chapters[c.chapter-2];return crumb(c.title)+`<section class="chapter-screen paper" data-chapter="${c.chapter}"><div class="chapter-art" style="--scene:url('${placeImage(c.chapter===2?'PLAZA':'MOMO_AMPHITHEATRE')}')"><div class="chapter-hosts">${characterImage('momo','','모모')}</div></div><div class="chapter-copy"><div class="eyebrow">${c.chapter}장 · ${session.cursor} / 32 기록</div><h1>${esc(c.title)}</h1>${previous?`<p>${esc(previous.closing)}</p>`:''}<p>${esc(c.intro)}</p><div class="actions chapter-actions">${button('다음 이야기로 →','continueJourney()',false,true)}</div><p class="micro">각 장은 여덟 장면이에요. 체험은 이야기 속 상황이며 실제 과제를 수행하지 않아요.</p></div></section>`;};
 recordFrame=function(s){return festivalCurrent(s)?'하고 싶은 활동을 고른 관심 전용 기록이에요. 이전 안내 버전과 같은 척도로 비교하지 않아요.':festivalBase.recordFrame(s);};
 /* Only replace evidence in a derived report model; never canonical source rows. */
 reportModel=function(s){const m=festivalBase.reportModel(s);if(!m||!festivalCurrent(s))return m;const copy=e=>({...e,title:festivalScenes.get(e.item_id||e.source_item_id)?.title||e.title,option_text:festivalOptions.get(e.option_id)||e.option_text});m.reps=m.reps.map(r=>({...r,evidence:r.evidence.map(copy)}));m.paths=m.paths.map(p=>({...p,row:{...p.row,evidence:p.row.evidence.map(copy)},evidence:p.evidence.map(copy)}));return m;};
-reportHtml=function(m){let h=festivalBase.reportHtml(m);if(!festivalCurrent(m.s))return h;for(const q of FORM.items){h=h.replaceAll(esc(q.title),esc(festivalScenes.get(q.id).title));for(const o of q.options)h=h.replaceAll(esc(o.text),esc(festivalOptions.get(o.id)));}return h;};
-document.querySelector('.brand strong').textContent='모모타운 축제';
-document.querySelector('.brand small').textContent='아홉 마을, 하나의 타운 · 하고 싶은 일을 찾는 방문';
-document.querySelector('.footer').innerHTML='<p>모모타운 축제 · 하고 싶은 일을 찾는 여행<br>진행 중인 선택은 기록 파일로 백업할 수 있어요.</p>';
+reportHtml=function(m){let h=festivalBase.reportHtml(m);if(window.festivalIdentity?.mode==='member_preview')h=h.replace('<p class="report-origin">',`<p class="report-member-mode">${esc(festivalModeLabel())}</p><p class="report-origin">`);if(!festivalCurrent(m.s))return h;for(const q of FORM.items){h=h.replaceAll(esc(q.title),esc(festivalScenes.get(q.id).title));for(const o of q.options)h=h.replaceAll(esc(o.text),esc(festivalOptions.get(o.id)));}return h;};
+document.querySelector('.brand strong').textContent='전공마을 탐험';
+document.querySelector('.brand small').textContent='호기심으로 시작하는 관심 전공 탐색하기';
+document.querySelector('.footer').innerHTML='<p>전공마을 탐험 · 호기심으로 시작하는 관심 전공 탐색하기<br>진행 중인 선택은 기록 파일로 백업할 수 있어요.</p>';
 window.festivalIdentity={mode:location.protocol==='file:'?'LOCAL_ADMIN_PREVIEW':'pending',display_name:null};
 const FESTIVAL_API='/student/interest-quest';
 const festivalDisplayRender=render,festivalContentInit=init,festivalContentGreeting=greeting;
-function festivalIdentityReady(){return ['student','admin_preview','LOCAL_ADMIN_PREVIEW'].includes(window.festivalIdentity.mode);}
-function festivalModeLabel(){return window.festivalIdentity.mode==='LOCAL_ADMIN_PREVIEW'?'로컬 관리자 미리보기 · 학생 데이터로 저장하지 않아요.':window.festivalIdentity.mode==='admin_preview'?'관리자 미리보기 · 학생 데이터로 저장하지 않아요.':'학생 모드 · 완료한 응답과 선호는 서버 저장 성공을 확인해요.';}
+function festivalIdentityReady(){return ['student','member_preview','admin_preview','LOCAL_ADMIN_PREVIEW'].includes(window.festivalIdentity.mode);}
+function festivalModeLabel(){return window.festivalIdentity.mode==='member_preview'?'회원 체험 · 현재 페이지에서만 진행하며 응답과 선호를 서버에 저장하지 않아요. JSON 파일로 백업할 수 있어요.':window.festivalIdentity.mode==='LOCAL_ADMIN_PREVIEW'?'로컬 관리자 미리보기 · 학생 데이터로 저장하지 않아요.':window.festivalIdentity.mode==='admin_preview'?'관리자 미리보기 · 학생 데이터로 저장하지 않아요.':'학생 모드 · 완료한 응답과 선호는 서버 저장 성공을 확인해요.';}
 function festivalIdentityBlock(){return `<section class="paper identity-unavailable"><h1>학생 신원을 확인하고 있어요</h1><p role="alert" tabindex="-1">${window.festivalIdentity.mode==='unavailable'?'신원을 확인할 수 없어요. 연결이나 계정 정보를 확인한 뒤 다시 시도해 주세요.':'확인 전에는 새 방문을 시작할 수 없어요.'}</p>${button('신원 확인 다시 시도','loadFestivalContext()')}</section>`;}
 async function loadFestivalContext(){
  if(location.protocol==='file:')return;
  window.festivalIdentity={mode:'pending',display_name:null};render(false);
- try{const response=await fetch(FESTIVAL_API+'/context',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error('context');const c=await response.json();if(!['student','admin_preview'].includes(c.mode)||c.form_version!==FESTIVAL_FRAME||c.copy_version!==MOMOTOWN_V02.copy_version||(c.mode==='student'&&(typeof c.display_name!=='string'||!c.display_name.trim()||!c.csrf_token)))throw Error('context');window.festivalIdentity={...c,display_name:c.mode==='student'?c.display_name:null};}
+ try{const response=await fetch(FESTIVAL_API+'/context',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error('context');const c=await response.json();if(!['student','member_preview','admin_preview'].includes(c.mode)||c.form_version!==FESTIVAL_FRAME||c.copy_version!==MOMOTOWN_V02.copy_version||(c.mode==='student'&&(typeof c.display_name!=='string'||!c.display_name.trim()||!c.csrf_token)))throw Error('context');window.festivalIdentity={...c,display_name:c.mode==='student'?c.display_name:null};}
  catch(e){window.festivalIdentity={mode:'unavailable',display_name:null};}
  render(false);document.querySelector('.identity-unavailable [role=alert]')?.focus();
 }
@@ -60,7 +60,7 @@ function festivalPreferenceDialog(s=festivalActive()){
 }
 function festivalSelectPreference(id){const s=festivalActive(),f=festivalState(s);if(f.submitting||!festivalCandidates(s).includes(id))return;if(f.selected!==id)f.preference_request_id=null;f.selected=id;f.error='';document.querySelectorAll('.preference-card').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.village===id)));$('#festival-confirm').disabled=false;}
 function festivalOpenReport(s){closeDialog();reportReturn=s===sampleSession?'sample':'result';view='report';render();}
-async function festivalConfirmPreference(){const s=festivalActive(),f=festivalState(s);if(f.submitting||!festivalCandidates(s).includes(f.selected)||festivalMissing(s).length)return;f.preference={selected_village_id:f.selected,analysis_revision:'ADMIN_PREVIEW',displayed_villages_in_order:festivalCandidates(s),origin:'ADMIN_PREVIEW'};f.acknowledged=true;festivalOpenReport(s);}
+async function festivalConfirmPreference(){const s=festivalActive(),f=festivalState(s);if(f.submitting||!festivalCandidates(s).includes(f.selected)||festivalMissing(s).length)return;const origin=window.festivalIdentity.mode==='member_preview'?'MEMBER_PREVIEW':'ADMIN_PREVIEW';f.preference={selected_village_id:f.selected,analysis_revision:origin,displayed_villages_in_order:festivalCandidates(s),origin};f.acknowledged=true;festivalOpenReport(s);}
 printResult=function(){const s=festivalActive();if(festivalGate(s))festivalOpenReport(s);};
 printUnified=function(){if(festivalGate(festivalActive()))festivalResultBase.printUnified();};
 /* Ctrl+P bypasses printUnified: never trust cached material from another visit. */
@@ -238,8 +238,8 @@ render(false);
 const festivalTransitionBase={pause,anticipation,crumb};
 pause=function(){let h=festivalTransitionBase.pause();if(festivalCurrent(session)&&festivalStudent()&&session.cursor===8)h=h.replace('<div class="chapter-copy">','<div class="chapter-copy"><p>'+esc(window.festivalIdentity.display_name)+', 이번에는 체험하는 자리를 둘러보자.</p>');return h;};
 anticipation=function(){return festivalTransitionBase.anticipation().replace('<p class="lead">',`<p>${esc(MOMOTOWN_V02.chapters[3].closing)}</p><p class="lead">`);};
-crumb=function(label){return festivalTransitionBase.crumb(label).replace('이야기 탐험단','모모타운 축제');};
-showManagement=function(){openDialog('기록 저장·불러오기',`<p>${festivalStudent()?'32개 응답을 모두 고른 뒤 서버 저장 성공을 확인하고 결과를 열어요. 선호도 확정할 때 서버 저장 성공을 확인해요. 진행 중인 응답은 자동 저장하지 않으니 기록 파일로 백업해 주세요.':'관리자 미리보기는 현재 페이지에서만 진행하며 학생 데이터로 저장하지 않아요. JSON 파일로 백업할 수 있어요.'}</p><div class="actions">${button('현재 기록 파일 저장','exportRecord()')}${button('기록 불러오기','closeDialog();loadFile()',true)}</div><p>파일에는 내가 고른 활동과 버전이 담겨요. 이름은 파일에 담지 않아요.</p>`);};
+crumb=function(label){return festivalTransitionBase.crumb(label).replace('이야기 탐험단','전공마을 탐험');};
+showManagement=function(){openDialog('기록 저장·불러오기',`<p>${festivalStudent()?'32개 응답을 모두 고른 뒤 서버 저장 성공을 확인하고 결과를 열어요. 선호도 확정할 때 서버 저장 성공을 확인해요. 진행 중인 응답은 자동 저장하지 않으니 기록 파일로 백업해 주세요.':window.festivalIdentity.mode==='member_preview'?festivalModeLabel():'관리자 미리보기는 현재 페이지에서만 진행하며 학생 데이터로 저장하지 않아요. JSON 파일로 백업할 수 있어요.'}</p><div class="actions">${button('현재 기록 파일 저장','exportRecord()')}${button('기록 불러오기','closeDialog();loadFile()',true)}</div><p>파일에는 내가 고른 활동과 버전이 담겨요. 이름은 파일에 담지 않아요.</p>`);};
 const festivalSampleBase=qaSampleSession;
 qaSampleSession=function(key){const s=festivalSampleBase(key);s.response_frame_version=FESTIVAL_FRAME;s.copy_version=MOMOTOWN_V02.copy_version;return s;};
 if(location.protocol!=='file:')loadFestivalContext();

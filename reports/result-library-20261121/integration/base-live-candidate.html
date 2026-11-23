@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MOMOAI v4.0{% endblock %}</title>
+
+    <!-- Preconnect (DNS + TCP 미리 연결) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
+    <!-- Critical CSS: 동기 로딩 (블로킹 OK - 빠른 파일) -->
+    <link rel="stylesheet" href="{{ static_v('css/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ static_v('css/style.min.css') }}">
+
+    <!-- Google Fonts: 동기 로딩 with font-display:swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Alpine.js: defer만 사용 (preload 제거) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Chart.js: 필요한 페이지에서만 로드 -->
+    {% block chart_js %}{% endblock %}
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MOMOAI">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#6366f1">
+
+    <link rel="stylesheet" href="{{ static_v('css/announcement-popup.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50" x-data="{ mobileMenuOpen: false, sidebarCollapsed: false }">
+    {% if session.get('_impersonator_id') %}
+    <div class="fixed top-0 left-0 right-0 z-[9999] bg-orange-500 text-white text-center py-2 text-sm font-semibold shadow-lg">
+        ⚠️ <strong>{{ current_user.name }}</strong> ({{ current_user.role }}) 계정으로 접속 중 —
+        <a href="{{ url_for('admin.impersonate_exit') }}"
+           class="ml-3 bg-white text-orange-600 px-3 py-0.5 rounded font-bold hover:bg-orange-50 transition">
+            관리자로 돌아가기
+        </a>
+    </div>
+    <div class="h-10"></div>
+    {% endif %}
+    {% if current_user.is_authenticated %}
+    <!-- Mobile Menu Button (desktop-only fallback, hidden on mobile — moved into header) -->
+    <button @click="mobileMenuOpen = !mobileMenuOpen"
+            class="hidden"
+            style="z-index: 9999;">
+    </button>
+
+    <!-- Mobile Overlay -->
+    <div x-show="mobileMenuOpen"
+         @click="mobileMenuOpen = false"
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 lg:hidden"
+         style="z-index: 9990;"></div>
+
+    <!-- Desktop Sidebar Expand Button (visible when sidebar is collapsed) -->
+    <button x-show="sidebarCollapsed"
+            @click="sidebarCollapsed = false"
+            class="fixed top-4 left-4 hidden lg:flex items-center justify-center bg-indigo-600 text-white p-3 rounded-lg shadow-lg hover:bg-indigo-700 transition"
+            style="z-index: 9999;">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- Push Notification Permission Banner (항상 렌더링, JS로 제어) -->
+    {% if current_user.is_authenticated %}
+    <div id="push-banner"
+         style="display: none; z-index: 9990; background-color: #2563eb;"
+         class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <span class="text-2xl flex-shrink-0">🔔</span>
+                    <div>
+                        <p class="font-semibold text-sm">실시간 알림 받기</p>
+                        <p class="text-xs text-white text-opacity-80">첨삭 완료, 공지, 문자 등 알림을 스마트폰에서 바로 받아보세요.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button id="push-allow-btn"
+                            class="bg-white text-blue-600 px-4 py-1.5 rounded-lg font-semibold text-sm hover:bg-opacity-90 transition shadow">
+                        허용
+                    </button>
+                    <button id="push-dismiss-btn"
+                            class="text-white text-opacity-70 hover:text-opacity-100 text-sm px-3 py-1.5 transition">
+                        나중에
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- iOS Safari Install Guide Banner -->
+    <div id="ios-install-banner"
+         style="display: none; z-index: 9985; background-color: #1f2937;"
+         class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <span class="text-2xl flex-shrink-0 mt-0.5">📱</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-sm text-white">앱으로 설치하면 알림을 받을 수 있어요</p>
+                        <p class="text-xs text-gray-300 mt-0.5">아이폰은 앱 설치 후에만 Push 알림이 가능합니다.</p>
+                        <div class="flex items-center gap-1 mt-2 text-xs text-yellow-300 font-medium flex-wrap">
+                            <span>설치 방법:</span>
+                            <span class="bg-white bg-opacity-10 px-2 py-0.5 rounded">Safari 하단</span>
+                            <span>→</span>
+                            <span class="bg-white bg-opacity-10 px-2 py-0.5 rounded">공유 □↑</span>
+                            <span>→</span>
+                            <span class="bg-white bg-opacity-10 px-2 py-0.5 rounded">홈 화면에 추가</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="ios-install-dismiss"
+                        class="flex-shrink-0 text-gray-400 hover:text-white p-1.5 rounded transition mt-0.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner"
+         style="display: none; z-index: 9980; background-color: #4f46e5;"
+         class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <!-- App Icon & Text -->
+                <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <div class="flex-shrink-0 w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center">
+                        <span class="text-2xl">📚</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-bold text-white mb-1">
+                            MOMOAI 앱 설치하기
+                        </h3>
+                        <p class="text-xs text-white text-opacity-90">
+                            홈 화면에 추가하고 더 빠르게 접속하세요!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <button id="pwa-install-btn"
+                            class="bg-white text-indigo-600 px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-opacity-90 transition duration-200 shadow-lg">
+                        설치
+                    </button>
+                    <button id="pwa-close-banner"
+                            class="text-white text-opacity-80 hover:text-opacity-100 p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authenticated Layout with Sidebar -->
+    <div class="flex h-screen">
+        <!-- Sidebar with Navy Gradient -->
+        <aside class="w-64 sidebar-navy shadow-xl flex flex-col text-white fixed lg:static inset-y-0 left-0 transform transition-all duration-300 ease-in-out lg:translate-x-0 overflow-hidden"
+               style="z-index: 9995;"
+               :class="{ '-translate-x-full': !mobileMenuOpen, 'translate-x-0': mobileMenuOpen, 'sidebar-collapsed': sidebarCollapsed }">
+            <div class="p-6 border-b border-white border-opacity-20" style="position:relative;display:flex;align-items:center;justify-content:center;min-height:88px;">
+                <div>
+                    <a href="{{ url_for('admin.index') if current_user.role in ('admin','manager') else url_for('teacher.index') if current_user.role == 'teacher' else url_for('parent.index') if current_user.role == 'parent' else url_for('student.index') if current_user.role == 'student' else url_for('notifications.index') }}"
+                       class="block hover:opacity-80 transition"
+                       onclick="sessionStorage.removeItem('sidebarScrollPos'); var m=document.getElementById('scrollable-menu'); if(m) m.scrollTop=0;">
+                        <h1 class="text-2xl font-bold text-white" style="display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;">
+                            <img src="{{ url_for('static', filename='icons/icon-192x192.png') }}" alt="" width="28" height="28" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;border-radius:22%;">
+                            <span>모모의 책장</span>
+                        </h1>
+                    </a>
+                </div>
+                <button @click="sidebarCollapsed = true"
+                        class="hidden lg:block text-white hover:bg-white hover:bg-opacity-10 p-1.5 rounded-lg transition flex-shrink-0 mt-1"
+                        title="사이드바 접기" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);margin-top:0;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 스크롤 가능한 포털 메뉴 -->
+            <div class="flex-1 overflow-y-auto p-4" id="scrollable-menu">
+                <!-- 공통 메뉴 -->
+                <div class="space-y-1 mb-2">
+                    
+                    <a href="{{ url_for('notifications.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'notifications' in request.endpoint %}bg-white bg-opacity-15 text-white border-blue-400{% endif %}">
+                        <span class="text-xl relative inline-block">
+                            🔔
+                            <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"></span>
+                        </span>
+                        <span>알림</span>
+                    </a>
+
+                    <a href="{{ url_for('library.hall_of_fame') }}"
+                       class="sidebar-link flex items-center justify-between gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}active{% endif %}">
+                        <span class="flex items-center gap-3">
+                            <span class="text-xl">🏆</span>
+                            <span>명예의 전당</span>
+                        </span>
+                        {% if unread_counts.hall_of_fame > 0 %}
+                        <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.hall_of_fame }}</span>
+                        {% endif %}
+                    </a>
+
+                    <a href="{{ url_for('library.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'library' in request.endpoint and 'hall_of_fame' not in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">📖</span>
+                        <span>학습 자료실</span>
+                    </a>
+
+                    <a href="{{ url_for('news.hub') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'news.hub' or (request.endpoint and request.endpoint.startswith('news.publishing.')) %}active{% endif %}">
+                        <span class="text-xl">📰</span>
+                        <span>모모 뉴스</span>
+                        {% include 'news/publishing/unread_badge.html' %}
+                    </a>
+                    {% if news_learning_menu|default(false) or (current_user.role == 'admin' and current_user.is_active and not (current_user.is_deleted|default(false)) and config.get('READING_QUIZ_ENABLED', false) is sameas true and config.get('READING_QUIZ_LEARNER_ENABLED', false) is sameas true) %}
+                    <a href="{{ url_for('student.reading_quiz.learner_archive') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent" style="background-color:rgba(255,255,255,0.15);">
+                        <span class="text-xl">📚</span>
+                        <span>독해 퀴즈</span>
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('news.intro') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint in ['news.intro','news.courses','news.edit_courses','news.teachers','news.teacher_detail','news.about','news.edit_about','news.my_profile'] %}active{% endif %}">
+                        <span class="text-xl">🏫</span><span>모모 소개</span>
+                    </a>
+
+                    <a href="{{ url_for('community.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'community' in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">💬</span>
+                        <span>커뮤니티</span>
+                    </a>
+                </div>
+
+                {% if p3_reports_navigation and current_user.role not in ['teacher', 'admin', 'parent', 'student'] %}
+                <div data-p3-evaluation-last x-data="{ evaluation: true }" class="mt-2">
+                    <button @click="evaluation = !evaluation" class="w-full flex items-center gap-3 px-4 py-3 text-white"><span aria-hidden="true">📊</span><span class="font-medium">평가 정보</span></button>
+                    <div x-show="evaluation" x-collapse class="ml-8 mt-1 space-y-1">{% include 'p3_reports/nav.html' %}</div>
+                </div>
+                {% endif %}
+
+                {% if current_user.is_authenticated and current_user.is_active and current_user.role in ('student', 'parent', 'teacher', 'staff', 'manager', 'admin', 'master_admin') and (config.get('MEMBER_INTEREST_QUEST_ENABLED') == true or current_user.role in ('admin', 'master_admin') or (current_user.role == 'student' and config.get('STUDENT_INTEREST_QUEST_ENABLED') == true)) %}
+                <a href="{{ url_for('interest_quest.index') }}"
+                   class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition {% if request.endpoint and 'interest_quest.' in request.endpoint %}bg-white bg-opacity-10{% endif %}">
+                    <span class="text-xl">🗺️</span><span class="font-medium">전공마을 탐험</span>
+                </a>
+                {% if current_user.role == 'parent' %}
+                <a data-interest-layer href="{{ url_for('interest_quest.children_page') }}"
+                   class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                    <span class="text-xl">📁</span><span class="font-medium">자녀 탐색 결과</span>
+                </a>
+                {% endif %}
+                {% endif %}
+
+                {% if current_user.has_permission_level(2) %}
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
+                    academic: true,
+                    members: true,
+                    learning: true,
+                    zoom: true,
+                    communication: true,
+                    boardManage: true,
+                    finance: true,
+                    content: true,
+                    consultation: true,
+                    siteManage: true
+                }">
+                    <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">관리자</div>
+
+                    <!-- 대시보드 -->
+                    <a href="{{ url_for('admin.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'admin.index' %}active{% endif %}">
+                        <span class="text-xl">📊</span>
+                        <span>대시보드</span>
+                    </a>
+
+
+
+                    <!-- 1. 학사 관리 -->
+                    <div class="mt-2">
+                        <button @click="academic = !academic"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📚</span>
+                                <span class="font-medium">학사 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': academic }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="academic" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.courses') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.courses' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                수업 관리
+                            </a>
+                            <a href="{{ url_for('admin.all_schedule') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'admin.all_schedule' %}text-blue-600 bg-blue-50{% endif %}">
+                                수업 현황
+                            </a>
+                            <a href="{{ url_for('teacher.attendance_list') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.attendance_list' %}text-blue-600 bg-blue-50{% endif %}">
+                                출석 체크
+                            </a>
+                            <a href="{{ url_for('admin.attendance_status') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'admin.attendance_status' %}text-blue-600 bg-blue-50{% endif %}">
+                                전체 출석현황
+                            </a>
+                            <a href="{{ url_for('admin.student_attendance_report') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'admin.student_attendance_report' %}text-blue-600 bg-blue-50{% endif %}">
+                                학생별 출결 현황
+                            </a>
+                            <a href="{{ url_for('admin.makeup_requests') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.makeup' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                보강수업 관리
+                            </a>
+                            <a href="{{ url_for('admin.absence_notices') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'absence_notice' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                결석 예고 관리
+                            </a>
+                            <a href="{{ url_for('admin.enrollment_schedules') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'enrollment_schedule' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                입반·전반·보강
+                            </a>
+                            <a href="{{ url_for('admin.teacher_hours') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.teacher_hours' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                📊 강사 시수 현황
+                            </a>
+                            {% if current_user.is_master_admin %}
+                            <a href="{{ url_for('admin.hermes') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.hermes' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                🤖 모모 에이전트
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 2. 회원 관리 -->
+                    <div class="mt-2">
+                        <button @click="members = !members"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">👥</span>
+                                <span class="font-medium">회원 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': members }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="members" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.pending_users') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.pending_users' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                <span>⏳ 승인 대기</span>
+                                {% if unread_counts.pending_users > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.pending_users }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('students.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'students' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                학생 관리
+                            </a>
+                            <a href="{{ url_for('admin.staff_list') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.staff' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                강사 관리
+                            </a>
+                            <a href="{{ url_for('admin.parent_list') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['admin.parent_list', 'admin.edit_parent'] %}text-green-600 bg-green-50{% endif %}">
+                                학부모 관리
+                            </a>
+                            <a href="{{ url_for('admin.account_management') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['admin.account_management'] %}text-green-600 bg-green-50{% endif %}">
+                                🔒 아이디 관리
+                            </a>
+                            <a href="{{ url_for('admin.parent_link_requests') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.parent_link' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                학부모 연결 관리
+                            </a>
+                            <a href="{{ url_for('admin.student_profiles') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_profile' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                📋 학생 프로필
+                            </a>
+                            <a href="{{ url_for('admin.mileage_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.mileage' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                🏅 마일리지 관리
+                            </a>
+                            <a href="{{ url_for('admin.student_risk_analysis') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'admin.student_risk_analysis' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                🤖 학생 위험도 분석
+                            </a>
+                            <a href="{{ url_for('admin.push_notification_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'push_notification' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                🔔 푸시 알림 관리
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 3. 상담 관리 -->
+                    <div class="mt-2">
+                        <button @click="consultation = !consultation"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <span class="font-medium">상담 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': consultation }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="consultation" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.conversation_history') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'admin.conversation_history' %}text-purple-600 bg-purple-50{% endif %}">
+                                💬 전체 대화 기록
+                            </a>
+                            <a href="{{ url_for('admin.feedbacks') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'admin.feedbacks' %}text-purple-600 bg-purple-50{% endif %}">
+                                💬 피드백 관리
+                            </a>
+                            <a href="{{ url_for('feedback.feedback_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'feedback.feedback_index' %}text-purple-600 bg-purple-50{% endif %}">
+                                💬 수업 문자 자동 생성
+                            </a>
+                            <a href="{{ url_for('admin.consultations') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.consultation' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                📋 상담 관리
+                            </a>
+                            <a href="{{ url_for('consultation_request.admin_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'consultation_request.admin' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                <span>📥 상담 신청 접수함</span>
+                                <span data-badge="consultation_request_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.consultation_request_pending %}hidden{% endif %}">{{ unread_counts.consultation_request_pending }}</span>
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                📬 문의 관리
+                            </a>
+                            <a href="{{ url_for('admin.action_items') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.action_item' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                <span>📋 처리 대기 업무</span>
+                                <span id="actionItemsBadge" class="hidden bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full"></span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. 학습 관리 -->
+                    <div class="mt-2">
+                        <button @click="learning = !learning"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">✍️</span>
+                                <span class="font-medium">학습 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': learning }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="learning" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('essays.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                첨삭 관리
+                            </a>
+                            <a href="{{ url_for('admin.teaching_materials') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.teaching_material' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                학습 교재
+                            </a>
+                            <a href="{{ url_for('admin.videos') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'admin.video' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                학습 동영상
+                            </a>
+                            <a href="{{ url_for('teacher.reading_mbti') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'reading_mbti' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                모모아이 MBTI
+                            </a>
+                            <a href="{{ url_for('teacher.pilsa_note') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'teacher.pilsa_note' %}text-purple-600 bg-purple-50{% endif %}">
+                                ✍️ 필사 노트
+                            </a>
+                            <a href="{{ url_for('tutorial.track_select') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'tutorial.' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                📖 모모아이 글쓰기 튜토리얼
+                            </a>
+                    <!-- reading-quiz-admin-review seam -->
+                    {% if current_user.is_authenticated and current_user.is_active and not current_user.is_deleted|default(false) and current_user.role == 'admin' and config.get('READING_QUIZ_ENABLED') == true %}
+                    <a href="{{ url_for('student.reading_quiz.real_archive') }}"
+                       class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.reading_quiz.real_' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                        <span class="text-xl">📖</span>
+                        <span>모모뉴스 독해퀴즈</span>
+                    </a>
+                    {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 4. 온라인 강의실 -->
+                    <div class="mt-2">
+                        <button @click="zoom = !zoom"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">🎥</span>
+                                <span class="font-medium">온라인 강의실</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': zoom }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="zoom" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.zoom_links') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint == 'admin.zoom_links' or request.endpoint == 'admin.edit_zoom_link' %}text-indigo-600 bg-indigo-50{% endif %}">
+                                줌 링크 관리
+                            </a>
+                            <a href="{{ url_for('admin.zoom_access_logs') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint == 'admin.zoom_access_logs' %}text-indigo-600 bg-indigo-50{% endif %}">
+                                접속 로그
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 5. 커뮤니케이션 -->
+                    <div class="mt-2">
+                        <button @click="communication = !communication"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <span class="font-medium">커뮤니케이션</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': communication }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="communication" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.announcements') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'admin.announcement' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                공지사항 관리
+                            </a>
+                            <a href="{{ url_for('admin.send_message') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'admin.message' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                SMS 발송
+                            </a>
+                            <a href="{{ url_for('teacher.sms_history') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint in ('teacher.sms_history', 'teacher.sms_history_detail') %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📋 SMS 발송 이력
+                            </a>
+                            <a href="{{ url_for('notifications.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'notifications' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                알림 현황
+                            </a>
+                            <a href="{{ url_for('messages.inbox') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'messages.' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                <span>💬 업무 메신저</span>
+                                <span data-badge="dm" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.dm %}hidden{% endif %}">{{ unread_counts.dm }}</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 6. 게시판 관리 -->
+                    <div class="mt-2">
+                        <button @click="boardManage = !boardManage"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📋</span>
+                                <span class="font-medium">게시판 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': boardManage }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="boardManage" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.announcements') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'admin.announcement' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                공지사항
+                            </a>
+                            <a href="{{ url_for('admin.board_class_manage') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.board_class_manage' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                클래스 게시판
+                            </a>
+                            <a href="{{ url_for('admin.board_teacher_manage') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.board_teacher_manage' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                강사 게시판
+                            </a>
+                            <a href="{{ url_for('admin.board_harkness_manage') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.board_harkness_manage' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                하크니스 게시판
+                            </a>
+                            <a href="{{ url_for('admin.messages_manage') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'admin.messages_manage' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📢 수업 공지 및 메세지
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📬 문의 관리
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 7. 재무 관리 -->
+                    <div class="mt-2">
+                        <button @click="finance = !finance"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💰</span>
+                                <span class="font-medium">재무 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': finance }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="finance" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.billing') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'billing' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                🧾 청구서 생성
+                            </a>
+                            <a href="{{ url_for('admin.payments') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint == 'admin.payments' %}text-orange-600 bg-orange-50{% endif %}">
+                                결제 관리
+                            </a>
+                            <a href="{{ url_for('refund_request.admin_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'refund_request.admin' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                <span>💰 환불 요청 접수함</span>
+                                <span data-badge="refund_request_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.refund_request_pending %}hidden{% endif %}">{{ unread_counts.refund_request_pending }}</span>
+                            </a>
+                            <a href="{{ url_for('admin.session_adjustments') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'session_adjustment' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                이월 및 차감
+                                {% if unread_counts.get('session_adjustment_review', 0) > 0 %}
+                                <span class="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">!</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('admin.payment_periods') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-orange-600 hover:bg-orange-50 rounded transition {% if request.endpoint and 'payment_period' in request.endpoint %}text-orange-600 bg-orange-50{% endif %}">
+                                결제 기간 관리
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 7. 콘텐츠 관리 -->
+                    <div class="mt-2">
+                        <button @click="content = !content"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📖</span>
+                                <span class="font-medium">콘텐츠 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': content }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="content" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('books.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'books' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
+                                도서 관리
+                            </a>
+                            <a href="{{ url_for('curriculum.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'curriculum' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
+                                커리큘럼 관리
+                            </a>
+                            <a href="{{ url_for('library.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.index' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
+                                학습 자료실
+                            </a>
+                            <a href="{{ url_for('library.hall_of_fame') }}"
+                               class="sidebar-link-sub flex items-center justify-between gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.hall_of_fame' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
+                                <span>명예의 전당</span>
+                                {% if unread_counts.hall_of_fame > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.hall_of_fame }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('library.admission_info') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-pink-600 hover:bg-pink-50 rounded transition {% if request.endpoint and 'library.admission_info' in request.endpoint %}text-pink-600 bg-pink-50{% endif %}">
+                                입시정보
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 8. 사이트 관리 -->
+                    <div class="mt-2">
+                        <button @click="siteManage = !siteManage"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">⚙️</span>
+                                <span class="font-medium">사이트 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': siteManage }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="siteManage" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('admin.api_usage_dashboard') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-gray-600 hover:bg-gray-100 rounded transition {% if request.endpoint == 'admin.api_usage_dashboard' %}text-gray-600 bg-gray-100{% endif %}">
+                                📊 API 사용량
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 9. 커뮤니티 -->
+                    <a href="{{ url_for('community.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'community' in request.endpoint %}active{% endif %} mt-2">
+                        <span class="text-xl">💭</span>
+                        <span>커뮤니티</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if current_user.role in ['teacher', 'admin'] %}
+                <div class="pt-3 border-t border-white border-opacity-20" style="padding-bottom: 0.75rem;" x-data="{
+                    courses: true,
+                    students: true,
+                    assignments: true,
+                    evaluation: true,
+                    communication: true
+                }">
+                    <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">강사</div>
+
+                    <!-- 마이 페이지 -->
+                    <a href="{{ url_for('teacher.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.index' %}active{% endif %}">
+                        <span class="text-xl">🏠</span>
+                        <span>마이 페이지</span>
+                    </a>
+
+                    <!-- 1. 내 수업 -->
+                    <div class="mt-2">
+                        <button @click="courses = !courses"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📚</span>
+                                <span class="font-medium">내 수업</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': courses }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="courses" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('teacher.courses') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.courses' %}text-blue-600 bg-blue-50{% endif %}">
+                                수업 목록
+                            </a>
+                            <a href="{{ url_for('teacher.schedule') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.schedule' %}text-blue-600 bg-blue-50{% endif %}">
+                                주간 시간표
+                            </a>
+                            <a href="{{ url_for('teacher.upcoming_changes') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.upcoming_changes' %}text-blue-600 bg-blue-50{% endif %}">
+                                📋 예정 변동 현황
+                            </a>
+                            <a href="{{ url_for('teacher.attendance_list') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.attendance_list' %}text-blue-600 bg-blue-50{% endif %}">
+                                출석 체크
+                            </a>
+                            {% if current_user.is_teacher %}
+                            <a href="{{ url_for('admin.hermes') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'admin.hermes' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                🤖 모모 에이전트
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('teacher.makeup_confirm_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.makeup_confirm' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                <span>🔄 보강 신청 확인</span>
+                                <span data-badge="makeup_confirm_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.makeup_confirm_pending %}hidden{% endif %}">{{ unread_counts.makeup_confirm_pending }}</span>
+                            </a>
+                            <a href="{{ url_for('teacher.consult_confirm_list') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.consult_confirm' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                <span>💬 상담/개별보강 협의 확인</span>
+                                <span data-badge="consult_confirm_pending" class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full {% if not unread_counts.consult_confirm_pending %}hidden{% endif %}">{{ unread_counts.consult_confirm_pending }}</span>
+                            </a>
+                            <a href="{{ url_for('teacher.class_messages') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.class_messages' %}text-blue-600 bg-blue-50{% endif %}">
+                                수업 공지 및 메세지
+                            </a>
+                            <a href="{{ url_for('teacher.teacher_sms') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.teacher_sms' %}text-blue-600 bg-blue-50{% endif %}">
+                                📱 SMS 발송
+                            </a>
+                            <a href="{{ url_for('teacher.sms_history') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint in ('teacher.sms_history', 'teacher.sms_history_detail') %}text-blue-600 bg-blue-50{% endif %}">
+                                📋 SMS 발송 이력
+                            </a>
+                            <a href="{{ url_for('teacher.teacher_teaching_materials') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'teacher.teacher_teaching_material' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                📚 학습 교재
+                            </a>
+                            <a href="{{ url_for('teacher.teacher_materials_board') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'teacher.teacher_materials_board' %}text-blue-600 bg-blue-50{% endif %}">
+                                🗂️ 교사용 교재 게시판
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 2. 학생 관리 -->
+                    <div class="mt-2">
+                        <button @click="students = !students"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">👥</span>
+                                <span class="font-medium">학생 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': students }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="students" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('teacher.students') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'teacher.students' %}text-green-600 bg-green-50{% endif %}">
+                                내 학생 목록
+                            </a>
+                            <a href="{{ url_for('teacher.create_feedback') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'teacher.create_feedback' %}text-green-600 bg-green-50{% endif %}">
+                                피드백 작성
+                            </a>
+                            <a href="{{ url_for('teacher.feedbacks') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint in ['teacher.feedbacks', 'teacher.edit_feedback'] %}text-green-600 bg-green-50{% endif %}">
+                                피드백 목록
+                            </a>
+                            <a href="{{ url_for('feedback.feedback_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'feedback.feedback_index' %}text-green-600 bg-green-50{% endif %}">
+                                💬 수업 문자 자동 생성
+                            </a>
+                            <a href="{{ url_for('teacher.consultations') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                상담 작성
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                📬 문의 관리
+                            </a>
+                            <a href="{{ url_for('teacher.action_items') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'teacher.action_item' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                <span>📋 처리 대기 업무</span>
+                                <span id="teacherActionBadge" class="hidden bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full"></span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 3. 과제 관리 -->
+                    <div class="mt-2">
+                        <button @click="assignments = !assignments"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">✍️</span>
+                                <span class="font-medium">과제 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': assignments }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="assignments" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('teacher.assignments') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'teacher.assignment' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                과제 출제
+                            </a>
+                            <a href="{{ url_for('essays.index') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays.index' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                <span>{% if current_user.role == 'parent' %}첨삭 보기{% else %}첨삭 관리{% endif %}</span>
+                                {% if unread_counts.new_submission > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.new_submission }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('essays.ocr_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'essays.ocr' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                OCR 인식
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. 평가 관리 -->
+                    <div class="mt-2">
+                        <button @click="evaluation = !evaluation"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📊</span>
+                                <span class="font-medium">평가 정보</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': evaluation }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="evaluation" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('teacher.reading_mbti') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'reading_mbti' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                🧠 모모아이 MBTI
+                            </a>
+                            <a href="{{ url_for('teacher.ace_weekly') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'ace_weekly' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                📝 주간 평가
+                            </a>
+                            <a href="{{ url_for('teacher.ace_evaluation') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'ace_evaluation' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                ⭐ ACE 평가
+                            </a>
+                            {% if p3_reports_navigation and current_user.role in ['teacher', 'admin'] %}{% include 'p3_reports/nav.html' %}{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 5. 학습 자료 -->
+                    <a href="{{ url_for('teacher.materials') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'teacher.material' in request.endpoint %}active{% endif %} mt-2">
+                        <span class="text-xl">📁</span>
+                        <span>학습 자료</span>
+                    </a>
+
+                    <!-- 5-1. 필사 노트 -->
+                    <a href="{{ url_for('teacher.pilsa_note') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.pilsa_note' %}active{% endif %} mt-2">
+                        <span class="text-xl">✍️</span>
+                        <span>필사 노트</span>
+                    </a>
+
+                    <!-- 5-2. 내 시수 확인 -->
+                    <a href="{{ url_for('teacher.my_hours') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'teacher.my_hours' %}active{% endif %} mt-2">
+                        <span class="text-xl">📊</span>
+                        <span>내 시수 확인</span>
+                    </a>
+
+                    <!-- 5-2. 업무 메시지 -->
+                    <a href="{{ url_for('messages.inbox') }}"
+                       class="sidebar-link flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'messages.' in request.endpoint %}active{% endif %} mt-2">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">💬</span>
+                            <span>업무 메신저</span>
+                        </div>
+                        {% if unread_counts.dm > 0 %}
+                        <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.dm }}</span>
+                        {% endif %}
+                    </a>
+
+                    <!-- 6. 게시판 -->
+                    <div class="mt-2">
+                        <button @click="communication = !communication"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <span class="font-medium">게시판</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': communication }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="communication" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('teacher.announcements') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'teacher.announcement' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                공지사항
+                            </a>
+                            <a href="{{ url_for('teacher.class_board') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'teacher.class_board' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                클래스 게시판
+                            </a>
+                            <a href="{{ url_for('teacher.board') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint == 'teacher.board' %}text-yellow-600 bg-yellow-50{% endif %}">
+                                강사 게시판
+                            </a>
+                            <a href="{{ url_for('harkness.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'harkness' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                하크니스 게시판
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+                {% endif %}
+
+                {% if current_user.role in ['parent', 'admin'] %}
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
+                    children: true,
+                    learning: true,
+                    evaluation: true,
+                    makeup: true,
+                    payment: true,
+                    communication: true
+                }">
+                    <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">학부모</div>
+
+                    <!-- 마이 페이지 -->
+                    <a href="{{ url_for('parent.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.index' in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">🏠</span>
+                        <span>마이 페이지</span>
+                    </a>
+
+                    <!-- 1-1. 신규 등록 설문 -->
+                    {% if parent_survey_completed %}
+                    <a href="{{ url_for('parent.registration_survey') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition {% if request.endpoint and 'parent.registration' in request.endpoint %}bg-white bg-opacity-10{% endif %}">
+                        <span class="text-xl">📋</span>
+                        <span class="font-medium">신규 등록 설문</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('parent.registration_survey') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg border-l-4 border-green-700 shadow-sm hover:shadow-md transition {% if request.endpoint and 'parent.registration' in request.endpoint %}ring-2 ring-green-300{% endif %}">
+                        <span class="text-xl">🆕</span>
+                        <span class="font-semibold">신규 등록 설문</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- 2. 자녀 관리 -->
+                    <div class="mt-2">
+                        <button @click="children = !children"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">👨‍👩‍👧</span>
+                                <span class="font-medium">자녀 관리</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': children }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="children" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('parent.children') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'parent.children' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                내 자녀
+                            </a>
+                            <a href="{{ url_for('parent.link_requests') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'parent.link' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                자녀 연결
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 3. 학습 현황 -->
+                    <div class="mt-2">
+                        <button @click="learning = !learning"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📚</span>
+                                <span class="font-medium">학습 현황</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': learning }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="learning" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('parent.courses_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.course' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                수업 목록
+                            </a>
+                            <a href="{{ url_for('parent.attendance_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.attendance' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                출결 현황
+                            </a>
+                            <a href="{{ url_for('parent.essays_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.essays' in request.endpoint and request.endpoint != 'parent.submit_essay' %}text-green-600 bg-green-50{% endif %}">
+                                과제 및 첨삭
+                            </a>
+                            <a href="{{ url_for('parent.submit_essay') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'parent.submit_essay' %}text-green-600 bg-green-50{% endif %}">
+                                글 제출하기
+                            </a>
+                            <a href="{{ url_for('parent.materials_list') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.material' in request.endpoint or request.endpoint and 'parent.child_material' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                학습 교재
+                            </a>
+                            <a href="{{ url_for('library.books') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'library.books' or request.endpoint == 'library.book_detail' %}text-green-600 bg-green-50{% endif %}">
+                                📖 도서 추천
+                            </a>
+                            <a href="{{ url_for('parent.videos_list') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.video' in request.endpoint or request.endpoint and 'parent.child_video' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                학습 동영상
+                            </a>
+                            <a href="{{ url_for('parent.pilsa_note') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'parent.pilsa_note' %}text-green-600 bg-green-50{% endif %}">
+                                ✍️ 필사 노트
+                            </a>
+                            <a href="{{ url_for('parent.consultations_index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'parent.consultation' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                상담 기록
+                            </a>
+                            <a href="{{ url_for('consultation_request.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'consultation_request.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                                📋 상담 신청
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. 평가 정보 -->
+                    <div class="mt-2">
+                        <button @click="evaluation = !evaluation"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📊</span>
+                                <span class="font-medium">평가 정보</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': evaluation }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="evaluation" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('parent.reading_mbti') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'reading_mbti' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                🧠 모모아이 MBTI
+                            </a>
+                            <a href="{{ url_for('parent.weekly_evaluation') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'parent.weekly_evaluation' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                📝 주간 평가
+                            </a>
+                            <a href="{{ url_for('parent.ace_evaluation') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'parent.ace_evaluation' in request.endpoint or request.endpoint and 'parent.child_ace_evaluation' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                ⭐ ACE 분기 평가
+                            </a>
+                            {% if p3_reports_navigation and current_user.role == 'parent' %}{% include 'p3_reports/nav.html' %}{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 5. 보강수업 -->
+                    <a href="{{ url_for('parent.makeup_classes_index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.makeup' in request.endpoint %}active{% endif %} mt-2">
+                        <span class="text-xl">🔄</span>
+                        <span>보강수업</span>
+                    </a>
+
+                    <!-- 6. 결제 관리 -->
+                    <a href="{{ url_for('parent.all_payments') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'parent.all_payments' in request.endpoint %}active{% endif %} mt-2">
+                        <span class="text-xl">💰</span>
+                        <span>결제 관리</span>
+                    </a>
+                    <a href="{{ url_for('refund_request.index') }}"
+                       class="sidebar-link-sub flex items-center gap-2 px-4 py-2 ml-8 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint and 'refund_request.' in request.endpoint %}text-green-600 bg-green-50{% endif %}">
+                        환불 요청 내역
+                    </a>
+
+                    <!-- 7. 게시판 -->
+                    <div class="mt-2">
+                        <button @click="communication = !communication"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <span class="font-medium">게시판</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': communication }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="communication" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('parent.announcements') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'parent.announcement' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                공지사항
+                            </a>
+                            <a href="{{ url_for('parent.all_feedback') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'parent.all_feedback' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                <span>선생님 피드백</span>
+                                {% if unread_counts.feedback > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.feedback }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('inquiry.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'inquiry.' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                📬 문의 게시판
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+                {% endif %}
+
+                {% if current_user.role in ['student', 'admin'] %}
+                <div class="pt-3 border-t border-white border-opacity-20" x-data="{
+                    courses: true,
+                    learning: true,
+                    tests: true,
+                    evaluation: true,
+                    makeup: true,
+                    communication: true
+                }">
+                    <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">학생</div>
+
+                    <!-- 마이 페이지 -->
+                    <a href="{{ url_for('student.index') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint and 'student.index' in request.endpoint %}active{% endif %}">
+                        <span class="text-xl">🏠</span>
+                        <span>마이 페이지</span>
+                    </a>
+
+                    <!-- 월간 랭킹 -->
+                    <a href="{{ url_for('student.mileage_ranking') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent {% if request.endpoint == 'student.mileage_ranking' %}active{% endif %}">
+                        <span class="text-xl">🏆</span>
+                        <span>월간 랭킹</span>
+                    </a>
+
+                    <!-- 강의실 바로가기 -->
+                    <button onclick="enterZoomClass()"
+                            class="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold bg-blue-500 hover:bg-blue-400 rounded-lg transition mt-1">
+                        <span class="text-xl">📹</span>
+                        <span>강의실 바로가기</span>
+                    </button>
+
+                    <!-- 2. 내 수업 -->
+                    <div class="mt-2">
+                        <button @click="courses = !courses"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📚</span>
+                                <span class="font-medium">내 수업</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': courses }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="courses" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('student.courses') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'student.courses' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                수업 목록
+                            </a>
+                            <a href="{{ url_for('student.attendance') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'student.attendance' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                출결 현황
+                            </a>
+                            <a href="{{ url_for('student.my_assignments') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint == 'student.my_assignments' %}text-blue-600 bg-blue-50{% endif %}">
+                                <span>과제 보기</span>
+                                {% if unread_counts.assignments > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.assignments }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('student.class_board') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'student.class_board' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                클래스 게시판
+                            </a>
+                            <a href="{{ url_for('harkness.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-blue-600 hover:bg-blue-50 rounded transition {% if request.endpoint and 'harkness.' in request.endpoint %}text-blue-600 bg-blue-50{% endif %}">
+                                하크니스 게시판
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 3. 학습 활동 -->
+                    <div class="mt-2">
+                        <button @click="learning = !learning"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">✍️</span>
+                                <span class="font-medium">학습 활동</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': learning }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="learning" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('student.submit_essay') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.submit_essay' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                글쓰기 제출
+                            </a>
+                            <a href="{{ url_for('student.my_essays') }}"
+                               class="sidebar-link-sub flex items-center justify-between px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.my_essays' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                <span>내 첨삭</span>
+                                {% if unread_counts.essay > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ unread_counts.essay }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('student.my_harkness_questions') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'student.my_harkness_questions' %}text-purple-600 bg-purple-50{% endif %}">
+                                내가 만든 질문
+                            </a>
+                            <a href="{{ url_for('student.teaching_materials') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.teaching_material' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                학습 교재
+                            </a>
+                            <a href="{{ url_for('library.books') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'library.books' or request.endpoint == 'library.book_detail' %}text-purple-600 bg-purple-50{% endif %}">
+                                📖 도서 추천
+                            </a>
+                            <a href="{{ url_for('student.teaching_videos') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.teaching_video' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                학습 동영상
+                            </a>
+                            <a href="{{ url_for('student.pilsa_note') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint == 'student.pilsa_note' %}text-purple-600 bg-purple-50{% endif %}">
+                                ✍️ 필사 노트
+                            </a>
+                            <a href="{{ url_for('student.progress') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-purple-600 hover:bg-purple-50 rounded transition {% if request.endpoint and 'student.progress' in request.endpoint %}text-purple-600 bg-purple-50{% endif %}">
+                                학습 진도
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 4. 테스트 -->
+                    <div class="mt-2">
+                        <button @click="tests = !tests"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📝</span>
+                                <span class="font-medium">테스트</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': tests }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="tests" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('student.reading_mbti') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'reading_mbti' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                모모아이 MBTI
+                            </a>
+                            <a href="{{ url_for('tutorial.track_select') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'tutorial.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                📖 모모아이 글쓰기 튜토리얼
+                            </a>
+                            {% if current_user.role in ('admin', 'master_admin') %}
+                            <a href="{{ url_for('study_mid.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'study_mid.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                📊 중등 공부력 테스트 <span class="text-xs opacity-60">· 관리자 검토용</span>
+                            </a>
+                            <a href="{{ url_for('study_elem.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'study_elem.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                📊 초등 공부력 테스트 <span class="text-xs opacity-60">· 구버전·관리자 검토용</span>
+                            </a>
+                            {% endif %}
+                            {% if current_user.role in ('admin', 'master_admin') or (current_user.role == 'student' and config.get('STUDENT_INTEREST_MID_ENABLED') == true) %}
+                            <a href="{{ url_for('interest_mid.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'interest_mid.' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                🧭 중등 전공 나침반 {% if current_user.role in ('admin', 'master_admin') %}<span class="text-xs opacity-60">· 관리자 검토용</span>{% endif %}
+                            </a>
+                            {% endif %}
+                            <!-- 어휘퀴즈 & 스키마퀴즈 - 임시 비활성화
+                            <a href="{{ url_for('student.vocabulary_quiz') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'vocabulary_quiz' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                어휘퀴즈
+                            </a>
+                            <a href="{{ url_for('student.schema_quiz') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'schema_quiz' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                스키마퀴즈
+                            </a>
+                            -->
+                        </div>
+                    </div>
+
+                    <!-- 5. 평가 정보 -->
+                    <div class="mt-2">
+                        <button @click="evaluation = !evaluation"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📊</span>
+                                <span class="font-medium">평가 정보</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': evaluation }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="evaluation" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('student.reading_mbti') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'reading_mbti' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                🧠 모모아이 MBTI
+                            </a>
+                            <a href="{{ url_for('student.weekly_evaluation') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-indigo-600 hover:bg-indigo-50 rounded transition {% if request.endpoint and 'student.weekly_evaluation' in request.endpoint %}text-indigo-600 bg-indigo-50{% endif %}">
+                                📝 주간 평가
+                            </a>
+                            {% if p3_reports_navigation and current_user.role == 'student' %}{% include 'p3_reports/nav.html' %}{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 6. 보강수업 -->
+                    <div class="mt-2">
+                        <button @click="makeup = !makeup"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">🔄</span>
+                                <span class="font-medium">보강수업</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': makeup }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="makeup" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('student.makeup_classes') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'student.makeup_classes' %}text-green-600 bg-green-50{% endif %}">
+                                신청하기
+                            </a>
+                            <a href="{{ url_for('student.makeup_classes_history') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-green-600 hover:bg-green-50 rounded transition {% if request.endpoint == 'student.makeup_classes_history' %}text-green-600 bg-green-50{% endif %}">
+                                신청 내역
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 7. 게시판 -->
+                    <div class="mt-2">
+                        <button @click="communication = !communication"
+                                class="w-full flex items-center justify-between px-4 py-3 text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 rounded-lg transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <span class="font-medium">게시판</span>
+                            </div>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': communication }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="communication" x-collapse class="ml-8 mt-1 space-y-1">
+                            <a href="{{ url_for('student.announcements') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'student.announcements' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                공지사항
+                            </a>
+                            <a href="{{ url_for('harkness.index') }}"
+                               class="sidebar-link-sub flex items-center gap-2 px-4 py-2 text-sm text-white text-opacity-70 hover:text-white hover:text-opacity-100 hover:bg-opacity-8 hover:text-yellow-600 hover:bg-yellow-50 rounded transition {% if request.endpoint and 'harkness' in request.endpoint %}text-yellow-600 bg-yellow-50{% endif %}">
+                                하크니스 게시판
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+                {% endif %}
+
+                {% if current_user.role in ['admin', 'teacher'] %}
+                <div class="pt-3 border-t border-white border-opacity-20">
+                    <div class="text-xs font-medium text-white text-opacity-60 px-4 mb-2 text-uppercase tracking-wide">빠른 작업</div>
+                    <a href="{{ url_for('essays.new') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent">
+                        <span class="text-xl">✍️</span>
+                        <span>새 첨삭 시작</span>
+                    </a>
+
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('students.new') }}"
+                       class="sidebar-link flex items-center gap-3 px-4 py-3 text-white text-opacity-80 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg border-l-4 border-transparent">
+                        <span class="text-xl">➕</span>
+                        <span>학생 추가</span>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 사이트 사용 설명서 (항상 보이는 고정 영역) -->
+            <div class="px-4 py-2 border-t border-white border-opacity-20">
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('admin.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'admin.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% elif current_user.role == 'teacher' %}
+                <a href="{{ url_for('teacher.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'teacher.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% elif current_user.role == 'parent' %}
+                <a href="{{ url_for('parent.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'parent.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% elif current_user.role == 'student' %}
+                <a href="{{ url_for('student.help_page') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-white text-opacity-70 hover:text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition text-sm {% if request.endpoint == 'student.help_page' %}bg-white bg-opacity-10 text-white text-opacity-100{% endif %}">
+                    <span>📖</span><span>사이트 사용 설명서</span>
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="p-4 border-t border-white border-opacity-20">
+                <div class="flex items-center gap-3 mb-3">
+                    <a href="{{ url_for('profile.index') }}" class="w-10 h-10 bg-blue-400 bg-opacity-30 text-white rounded-full flex items-center justify-center font-bold hover:bg-opacity-40 transition duration-200">
+                        {{ current_user.name[0] }}
+                    </a>
+                    <div class="flex-1 min-w-0">
+                        <a href="{{ url_for('profile.index') }}" class="font-medium text-white truncate hover:text-blue-300 transition duration-200">{{ current_user.name }}</a>
+                        <div class="text-xs text-white text-opacity-60 truncate">{{ current_user.email }}</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('profile.index') }}"
+                       class="flex-1 text-center bg-white bg-opacity-10 hover:bg-opacity-20 text-white py-2 rounded-button transition duration-200 text-sm font-medium">
+                        프로필
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}"
+                       class="flex-1 text-center bg-white bg-opacity-10 hover:bg-opacity-20 text-white py-2 rounded-button transition duration-200 text-sm font-medium">
+                        로그아웃
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden lg:ml-0">
+            <header class="header-navy px-3 sm:px-6 py-0 sm:py-4 text-white">
+                <div class="flex items-center justify-between gap-2 h-12 sm:h-auto">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- 모바일: 햄버거 버튼 (헤더 내부, 수직 중앙 정렬) -->
+                        <button @click="mobileMenuOpen = !mobileMenuOpen"
+                                class="lg:hidden flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg transition"
+                                style="z-index: 9999;">
+                            <svg x-show="!mobileMenuOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                            <svg x-show="mobileMenuOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <!-- 모바일: MOMOAI 로고만 표시 (대시보드 링크) -->
+                        <a href="{{ url_for('admin.index') if current_user.role in ('admin','manager') else url_for('teacher.index') if current_user.role == 'teacher' else url_for('parent.index') if current_user.role == 'parent' else url_for('student.index') }}"
+                           class="lg:hidden font-bold text-base text-white tracking-wide hover:text-indigo-200 transition">MOMOAI</a>
+                        <!-- 데스크탑: 페이지 제목 -->
+                        <h2 class="hidden lg:block text-header truncate" style="color: rgba(255,255,255,0.75);">
+                            {% block page_title %}대시보드{% endblock %}
+                        </h2>
+                        <span class="hidden lg:inline">{% block page_subtitle %}{% endblock %}</span>
+                    </div>
+                    <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                        {% block header_actions %}
+                        <a href="{{ url_for('search.index') }}"
+                           class="flex items-center gap-1 px-2 py-2 sm:px-4 text-white text-opacity-80 hover:text-white rounded-button hover:bg-white hover:bg-opacity-10 transition duration-200">
+                            <span class="text-xl">🔍</span>
+                            <span class="hidden sm:inline text-sm font-medium">검색</span>
+                        </a>
+                        {% endblock %}
+                        <div class="text-xs sm:text-sm text-white text-opacity-70 whitespace-nowrap">
+                            <span class="hidden sm:inline">{{ now() | kst('%Y년 %m월 %d일') }}</span>
+                            <span class="sm:hidden">{{ now() | kst('%m/%d') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-6">
+    {% else %}
+    <!-- Unauthenticated Layout -->
+    <div class="min-h-screen flex flex-col justify-center px-4 py-8">
+        <div>
+    {% endif %}
+                {% block content %}{% endblock %}
+    {% if current_user.is_authenticated %}
+            </main>
+        </div>
+    </div>
+    {% else %}
+        </div>
+
+        <div class="mt-8 text-center text-gray-500 text-sm">
+            <p>© 2026 MOMOAI. All rights reserved.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+    {% if request.blueprint in ('reading_quiz', 'student.reading_quiz') %}{% include 'student/reading_quiz/title_labels.html' %}{% endif %}
+
+    {% if current_user.is_authenticated and current_user.role in ('admin', 'master_admin', 'teacher') %}
+    <!-- 처리 대기 업무 팝업 -->
+    <div id="actionItemsPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[1100] flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">📋 미처리 업무 알림</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">완료되지 않은 업무가 <span id="actionItemsCount" class="font-semibold text-red-500"></span>건 있습니다.</p>
+                </div>
+                <button onclick="document.getElementById('actionItemsPopup').classList.add('hidden')"
+                        class="text-gray-400 hover:text-gray-600 p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <ul id="actionItemList" class="px-6 py-2 overflow-y-auto flex-1"></ul>
+            <div class="px-6 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+                <a href="/admin/action-items"
+                   onclick="document.getElementById('actionItemsPopup').classList.add('hidden')"
+                   class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg text-center transition">
+                    업무 목록 바로가기
+                </a>
+                <button onclick="document.getElementById('actionItemsPopup').classList.add('hidden')"
+                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+    <!-- 팝업 공지사항 모달 -->
+    <div id="announcementPopup" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[1100] flex items-center justify-center">
+        <div id="announcementCard" role="dialog" aria-modal="true" aria-labelledby="popupTitle" tabindex="-1" class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="p-6">
+                <div id="popupHeaderBar" class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span id="popupIcon" class="text-3xl">📢</span>
+                        <h3 id="popupTitle" class="text-2xl font-bold text-gray-800"></h3>
+                        <span id="popupBadge" class="px-2 py-1 text-xs font-medium rounded"></span>
+                    </div>
+                    <button onclick="closeAnnouncementPopup()" id="popupCloseBtn" aria-label="공지 닫기" type="button" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="popupBody">
+                <img id="popupImage" hidden alt="" decoding="async">
+                <p id="popupImageError" role="status" hidden>이미지를 불러오지 못했습니다. 아래 공지 내용을 확인해 주세요.</p>
+                <div id="popupContent" class="prose max-w-none mb-6 text-gray-800 leading-relaxed whitespace-pre-wrap"></div>
+                <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+                    <span id="popupAuthor"></span>
+                    <span id="popupDate"></span>
+                </div>
+                </div>
+                <div id="popupActions" class="flex gap-2">
+                    <button onclick="closeAnnouncementPopup()" id="popupConfirmBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200">
+                        확인
+                    </button>
+                    <button onclick="goToPopupLink()" id="popupLinkBtn" class="hidden flex-1 bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-lg transition duration-200 shadow-md">
+                        <span id="popupLinkBtnText">바로가기</span> →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // 사이드바 스크롤 위치 저장 및 복원
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('scrollable-menu');
+        if (!sidebar) {
+            console.log('Scrollable menu not found');
+            return;
+        }
+
+        // Alpine.js 초기화 후 스크롤 위치 복원
+        function restoreScrollPosition() {
+            const savedScrollPos = sessionStorage.getItem('sidebarScrollPos');
+            if (savedScrollPos) {
+                sidebar.scrollTop = parseInt(savedScrollPos);
+                console.log('Restored scroll position:', savedScrollPos);
+            }
+        }
+
+        // 즉시 복원 시도
+        restoreScrollPosition();
+
+        // Alpine.js 로드 후에도 복원 (다중 시도)
+        setTimeout(restoreScrollPosition, 100);
+        setTimeout(restoreScrollPosition, 300);
+
+        // Alpine 이벤트가 있다면 그 후에도 복원
+        document.addEventListener('alpine:initialized', restoreScrollPosition);
+
+        // 스크롤 시 위치 저장
+        let scrollTimeout;
+        sidebar.addEventListener('scroll', function() {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(function() {
+                sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop);
+                console.log('Saved scroll position:', sidebar.scrollTop);
+            }, 100);
+        });
+
+        // 링크 클릭 시 스크롤 위치 즉시 저장
+        sidebar.addEventListener('click', function(e) {
+            if (e.target.closest('a')) {
+                sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop);
+                console.log('Saved on click:', sidebar.scrollTop);
+            }
+        });
+    });
+
+    // 첨삭 리포트 iframe 높이 자동 조절 (같은 출처라 contentWindow 접근 가능)
+    function momoaiResizeReportFrame(iframe) {
+        try {
+            const doc = iframe.contentWindow.document;
+            const height = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+            iframe.style.height = (height + 20) + 'px';
+        } catch (e) {
+            // 접근 실패 시 최소 높이 유지
+        }
+    }
+
+    // 알림 뱃지 업데이트 - 종 아이콘뿐 아니라 사이드바의 "상담 신청 접수함"/
+    // "보강 신청 확인" 같은 배지([data-badge])도 30초마다 같이 갱신한다.
+    // 예전엔 이 사이드바 배지들이 페이지 로드 시점 값 그대로 고정돼 있어서
+    // 새 신청/답변이 와도 그 메뉴를 직접 눌러봐야만 알 수 있었다.
+    function updateNotificationBadge() {
+        fetch('/notifications/api/unread-count')
+            .then(response => response.json())
+            .then(data => {
+                const count = data.unread_count || 0;
+                const badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+                // 홈 화면 앱 아이콘 뱃지 (iOS 16.4+ PWA, Android Chrome 81+)
+                if ('setAppBadge' in navigator) {
+                    if (count > 0) {
+                        navigator.setAppBadge(count).catch(() => {});
+                    } else {
+                        navigator.clearAppBadge().catch(() => {});
+                    }
+                }
+
+                const sidebar = data.sidebar || {};
+                document.querySelectorAll('[data-badge]').forEach(function(el) {
+                    const n = sidebar[el.getAttribute('data-badge')] || 0;
+                    el.textContent = n;
+                    el.classList.toggle('hidden', n <= 0);
+                });
+            })
+            .catch(error => console.error('Error fetching notification count:', error));
+    }
+
+    // 페이지 로드 시 알림 확인
+    updateNotificationBadge();
+
+    // 30초마다 알림 확인
+    setInterval(updateNotificationBadge, 30000);
+
+    // 팝업 공지사항 관련
+    let currentPopupAnnouncements = [];
+    let currentPopupIndex = 0;
+    let announcementReturnFocus = null;
+    let announcementPreviousOverflow = '';
+    let announcementClosing = false;
+
+    function safePopupLink(value) {
+        if (!value || typeof value !== 'string') return null;
+        let decoded = value;
+        try { for (let i=0;i<3;i++) decoded = decodeURIComponent(decoded); } catch (_) { return null; }
+        if (/[\s\\\\\u0000-\u001f\u007f]/.test(decoded)) return null;
+        if (decoded.startsWith('/')) return decoded.startsWith('//') ? null : value;
+        try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? value : null; } catch (_) { return null; }
+    }
+    function hideAnnouncementPopup() {
+        document.getElementById('announcementPopup').classList.add('hidden');
+        document.body.style.overflow = announcementPreviousOverflow;
+        if (announcementReturnFocus && announcementReturnFocus.isConnected) announcementReturnFocus.focus();
+    }
+    document.addEventListener('keydown', event => {
+        const modal = document.getElementById('announcementPopup');
+        if (modal.classList.contains('hidden')) return;
+        if (event.key === 'Escape') { event.preventDefault(); closeAnnouncementPopup(); }
+        if (event.key === 'Tab') {
+            const nodes = [...document.querySelectorAll('#announcementCard button, #announcementCard a[href]')].filter(n => n.getClientRects().length && !n.disabled);
+            const first = nodes[0], last = nodes[nodes.length-1];
+            if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+        }
+    });
+
+    function loadPopupAnnouncements() {
+        fetch('/api/popup-announcements')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.announcements && data.announcements.length > 0) {
+                    currentPopupAnnouncements = data.announcements;
+                    currentPopupIndex = 0;
+                    showCurrentPopup();
+                }
+            })
+            .catch(error => console.error('Error loading popup announcements:', error));
+    }
+
+    function showCurrentPopup() {
+        if (currentPopupIndex >= currentPopupAnnouncements.length) {
+            return;
+        }
+
+        const announcement = currentPopupAnnouncements[currentPopupIndex];
+
+        // 모달 내용 채우기
+        document.getElementById('popupTitle').textContent = announcement.title;
+        const image = document.getElementById('popupImage');
+        const imageError = document.getElementById('popupImageError');
+        image.hidden = true;
+        image.removeAttribute('src');
+        imageError.hidden = true;
+        image.alt = announcement.image_alt || announcement.title;
+        const imageURL = typeof announcement.image_url === 'string' && /^\/static\/announcement-images\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(announcement.image_url) ? announcement.image_url : null;
+        image.onerror = () => { image.hidden = true; imageError.hidden = false; };
+        if (imageURL) { image.src = imageURL; image.hidden = false; }
+        document.getElementById('popupBody').scrollTop = 0;
+        document.getElementById('popupContent').textContent = announcement.content;
+        document.getElementById('popupAuthor').textContent = '작성자: ' + (announcement.author || '관리자');
+        document.getElementById('popupDate').textContent = '작성일: ' + announcement.created_at;
+
+        // 바로가기 버튼 - link_url이 있을 때만 노출(있으면 "바로가기"가 넓게,
+        // "확인"은 옆에 작게 - 없으면 "확인"이 기존처럼 전체 너비를 채움)
+        const linkBtn = document.getElementById('popupLinkBtn');
+        const confirmBtn = document.getElementById('popupConfirmBtn');
+        const safeHref = safePopupLink(announcement.link_url);
+        delete linkBtn.dataset.href;
+        if (safeHref) {
+            document.getElementById('popupLinkBtnText').textContent = announcement.link_text || '바로가기';
+            linkBtn.dataset.href = safeHref;
+            linkBtn.classList.remove('hidden');
+            confirmBtn.classList.remove('flex-1');
+        } else {
+            linkBtn.classList.add('hidden');
+            confirmBtn.classList.add('flex-1');
+        }
+
+        // 배지 설정
+        const badge = document.getElementById('popupBadge');
+        let badgeClass = 'bg-blue-100 text-blue-800';
+        let badgeText = '일반';
+
+        if (announcement.announcement_type === 'urgent') {
+            badgeClass = 'bg-red-100 text-red-800';
+            badgeText = '긴급';
+        } else if (announcement.announcement_type === 'event') {
+            badgeClass = 'bg-purple-100 text-purple-800';
+            badgeText = '행사';
+        } else if (announcement.announcement_type === 'system') {
+            badgeClass = 'bg-white text-indigo-700';
+            badgeText = '시스템 업데이트';
+        }
+
+        badge.className = 'px-2 py-1 text-xs font-medium rounded ' + badgeClass;
+        badge.textContent = badgeText;
+
+        // 팝업 위치·색상 적용 (출결 확인 팝업 등 다른 모달과 구분되도록
+        // system 타입은 화면 중앙 어두운 오버레이 대신 우상단 토스트로 표시)
+        applyPopupStyle(imageURL ? 'general' : announcement.announcement_type);
+        document.getElementById('announcementCard').classList.toggle('has-image', Boolean(imageURL));
+
+        // 모달 표시
+        const modal = document.getElementById('announcementPopup');
+        if (modal.classList.contains('hidden') && document.body.style.overflow !== 'hidden') {
+            announcementReturnFocus = document.activeElement;
+            announcementPreviousOverflow = document.body.style.overflow;
+        }
+        announcementClosing = false;
+        document.body.style.overflow = 'hidden';
+        modal.classList.remove('hidden');
+        document.getElementById('popupCloseBtn').focus();
+    }
+
+    function applyPopupStyle(type) {
+        const container = document.getElementById('announcementPopup');
+        const card = document.getElementById('announcementCard');
+        const headerBar = document.getElementById('popupHeaderBar');
+        const title = document.getElementById('popupTitle');
+        const closeBtn = document.getElementById('popupCloseBtn');
+        const icon = document.getElementById('popupIcon');
+
+        if (type === 'system') {
+            // 우상단 토스트형, 인디고 헤더 - 화면 중앙에 뜨는 출결 확인(빨강) 팝업과 위치·색 모두 구분
+            container.className = 'fixed top-24 right-6 hidden z-[1150] flex justify-end';
+            card.className = 'bg-white rounded-lg shadow-2xl w-96 max-h-[75vh] overflow-y-auto';
+            headerBar.className = 'flex items-start justify-between mb-4 -mx-6 -mt-6 px-6 py-4 rounded-t-lg bg-indigo-600 text-white';
+            title.className = 'text-lg font-bold text-white';
+            closeBtn.className = 'text-white opacity-80 hover:opacity-100';
+            icon.textContent = '🚀';
+        } else {
+            container.className = 'fixed inset-0 bg-black bg-opacity-50 hidden z-[1100] flex items-center justify-center';
+            card.className = 'bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto';
+            headerBar.className = 'flex items-start justify-between mb-4';
+            title.className = 'text-2xl font-bold text-gray-800';
+            closeBtn.className = 'text-gray-400 hover:text-gray-600';
+            icon.textContent = '📢';
+        }
+    }
+
+    function closeAnnouncementPopup() {
+        if (announcementClosing || document.getElementById('announcementPopup').classList.contains('hidden')) return;
+        announcementClosing = true;
+        const announcement = currentPopupAnnouncements[currentPopupIndex];
+
+        // 읽음 처리
+        fetch(`/api/announcements/${announcement.announcement_id}/mark-read`, {
+            keepalive: true,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 다음 팝업으로 이동
+            currentPopupIndex++;
+            if (currentPopupIndex < currentPopupAnnouncements.length) {
+                showCurrentPopup();
+            } else {
+                // 모든 팝업을 닫음
+                hideAnnouncementPopup();
+            }
+        })
+        .catch(error => {
+            console.error('Error marking announcement as read:', error);
+            // 에러가 나도 다음 팝업으로
+            currentPopupIndex++;
+            if (currentPopupIndex < currentPopupAnnouncements.length) {
+                showCurrentPopup();
+            } else {
+                hideAnnouncementPopup();
+            }
+        });
+    }
+
+    // "바로가기" 클릭 - 이 공지도 읽음 처리해서 다음 로그인 때 또 안 뜨게 하고,
+    // 응답을 기다리지 않고 바로 이동한다(이동해버리면 어차피 다음 팝업 표시 로직이
+    // 의미 없어짐 - 읽음 처리는 페이지를 떠나기 전에 fetch만 발사해두면 충분).
+    function goToPopupLink() {
+        const announcement = currentPopupAnnouncements[currentPopupIndex];
+        const href = safePopupLink(document.getElementById('popupLinkBtn').dataset.href);
+        if (!href || announcementClosing) return;
+        announcementClosing = true;
+
+        fetch(`/api/announcements/${announcement.announcement_id}/mark-read`, {
+            keepalive: true,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        }).catch(error => console.error('Error marking announcement as read:', error));
+
+        window.location.href = href;
+    }
+
+    // 페이지 로드 시 팝업 공지 확인 (3초 후)
+    setTimeout(loadPopupAnnouncements, 3000);
+
+    // ── 처리 대기 업무 팝업 ──────────────────────────────
+    {% if current_user.role in ('admin', 'master_admin', 'teacher') %}
+    function loadActionItemsPopup() {
+        fetch('/api/action-items/pending')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success || !data.items || data.items.length === 0) return;
+
+                // 사이드바 배지 업데이트 (역할에 따라 다른 배지)
+                const badgeId = '{{ current_user.role }}' === 'teacher' ? 'teacherActionBadge' : 'actionItemsBadge';
+                const badge = document.getElementById(badgeId);
+                if (badge) {
+                    badge.textContent = data.total;
+                    badge.classList.remove('hidden');
+                }
+
+                // 오늘 이미 봤으면 팝업 안 띄움
+                const today = new Date().toISOString().slice(0, 10);
+                const userId = '{{ current_user.user_id }}';
+                const key = 'action_popup_' + userId + '_' + today;
+                if (localStorage.getItem(key)) return;
+                localStorage.setItem(key, '1');
+
+                // 팝업 렌더링
+                const list = document.getElementById('actionItemList');
+                if (!list) return;
+                list.innerHTML = '';
+                data.items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-start gap-2 py-2 border-b border-gray-100 last:border-0';
+                    const overdue = item.is_overdue
+                        ? '<span class="text-xs text-red-500 ml-1">기한초과</span>' : '';
+                    const due = item.due_date
+                        ? `<span class="text-xs text-gray-400">${item.due_date}</span>` : '';
+                    li.innerHTML = `
+                        <span class="shrink-0 mt-0.5">${item.priority_icon}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-800 leading-snug">${item.title}${overdue}</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">${item.category}</span>
+                                ${item.student_name ? `<span class="text-xs text-gray-400">👤 ${item.student_name}</span>` : ''}
+                                ${due}
+                            </div>
+                        </div>`;
+                    list.appendChild(li);
+                });
+
+                document.getElementById('actionItemsCount').textContent = data.total;
+                document.getElementById('actionItemsPopup').classList.remove('hidden');
+            })
+            .catch(() => {});
+    }
+    setTimeout(loadActionItemsPopup, 5000);
+    {% endif %}
+
+    // 서브메뉴 활성 상태 색상 강제 적용 (모든 역할)
+    document.addEventListener('DOMContentLoaded', function() {
+        function forceSubmenuColors() {
+            // 모든 서브메뉴 링크에서 활성 상태 찾기
+            const activeSubmenus = document.querySelectorAll('a.sidebar-link-sub[class*="text-"][class*="-600"]');
+            activeSubmenus.forEach(function(link) {
+                // 인라인 스타일로 강제 적용
+                link.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                link.style.color = 'white';
+                link.style.fontWeight = '600';
+            });
+        }
+
+        // 페이지 로드 시 즉시 적용
+        forceSubmenuColors();
+
+        // Alpine.js 초기화 후에도 적용
+        setTimeout(forceSubmenuColors, 100);
+        setTimeout(forceSubmenuColors, 300);
+        document.addEventListener('alpine:initialized', forceSubmenuColors);
+    });
+    </script>
+    {% endif %}
+
+    <!-- PWA Service Worker 등록 -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            // 오래된 SW(scope=/static/ 등) 정리
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                    if (reg.scope && reg.scope.includes('/static')) {
+                        await reg.unregister();
+                        console.log('[PWA] Unregistered stale SW:', reg.scope);
+                    }
+                }
+            } catch(e) {
+                console.warn('[PWA] Failed to clean stale SW:', e);
+            }
+
+            navigator.serviceWorker.register('/sw.js?v=protected-r07', { scope: '/', updateViaCache: 'none' })
+                .then(registration => {
+                    console.log('[PWA] Service Worker registered:', registration.scope);
+                })
+                .catch(error => {
+                    console.log('[PWA] Service Worker registration failed:', error);
+                });
+        });
+    }
+
+    // PWA 설치 프롬프트
+    let deferredPrompt;
+    const installButton = document.getElementById('pwa-install-btn');
+    const installBanner = document.getElementById('pwa-install-banner');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // 기본 설치 프롬프트 막기
+        e.preventDefault();
+        deferredPrompt = e;
+
+        console.log('[PWA] Install prompt available');
+
+        // 이미 설치했는지 확인
+        if (!localStorage.getItem('pwa-dismissed')) {
+            // 설치 배너 표시
+            if (installBanner) {
+                installBanner.style.display = 'flex';
+            }
+        }
+    });
+
+    // 설치 버튼 클릭
+    if (installButton) {
+        installButton.addEventListener('click', async () => {
+            if (!deferredPrompt) {
+                return;
+            }
+
+            // 설치 프롬프트 표시
+            deferredPrompt.prompt();
+
+            // 사용자 선택 대기
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log('[PWA] User choice:', outcome);
+
+            // 프롬프트 사용 후 null 처리
+            deferredPrompt = null;
+
+            // 배너 숨김
+            if (installBanner) {
+                installBanner.style.display = 'none';
+            }
+        });
+    }
+
+    // 배너 닫기 버튼
+    const closeBannerBtn = document.getElementById('pwa-close-banner');
+    if (closeBannerBtn) {
+        closeBannerBtn.addEventListener('click', () => {
+            if (installBanner) {
+                installBanner.style.display = 'none';
+                localStorage.setItem('pwa-dismissed', 'true');
+            }
+        });
+    }
+
+    // 앱 설치 완료 이벤트
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] App installed successfully');
+        deferredPrompt = null;
+
+        if (installBanner) {
+            installBanner.style.display = 'none';
+        }
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', '앱 설치 완료!', '이제 홈 화면에서 MOMOAI를 사용할 수 있습니다.');
+        }
+    });
+
+    // ── iOS Safari 설치 안내 배너 ────────────────────────────────
+    (function() {
+        const iosBanner = document.getElementById('ios-install-banner');
+        const iosDismiss = document.getElementById('ios-install-dismiss');
+        if (!iosBanner) return;
+
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const isStandalone = (window.navigator.standalone === true);
+        // Chrome on iOS: CriOS, Firefox: FxiOS — push 미지원이므로 동일하게 안내
+        const isSafariBased = !/CriOS|FxiOS|OPiOS/.test(navigator.userAgent);
+
+        // iOS Safari이고 아직 홈 화면 앱으로 실행 중이 아닌 경우
+        if (!isIOS || isStandalone) return;
+
+        // 7일 이내 닫은 경우 표시 안 함
+        const dismissedAt = parseInt(localStorage.getItem('ios-install-dismissed') || '0', 10);
+        if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return;
+
+        // 2초 후 배너 표시
+        setTimeout(() => {
+            iosBanner.style.display = 'block';
+        }, 2000);
+
+        if (iosDismiss) {
+            iosDismiss.addEventListener('click', () => {
+                iosBanner.style.display = 'none';
+                localStorage.setItem('ios-install-dismissed', String(Date.now()));
+            });
+        }
+    })();
+
+    // ── Web Push 알림 ──────────────────────────────────────────────
+    {% if current_user.is_authenticated %}
+    (function() {
+        const pushBanner = document.getElementById('push-banner');
+        const allowBtn   = document.getElementById('push-allow-btn');
+        const dismissBtn = document.getElementById('push-dismiss-btn');
+
+        if (!pushBanner) return; // 배너 엘리먼트 없으면 종료
+
+        // base64url → Uint8Array 변환
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        }
+
+        // VAPID 공개키를 서버 API에서 가져옴 (서버 사이드 조건 불필요)
+        async function getVapidKey() {
+            try {
+                const res = await fetch('/notifications/push/vapid-public-key');
+                const data = await res.json();
+                return data.public_key || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function subscribeAndSave(vapidKey) {
+            try {
+                const sw = await navigator.serviceWorker.ready;
+                const sub = await sw.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                });
+                const json = sub.toJSON();
+                const res = await fetch('/notifications/push/subscribe', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        endpoint: json.endpoint,
+                        p256dh: json.keys.p256dh,
+                        auth: json.keys.auth
+                    })
+                });
+                if (res.ok) {
+                    console.log('[Push] Subscribed OK');
+                    localStorage.setItem('push-subscribed', '1');
+                    localStorage.removeItem('push-dismissed');
+                } else {
+                    console.warn('[Push] Server error:', res.status);
+                    localStorage.removeItem('push-subscribed');
+                }
+            } catch (e) {
+                console.warn('[Push] Subscribe failed:', e);
+                localStorage.removeItem('push-subscribed');
+            }
+            pushBanner.style.display = 'none';
+        }
+
+        async function initPush() {
+            // 브라우저 지원 확인
+            if (!('PushManager' in window) || !('serviceWorker' in navigator)) {
+                console.log('[Push] Not supported in this browser');
+                return;
+            }
+            if (Notification.permission === 'denied') return;
+
+            // VAPID 키 확인
+            const vapidKey = await getVapidKey();
+            if (!vapidKey) {
+                console.warn('[Push] VAPID key not available on server');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                // 이미 허용 — 서버에 구독 여부 확인
+                try {
+                    const statusRes = await fetch('/notifications/push/status');
+                    const status = await statusRes.json();
+                    if (!status.subscribed) {
+                        console.log('[Push] Permission granted but no server subscription — re-subscribing');
+                        localStorage.removeItem('push-subscribed');
+                        await subscribeAndSave(vapidKey);
+                    } else {
+                        localStorage.setItem('push-subscribed', '1');
+                    }
+                } catch(e) {
+                    if (!localStorage.getItem('push-subscribed')) await subscribeAndSave(vapidKey);
+                }
+                return;
+            }
+
+            // 권한 미결정 — 배너 표시 여부 결정
+            const dismissed = localStorage.getItem('push-dismissed');
+            if (dismissed) {
+                const dismissedAt = parseInt(dismissed, 10);
+                if (Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) return; // 7일 내 dismissed
+                localStorage.removeItem('push-dismissed');
+            }
+
+            // 3초 후 배너 표시
+            setTimeout(() => { pushBanner.style.display = 'block'; }, 3000);
+
+            // 버튼 핸들러 등록
+            if (allowBtn) {
+                allowBtn.addEventListener('click', async () => {
+                    pushBanner.style.display = 'none';
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') await subscribeAndSave(vapidKey);
+                });
+            }
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    pushBanner.style.display = 'none';
+                    localStorage.setItem('push-dismissed', String(Date.now()));
+                });
+            }
+        }
+
+        // SW ready 또는 4초 타임아웃 후 초기화 (SW 설치 대기 방지)
+        let initialized = false;
+        function runOnce() {
+            if (initialized) return;
+            initialized = true;
+            initPush();
+        }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(runOnce);
+        }
+        setTimeout(runOnce, 4000); // fallback: SW가 준비 안 돼도 4초 후 실행
+    })();
+    {% endif %}
+    </script>
+
+    {% if current_user.is_authenticated and current_user.role == 'parent' and config.get('MOMOBOT_PARENT_WIDGET_ENABLED') %}
+    {% include "partials/chat_widget.html" %}
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.role_level <= 4 %}
+    {% include "partials/momo_agent_widget.html" %}
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.role == 'student' %}
+    <!-- 줌 강의실 선택 모달 -->
+    <div id="zoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100]">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="p-6 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800">📹 강의실 선택</h3>
+                <p class="text-sm text-gray-500 mt-1">입장할 강의실을 선택하세요.</p>
+            </div>
+            <div id="zoomClassList" class="p-4 space-y-2 max-h-72 overflow-y-auto"></div>
+            <div class="p-4 border-t border-gray-100 flex justify-end">
+                <button onclick="closeZoomModal()"
+                        class="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let _zoomClasses = [];
+
+    async function enterZoomClass() {
+        try {
+            const res = await fetch('{{ url_for("student.zoom_classes") }}');
+            const data = await res.json();
+            const classes = data.classes || [];
+
+            if (classes.length === 0) {
+                alert('현재 등록된 줌 강의실이 없습니다.\n강사에게 문의하세요.');
+                return;
+            }
+            if (classes.length === 1) {
+                fetch('{{ url_for("student.zoom_log") }}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({teacher_id: classes[0].teacher_id, course_id: classes[0].course_id})
+                });
+                window.open(classes[0].zoom_url, '_blank');
+                return;
+            }
+            // 2개 이상: 모달 표시
+            _zoomClasses = classes;
+            const list = document.getElementById('zoomClassList');
+            list.innerHTML = classes.map((c, i) => `
+                <button onclick="selectZoomClass(${i})"
+                        class="w-full text-left flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition">
+                    <span class="text-2xl">📹</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">${c.course_name}</p>
+                        <p class="text-sm text-gray-500">${c.teacher_name} 강사</p>
+                    </div>
+                </button>
+            `).join('');
+            document.getElementById('zoomModal').classList.remove('hidden');
+        } catch (e) {
+            alert('강의실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        }
+    }
+
+    function selectZoomClass(index) {
+        const c = _zoomClasses[index];
+        closeZoomModal();
+        fetch('{{ url_for("student.zoom_log") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({teacher_id: c.teacher_id, course_id: c.course_id})
+        });
+        window.open(c.zoom_url, '_blank');
+    }
+
+    function closeZoomModal() {
+        document.getElementById('zoomModal').classList.add('hidden');
+    }
+
+    document.getElementById('zoomModal').addEventListener('click', function(e) {
+        if (e.target === this) closeZoomModal();
+    });
+    </script>
+    {% endif %}
+    {% if current_user.is_authenticated and current_user.is_active and current_user.role in ('student', 'parent', 'teacher', 'staff', 'manager', 'admin', 'master_admin') and (config.get('MEMBER_INTEREST_QUEST_ENABLED') == true or current_user.role in ('admin', 'master_admin') or (current_user.role == 'student' and config.get('STUDENT_INTEREST_QUEST_ENABLED') == true)) %}
+    {% include 'interest_quest/layer.html' %}
+    {% endif %}
+</body>
+</html>

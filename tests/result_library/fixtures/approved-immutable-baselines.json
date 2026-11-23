@@ -1,0 +1,52 @@
+{
+  "baseline_commit": "f95a7c78ab042acc7a2a5fe0c317b84f493d8216",
+  "hashes": {
+    "canonical_form": {
+      "baseline_sha256": "6cfc01f3c40cf6d7ca13d1bfd86878735ae62b4b5b8b87293b2634bd39f7ff7b",
+      "candidate_sha256": "6cfc01f3c40cf6d7ca13d1bfd86878735ae62b4b5b8b87293b2634bd39f7ff7b"
+    },
+    "artwork": {
+      "baseline_sha256": "53b59e98d1dbbebc067dba71f65c5d6d214fb8b4903878788fc344c8ea1220b4",
+      "candidate_sha256": "53b59e98d1dbbebc067dba71f65c5d6d214fb8b4903878788fc344c8ea1220b4"
+    },
+    "scorer": {
+      "baseline_sha256": "a328f7eaf569ddeee7ac12bd70b3073de05c5cb6658b98d03c41b6ae6789a762",
+      "candidate_sha256": "a328f7eaf569ddeee7ac12bd70b3073de05c5cb6658b98d03c41b6ae6789a762"
+    },
+    "app/interest_quest/backend.py": {
+      "normalized_baseline_sha256": "1192874ef502751780ccb20ed0bf26a2673fcf4c6a9dfacbe7ca2714547e3d69",
+      "normalized_candidate_sha256": "1192874ef502751780ccb20ed0bf26a2673fcf4c6a9dfacbe7ca2714547e3d69",
+      "raw_candidate_sha256": "5391f1897613a2c091cd7a1db8d3992fb32ffb4d20c748f664c21bb40d49b1ba"
+    },
+    "app/interest_quest/store.py": {
+      "normalized_baseline_sha256": "6bf9132fd30a9d1c74d1cf167f8949369ed2cdc5bb23451f6598253ca13b7411",
+      "normalized_candidate_sha256": "6bf9132fd30a9d1c74d1cf167f8949369ed2cdc5bb23451f6598253ca13b7411",
+      "raw_candidate_sha256": "a419e41cccf52f064c5e984ba51db2b17477da1db39f6e99bd327f89a9ffb62c"
+    },
+    "app/interest_quest/access.py": {
+      "normalized_baseline_sha256": "5db5afac06defddfc103917e579be30b0d8a722d4fc8f9612eb16ddeb0e9f3e7",
+      "normalized_candidate_sha256": "5db5afac06defddfc103917e579be30b0d8a722d4fc8f9612eb16ddeb0e9f3e7",
+      "raw_candidate_sha256": "e3322c408b38a642460fb9cdc8715f75698a0f8a531879aac0e69cccb4da7b4a"
+    },
+    "app/interest_quest/protected/momotown-v02.js": {
+      "normalized_baseline_sha256": "7cabea3dc47898ad25af3882b57eb748e088d4aba7e8d738c789b6de37a3e853",
+      "normalized_candidate_sha256": "7cabea3dc47898ad25af3882b57eb748e088d4aba7e8d738c789b6de37a3e853",
+      "raw_candidate_sha256": "ed8748af0083aad8a5210194aef392e6ce8090cdb2a79fd5dd794b23be6966db"
+    },
+    "app/interest_quest/protected/momotown-v02.json": {
+      "normalized_baseline_sha256": "1692582fdea2fba63cc28ae0aa748274de8364ab09347b8c0c5b4f92812faaf3",
+      "normalized_candidate_sha256": "1692582fdea2fba63cc28ae0aa748274de8364ab09347b8c0c5b4f92812faaf3",
+      "raw_candidate_sha256": "284e704973e45b59116c3d7fbb307bada20a3ed81540aa6630b4f95f453ef47b"
+    },
+    "app/interest_quest/protected/story-v3.js": {
+      "normalized_baseline_sha256": "2bbc0c030cac1be90b6783cc1bee72acccbb83a0f1bc972b904c989e92eb276f",
+      "normalized_candidate_sha256": "2bbc0c030cac1be90b6783cc1bee72acccbb83a0f1bc972b904c989e92eb276f",
+      "raw_candidate_sha256": "0f80bcf845552b0e9fe04097ac21ce1cb0af33b29bc4376f68d80ba6438e56a0"
+    },
+    "app/interest_quest/protected/story-v4-content.json": {
+      "normalized_baseline_sha256": "e9a17dc6e5e68bb695c876f62999e5c1cd2e49d5eed8dd03e0700f7a4ec849f0",
+      "normalized_candidate_sha256": "e9a17dc6e5e68bb695c876f62999e5c1cd2e49d5eed8dd03e0700f7a4ec849f0",
+      "raw_candidate_sha256": "7ffe4eedde67fe040262023228a99f702dfc271d97d6d05c86f4efa34cbf1d6f"
+    }
+  }
+}
