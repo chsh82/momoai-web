@@ -257,7 +257,9 @@ def index():
 @requires_role('teacher', 'admin')
 def courses():
     """내 수업 목록"""
-    status_filter = request.args.get('status', '').strip()
+    status_filter = request.args.get('status', 'active').strip()
+    if status_filter not in ('active', 'completed', 'cancelled'):
+        status_filter = 'active'
     grade_filter = request.args.get('grade', '').strip()
     weekday_filter = request.args.get('weekday', '').strip()
     course_type_filter = request.args.get('course_type', '').strip()
